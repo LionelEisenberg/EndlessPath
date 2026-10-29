@@ -2,8 +2,8 @@ extends GutTest
 
 ## Unit tests for CharacterManager and CharacterAttributesData: base attribute
 ## getters, total attributes (base + equipment bonuses from equipped gear and
-## both accessory slots) through the real CharacterManager, and
-## add_base_attribute().
+## both accessory slots) through the real CharacterManager, get_stat() and the
+## modifier sources, add_base_attribute(), and stats_changed.
 ##
 ## Manager tests run on a fresh SaveGameData that every manager is re-bound
 ## to, so CharacterManager and InventoryManager share it. The original save is
@@ -11,6 +11,11 @@ extends GutTest
 
 const AttributeType = CharacterAttributesData.AttributeType
 const EquipmentSlot = EquipmentDefinitionData.EquipmentSlot
+const Stat = StatModifierData.Stat
+const Kind = StatModifierData.Kind
+
+## The modifier source these tests set; after_each() removes it.
+const TEST_SOURCE: StringName = &"test"
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -30,6 +35,7 @@ func before_each() -> void:
 	_save.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
 
 func after_each() -> void:
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 
@@ -47,6 +53,13 @@ func _inventory() -> InventoryData:
 
 func _total(attr_type: AttributeType) -> float:
 	return CharacterManager.get_total_attributes_data().get_attribute(attr_type)
+
+## A modifier source that always returns the given modifiers.
+func _source(modifiers: Array[StatModifierData]) -> Callable:
+	return func() -> Array[StatModifierData]: return modifiers
+
+func _robes() -> ItemInstanceData:
+	return _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
 
 #-----------------------------------------------------------------------------
 # ATTRIBUTE GETTERS - ALL 8 ATTRIBUTES
@@ -293,30 +306,85 @@ func test_add_base_attribute_emits_new_base_value() -> void:
 	assert_signal_emitted_with_parameters(CharacterManager, "base_attribute_changed", [AttributeType.BODY, 7.0])
 
 #-----------------------------------------------------------------------------
-# TOTAL ATTRIBUTES CHANGED SIGNAL
+# STATS CHANGED SIGNAL
 #-----------------------------------------------------------------------------
 
-func test_add_base_attribute_emits_total_attributes_changed() -> void:
+func test_add_base_attribute_emits_stats_changed() -> void:
 	watch_signals(CharacterManager)
 	CharacterManager.add_base_attribute(AttributeType.BODY, 2.0)
-	assert_signal_emit_count(CharacterManager, "total_attributes_changed", 1)
+	assert_signal_emit_count(CharacterManager, "stats_changed", 1)
 
-func test_equipping_gear_emits_total_attributes_changed() -> void:
+func test_equipping_gear_emits_stats_changed() -> void:
 	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
 	_inventory().equipment[0] = armor
 	watch_signals(CharacterManager)
 	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
-	assert_signal_emitted(CharacterManager, "total_attributes_changed")
+	assert_signal_emitted(CharacterManager, "stats_changed")
 
-func test_unequipping_gear_emits_total_attributes_changed() -> void:
+func test_unequipping_gear_emits_stats_changed() -> void:
 	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
 	_inventory().equipment[0] = armor
 	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
 	watch_signals(CharacterManager)
 	InventoryManager.unequip_item(EquipmentSlot.ARMOR)
-	assert_signal_emitted(CharacterManager, "total_attributes_changed")
+	assert_signal_emitted(CharacterManager, "stats_changed")
 
-func test_save_reset_emits_total_attributes_changed_once() -> void:
+func test_save_reset_emits_stats_changed_once() -> void:
 	watch_signals(CharacterManager)
 	PersistenceManager.save_data_reset.emit()
-	assert_signal_emit_count(CharacterManager, "total_attributes_changed", 1)
+	assert_signal_emit_count(CharacterManager, "stats_changed", 1)
+
+func test_a_listener_during_save_reset_sees_the_new_saves_gear() -> void:
+	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _robes()
+	var bodies: Array[float] = []
+	var record := func() -> void: bodies.append(CharacterManager.get_stat(Stat.BODY))
+	CharacterManager.stats_changed.connect(record)
+	var next_save := SaveGameData.new()
+	next_save.character_attributes = CharacterAttributesData.new()
+	PersistenceManager.save_game_data = next_save
+	PersistenceManager.save_data_reset.emit()
+	CharacterManager.stats_changed.disconnect(record)
+	assert_eq(bodies, [10.0] as Array[float], "the new save's Body, with none of the old save's gear")
+
+#-----------------------------------------------------------------------------
+# STATS AND MODIFIER SOURCES
+#-----------------------------------------------------------------------------
+
+func test_get_stat_reads_base_plus_gear() -> void:
+	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _robes()
+	assert_eq(CharacterManager.get_stat(Stat.BODY), 14.0)
+	assert_eq(CharacterManager.get_stat(Stat.MAX_HEALTH), 140.0, "the formula runs on the total Body")
+
+func test_a_source_raises_the_total_attributes() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.BODY, Kind.FLAT, 3.0)]))
+	assert_eq(_total(AttributeType.BODY), 13.0)
+
+func test_a_source_can_raise_a_derived_vital_directly() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.MAX_HEALTH, Kind.FLAT, 20.0)]))
+	assert_eq(CharacterManager.get_stat(Stat.MAX_HEALTH), 120.0)
+	assert_eq(CharacterManager.get_stat(Stat.BODY), 10.0, "Body itself does not move")
+
+func test_attribute_and_derived_bonuses_combine_in_order() -> void:
+	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _robes()
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([
+		StatModifierData.new(Stat.MAX_HEALTH, Kind.FLAT, 20.0),
+		StatModifierData.new(Stat.MAX_HEALTH, Kind.PERCENT, 0.1),
+	]))
+	assert_almost_eq(CharacterManager.get_stat(Stat.MAX_HEALTH), 176.0, 0.0001, "(14 Body x 10 + 20) x 1.1")
+
+func test_setting_a_source_emits_stats_changed() -> void:
+	watch_signals(CharacterManager)
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([]))
+	assert_signal_emit_count(CharacterManager, "stats_changed", 1)
+
+func test_removing_a_source_emits_stats_changed() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([]))
+	watch_signals(CharacterManager)
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_signal_emit_count(CharacterManager, "stats_changed", 1)
+
+func test_removing_a_source_restores_the_value() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.SPIRIT, Kind.PERCENT, 0.5)]))
+	assert_eq(CharacterManager.get_stat(Stat.SPIRIT), 15.0, "precondition: the source counts")
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_eq(CharacterManager.get_stat(Stat.SPIRIT), 10.0)

@@ -152,7 +152,7 @@ func test_zone_visibility_getters() -> void:
 
 func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 	var old_vitals: VitalsManager = PlayerManager.vitals_manager
-	var attribute_hooks: int = CharacterManager.base_attribute_changed.get_connections().size()
+	var stat_hooks: int = CharacterManager.stats_changed.get_connections().size()
 	old_vitals.initialize_current_values()
 	old_vitals.stamina_regen = 2.0
 	PlayerManager.reset_vitals()
@@ -166,8 +166,8 @@ func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 		"it follows the attributes, as at boot")
 	await wait_process_frames(1)
 	assert_freed(old_vitals, "the old VitalsManager")
-	assert_eq(CharacterManager.base_attribute_changed.get_connections().size(), attribute_hooks,
-		"the old manager's attribute hook went with it")
+	assert_eq(CharacterManager.stats_changed.get_connections().size(), stat_hooks,
+		"the old manager's stats hook went with it")
 
 #-----------------------------------------------------------------------------
 # COMPLETE WITHOUT PLAYING

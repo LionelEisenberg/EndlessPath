@@ -97,9 +97,11 @@ func set_madra(amount: float) -> void:
 func get_madra() -> float:
 	return live_save_data.madra
 
-## Get the maximum Madra the player can bring into an adventure (Foundation capacity).
+## Get the maximum Madra the player can bring into an adventure: the player's
+## max Madra stat (Foundation x 10, then its modifiers), the same number the
+## adventure's Madra bar fills to.
 func get_adventure_madra_capacity() -> float:
-	return CharacterManager.get_total_attributes_data().get_max_madra()
+	return CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA)
 
 ## Get the actual Madra budget for an adventure (limited by current pool).
 func get_adventure_madra_budget() -> float:

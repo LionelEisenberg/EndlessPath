@@ -32,7 +32,7 @@ func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	_ready_text.reparent(button.get_detail_slot(), false)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
-	CharacterManager.total_attributes_changed.connect(_on_total_attributes_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 	_update_state()
 
 ## Disconnects from the managers and stops a running shake.
@@ -41,8 +41,8 @@ func teardown() -> void:
 		ResourceManager.madra_changed.disconnect(_on_madra_changed)
 	if ActionManager.current_action_changed.is_connected(_on_current_action_changed):
 		ActionManager.current_action_changed.disconnect(_on_current_action_changed)
-	if CharacterManager.total_attributes_changed.is_connected(_on_total_attributes_changed):
-		CharacterManager.total_attributes_changed.disconnect(_on_total_attributes_changed)
+	if CharacterManager.stats_changed.is_connected(_on_stats_changed):
+		CharacterManager.stats_changed.disconnect(_on_stats_changed)
 	_stop_shake()
 
 ## True once Madra reaches the adventure threshold.
@@ -114,7 +114,7 @@ func _on_madra_changed(_amount: float) -> void:
 func _on_current_action_changed(_action: ZoneActionData) -> void:
 	_update_state()
 
-## Training and gear both move the total Foundation, so the capacity and
-## threshold.
-func _on_total_attributes_changed() -> void:
+## Training, gear and any modifier source move the max Madra stat, and with
+## it the capacity and threshold.
+func _on_stats_changed() -> void:
 	_update_state()
