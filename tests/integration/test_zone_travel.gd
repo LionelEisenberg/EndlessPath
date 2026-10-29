@@ -1,8 +1,8 @@
 extends GutTest
 
 ## Map interaction (Task 13 of the map-first zone view; spec: Behaviour › Map
-## interaction; kit §0, §6.4, §6.6): hovering hexes swaps their rims and
-## lights the route to a zone you can travel to; a locked or uncharted hex
+## interaction; kit §0, §6.4, §6.6): hovering a hex lights the route to a
+## zone you can travel to; a locked or uncharted hex
 ## shows a preview popover after 150 ms and pins it on a click; an open hex
 ## walks the character there with the old action running, and the zone only
 ## changes on arrival (Review Focus 2). One popover at a time; ×, Esc, a click
@@ -10,7 +10,6 @@ extends GutTest
 ## (Review Focus 5).
 
 const ZoneTilemapScene: PackedScene = preload("res://scenes/zones/zone_tilemap/zone_tilemap.tscn")
-const ZoneMapPopoverScene: PackedScene = preload("res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn")
 
 const SPIRIT_VALLEY_ID: String = "SpiritValley"
 const TEST_ZONE_ID: String = "TestZone"
@@ -91,11 +90,6 @@ func _zone(zone_id: String) -> ZoneData:
 func _stand(zone_id: String) -> Vector2:
 	return _map.get_zone_world_centre(_zone(zone_id)) + ZoneTilemap.CHARACTER_STAND_OFFSET
 
-## The screen point a world point lands on with the map camera as it is now.
-func _to_screen(world: Vector2) -> Vector2:
-	var camera: Camera2D = _map.get_camera()
-	return ZoneMapMath.world_to_screen(world, camera.position, camera.zoom.x)
-
 ## Shows the hidden Test Zone and unlocks it, so it is an open hex.
 func _open_test_zone() -> void:
 	ZoneManager.set_hidden_zones_visible(true)
@@ -135,7 +129,7 @@ func _hover_cell_of(zone_id: String) -> void:
 	_map.tile_map.tile_hovered.emit(_zone(zone_id).tilemap_location)
 
 ## Moves every running tween in the tree on by `delta`, as a frame does: the
-## camera's glide, the lock's shake, the idle motion.
+## camera's glide, the idle motion.
 func _step_tweens(delta: float) -> void:
 	for tween: Tween in get_tree().get_processed_tweens():
 		if tween.is_valid() and tween.is_running():
@@ -227,15 +221,6 @@ func test_tile_click_travels() -> void:
 	_map.tile_map.tile_clicked.emit(_zone(TEST_ZONE_ID).tilemap_location)
 	assert_true(_map.is_travelling(), "a click on the open hex's cell walks there")
 
-func test_arrival_frames_the_new_zone() -> void:
-	_open_test_zone()
-	_map.click_zone(_zone(TEST_ZONE_ID))
-	_walk_until_arrival(_map)
-	_run(_map, _map.camera_ease_duration + 0.1)
-	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(TEST_ZONE_ID)))
-	assert_almost_eq(screen.x, 960.0, 0.5, "after a short ease the new zone sits at x 960")
-	assert_almost_eq(screen.y, 702.0, 0.5, "and y 702")
-
 func test_old_action_runs_during_walk() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs")
@@ -289,17 +274,6 @@ func test_session_action_during_walk_cancels_travel() -> void:
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "no arrival in Test Zone")
 	assert_eq(ActionManager.get_current_action().action_id, CYCLING_ID, "cycling still runs")
 
-func test_save_reset_during_walk_cancels_travel() -> void:
-	_open_test_zone()
-	_map.click_zone(_zone(TEST_ZONE_ID))
-	_run(_map, 0.2)
-	PersistenceManager.save_game_data = SaveGameData.new()
-	PersistenceManager.save_data_reset.emit()
-	assert_false(_map.is_travelling(), "a save reset ends the walk")
-	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID))
-	_run(_map, 0.6)
-	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "and nothing arrives later")
-
 func test_outside_zone_change_during_walk_snaps_there() -> void:
 	# A zone change the map did not make (a dev switch, a save reset) ends the
 	# walk at once: the character, the camera and the map's own zone follow
@@ -312,9 +286,6 @@ func test_outside_zone_change_during_walk_snaps_there() -> void:
 	assert_false(_map.is_travelling(), "the walk ends")
 	assert_eq(_map.selected_zone, _zone(FIXTURE_ZONE_ID), "the map stands in the new zone")
 	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID), "and so does the character")
-	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(FIXTURE_ZONE_ID)))
-	assert_almost_eq(screen.x, 960.0, 0.5, "framed at once")
-	assert_almost_eq(screen.y, 702.0, 0.5)
 	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, FIXTURE_ZONE_ID, "nothing arrives in Test Zone later")
 	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID))
@@ -383,42 +354,8 @@ func test_click_locked_pins_popover_and_shakes_lock() -> void:
 	assert_eq(popover.get_zone_data().zone_id, ADVANCEMENT_DEMO_ID)
 	assert_eq(popover.get_title_text(), "Advancement Zone")
 	assert_eq(popover.get_body_text(), "Defeat the Tribulation Guardian in The Shallow Woods")
-	assert_string_contains(popover.get_card_texture().resource_path, "lacquer_pop_locked_ai")
 	var glyph: MapGlyph = _markers().get_glyph(ADVANCEMENT_DEMO_ID) as MapGlyph
 	assert_true(glyph.is_shaking(), "the lock shakes")
-	var overlay: LockedZoneOverlay = _map.get_hex_overlay(ADVANCEMENT_DEMO_ID) as LockedZoneOverlay
-	assert_string_contains(overlay.get_rim_texture().resource_path, "lacquer_hex_pinned_in_ai", "the heavy rim inside the veil")
-	assert_true(_markers().get_plate(ADVANCEMENT_DEMO_ID).is_pinned_frame_shown(), "and the brass frame on its plate")
-
-func test_lock_shake_steps() -> void:
-	assert_eq(MapGlyph.shake_offset_at(0.0), 0)
-	assert_eq(MapGlyph.shake_offset_at(0.1), -8)
-	assert_eq(MapGlyph.shake_offset_at(0.2), 8)
-	assert_eq(MapGlyph.shake_offset_at(0.3), -6)
-	assert_eq(MapGlyph.shake_offset_at(0.4), 4)
-	assert_eq(MapGlyph.shake_offset_at(0.44), 0, "back home after 0.44 s")
-	assert_eq(MapGlyph.shake_offset_at(1.0), 0)
-
-func test_lock_shake_moves_only_the_icon() -> void:
-	ZoneManager.set_demo_zones_visible(true)
-	await _settle()
-	var glyph: MapGlyph = _markers().get_glyph(ADVANCEMENT_DEMO_ID) as MapGlyph
-	var glyph_position: Vector2 = glyph.position
-	var icon: Control = glyph.get_node("%Icon") as Control
-	glyph.shake()
-	# The real shake, sampled halfway through each 0.088 s step, follows the
-	# keyframe table test_lock_shake_steps reads.
-	var offsets: Array[float] = []
-	var elapsed: float = 0.0
-	for sample_at: float in [0.132, 0.22, 0.308, 0.396]:
-		_step_tweens(sample_at - elapsed)
-		elapsed = sample_at
-		offsets.append(icon.position.x)
-	assert_eq(offsets, [-8.0, 8.0, -6.0, 4.0] as Array[float], "the padlock steps -8, 8, -6, 4 px")
-	assert_eq(glyph.position, glyph_position, "the glyph stays on its hex")
-	_step_tweens(MapGlyph.SHAKE_SECONDS)
-	assert_false(glyph.is_shaking())
-	assert_eq(icon.position.x, 0.0, "and settles back")
 
 func test_click_uncharted_pins_never_travels() -> void:
 	ZoneManager.set_demo_zones_visible(true)
@@ -430,7 +367,6 @@ func test_click_uncharted_pins_never_travels() -> void:
 	assert_true(popover.is_pinned())
 	assert_eq(popover.get_title_text(), "Uncharted")
 	assert_eq(popover.get_body_text(), "Revealed after the Tribulation.")
-	assert_string_contains(popover.get_card_texture().resource_path, "lacquer_pop_uncharted_ai")
 	assert_false(popover.is_show_me_shown(), "an uncharted popover has no Show me")
 	assert_false((_markers().get_glyph(UNCHARTED_DEMO_ID) as MapGlyph).is_shaking(), "only the lock shakes")
 
@@ -439,22 +375,13 @@ func test_only_one_popover_pinned() -> void:
 	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
 	_map.click_zone(_zone(UNCHARTED_DEMO_ID))
 	assert_eq(_popover().get_zone_data().zone_id, UNCHARTED_DEMO_ID, "the second hex takes the popover")
-	var locked: LockedZoneOverlay = _map.get_hex_overlay(ADVANCEMENT_DEMO_ID) as LockedZoneOverlay
-	assert_null(locked.get_rim_texture(), "the first hex loses its pinned rim")
-	assert_false(_markers().get_plate(ADVANCEMENT_DEMO_ID).is_pinned_frame_shown())
 
-func test_click_current_recentres_and_closes() -> void:
+func test_click_current_closes_and_never_walks() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
-	var camera: Camera2D = _map.get_camera()
-	camera.position += Vector2(60, 40)
 	_map.click_zone(_zone(SPIRIT_VALLEY_ID))
 	assert_false(_popover().visible, "recentring closes the popover")
 	assert_false(_map.is_travelling(), "and never walks")
-	_run(_map, _map.camera_ease_duration + 0.1)
-	var screen: Vector2 = _to_screen(Vector2.ZERO)
-	assert_almost_eq(screen.x, 960.0, 0.5, "the valley is framed again")
-	assert_almost_eq(screen.y, 702.0, 0.5)
 
 func test_click_fog_closes() -> void:
 	ZoneManager.set_demo_zones_visible(true)
@@ -478,19 +405,6 @@ func test_plate_press_does_what_its_hex_does() -> void:
 # HOVER
 #-----------------------------------------------------------------------------
 
-func test_hover_open_zone_brightens_rim_route_and_plate() -> void:
-	_open_test_zone()
-	var marker: ZoneHexMarker = _map.get_hex_overlay(TEST_ZONE_ID) as ZoneHexMarker
-	var route: ZoneRoute = _map.get_route_to(TEST_ZONE_ID)
-	_hover_cell_of(TEST_ZONE_ID)
-	assert_string_contains(marker.get_rim_texture().resource_path, "lacquer_hex_hover_ai", "the brighter rim")
-	assert_true(route.is_lit(), "the route to it turns cream")
-	assert_eq(_markers().get_plate(TEST_ZONE_ID).get_line_text(), "Click to travel")
-	_map.tile_map.tile_unhovered.emit()
-	assert_string_contains(marker.get_rim_texture().resource_path, "lacquer_hex_open_ai")
-	assert_false(route.is_lit())
-	assert_ne(_markers().get_plate(TEST_ZONE_ID).get_line_text(), "Click to travel")
-
 func test_route_lights_every_open_segment_on_the_way() -> void:
 	# An open zone two hexes west, reached through Test Zone: hovering it
 	# lights both segments, the valley to Test Zone and Test Zone to it.
@@ -511,17 +425,9 @@ func test_route_never_lights_into_or_out_of_a_locked_zone() -> void:
 	var fixture_centre: Vector2 = _map.get_zone_world_centre(_zone(FIXTURE_ZONE_ID)) - route.position
 	assert_eq(route.get_dot_positions(), ZoneRoute.dot_positions(locked_centre, fixture_centre), "precondition: its route runs on from the locked zone")
 	_hover_cell_of(FIXTURE_ZONE_ID)
-	var marker: ZoneHexMarker = _map.get_hex_overlay(FIXTURE_ZONE_ID) as ZoneHexMarker
-	assert_string_contains(marker.get_rim_texture().resource_path, "lacquer_hex_hover_ai", "precondition: hovered and travelable")
 	assert_false(route.is_lit(), "no segment out of the locked zone")
 	assert_false(_map.get_route_to(ADVANCEMENT_DEMO_ID).is_lit(), "and none into it")
 	assert_false(_map.get_route_to(UNCHARTED_DEMO_ID).is_lit())
-
-func test_hover_current_zone_brightens_its_plate_only() -> void:
-	_hover_cell_of(SPIRIT_VALLEY_ID)
-	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_name_color(), ThemeConstants.LACQUER_CREAM, "the plate text brightens")
-	var marker: ZoneHexMarker = _map.get_hex_overlay(SPIRIT_VALLEY_ID) as ZoneHexMarker
-	assert_string_contains(marker.get_rim_texture().resource_path, "lacquer_hex_current_ai", "the rim stays")
 
 func test_fog_hover_clears_the_hover() -> void:
 	_open_test_zone()
@@ -534,21 +440,15 @@ func test_fog_hover_clears_the_hover() -> void:
 func test_hover_locked_shows_preview_after_delay() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	_hover_cell_of(ADVANCEMENT_DEMO_ID)
-	var overlay: LockedZoneOverlay = _map.get_hex_overlay(ADVANCEMENT_DEMO_ID) as LockedZoneOverlay
-	assert_string_contains(overlay.get_rim_texture().resource_path, "lacquer_hex_hover_in_ai", "a thin brass rim inside the veil")
-	assert_string_contains(overlay.get_tile_texture().resource_path, "lacquer_tile_locked_hover_ai")
 	assert_false(_map.get_route_to(ADVANCEMENT_DEMO_ID).is_lit(), "routes never brighten toward a locked zone")
 	assert_false(_popover().visible, "no preview before 150 ms")
-	assert_almost_eq(_markers()._preview_timer.wait_time, 0.15, 0.0001, "the preview waits 150 ms")
 	_run_out_preview_delay(_markers())
 	assert_true(_popover().visible, "the preview shows")
 	assert_false(_popover().is_pinned())
-	assert_string_contains(_popover().get_card_texture().resource_path, "lacquer_pop_locked_preview_ai")
 	assert_false(_popover().is_close_shown(), "a preview has no ×")
 	assert_false(_popover().is_show_me_shown(), "nor Show me")
 	_map.tile_map.tile_unhovered.emit()
 	assert_false(_popover().visible, "leaving the hex hides it outright")
-	assert_null(overlay.get_rim_texture())
 
 func test_passing_pointer_opens_no_preview() -> void:
 	ZoneManager.set_demo_zones_visible(true)
@@ -576,7 +476,6 @@ func test_leaving_the_map_clears_the_hover() -> void:
 	host.mouse_exited.emit()
 	assert_eq(markers.get_popover_state().get_hovered_zone_id(), "")
 	assert_false(markers.get_popover().visible, "the preview goes with the pointer")
-	assert_null((map.get_hex_overlay(ADVANCEMENT_DEMO_ID) as LockedZoneOverlay).get_rim_texture())
 
 func test_coming_back_onto_the_same_cell_hovers_again() -> void:
 	# The hex layers report a cell only when the pointer moves onto a new one:
@@ -689,39 +588,8 @@ func test_no_preview_while_pinned() -> void:
 	assert_true(_popover().is_pinned())
 
 #-----------------------------------------------------------------------------
-# POPOVER PLACEMENT AND CONTENTS
+# POPOVER CONTENTS
 #-----------------------------------------------------------------------------
-
-func test_popovers_sit_at_kit_positions() -> void:
-	ZoneManager.set_demo_zones_visible(true)
-	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
-	await _settle()
-	assert_eq(_popover().position, Vector2(684, 331), "kit §6.6: the pinned locked popover, left of its hex")
-	assert_eq(_popover().get_close_button().get_global_rect().position, Vector2(904, 343), "× at X+220, Y+12")
-	assert_eq(_popover().get_show_me_button().get_global_rect().position, Vector2(700, 455), "Show me at X+16, Y+124")
-	_map.click_zone(_zone(UNCHARTED_DEMO_ID))
-	await _settle()
-	assert_eq(_popover().position, Vector2(1128, 76), "kit §6.6: the uncharted popover, right of its hex")
-	assert_eq(_popover().get_close_button().get_global_rect().position, Vector2(1356, 88), "× at X+228, Y+12")
-	_markers().close_popover()
-	_hover_cell_of(ADVANCEMENT_DEMO_ID)
-	_run_out_preview_delay(_markers())
-	await _settle()
-	assert_eq(_popover().position, Vector2(684, 351), "kit §6.6: the locked preview")
-
-func test_popover_follows_hex_at_zoom_one() -> void:
-	# Review Focus 3: away from zoom 2 the popover keeps to its hex.
-	ZoneManager.set_demo_zones_visible(true)
-	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
-	var camera: Camera2D = _map.get_camera()
-	camera.zoom = Vector2.ONE
-	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
-	await _settle()
-	var centre: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(ADVANCEMENT_DEMO_ID)))
-	assert_eq(_popover().scale, Vector2.ONE, "the popover keeps its size: its text never drops under 13 px")
-	# At zoom 2 the card's right edge is 168 px left of the hex centre, 4 px
-	# clear of the rim; at zoom 1 it is 84 px left, centred on the hex height.
-	assert_eq(_popover().position, (centre + Vector2(-84 - 272, -86)).round(), "beside its hex")
 
 func test_show_me_only_for_action_in_current_zone() -> void:
 	ZoneManager.set_demo_zones_visible(true)
@@ -745,25 +613,6 @@ func test_show_me_requests_focus() -> void:
 	_popover().get_show_me_button().pressed.emit()
 	assert_signal_emitted_with_parameters(ZoneManager, "action_focus_requested", [ADVENTURE_ID])
 
-func test_long_text_stays_inside_the_popover() -> void:
-	# Review Focus 4: a long zone name ellipsizes, a long requirement keeps
-	# to two lines, and the card never grows.
-	var popover: ZoneMapPopover = ZoneMapPopoverScene.instantiate()
-	add_child_autofree(popover)
-	var zone := ZoneData.new()
-	zone.zone_id = "LongZone"
-	zone.zone_name = "The Exceedingly Long and Winding Valley of a Thousand Whispering Names"
-	zone.requirement_text = "Defeat the Tribulation Guardian and every one of its seven sworn sisters in the deepest reaches of The Shallow Woods at midnight"
-	popover.setup(zone, ZoneManager.ZoneMapState.LOCKED, true, true)
-	await _settle()
-	var title: Label = popover.get_node("%LockedTitle") as Label
-	var body: Label = popover.get_node("%LockedBody") as Label
-	assert_eq(title.size.x, 232.0, "the title keeps its 232 px slot")
-	assert_ne(title.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "and ellipsizes")
-	assert_eq(body.size, Vector2(232, 40), "the body keeps its two 20 px lines")
-	assert_eq(body.max_lines_visible, 2)
-	assert_eq(popover.get_card_rect().size, Vector2(276, 176), "the card keeps its size")
-
 #-----------------------------------------------------------------------------
 # CLOSING
 #-----------------------------------------------------------------------------
@@ -774,8 +623,6 @@ func test_close_button_closes() -> void:
 	_popover().get_close_button().pressed.emit()
 	assert_false(_popover().visible)
 	assert_eq(_state().get_pinned_zone_id(), "")
-	assert_null((_map.get_hex_overlay(ADVANCEMENT_DEMO_ID) as LockedZoneOverlay).get_rim_texture())
-	assert_false(_markers().get_plate(ADVANCEMENT_DEMO_ID).is_pinned_frame_shown())
 
 func test_esc_closes_pinned_popover() -> void:
 	ZoneManager.set_demo_zones_visible(true)

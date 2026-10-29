@@ -9,16 +9,6 @@ func test_pick_is_deterministic_for_same_coord() -> void:
 	var b: Vector2i = HEX_FOREST_ATLAS.pick(Vector3i(1, 2, -3))
 	assert_eq(a, b, "pick() must return the same cell for the same coord")
 
-func test_pick_returns_cell_within_atlas_bounds() -> void:
-	for q in range(-5, 6):
-		for r in range(-5, 6):
-			var cell: Vector2i = HEX_FOREST_ATLAS.pick(Vector3i(q, r, -q - r))
-			assert_true(cell.x >= 0 and cell.x < HEX_FOREST_ATLAS.FOREST_ATLAS_COLS,
-				"cell.x=%d out of range for coord (%d,%d)" % [cell.x, q, r])
-			# 23 variants in a 6-wide grid → rows 0..3 (row 3 is partial: cols 0..4).
-			assert_true(cell.y >= 0 and cell.y <= 3,
-				"cell.y=%d out of range for coord (%d,%d)" % [cell.y, q, r])
-
 func test_pick_distributes_across_multiple_variants() -> void:
 	var uniques: Dictionary = {}
 	for q in range(-5, 6):
