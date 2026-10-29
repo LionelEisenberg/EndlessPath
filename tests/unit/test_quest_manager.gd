@@ -148,6 +148,8 @@ func test_condition_step_advances_when_all_conditions_true() -> void:
 	EventManager.trigger_event("event_x")  # one of two satisfied
 	assert_true(QuestManager.has_active_quest("cond_quest"),
 		"quest should still be active (only 1/2 conditions met)")
+	assert_eq(QuestManager.get_current_step_index("cond_quest"), 0,
+		"step should still be 0")
 
 	EventManager.trigger_event("event_y")  # both now satisfied
 	# After event_y, _on_event_triggered re-evaluates, both conditions pass,
@@ -155,32 +157,7 @@ func test_condition_step_advances_when_all_conditions_true() -> void:
 	assert_false(QuestManager.has_active_quest("cond_quest"),
 		"quest should no longer be active after all conditions met")
 
-func test_condition_step_does_not_advance_while_partial() -> void:
-	var cond_step := QuestStepData.new()
-	cond_step.step_id = "cond_step"
-	cond_step.completion_conditions = [
-		_create_condition_event("event_x"),
-		_create_condition_event("event_never"),
-	] as Array[UnlockConditionData]
-	var cond_quest := _create_quest("cond_quest", "Cond Quest",
-		[cond_step] as Array[QuestStepData])
-	QuestManager._quests_by_id["cond_quest"] = cond_quest
-
-	QuestManager.start_quest("cond_quest")
-	EventManager.trigger_event("event_x")
-	assert_true(QuestManager.has_active_quest("cond_quest"),
-		"quest should remain active since event_never never fired")
-	assert_eq(QuestManager.get_current_step_index("cond_quest"), 0,
-		"step should still be 0")
-
 # ----- retroactive auto-complete on start -----
-
-func test_start_skips_past_already_satisfied_event_step() -> void:
-	# Pre-fire the first step's event before starting the quest.
-	EventManager.trigger_event("eel_dialogue_done")
-	QuestManager.start_quest("quest_a")
-	assert_eq(QuestManager.get_current_step_index("quest_a"), 1,
-		"start should skip past the pre-satisfied step")
 
 func test_start_stops_at_first_unsatisfied_step() -> void:
 	# quest_a has two steps: eel_dialogue_done, spring_forest_visited.

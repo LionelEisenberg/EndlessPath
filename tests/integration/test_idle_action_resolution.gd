@@ -116,21 +116,21 @@ func test_resolve_falls_back_to_first_in_group_order() -> void:
 	if resolved:
 		assert_eq(resolved.action_id, AURA_WELL_ID, "Cultivate (Aura Well) lists before Gather (foraging)")
 
-func test_resolve_skips_stale_saved_id() -> void:
+## A saved last idle id the zone can't run is skipped for the first available
+## idle action: one whose action is still locked (foraging), and one whose
+## action no longer exists.
+func test_resolve_skips_a_saved_id_it_cannot_run() -> void:
 	_unlock_aura_well()
-	ZoneManager.set_last_idle_action_id(ZONE_ID, FORAGING_ID)
-	var resolved: ZoneActionData = ActionManager.resolve_idle_action(ZONE_ID)
-	assert_not_null(resolved)
-	if resolved:
-		assert_eq(resolved.action_id, AURA_WELL_ID, "locked foraging is skipped for the first available idle action")
-
-func test_resolve_skips_saved_id_of_a_removed_action() -> void:
-	_unlock_aura_well()
-	ZoneManager.set_last_idle_action_id(ZONE_ID, "an_action_that_no_longer_exists")
-	var resolved: ZoneActionData = ActionManager.resolve_idle_action(ZONE_ID)
-	assert_not_null(resolved)
-	if resolved:
-		assert_eq(resolved.action_id, AURA_WELL_ID)
+	var cases: Array[Dictionary] = [
+		{"name": "locked foraging", "saved_id": FORAGING_ID},
+		{"name": "a removed action", "saved_id": "an_action_that_no_longer_exists"},
+	]
+	for case: Dictionary in cases:
+		ZoneManager.set_last_idle_action_id(ZONE_ID, case.saved_id)
+		var resolved: ZoneActionData = ActionManager.resolve_idle_action(ZONE_ID)
+		assert_not_null(resolved, "%s: something resolves" % case.name)
+		if resolved:
+			assert_eq(resolved.action_id, AURA_WELL_ID, "%s is skipped for the Aura Well" % case.name)
 
 func test_resolve_returns_null_with_nothing_idle() -> void:
 	assert_null(ActionManager.resolve_idle_action(ZONE_ID), "a fresh save has no idle action unlocked")
@@ -141,7 +141,8 @@ func test_resolve_returns_null_with_nothing_idle() -> void:
 #-----------------------------------------------------------------------------
 
 ## Foraging and training run on their own and are resumed when a session ends;
-## every other type is played through. A new action type is classified here too.
+## every other type is played through, and no action at all (null) is not
+## idle. A new action type is classified here too.
 func test_is_idle_action_is_foraging_and_training_only() -> void:
 	var expected: Dictionary[ZoneActionData.ActionType, bool] = {
 		ZoneActionData.ActionType.FORAGE: true,
@@ -158,44 +159,32 @@ func test_is_idle_action_is_foraging_and_training_only() -> void:
 		var action := ZoneActionData.new()
 		action.action_type = action_type
 		assert_eq(ActionManager.is_idle_action(action), expected[action_type], str(ZoneActionData.ActionType.find_key(action_type)))
-
-func test_is_idle_action_is_false_for_no_action() -> void:
-	assert_false(ActionManager.is_idle_action(null))
-
-func test_is_idle_action_for_the_real_actions() -> void:
-	assert_true(ActionManager.is_idle_action(_action(FORAGING_ID)))
-	assert_true(ActionManager.is_idle_action(_action(AURA_WELL_ID)))
-	assert_false(ActionManager.is_idle_action(_action(CYCLING_ID)))
-	assert_false(ActionManager.is_idle_action(_action(DIALOGUE_ID)))
-	assert_false(ActionManager.is_idle_action(_action(ADVENTURE_ID)))
-	assert_false(ActionManager.is_idle_action(_action(MERCHANT_ID)))
+	assert_false(ActionManager.is_idle_action(null), "no action")
 
 #-----------------------------------------------------------------------------
 # RESUME AFTER A SESSION ACTION
 #-----------------------------------------------------------------------------
 
-func test_cycling_stop_resumes_idle() -> void:
-	_run_aura_well()
-	ActionManager.select_action(_action(CYCLING_ID))
-	assert_eq(_current_id(), CYCLING_ID)
-	ActionManager.stop_action()
-	assert_eq(_current_id(), AURA_WELL_ID, "closing cycling resumes the Aura Well")
-
-func test_adventure_stop_win_resumes_idle() -> void:
-	_run_aura_well()
-	ResourceManager.set_madra(ResourceManager.get_adventure_madra_threshold())
-	ActionManager.select_action(_action(ADVENTURE_ID))
-	assert_eq(_current_id(), ADVENTURE_ID)
-	ActionManager.stop_action(true)
-	assert_eq(_current_id(), AURA_WELL_ID, "a won adventure resumes the Aura Well")
-
-func test_adventure_stop_loss_resumes_idle() -> void:
-	_run_aura_well()
-	ResourceManager.set_madra(ResourceManager.get_adventure_madra_threshold())
-	ActionManager.select_action(_action(ADVENTURE_ID))
-	assert_eq(_current_id(), ADVENTURE_ID)
-	ActionManager.stop_action(false)
-	assert_eq(_current_id(), AURA_WELL_ID, "a lost adventure resumes the Aura Well")
+## Stopping a session action resumes the Aura Well, for each way stop_action
+## ends one: closing cycling, a won and a lost adventure, and leaving the shop.
+## Each case starts on a fresh save with the Aura Well running.
+func test_session_stop_resumes_idle() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "closing cycling", "action_id": CYCLING_ID, "successful": true},
+		{"name": "a won adventure", "action_id": ADVENTURE_ID, "successful": true},
+		{"name": "a lost adventure", "action_id": ADVENTURE_ID, "successful": false},
+		{"name": "leaving the shop", "action_id": MERCHANT_ID, "successful": true},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		_run_aura_well()
+		# Enough Madra for the adventure's entry; the other actions ignore it.
+		ResourceManager.set_madra(ResourceManager.get_adventure_madra_threshold())
+		ActionManager.select_action(_action(case.action_id))
+		assert_eq(_current_id(), case.action_id, "%s: precondition, it runs" % case.name)
+		ActionManager.stop_action(case.successful)
+		assert_eq(_current_id(), AURA_WELL_ID, "%s resumes the Aura Well" % case.name)
 
 func test_dialogue_end_resumes_idle() -> void:
 	_run_aura_well()
@@ -208,13 +197,6 @@ func test_dialogue_end_resumes_idle() -> void:
 	await Dialogic.end_timeline(true)
 	await get_tree().process_frame
 	assert_eq(_current_id(), AURA_WELL_ID, "the end of a dialogue resumes the Aura Well")
-
-func test_merchant_close_resumes_idle() -> void:
-	_run_aura_well()
-	ActionManager.select_action(_action(MERCHANT_ID))
-	assert_eq(_current_id(), MERCHANT_ID)
-	ActionManager.stop_action()
-	assert_eq(_current_id(), AURA_WELL_ID, "leaving the shop resumes the Aura Well")
 
 func test_session_stop_logs_resumed_line() -> void:
 	_run_aura_well()

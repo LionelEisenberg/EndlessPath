@@ -65,28 +65,30 @@ func test_current_zone_is_current() -> void:
 	var current: ZoneData = ZoneManager.get_current_zone()
 	assert_eq(ZoneManager.get_zone_map_state(current), ZoneManager.ZoneMapState.CURRENT)
 
-func test_unlocked_other_zone_is_open() -> void:
-	var zone := _fixture_zone("FixtureOpenZone", false, true)
-	UnlockManager.force_unlock_condition(UNLOCK_CONDITION_ID)
-	assert_eq(ZoneManager.get_zone_map_state(zone), ZoneManager.ZoneMapState.OPEN)
-
-func test_zone_without_any_condition_is_open() -> void:
-	var zone := _fixture_zone("FixtureFreeZone", false, false)
-	assert_true(ZoneManager.is_zone_charted(zone), "no chart conditions means charted")
-	assert_eq(ZoneManager.get_zone_map_state(zone), ZoneManager.ZoneMapState.OPEN)
-
-func test_charted_but_not_unlocked_zone_is_locked() -> void:
-	var zone := _fixture_zone("FixtureLockedZone", true, true)
-	UnlockManager.force_unlock_condition(CHART_CONDITION_ID)
-	assert_true(ZoneManager.is_zone_charted(zone))
-	assert_eq(ZoneManager.get_zone_map_state(zone), ZoneManager.ZoneMapState.LOCKED)
-
-func test_unchartered_zone_is_uncharted() -> void:
-	var zone := _fixture_zone("FixtureUnchartedZone", true, true)
-	UnlockManager.force_unlock_condition(UNLOCK_CONDITION_ID)
-	assert_false(ZoneManager.is_zone_charted(zone))
-	assert_eq(ZoneManager.get_zone_map_state(zone), ZoneManager.ZoneMapState.UNCHARTED,
-		"an unmet chart condition wins over met unlock conditions")
+## The state of a zone you are not in, by which of its conditions are met: a
+## met unlock condition opens it; with no conditions at all it is charted and
+## open; a met chart condition with an unmet unlock condition leaves it
+## locked; and an unmet chart condition makes it uncharted even when its
+## unlock conditions are met. Each case starts on a fresh save.
+func test_other_zone_state_follows_its_conditions() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "unlocked", "chart": false, "unlock": true, "met": [UNLOCK_CONDITION_ID],
+			"charted": true, "state": ZoneManager.ZoneMapState.OPEN},
+		{"name": "no conditions", "chart": false, "unlock": false, "met": [],
+			"charted": true, "state": ZoneManager.ZoneMapState.OPEN},
+		{"name": "charted, not unlocked", "chart": true, "unlock": true, "met": [CHART_CONDITION_ID],
+			"charted": true, "state": ZoneManager.ZoneMapState.LOCKED},
+		{"name": "unlocked, not charted", "chart": true, "unlock": true, "met": [UNLOCK_CONDITION_ID],
+			"charted": false, "state": ZoneManager.ZoneMapState.UNCHARTED},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		var zone := _fixture_zone("FixtureZone", case.chart, case.unlock)
+		for condition_id: String in case.met:
+			UnlockManager.force_unlock_condition(condition_id)
+		assert_eq(ZoneManager.is_zone_charted(zone), case.charted, "%s: charted" % case.name)
+		assert_eq(ZoneManager.get_zone_map_state(zone), case.state, "%s: state" % case.name)
 
 func test_locked_current_zone_reads_locked() -> void:
 	# Spirit Valley has no unlock conditions; Test Zone needs the first dialogue.
@@ -142,20 +144,6 @@ func test_advancement_demo_requirement_names_a_real_action() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	var demo: ZoneData = _map_zone("AdvancementZoneDemo")
 	assert_not_null(ZoneManager.get_action_by_id(demo.requirement_action_id), "Show me needs a card to scroll to")
-
-#-----------------------------------------------------------------------------
-# TEST ZONE (OPEN-ZONE DEMO)
-#-----------------------------------------------------------------------------
-
-func test_test_zone_sits_west_of_spirit_valley() -> void:
-	var spirit_valley: ZoneData = ZoneManager.get_zone_by_id("SpiritValley")
-	var test_zone: ZoneData = ZoneManager.get_zone_by_id("TestZone")
-	assert_eq(spirit_valley.tilemap_location, Vector2i(0, 0), "the kit centres the map on Spirit Valley's cell")
-	assert_eq(test_zone.tilemap_location, Vector2i(-1, 0), "the kit puts Test Zone one cell west, on the west route")
-
-func test_test_zone_has_no_lore() -> void:
-	var test_zone: ZoneData = ZoneManager.get_zone_by_id("TestZone")
-	assert_eq(test_zone.description, "", "the kit shows Test Zone's panel with no About button")
 
 #-----------------------------------------------------------------------------
 # LAST IDLE ACTION

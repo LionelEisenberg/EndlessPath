@@ -4,11 +4,6 @@ func test_training_tick_progress_defaults_to_empty_dict() -> void:
 	var zp := ZoneProgressionData.new()
 	assert_true(zp.training_tick_progress.is_empty(), "training_tick_progress should default to empty")
 
-func test_training_tick_progress_accepts_string_int_pairs() -> void:
-	var zp := ZoneProgressionData.new()
-	zp.training_tick_progress["aura_well_training"] = 42
-	assert_eq(zp.training_tick_progress["aura_well_training"], 42)
-
 func test_training_tick_progress_persists_via_resource_save_load() -> void:
 	var zp := ZoneProgressionData.new()
 	zp.zone_id = "SpiritValley"

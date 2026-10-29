@@ -117,21 +117,13 @@ func test_fog_art_beyond_the_kit_is_mostly_basic() -> void:
 # FOG TIERS
 #-----------------------------------------------------------------------------
 
+## With Spirit Valley alone charted at (0, 0), a cell's tier is its hex
+## distance to it, capped at 3: a run east (1, 0) to (3, 0), a far cell
+## (7, -4) for the cap, and kit §6.2's "base" column.
 func test_fog_tier_distances() -> void:
 	var charted: Array[Vector3i] = [ZoneMapMath.cell_to_cube(Vector2i(0, 0))]
-	assert_eq(ZoneMapMath.fog_tier(ZoneMapMath.cell_to_cube(Vector2i(1, 0)), charted), 1, "a neighbour is tier 1")
-	assert_eq(ZoneMapMath.fog_tier(ZoneMapMath.cell_to_cube(Vector2i(2, 0)), charted), 2, "two away is tier 2")
-	assert_eq(ZoneMapMath.fog_tier(ZoneMapMath.cell_to_cube(Vector2i(3, 0)), charted), 3, "three away is tier 3")
-	assert_eq(ZoneMapMath.fog_tier(ZoneMapMath.cell_to_cube(Vector2i(7, -4)), charted), 3, "far away is capped at 3")
-
-func test_fog_tier_is_three_with_nothing_charted() -> void:
-	var charted: Array[Vector3i] = []
-	assert_eq(ZoneMapMath.fog_tier(Vector3i.ZERO, charted), 3)
-
-func test_fog_tiers_match_the_kit_base_state() -> void:
-	# Kit §6.2, "base" column: Spirit Valley alone at (0, 0).
-	var charted: Array[Vector3i] = [ZoneMapMath.cell_to_cube(Vector2i(0, 0))]
 	var expected: Dictionary[Vector2i, int] = {
+		Vector2i(1, 0): 1, Vector2i(2, 0): 2, Vector2i(3, 0): 3, Vector2i(7, -4): 3,
 		Vector2i(-1, -1): 1, Vector2i(0, -1): 1, Vector2i(1, -1): 2, Vector2i(-2, -1): 2,
 		Vector2i(-3, -1): 3, Vector2i(-1, -2): 2, Vector2i(0, -2): 2, Vector2i(2, -2): 3,
 		Vector2i(-1, 1): 1, Vector2i(0, 1): 1, Vector2i(1, 1): 2, Vector2i(-2, 1): 2,
@@ -139,6 +131,10 @@ func test_fog_tiers_match_the_kit_base_state() -> void:
 	}
 	for cell: Vector2i in expected:
 		assert_eq(ZoneMapMath.fog_tier(ZoneMapMath.cell_to_cube(cell), charted), expected[cell], "cell %s" % cell)
+
+func test_fog_tier_is_three_with_nothing_charted() -> void:
+	var charted: Array[Vector3i] = []
+	assert_eq(ZoneMapMath.fog_tier(Vector3i.ZERO, charted), 3)
 
 func test_fog_tier_uses_the_nearest_charted_zone() -> void:
 	# Spirit Valley (0, 0) and the Advancement demo (0, -1): (1, -2) is next to the demo zone.

@@ -19,49 +19,36 @@ func before_each() -> void:
 # CLICKS
 #-----------------------------------------------------------------------------
 
-func test_click_open_travels() -> void:
-	var result: MapPopoverState.ClickResult = _state.click(OPEN_ID, ZoneManager.ZoneMapState.OPEN)
-	assert_eq(result, MapPopoverState.ClickResult.TRAVEL, "an open zone you are not in travels")
-	assert_eq(_state.get_pinned_zone_id(), "", "and pins nothing")
-
-func test_click_open_closes_a_pinned_popover() -> void:
-	_state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	_state.click(OPEN_ID, ZoneManager.ZoneMapState.OPEN)
-	assert_eq(_state.get_pinned_zone_id(), "", "travelling closes the popover")
-
-func test_click_locked_pins() -> void:
-	var result: MapPopoverState.ClickResult = _state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	assert_eq(result, MapPopoverState.ClickResult.PIN)
-	assert_eq(_state.get_pinned_zone_id(), LOCKED_ID)
-
-func test_click_pinned_locked_again_stays_pinned() -> void:
-	_state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	var result: MapPopoverState.ClickResult = _state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	assert_eq(result, MapPopoverState.ClickResult.PIN, "the lock shakes again")
-	assert_eq(_state.get_pinned_zone_id(), LOCKED_ID, "and the popover stays")
-
-func test_click_uncharted_pins_never_travels() -> void:
-	var result: MapPopoverState.ClickResult = _state.click(UNCHARTED_ID, ZoneManager.ZoneMapState.UNCHARTED)
-	assert_eq(result, MapPopoverState.ClickResult.PIN, "an uncharted zone pins its popover")
-	assert_ne(result, MapPopoverState.ClickResult.TRAVEL, "and never travels")
-	assert_eq(_state.get_pinned_zone_id(), UNCHARTED_ID)
-
-func test_click_current_recentres_and_closes() -> void:
-	_state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	var result: MapPopoverState.ClickResult = _state.click(VALLEY_ID, ZoneManager.ZoneMapState.CURRENT)
-	assert_eq(result, MapPopoverState.ClickResult.RECENTRE)
-	assert_eq(_state.get_pinned_zone_id(), "", "recentring closes any popover")
-
-func test_click_fog_closes() -> void:
-	_state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	var result: MapPopoverState.ClickResult = _state.click("", ZoneManager.ZoneMapState.OPEN)
-	assert_eq(result, MapPopoverState.ClickResult.CLOSE, "\"\" is fog")
-	assert_eq(_state.get_pinned_zone_id(), "")
-
-func test_only_one_pinned() -> void:
-	_state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
-	_state.click(UNCHARTED_ID, ZoneManager.ZoneMapState.UNCHARTED)
-	assert_eq(_state.get_pinned_zone_id(), UNCHARTED_ID, "pinning another hex replaces the first popover")
+## What a click does and which popover is pinned after it, from nothing pinned
+## or with the locked zone's popover pinned: an open zone you are not in
+## travels and the zone you are in recentres, both closing any popover; a
+## locked or uncharted zone pins its own (never travels), replacing any other,
+## and a second click keeps it pinned (the lock shakes again); fog ("") closes.
+func test_click_results() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "open", "zone_id": OPEN_ID, "state": ZoneManager.ZoneMapState.OPEN, "pinned_first": false,
+			"result": MapPopoverState.ClickResult.TRAVEL, "pinned": ""},
+		{"name": "open, over a pinned popover", "zone_id": OPEN_ID, "state": ZoneManager.ZoneMapState.OPEN, "pinned_first": true,
+			"result": MapPopoverState.ClickResult.TRAVEL, "pinned": ""},
+		{"name": "locked", "zone_id": LOCKED_ID, "state": ZoneManager.ZoneMapState.LOCKED, "pinned_first": false,
+			"result": MapPopoverState.ClickResult.PIN, "pinned": LOCKED_ID},
+		{"name": "locked, already pinned", "zone_id": LOCKED_ID, "state": ZoneManager.ZoneMapState.LOCKED, "pinned_first": true,
+			"result": MapPopoverState.ClickResult.PIN, "pinned": LOCKED_ID},
+		{"name": "uncharted", "zone_id": UNCHARTED_ID, "state": ZoneManager.ZoneMapState.UNCHARTED, "pinned_first": false,
+			"result": MapPopoverState.ClickResult.PIN, "pinned": UNCHARTED_ID},
+		{"name": "uncharted, over another pinned popover", "zone_id": UNCHARTED_ID, "state": ZoneManager.ZoneMapState.UNCHARTED, "pinned_first": true,
+			"result": MapPopoverState.ClickResult.PIN, "pinned": UNCHARTED_ID},
+		{"name": "current, over a pinned popover", "zone_id": VALLEY_ID, "state": ZoneManager.ZoneMapState.CURRENT, "pinned_first": true,
+			"result": MapPopoverState.ClickResult.RECENTRE, "pinned": ""},
+		{"name": "fog, over a pinned popover", "zone_id": "", "state": ZoneManager.ZoneMapState.OPEN, "pinned_first": true,
+			"result": MapPopoverState.ClickResult.CLOSE, "pinned": ""},
+	]
+	for case: Dictionary in cases:
+		var state := MapPopoverState.new()
+		if case.pinned_first:
+			state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
+		assert_eq(state.click(case.zone_id, case.state), case.result, "%s: result" % case.name)
+		assert_eq(state.get_pinned_zone_id(), case.pinned, "%s: pinned" % case.name)
 
 func test_close_unpins() -> void:
 	_state.click(LOCKED_ID, ZoneManager.ZoneMapState.LOCKED)
