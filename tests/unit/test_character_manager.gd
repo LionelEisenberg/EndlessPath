@@ -341,10 +341,11 @@ func test_a_listener_during_save_reset_sees_the_new_saves_gear() -> void:
 	CharacterManager.stats_changed.connect(record)
 	var next_save := SaveGameData.new()
 	next_save.character_attributes = CharacterAttributesData.new()
+	next_save.inventory.equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {AttributeType.BODY: 2.0})
 	PersistenceManager.save_game_data = next_save
 	PersistenceManager.save_data_reset.emit()
 	CharacterManager.stats_changed.disconnect(record)
-	assert_eq(bodies, [10.0] as Array[float], "the new save's Body, with none of the old save's gear")
+	assert_eq(bodies, [12.0] as Array[float], "the new save's Body and gear, with none of the old save's gear")
 
 #-----------------------------------------------------------------------------
 # STATS AND MODIFIER SOURCES
