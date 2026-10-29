@@ -1,0 +1,90 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/title_menu/title_menu.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://betjmkgl3dodf" path="res://assets/styleboxes/lacquer/trib_board9.tres" id="3_board"]
+[ext_resource type="PackedScene" path="res://scenes/ui/title_menu/title_menu_button/title_menu_button.tscn" id="4_button"]
+
+[node name="TitleMenu" type="CanvasLayer" unique_id=1517790230]
+process_mode = 3
+layer = 120
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="." unique_id=2035519146]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Backdrop" type="ColorRect" parent="Root" unique_id=709634852]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03529412, 0.05490196, 0.05490196, 1)
+
+[node name="Center" type="CenterContainer" parent="Root" unique_id=1188461530]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Board" type="PanelContainer" parent="Root/Center" unique_id=1940392785]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("3_board")
+
+[node name="Margin" type="MarginContainer" parent="Root/Center/Board" unique_id=380124593]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 36
+
+[node name="Column" type="VBoxContainer" parent="Root/Center/Board/Margin" unique_id=1360287127]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 28
+
+[node name="Title" type="Label" parent="Root/Center/Board/Margin/Column" unique_id=1102564785]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerZoneName"
+theme_override_font_sizes/font_size = 48
+text = "Endless Path"
+horizontal_alignment = 1
+
+[node name="Buttons" type="VBoxContainer" parent="Root/Center/Board/Margin/Column" unique_id=1475266010]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="ContinueButton" parent="Root/Center/Board/Margin/Column/Buttons" unique_id=255306381 instance=ExtResource("4_button")]
+unique_name_in_owner = true
+layout_mode = 2
+words = "Continue"
+
+[node name="NewGameButton" parent="Root/Center/Board/Margin/Column/Buttons" unique_id=1823361078 instance=ExtResource("4_button")]
+unique_name_in_owner = true
+layout_mode = 2
+words = "New Game"
+
+[node name="QuitButton" parent="Root/Center/Board/Margin/Column/Buttons" unique_id=616071355 instance=ExtResource("4_button")]
+unique_name_in_owner = true
+layout_mode = 2
+words = "Quit"
+
+[node name="ConfirmTimer" type="Timer" parent="." unique_id=1956023514]
+unique_name_in_owner = true
+wait_time = 3.0
+one_shot = true
+ignore_time_scale = true
