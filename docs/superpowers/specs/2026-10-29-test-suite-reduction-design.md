@@ -28,3 +28,18 @@ A test checks something a player or a later system depends on, that a person wou
 ## Scope
 
 The cut covers UI, HUD, dev-tool and art test files. Manager, combat, save, persistence, quest, unlock and cross-system flow tests are not touched.
+
+## Outcome
+
+The first pass cut the six UI, HUD and dev-tool areas from 1,912 tests to 995, and the suite from 3,235 to 2,318. Six files were deleted: five that checked only art or animation, and the dev panel's zone toggles, whose commands other tests cover. The rest of the suite, the logic the Scope section leaves alone, was not touched.
+
+| Area | Before | After |
+|---|---|---|
+| Adventure view | 289 | 99 |
+| Zone view and map | 331 | 176 |
+| Cycling and the technique dock | 315 | 162 |
+| Books, inventory pages, lacquer kit | 336 | 159 |
+| HUD boards, Tribulation view | 310 | 154 |
+| Dev tools | 331 | 245 |
+
+Dev tools kept the most, because their save-safety tests and the dev commands' rules stay: presets, the story route and other tests build on those commands.
