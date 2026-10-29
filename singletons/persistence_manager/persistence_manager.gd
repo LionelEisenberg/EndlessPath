@@ -88,6 +88,10 @@ var _save_blocked: bool = false
 ## Why saving is blocked, or "" when it is not.
 var _block_reason: String = ""
 
+## Set when open_save_file() found no save at its path, so it wrote a new one.
+## Cleared when any other save becomes the session's.
+var _opened_new_save: bool = false
+
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------
@@ -167,6 +171,7 @@ func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 func open_save_file(path: String, back_up: bool = true) -> void:
 	save_path = path
 	_clear_block()
+	_opened_new_save = false
 	if back_up:
 		_back_up_if_main(path)
 	_load_session_save(path)
@@ -181,6 +186,7 @@ func use_save(save: SaveGameData, path: String) -> void:
 	save_game_data = save
 	save_path = path
 	_clear_block()
+	_opened_new_save = false
 	save_data_reset.emit()
 
 #-----------------------------------------------------------------------------
@@ -236,6 +242,13 @@ func is_save_blocked() -> bool:
 func get_block_reason() -> String:
 	return _block_reason
 
+## True when the session's file had no save when it was opened, so a new save was
+## written in its place: the first launch on a save, or a --save path with no file.
+## False for a save read from disk, one that would not load, and a save bound with
+## use_save().
+func opened_new_save() -> bool:
+	return _opened_new_save
+
 ## False when a manager verify() and repair() ask is missing, e.g. ZoneManager after
 ## its zone list failed to load from a stale import cache. Such a save is played but
 ## never checked, repaired or written. DevManager asks it before it repairs a
@@ -280,6 +293,7 @@ func _load_session_save(path: String) -> void:
 	var temp_path: String = SaveFiles.temp_path_for(path)
 	if not FileAccess.file_exists(path) and not FileAccess.file_exists(temp_path):
 		save_game_data = SaveGameData.new_current()
+		_opened_new_save = true
 		var error: Error = save_data()
 		if error == OK:
 			Log.info("PersistenceManager: No save at %s, so a new one was written" % path)
