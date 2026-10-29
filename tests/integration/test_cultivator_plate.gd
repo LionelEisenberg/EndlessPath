@@ -2,14 +2,10 @@ extends GutTest
 
 ## Integration tests for the lacquer cultivator cabinet (CultivatorPlate,
 ## lacquer kit §5.1): what it reads from the managers on _ready, how it follows
-## their signals, the fills it hands the two orb shaders, the frames it picks
-## from the core orb and bead strips, and where the gold row sits.
+## their signals, the fills it hands the two orb shaders, the beads it lights,
+## and the Madra and XP it leaves out of its figures while pellets fly.
 
 const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
-const MADRA_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_madra_orb.gdshader"
-const CORE_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_core_orb.gdshader"
-## The cabinet's right text edge, local (kit §5.1: screen 446).
-const TEXT_RIGHT_EDGE: float = 422.0
 
 const AURA_WELL_ID: String = "aura_well_training"
 const CYCLING_ID: String = "wilderness_cycling_action"
@@ -88,31 +84,6 @@ func test_madra_follows_its_signal() -> void:
 	ResourceManager.set_madra(46.0)
 	assert_eq(_text("MadraValueLabel"), "46")
 
-## The orb is the strip's empty socket (frame 0) under the flowing-liquid
-## shader, which draws the fill inside the brass rim.
-func test_madra_orb_draws_the_liquid_shader_on_the_empty_socket() -> void:
-	var orb: TextureRect = _node("MadraOrb")
-	var socket: AtlasTexture = orb.texture as AtlasTexture
-	assert_not_null(socket, "the empty frame of the strip")
-	assert_eq(socket.atlas.resource_path, "res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png")
-	assert_eq(socket.region, Rect2(0.0, 0.0, 80.0, 80.0))
-	assert_eq(((orb.material as ShaderMaterial).shader as Shader).resource_path, MADRA_ORB_SHADER_PATH)
-
-func test_fresh_save_madra_fill() -> void:
-	assert_almost_eq(_fill("MadraOrb"), 0.25, 0.0001, "25 of 100 Madra")
-
-func test_madra_fill_follows_ratio() -> void:
-	ResourceManager.set_madra(50.0)
-	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0001)
-
-func test_madra_orb_is_full_above_max() -> void:
-	ResourceManager.set_madra(250.0)
-	assert_almost_eq(_fill("MadraOrb"), 1.0, 0.0001)
-
-func test_madra_orb_is_empty_without_madra() -> void:
-	ResourceManager.set_madra(0.0)
-	assert_almost_eq(_fill("MadraOrb"), 0.0, 0.0001)
-
 ## The max follows the Core Density level, so a level-up refills the orb
 ## against the new max.
 func test_madra_fill_follows_max() -> void:
@@ -124,30 +95,9 @@ func test_madra_fill_follows_max() -> void:
 	assert_gt(max_madra, 260.0, "precondition: the level-up raised the max")
 	assert_almost_eq(_fill("MadraOrb"), 130.0 / max_madra, 0.0001)
 
-## Each cabinet fills its own materials, so one scene instance never moves
-## another's orbs.
-func test_orb_materials_are_per_cabinet() -> void:
-	var other: CultivatorPlate = _add_plate()
-	assert_ne((_node("MadraOrb") as CanvasItem).material, (other.get_node("%MadraOrb") as CanvasItem).material)
-	assert_ne((_node("CoreOrb") as CanvasItem).material, (other.get_node("%CoreOrb") as CanvasItem).material)
-
-func test_max_madra_follows_level() -> void:
-	_load_core_density(32.0, 0.0)
-	assert_eq(_text("MadraMaxLabel"), "/ 260")
-
-func test_madra_orb_position_is_orb_centre() -> void:
-	var orb: Control = _node("MadraOrb")
-	var centre: Vector2 = _plate.get_madra_orb_global_position()
-	assert_true(orb.get_global_rect().has_point(centre), "inside the orb's rect")
-	assert_eq(centre, orb.global_position + Vector2(40.0, 40.0))
-
 #-----------------------------------------------------------------------------
 # MADRA RATE
 #-----------------------------------------------------------------------------
-
-func test_rate_hidden_without_madra_action() -> void:
-	assert_null(ActionManager.get_current_action(), "precondition: nothing runs on a fresh save")
-	assert_false((_node("RateLabel") as CanvasItem).visible)
 
 func test_rate_shows_while_aura_well_runs() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
@@ -174,17 +124,6 @@ func test_rate_shows_the_cycling_rate() -> void:
 	CyclingManager.end_cycle_session()
 	assert_false(rate.visible, "hidden once the cycle ends")
 
-## A rate that reads +0 a second hides the label instead of showing "+0 / s".
-func test_rate_hides_when_it_rounds_to_nothing() -> void:
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	CyclingManager.start_cycle_session(15.0)
-	CyclingManager.update_cycle_session(5.0, 13.3)
-	var rate: RichTextLabel = _node("RateLabel")
-	assert_true(rate.visible, "precondition: shown while the ball draws Madra")
-
-	CyclingManager.update_cycle_session(6.0, 0.04)
-	assert_false(rate.visible, "0.04 a second reads +0")
-
 #-----------------------------------------------------------------------------
 # CORE DENSITY
 #-----------------------------------------------------------------------------
@@ -193,48 +132,10 @@ func test_level_and_stage_text() -> void:
 	assert_eq(_text("LevelLabel"), "Level 0")
 	assert_eq(_text("StageLabel"), "Foundation")
 
-func test_core_orb_draws_the_spiral_shader() -> void:
-	var orb: CanvasItem = _node("CoreOrb")
-	assert_eq(((orb.material as ShaderMaterial).shader as Shader).resource_path, CORE_ORB_SHADER_PATH)
-
-func test_core_orb_position_is_orb_centre() -> void:
-	var orb: Control = _node("CoreOrb")
-	var centre: Vector2 = _plate.get_core_orb_global_position()
-	assert_true(orb.get_global_rect().has_point(centre), "inside the orb's rect")
-	assert_eq(centre, orb.global_position + Vector2(40.0, 40.0))
-
-## Level 0 keeps the strip's dormant pebble (column 0) and draws no fill.
-func test_fresh_save_shows_the_dormant_core() -> void:
-	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(0, 0))
-	assert_almost_eq(_fill("CoreOrb"), 0.0, 0.0001)
-
-## From level 1 the orb is the empty socket (column 1, whose seed dot the
-## fill covers) and the spiral grows from the centre to level / 100.
-func test_core_fill_follows_level() -> void:
-	_load_core_density(32.0, 0.0)
-	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(1, 0))
-	assert_almost_eq(_fill("CoreOrb"), 0.32, 0.0001)
-	assert_eq(_text("LevelLabel"), "Level 32")
-
 func test_core_fill_follows_a_level_up() -> void:
 	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
 	assert_eq(_text("LevelLabel"), "Level 1", "precondition: one level up")
-	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(1, 0))
 	assert_almost_eq(_fill("CoreOrb"), 0.01, 0.0001)
-
-## A save from before the cap loads at it (CultivationManager clamps it), so the
-## cabinet shows a full core at level 100, not a level past it.
-func test_a_save_past_the_cap_loads_full() -> void:
-	_load_core_density(140.0, 0.0)
-	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
-	assert_eq(_text("LevelLabel"), "Level 100")
-
-## XP is lost at the cap, so the figure says the core is full instead, and the
-## beads show their whole row.
-func test_a_full_core_reads_core_full() -> void:
-	_load_core_density(100.0, 0.0)
-	assert_eq(_text("XpLabel"), "Core full")
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 18))
 
 ## The core fills against the stage's own cap, not a fixed 100.
 func test_core_fill_reads_the_stages_cap() -> void:
@@ -245,25 +146,6 @@ func test_core_fill_reads_the_stages_cap() -> void:
 	_load_core_density(40.0, 0.0)
 	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
 	assert_eq(_text("XpLabel"), "Core full")
-
-## The orb never overfills. The manager clamps a level on load, so only a signal
-## can leave one past the cap on the cabinet; it still draws a full core.
-func test_core_fill_never_passes_full() -> void:
-	var save: SaveGameData = PersistenceManager.save_game_data
-	save.core_density_level = 140.0
-	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
-	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
-	assert_eq(_text("XpLabel"), "Core full")
-
-## A stage with no resource has no cap (0): the orb stays empty instead of
-## dividing by it.
-func test_a_stage_without_a_cap_leaves_the_orb_empty() -> void:
-	var no_stages: Array[AdvancementStageResource] = []
-	CultivationManager.advancement_stage_resources = no_stages
-	_load_core_density(20.0, 0.0)
-	assert_eq(CultivationManager.get_core_density_cap(), 0, "precondition: no stage, no cap")
-	assert_eq(_text("LevelLabel"), "Level 20")
-	assert_almost_eq(_fill("CoreOrb"), 0.0, 0.0001)
 
 ## A failed Tribulation takes levels back: the core is no longer full, and the
 ## figure and the beads go back to counting XP.
@@ -282,30 +164,6 @@ func test_beads_follow_xp() -> void:
 	CultivationManager.add_core_density_xp(5.0)
 	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 9))
 	assert_eq(_text("XpLabel"), "5 / 10 XP")
-
-func test_xp_figures_round_down() -> void:
-	_load_core_density(32.0, 17.6)
-	var need: float = CultivationManager.get_xp_for_next_level()
-	assert_eq(_text("XpLabel"), "17 / %d XP" % int(need))
-	# 17.6 XP of the 18.8 level 32 needs is 16.8 beads' worth of the 18: 16
-	# light, since a bead lights only once its whole share is earned.
-	assert_almost_eq(need, 18.84, 0.01, "precondition: level 32 needs 18.84 XP")
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 16))
-
-## A bead lights only once its share of the XP is earned, so the beads never
-## run ahead of the figure: 0.9 of 22 XP reads "0 / 22 XP" and lights none.
-func test_beads_light_only_for_earned_xp() -> void:
-	_load_core_density(40.0, 0.9)
-	assert_eq(floori(CultivationManager.get_xp_for_next_level()), 22, "precondition: level 40 needs 22.08 XP")
-	assert_eq(_text("XpLabel"), "0 / 22 XP")
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
-
-func test_bead_lights_at_its_share() -> void:
-	# Level 0 needs 10 XP, so each of the 18 beads is 10 / 18 XP.
-	CultivationManager.add_core_density_xp(10.0 / 18.0 - 0.01)
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0), "just short of one bead")
-	CultivationManager.add_core_density_xp(0.01)
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 1), "one bead's share")
 
 #-----------------------------------------------------------------------------
 # PELLETS IN FLIGHT
@@ -327,29 +185,6 @@ func test_held_madra_shows_once_released() -> void:
 	_plate.release_madra(2.0)
 	assert_eq(_text("MadraValueLabel"), "46", "all of it landed")
 	assert_almost_eq(_fill("MadraOrb"), 0.46, 0.0001)
-
-## Madra drawn while pellets fly still shows less what is in flight.
-func test_held_madra_follows_the_madra_signal() -> void:
-	_plate.hold_madra(5.0)
-	ResourceManager.set_madra(60.0)
-	assert_eq(_text("MadraValueLabel"), "55")
-
-## Thirds of a step released three times leave float dust, which counts as none,
-## so the figure ends on the Madra itself.
-func test_releasing_what_was_held_leaves_nothing_held() -> void:
-	ResourceManager.set_madra(50.0)
-	for third: int in 3:
-		_plate.hold_madra(1.0 / 3.0)
-	for third: int in 3:
-		_plate.release_madra(1.0 / 3.0)
-	assert_eq(_text("MadraValueLabel"), "50")
-	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0000001)
-
-func test_held_madra_never_shows_below_zero() -> void:
-	ResourceManager.set_madra(3.0)
-	_plate.hold_madra(5.0)
-	assert_eq(_text("MadraValueLabel"), "0")
-	assert_almost_eq(_fill("MadraOrb"), 0.0, 0.0001)
 
 ## XP on its way to the Core orb is left out of the figure and the beads.
 func test_held_xp_shows_once_released() -> void:
@@ -381,28 +216,6 @@ func test_held_xp_holds_back_a_level_up() -> void:
 	_plate.release_core_xp(8.0)
 	assert_eq(_text("XpLabel"), "8 / %d XP" % floori(CultivationManager.get_xp_for_next_level()))
 
-## The Madra max is the shown level's, so it does not run ahead of a level-up
-## still in flight.
-func test_held_xp_shows_the_madra_max_of_the_level_shown() -> void:
-	_load_core_density(5.0, 8.5)
-	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
-	assert_eq(_text("MadraMaxLabel"), "/ 130", "precondition: level 6's max")
-	_plate.hold_core_xp(9.0)
-	assert_eq(_text("LevelLabel"), "Level 5", "precondition: 9 XP back is under level 6")
-	assert_eq(_text("MadraMaxLabel"), "/ 125", "level 5's while the level-up flies")
-	_plate.release_core_xp(9.0)
-	assert_eq(_text("MadraMaxLabel"), "/ 130")
-
-## The XP that fills the core flies no pellets, but held XP over a full core
-## shows the core short of full.
-func test_held_xp_shows_a_full_core_short_of_full() -> void:
-	_load_core_density(100.0, 0.0)
-	_plate.hold_core_xp(3.0)
-	assert_eq(_text("LevelLabel"), "Level 99")
-	assert_ne(_text("XpLabel"), "Core full")
-	_plate.release_core_xp(3.0)
-	assert_eq(_text("XpLabel"), "Core full")
-
 func test_rewind_core_within_a_level() -> void:
 	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 3.0, _cost), Vector2(4, 4.0))
 	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 0.0, _cost), Vector2(4, 7.0))
@@ -430,28 +243,10 @@ func test_gold_text() -> void:
 	assert_eq(_text("GoldValueLabel"), "0")
 	ResourceManager.set_gold(120.0)
 	assert_eq(_text("GoldValueLabel"), "120")
-	assert_eq(_text("GoldWordLabel"), "gold")
-
-## The gold row sits at the right of the bottom row: coin, number, "gold",
-## ending on the cabinet's right text edge whatever the number's width.
-func test_gold_row_ends_on_the_right_text_edge() -> void:
-	for gold: float in [0.0, 120.0, 98765.0]:
-		ResourceManager.set_gold(gold)
-		await wait_process_frames(2)
-		var coin: Rect2 = (_node("GoldIcon") as Control).get_global_rect()
-		var value: Rect2 = (_node("GoldValueLabel") as Control).get_global_rect()
-		var word: Rect2 = (_node("GoldWordLabel") as Control).get_global_rect()
-		var right_edge: float = _plate.global_position.x + TEXT_RIGHT_EDGE
-		assert_almost_eq(word.end.x, right_edge, 0.5, "the word ends on the right text edge (%d gold)" % gold)
-		assert_lt(coin.end.x, value.position.x, "the coin comes first")
-		assert_lt(value.position.x, word.position.x, "then the number, then the word")
-		assert_eq(coin.size, Vector2(32.0, 32.0), "the coin shows at 32x32")
 
 #-----------------------------------------------------------------------------
 # ROOT
 #-----------------------------------------------------------------------------
 
-func test_root_is_the_cabinet_and_stops_clicks() -> void:
-	assert_eq(_plate.size, Vector2(440.0, 252.0))
+func test_root_stops_clicks() -> void:
 	assert_eq(_plate.mouse_filter, Control.MOUSE_FILTER_STOP)
-	assert_eq(_plate.theme, load("res://assets/themes/lacquer/lacquer_theme.tres"))

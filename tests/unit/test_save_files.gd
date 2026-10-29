@@ -259,14 +259,17 @@ func test_load_keeps_shared_item_resources_shared() -> void:
 		assert_true(loaded.inventory.materials.has(shared), "the save's item is the shared instance")
 		assert_eq(loaded.inventory.materials.get(shared), 3)
 
-func test_load_of_a_missing_file_is_null() -> void:
-	assert_null(SaveFiles.load_save(_path("nothing.tres")))
-
-func test_load_of_another_kind_of_resource_is_null() -> void:
-	var path: String = _path("not_a_save.tres")
+## A path that holds no save loads as null: a missing file, and a resource of
+## another kind.
+func test_load_of_a_path_without_a_save_is_null() -> void:
 	DirAccess.make_dir_recursive_absolute(_global(ROOT))
-	assert_eq(ResourceSaver.save(Resource.new(), path), OK)
-	assert_null(SaveFiles.load_save(path))
+	assert_eq(ResourceSaver.save(Resource.new(), _path("not_a_save.tres")), OK)
+	var cases: Array[Dictionary] = [
+		{"name": "a missing file", "path": _path("nothing.tres")},
+		{"name": "another kind of resource", "path": _path("not_a_save.tres")},
+	]
+	for case: Dictionary in cases:
+		assert_null(SaveFiles.load_save(case.path), "%s loads as null" % case.name)
 
 #-----------------------------------------------------------------------------
 # COPY ASIDE

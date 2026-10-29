@@ -95,20 +95,20 @@ func _first_log_message() -> String:
 # ADD MADRA
 #-----------------------------------------------------------------------------
 
-func test_add_madra_increases_madra() -> void:
-	_save.madra = 10.0
-	ResourceManager.add_madra(5.0)
-	assert_eq(_save.madra, 15.0)
-
-func test_add_madra_clamps_to_stage_cap() -> void:
-	_save.madra = 95.0
-	ResourceManager.add_madra(20.0)
-	assert_eq(_save.madra, _pool_cap(), "the stage cap at level 0 should absorb the overflow")
-
-func test_add_madra_at_cap_stays_at_cap() -> void:
-	_save.madra = _pool_cap()
-	ResourceManager.add_madra(50.0)
-	assert_eq(_save.madra, _pool_cap())
+## add_madra() keeps the pool between 0 and the stage cap: an add with room
+## lands in full, one past the cap or at it stops at the cap, and a negative
+## amount past the pool stops at 0.
+func test_add_madra_keeps_the_pool_between_zero_and_the_cap() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "an add with room", "madra": 10.0, "amount": 5.0, "expected": 15.0},
+		{"name": "the stage cap at level 0 absorbs the overflow", "madra": 95.0, "amount": 20.0, "expected": _pool_cap()},
+		{"name": "an add at the cap stays at the cap", "madra": _pool_cap(), "amount": 50.0, "expected": _pool_cap()},
+		{"name": "a negative amount past the pool stops at 0", "madra": 10.0, "amount": -50.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		_save.madra = case.madra
+		ResourceManager.add_madra(case.amount)
+		assert_eq(_save.madra, case.expected, case.name)
 
 func test_add_madra_cap_grows_with_core_density_level() -> void:
 	_save.core_density_level = 5.0
@@ -116,11 +116,6 @@ func test_add_madra_cap_grows_with_core_density_level() -> void:
 	ResourceManager.add_madra(1000.0)
 	assert_eq(_save.madra, _pool_cap(), "the cap should follow CultivationManager's Core Density level")
 	assert_gt(_save.madra, _stage.get_max_madra(0), "a higher level should allow more than the level-0 cap")
-
-func test_add_madra_negative_amount_clamps_to_zero() -> void:
-	_save.madra = 10.0
-	ResourceManager.add_madra(-50.0)
-	assert_eq(_save.madra, 0.0)
 
 func test_add_madra_emits_madra_changed_with_new_total() -> void:
 	_save.madra = 10.0
@@ -166,15 +161,17 @@ func test_spending_above_the_cap_still_spends() -> void:
 # SPEND MADRA
 #-----------------------------------------------------------------------------
 
+## A spend the pool covers deducts and returns true, down to a spend of the
+## exact amount held.
 func test_spend_madra_deducts_and_returns_true() -> void:
-	_save.madra = 50.0
-	assert_true(ResourceManager.spend_madra(30.0))
-	assert_eq(_save.madra, 20.0)
-
-func test_spend_madra_exact_amount_succeeds() -> void:
-	_save.madra = 25.0
-	assert_true(ResourceManager.spend_madra(25.0))
-	assert_eq(_save.madra, 0.0)
+	var cases: Array[Dictionary] = [
+		{"name": "30 of 50", "madra": 50.0, "amount": 30.0, "left": 20.0},
+		{"name": "the exact amount held", "madra": 25.0, "amount": 25.0, "left": 0.0},
+	]
+	for case: Dictionary in cases:
+		_save.madra = case.madra
+		assert_true(ResourceManager.spend_madra(case.amount), "%s: succeeds" % case.name)
+		assert_eq(_save.madra, case.left, "%s: Madra left" % case.name)
 
 func test_spend_madra_insufficient_returns_false_and_keeps_madra() -> void:
 	_save.madra = 10.0
@@ -197,15 +194,17 @@ func test_failed_spend_madra_does_not_emit() -> void:
 # SET MADRA
 #-----------------------------------------------------------------------------
 
+## set_madra() sets the pool, and a negative value sets it to 0.
 func test_set_madra_sets_value() -> void:
-	ResourceManager.set_madra(75.0)
-	assert_eq(_save.madra, 75.0)
-	assert_eq(ResourceManager.get_madra(), 75.0)
-
-func test_set_madra_negative_clamps_to_zero() -> void:
-	_save.madra = 40.0
-	ResourceManager.set_madra(-10.0)
-	assert_eq(_save.madra, 0.0)
+	var cases: Array[Dictionary] = [
+		{"name": "75", "value": 75.0, "expected": 75.0},
+		{"name": "a negative value clamps to 0", "value": -10.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		_save.madra = 40.0
+		ResourceManager.set_madra(case.value)
+		assert_eq(_save.madra, case.expected, "%s: the save" % case.name)
+		assert_eq(ResourceManager.get_madra(), case.expected, "%s: get_madra()" % case.name)
 
 func test_set_madra_emits_madra_changed() -> void:
 	watch_signals(ResourceManager)
@@ -216,14 +215,16 @@ func test_set_madra_emits_madra_changed() -> void:
 # GOLD
 #-----------------------------------------------------------------------------
 
+## add_gold() adds the amount, with no cap however much it is.
 func test_add_gold_increases_gold() -> void:
-	_save.gold = 10.0
-	ResourceManager.add_gold(5.0)
-	assert_eq(_save.gold, 15.0)
-
-func test_add_gold_is_uncapped() -> void:
-	ResourceManager.add_gold(1000000.0)
-	assert_eq(_save.gold, 1000000.0)
+	var cases: Array[Dictionary] = [
+		{"name": "5 onto 10", "gold": 10.0, "amount": 5.0, "expected": 15.0},
+		{"name": "no cap on a million", "gold": 0.0, "amount": 1000000.0, "expected": 1000000.0},
+	]
+	for case: Dictionary in cases:
+		_save.gold = case.gold
+		ResourceManager.add_gold(case.amount)
+		assert_eq(_save.gold, case.expected, case.name)
 
 func test_add_gold_emits_gold_changed() -> void:
 	_save.gold = 10.0
@@ -238,15 +239,17 @@ func test_add_gold_logs_gain() -> void:
 	assert_signal_emit_count(LogManager, "message_logged", 1)
 	assert_string_contains(_first_log_message(), "Gained 15 Gold")
 
+## A spend the purse covers deducts and returns true, down to a spend of the
+## exact amount held.
 func test_spend_gold_deducts_and_returns_true() -> void:
-	_save.gold = 100.0
-	assert_true(ResourceManager.spend_gold(30.0))
-	assert_eq(_save.gold, 70.0)
-
-func test_spend_gold_exact_amount_succeeds() -> void:
-	_save.gold = 30.0
-	assert_true(ResourceManager.spend_gold(30.0))
-	assert_eq(_save.gold, 0.0)
+	var cases: Array[Dictionary] = [
+		{"name": "30 of 100", "gold": 100.0, "amount": 30.0, "left": 70.0},
+		{"name": "the exact amount held", "gold": 30.0, "amount": 30.0, "left": 0.0},
+	]
+	for case: Dictionary in cases:
+		_save.gold = case.gold
+		assert_true(ResourceManager.spend_gold(case.amount), "%s: succeeds" % case.name)
+		assert_eq(_save.gold, case.left, "%s: gold left" % case.name)
 
 func test_spend_gold_insufficient_returns_false_and_keeps_gold() -> void:
 	_save.gold = 10.0
@@ -270,15 +273,17 @@ func test_failed_spend_gold_does_not_emit_or_log() -> void:
 	assert_signal_not_emitted(ResourceManager, "gold_changed")
 	assert_signal_not_emitted(LogManager, "message_logged")
 
+## set_gold() sets the purse, and a negative value sets it to 0.
 func test_set_gold_sets_value() -> void:
-	ResourceManager.set_gold(200.0)
-	assert_eq(_save.gold, 200.0)
-	assert_eq(ResourceManager.get_gold(), 200.0)
-
-func test_set_gold_negative_clamps_to_zero() -> void:
-	_save.gold = 40.0
-	ResourceManager.set_gold(-5.0)
-	assert_eq(_save.gold, 0.0)
+	var cases: Array[Dictionary] = [
+		{"name": "200", "value": 200.0, "expected": 200.0},
+		{"name": "a negative value clamps to 0", "value": -5.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		_save.gold = 40.0
+		ResourceManager.set_gold(case.value)
+		assert_eq(_save.gold, case.expected, "%s: the save" % case.name)
+		assert_eq(ResourceManager.get_gold(), case.expected, "%s: get_gold()" % case.name)
 
 func test_set_gold_emits_gold_changed() -> void:
 	watch_signals(ResourceManager)
@@ -297,16 +302,19 @@ func test_cannot_afford_gold_when_short() -> void:
 # AWARD RESOURCE
 #-----------------------------------------------------------------------------
 
-func test_award_resource_madra_adds_capped_madra() -> void:
-	_save.madra = 95.0
-	ResourceManager.award_resource(ResourceManager.ResourceType.MADRA, 20.0)
-	assert_eq(_save.madra, _pool_cap(), "awarded Madra goes through add_madra and its cap")
-	assert_eq(_save.gold, 0.0)
-
-func test_award_resource_gold_adds_gold() -> void:
-	ResourceManager.award_resource(ResourceManager.ResourceType.GOLD, 20.0)
-	assert_eq(_save.gold, 20.0)
-	assert_eq(_save.madra, 0.0)
+## award_resource() sends each type to its own resource and leaves the other
+## alone: awarded Madra goes through add_madra() and its cap.
+func test_award_resource_adds_to_its_type() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "MADRA", "type": ResourceManager.ResourceType.MADRA, "madra": _pool_cap(), "gold": 0.0},
+		{"name": "GOLD", "type": ResourceManager.ResourceType.GOLD, "madra": 95.0, "gold": 20.0},
+	]
+	for case: Dictionary in cases:
+		_save.madra = 95.0
+		_save.gold = 0.0
+		ResourceManager.award_resource(case.type, 20.0)
+		assert_eq(_save.madra, case.madra, "%s: Madra" % case.name)
+		assert_eq(_save.gold, case.gold, "%s: gold" % case.name)
 
 #-----------------------------------------------------------------------------
 # ADVENTURE MADRA
@@ -317,13 +325,15 @@ func test_adventure_capacity_follows_foundation_not_stage_cap() -> void:
 	assert_ne(_adventure_capacity(), _pool_cap(), "precondition: the two caps differ")
 	assert_eq(ResourceManager.get_adventure_madra_capacity(), _adventure_capacity())
 
-func test_adventure_budget_is_current_madra_below_capacity() -> void:
-	_save.madra = _adventure_capacity() - 20.0
-	assert_eq(ResourceManager.get_adventure_madra_budget(), _save.madra)
-
-func test_adventure_budget_is_capacity_when_madra_exceeds_it() -> void:
-	_save.madra = _adventure_capacity() + 25.0
-	assert_eq(ResourceManager.get_adventure_madra_budget(), _adventure_capacity())
+## The adventure budget is the current Madra, but never more than the capacity.
+func test_adventure_budget_is_madra_up_to_capacity() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Madra below capacity", "madra": _adventure_capacity() - 20.0, "budget": _adventure_capacity() - 20.0},
+		{"name": "Madra past capacity", "madra": _adventure_capacity() + 25.0, "budget": _adventure_capacity()},
+	]
+	for case: Dictionary in cases:
+		_save.madra = case.madra
+		assert_eq(ResourceManager.get_adventure_madra_budget(), case.budget, case.name)
 
 func test_adventure_threshold_is_half_capacity() -> void:
 	assert_eq(ResourceManager.get_adventure_madra_threshold(), _adventure_capacity() * 0.5)

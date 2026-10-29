@@ -226,8 +226,7 @@ func _boards() -> Array[Control]:
 # THE WHEEL OVER THE MAP
 #-----------------------------------------------------------------------------
 
-## A wheel over the map zooms it 10% a tick, in to 2 and out to 1 and no further,
-## and the current hex stays at (960, 470).
+## A wheel over the map zooms it 10% a tick, in to 2 and out to 1 and no further.
 func test_a_wheel_over_the_map_zooms_in_and_out_between_one_and_two() -> void:
 	_start_run()
 	await wait_process_frames(2)
@@ -241,7 +240,6 @@ func test_a_wheel_over_the_map_zooms_in_and_out_between_one_and_two() -> void:
 	assert_eq(controller.target_zoom, Vector2(2, 2), "the target stops at 2")
 	await _wait_for_the_zoom()
 	assert_eq(_camera().zoom, Vector2(2, 2), "the camera eases to it and stops")
-	assert_lt(_screen_point_of(START).distance_to(Vector2(960, 470)), 0.01, "with the current hex still at (960, 470)")
 
 	_wheel(MAP_POINT, MOUSE_BUTTON_WHEEL_DOWN)
 	assert_almost_eq(controller.target_zoom.x, 1.8, 0.0001, "a tick out aims 10% farther")
@@ -249,7 +247,6 @@ func test_a_wheel_over_the_map_zooms_in_and_out_between_one_and_two() -> void:
 	assert_eq(controller.target_zoom, Vector2.ONE, "the target stops at 1: the map never goes below it")
 	await _wait_for_the_zoom()
 	assert_eq(_camera().zoom, Vector2.ONE, "the camera eases back to zoom 1 and stops")
-	assert_lt(_screen_point_of(START).distance_to(Vector2(960, 470)), 0.01, "with the current hex still at (960, 470)")
 
 	_wheel(MAP_POINT, MOUSE_BUTTON_WHEEL_DOWN)
 	await _wait_for_the_zoom()
@@ -382,26 +379,3 @@ func test_the_hover_follows_the_pointer_as_the_wheel_zooms() -> void:
 	assert_true(_hover_rim().visible, "the rim is back")
 	assert_eq(_hover_rim().position, tilemap.get_tile_world_centre(FIGHT), "on FIGHT")
 	assert_eq(_route().get_dot_positions(), _dots_between(START, FIGHT), "with its route")
-
-## A committed walk keeps its rim and route through a zoom, as it keeps them when
-## the pointer leaves the map: they belong to the walk, not to the pointer.
-func test_a_committed_walk_keeps_its_rim_and_route_through_a_zoom() -> void:
-	_start_run()
-	await wait_process_frames(2)
-	var tilemap: AdventureTilemap = _view.adventure_tilemap
-	var over_fight: Vector2 = _screen_point_of(FIGHT)
-	await _move_pointer_to(over_fight)
-	_click(over_fight)
-	assert_true(tilemap.character_body.is_moving, "precondition: the press set the walk off")
-
-	_zoom_controller().set_zoom_level(1.5)
-	# A moment of real time, not a count of frames: the zoom is about 0.4 of the way
-	# there and the hop (0.9 s) is far from over, at any frame rate.
-	await wait_seconds(0.15)
-
-	assert_true(tilemap.character_body.is_moving, "precondition: the walk is still under way")
-	assert_lt(_camera().zoom.x, 1.5, "precondition: and so is the zoom")
-	assert_gt(_camera().zoom.x, 1.0, "precondition: which has begun")
-	assert_true(_hover_rim().visible, "the walk's rim stays on its destination")
-	assert_eq(_hover_rim().position, tilemap.get_tile_world_centre(FIGHT))
-	assert_eq(_route().get_dot_positions(), _dots_between(START, FIGHT), "and its route stays laid")

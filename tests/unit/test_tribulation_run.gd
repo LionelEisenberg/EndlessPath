@@ -208,29 +208,25 @@ func test_last_breath_grows_past_the_ring() -> void:
 # JUDGING
 #-----------------------------------------------------------------------------
 
-func test_press_on_the_beat_is_perfect() -> void:
-	var run: TribulationRun = _run()
-	var res: Dictionary = run.press(_beat_time(run, 0))
-	assert_eq(res["result"], Result.PERFECT)
-	assert_almost_eq(res["offset"], 0.0, EPS, "right on the beat")
-	assert_false(res["last"], "the first beat is not the last")
-	assert_eq(run.perfect_count, 1)
-	assert_eq(run.good_count, 0)
-	assert_eq(run.cracks, 0)
-
-func test_press_inside_the_good_window_is_good() -> void:
-	var late: TribulationRun = _run()
-	var res_late: Dictionary = late.press(_beat_time(late, 0) + 0.10)
-	assert_eq(res_late["result"], Result.GOOD, "0.10 s late")
-	assert_almost_eq(res_late["offset"], 0.10, EPS, "the offset is the press minus the beat")
-	assert_eq(late.good_count, 1)
-	assert_eq(late.perfect_count, 0)
-
-	var early: TribulationRun = _run()
-	var res_early: Dictionary = early.press(_beat_time(early, 0) - 0.10)
-	assert_eq(res_early["result"], Result.GOOD, "0.10 s early")
-	assert_almost_eq(res_early["offset"], -0.10, EPS, "negative when early")
-	assert_eq(early.cracks, 0)
+## A press inside the good window hits the first beat: perfect right on it, good
+## 0.10 s either side. The offset is the press minus the beat, negative when
+## early, and a hit counts as its grade with no crack.
+func test_press_inside_the_good_window_is_a_hit() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "right on the beat", "offset": 0.0, "result": Result.PERFECT},
+		{"name": "0.10 s late", "offset": 0.10, "result": Result.GOOD},
+		{"name": "0.10 s early", "offset": -0.10, "result": Result.GOOD},
+	]
+	for case: Dictionary in cases:
+		var run: TribulationRun = _run()
+		var res: Dictionary = run.press(_beat_time(run, 0) + case["offset"])
+		var perfect: bool = case["result"] == Result.PERFECT
+		assert_eq(res["result"], case["result"], case["name"])
+		assert_almost_eq(res["offset"], case["offset"], EPS, "%s: the offset" % case["name"])
+		assert_false(res["last"], "%s: the first beat is not the last" % case["name"])
+		assert_eq(run.perfect_count, 1 if perfect else 0, "%s: perfect count" % case["name"])
+		assert_eq(run.good_count, 0 if perfect else 1, "%s: good count" % case["name"])
+		assert_eq(run.cracks, 0, "%s: no crack" % case["name"])
 
 func test_early_press_is_a_miss() -> void:
 	var run: TribulationRun = _run()

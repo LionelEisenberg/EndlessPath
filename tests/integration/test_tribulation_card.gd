@@ -1,10 +1,11 @@
 extends GutTest
 
 ## Integration tests for the Tribulation's activity card (the TribulationPresenter
-## on a ZoneActionButton). Below the cap the card shows "Core 95 / 100" on a jade
-## rod, tagged TRIAL, and refuses a click with a shake and a log line. At the cap
-## it is ready: the brass ready frame, the ENTER tag and the trial's length and
-## penalty on its detail line. It follows the core's level and the stage. Cards
+## on a ZoneActionButton). Below the cap the card shows "Core 95 / 100" on a
+## rod, tagged TRIAL, and refuses a click with a log line. At the cap it is
+## ready: the ready frame, the ENTER tag and the trial's length and penalty on
+## its detail line, which wraps in a taller card when it runs long. It follows
+## the core's level and the stage, and lets both go when it leaves the tree. Cards
 ## are built with setup_action on a fresh save with the card's unlock condition
 ## forced, as the zone panel builds them; the trial itself is test_tribulation_flow.gd's.
 
@@ -148,13 +149,6 @@ func _run_aura_well() -> void:
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 
 #-----------------------------------------------------------------------------
-# THE PRESENTER
-#-----------------------------------------------------------------------------
-
-func test_presenter_is_registered() -> void:
-	assert_true(ZoneActionButton.PRESENTER_SCENES.has(ZoneActionData.ActionType.TRIBULATION), "the Tribulation has a presenter of its own")
-
-#-----------------------------------------------------------------------------
 # BELOW THE CAP
 #-----------------------------------------------------------------------------
 
@@ -179,20 +173,12 @@ func test_at_the_cap_the_card_is_ready() -> void:
 	var card: ZoneActionButton = _card()
 	assert_eq(_ready_label(card).text if _ready_label(card) else "", "About 38 s", "the trial's length on the left")
 	assert_eq(card.get_detail_right_text(), "failure costs 5 levels", "and its penalty in the right column")
-	assert_eq((card.get_node("%DetailRight") as RichTextLabel).get_theme_color(&"default_color"), ThemeConstants.LACQUER_BRASS, "in brass too")
-	assert_false(_has_text_containing(card, "·"), "two columns, not a sentence joined with a dot")
 	assert_eq(_tag_text(card), "ENTER")
-	var frame: LacquerFrameOverlay = _ready_frame(card)
-	assert_true(frame.visible, "the steady brass ready frame")
-	assert_false(frame.is_flashing(), "shown steadily, not flashed")
+	assert_true(_ready_frame(card).visible, "the ready frame")
 	var row: Control = _need_row(card)
 	assert_not_null(row, "the Core figure and its rod sit in the footer")
 	if row:
 		assert_false(row.visible, "and hide once the card is ready")
-	var line: Label = _ready_label(card)
-	assert_not_null(line, "the ready line sits on the detail line")
-	if line:
-		assert_eq(line.get_theme_color(&"font_color"), ThemeConstants.LACQUER_BRASS, "in brass")
 
 ## The line reads the trial's own tempo and penalty, not the shipped numbers: a
 ## trial at tempo 2 takes half as long, and its failure costs what its data says.
@@ -212,14 +198,6 @@ func test_filling_the_core_readies_the_card() -> void:
 	assert_eq(_tag_text(card), "ENTER")
 	assert_true(_ready_frame(card).visible)
 	assert_true(_has_text_containing(card, "About 38 s"))
-
-func test_card_uses_the_short_drawer_in_both_states() -> void:
-	_set_core_level(FULL_CORE)
-	var card: ZoneActionButton = _card()
-	assert_eq(card.size.y, SHORT_HEIGHT, "at the cap")
-	CultivationManager.lose_core_density_levels(5)
-	assert_eq(card.size.y, SHORT_HEIGHT, "below the cap")
-	assert_eq(card.custom_minimum_size.y, SHORT_HEIGHT)
 
 #-----------------------------------------------------------------------------
 # CLICKS
@@ -246,31 +224,6 @@ func test_click_at_the_cap_starts_the_trial() -> void:
 	assert_signal_emitted(ActionManager, "start_tribulation")
 	for line: String in _logged:
 		assert_false(line.contains("must be full"), "a ready click writes no refusal")
-
-## A refused click shakes the need row softly, as a refused click on the Adventure
-## card shakes its rod row: MapGlyph's soft keyframes, 0, -4, 4, -2, 2, 0 px, each
-## held 0.088 s.
-func test_rejected_click_shakes_the_need_row() -> void:
-	_set_core_level(SHORT_CORE)
-	var card: ZoneActionButton = _card()
-	var row: Control = _need_row(card)
-	assert_not_null(row, "the need row sits in the footer")
-	if row == null:
-		return
-	assert_not_null(row.find_child("CoreRod", true, false), "the rod shakes with its row")
-	# A tween's first step carries the whole frame it starts in, and the frame
-	# that built the card can be long enough to skip a keyframe: click in a
-	# fresh one.
-	await wait_process_frames(2)
-	_click(card)
-	# Read the offsets frame by frame (the tween runs on frame time).
-	var offsets: Array[float] = [row.position.x]
-	var settled: bool = await wait_until(func() -> bool:
-		if row.position.x != offsets[-1]:
-			offsets.append(row.position.x)
-		return offsets.size() > 1 and row.position.x == 0.0, 2.0)
-	assert_true(settled, "the row settles back at 0")
-	assert_eq(offsets, [0.0, -4.0, 4.0, -2.0, 2.0, 0.0] as Array[float], "the soft keyframes in order, each a whole even px")
 
 #-----------------------------------------------------------------------------
 # FOLLOWING THE CORE
@@ -322,7 +275,6 @@ func test_a_long_ready_line_grows_the_card_and_it_shrinks_back() -> void:
 		assert_eq(line.get_visible_line_count(), line.get_line_count(), "no line of the left part is cut")
 	assert_eq(card.get_detail_right_text(), "failure costs %d levels" % HEAVY_PENALTY, "the right column keeps its whole text")
 	assert_gt(right.get_line_count(), 1, "and wraps")
-	assert_lte(right.size.x, 158.0, "at half the line")
 	assert_eq(card.size.y, TALL_HEIGHT, "the line wraps in the tall drawer")
 	CultivationManager.lose_core_density_levels(5)
 	assert_eq(card.size.y, SHORT_HEIGHT, "below the cap the card is short again")

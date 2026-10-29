@@ -38,24 +38,29 @@ func _damage(base_value: float, damage_type: CombatEffectData.DamageType) -> Com
 # THE SWEEP
 #-----------------------------------------------------------------------------
 
+## The steps recharged for the time left of a cooldown, out of 24. A step only
+## counts once it is whole, even where floating point lands a hair short of it
+## (the 1e-6 bias). More time left than the cooldown shows none; no time left, a
+## time past the end and a cooldown of no length or below show the plain icon.
+## The count never leaves 0 to 24.
 func test_sweep_step_counts_24_steps() -> void:
 	assert_eq(TechniqueSlot.SWEEP_STEPS, 24)
-	assert_eq(TechniqueSlot.sweep_step(3.0, 3.0), 0, "a cooldown that just started shows no step recharged")
-	assert_eq(TechniqueSlot.sweep_step(1.5, 3.0), 12, "half way: half the steps")
-	assert_eq(TechniqueSlot.sweep_step(0.01, 3.0), 23, "a sliver left still shows the last step veiled")
-	assert_eq(TechniqueSlot.sweep_step(0.0, 3.0), 24, "nothing left: the plain icon")
-	assert_eq(TechniqueSlot.sweep_step(1.0, 0.0), 24, "a cooldown of no length: the plain icon")
-
-## A step only counts once it is whole, even where floating point lands a
-## hair short of it (the 1e-6 bias), and the count never leaves 0 to 24.
-func test_sweep_step_floors_and_stays_in_range() -> void:
-	assert_eq(TechniqueSlot.sweep_step(2.0, 3.0), 8, "one third recharged: 8 of 24")
-	assert_eq(TechniqueSlot.sweep_step(2.9, 3.0), 0, "under one step recharged: still 0")
-	assert_eq(TechniqueSlot.sweep_step(2.875, 3.0), 1, "one step recharged exactly")
-	assert_eq(TechniqueSlot.sweep_step(0.7, 0.7), 0)
-	assert_eq(TechniqueSlot.sweep_step(4.0, 3.0), 0, "more time left than the cooldown: none recharged")
-	assert_eq(TechniqueSlot.sweep_step(-0.5, 3.0), 24, "past the end: the plain icon")
-	assert_eq(TechniqueSlot.sweep_step(1.0, -2.0), 24, "a negative cooldown: the plain icon")
+	var cases: Array[Dictionary] = [
+		{"name": "a cooldown that just started shows no step recharged", "left": 3.0, "cooldown": 3.0, "step": 0},
+		{"name": "half way: half the steps", "left": 1.5, "cooldown": 3.0, "step": 12},
+		{"name": "a sliver left still shows the last step veiled", "left": 0.01, "cooldown": 3.0, "step": 23},
+		{"name": "nothing left: the plain icon", "left": 0.0, "cooldown": 3.0, "step": 24},
+		{"name": "a cooldown of no length: the plain icon", "left": 1.0, "cooldown": 0.0, "step": 24},
+		{"name": "one third recharged: 8 of 24", "left": 2.0, "cooldown": 3.0, "step": 8},
+		{"name": "under one step recharged: still 0", "left": 2.9, "cooldown": 3.0, "step": 0},
+		{"name": "one step recharged exactly", "left": 2.875, "cooldown": 3.0, "step": 1},
+		{"name": "a 0.7 s cooldown that just started", "left": 0.7, "cooldown": 0.7, "step": 0},
+		{"name": "more time left than the cooldown: none recharged", "left": 4.0, "cooldown": 3.0, "step": 0},
+		{"name": "past the end: the plain icon", "left": -0.5, "cooldown": 3.0, "step": 24},
+		{"name": "a negative cooldown: the plain icon", "left": 1.0, "cooldown": -2.0, "step": 24},
+	]
+	for case: Dictionary in cases:
+		assert_eq(TechniqueSlot.sweep_step(case["left"], case["cooldown"]), case["step"], case["name"])
 	for tenths: int in range(0, 31):
 		var step: int = TechniqueSlot.sweep_step(tenths / 10.0, 3.0)
 		assert_between(step, 0, TechniqueSlot.SWEEP_STEPS, "%.1f s left of 3 s" % (tenths / 10.0))
@@ -75,35 +80,43 @@ func test_sweep_step_reaches_every_step() -> void:
 # THE SECONDS
 #-----------------------------------------------------------------------------
 
+## The whole seconds left, rounded up, so a sliver reads 1 and never 0; nothing
+## left, or a time past the end, shows no number.
 func test_seconds_round_up() -> void:
-	assert_eq(TechniqueSlot.seconds_text(2.1), "3", "part of a third second still reads 3")
-	assert_eq(TechniqueSlot.seconds_text(3.0), "3", "a whole number stays as it is")
-	assert_eq(TechniqueSlot.seconds_text(0.0), "", "nothing left: no number")
-
-func test_seconds_of_a_sliver_and_past_the_end() -> void:
-	assert_eq(TechniqueSlot.seconds_text(0.04), "1", "a sliver left reads 1, never 0")
-	assert_eq(TechniqueSlot.seconds_text(1.5), "2", "the 1.5 s every fight starts on reads 2")
-	assert_eq(TechniqueSlot.seconds_text(14.9), "15")
-	assert_eq(TechniqueSlot.seconds_text(-0.2), "", "past the end: no number")
+	var cases: Array[Dictionary] = [
+		{"name": "part of a third second still reads 3", "left": 2.1, "text": "3"},
+		{"name": "a whole number stays as it is", "left": 3.0, "text": "3"},
+		{"name": "nothing left: no number", "left": 0.0, "text": ""},
+		{"name": "a sliver left reads 1, never 0", "left": 0.04, "text": "1"},
+		{"name": "the 1.5 s every fight starts on reads 2", "left": 1.5, "text": "2"},
+		{"name": "14.9 s reads 15", "left": 14.9, "text": "15"},
+		{"name": "past the end: no number", "left": -0.2, "text": ""},
+	]
+	for case: Dictionary in cases:
+		assert_eq(TechniqueSlot.seconds_text(case["left"]), case["text"], case["name"])
 
 #-----------------------------------------------------------------------------
 # THE DAMAGE LINE
 #-----------------------------------------------------------------------------
 
+## The line gives the damage of the first effect on the target for the
+## attributes, rounded (a half rounds up), and names its damage type.
 func test_format_damage() -> void:
-	var attributes := CharacterAttributesData.new(13.0, 10.0, 7.0, 10.0, 10.0, 10.0, 10.0, 10.0)
-	var amount: int = roundi((BASIC_STRIKE.effects_on_target[0] as CombatEffectData).calculate_value(attributes))
+	var strong := CharacterAttributesData.new(13.0, 10.0, 7.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	var plain := CharacterAttributesData.new()
+	var amount: int = roundi((BASIC_STRIKE.effects_on_target[0] as CombatEffectData).calculate_value(strong))
 	assert_eq(amount, 27, "precondition: 10 + 13 x 1 + 7 x 0.5 = 26.5, rounded")
-	assert_eq(AbilityRow.format_damage(BASIC_STRIKE, attributes), "about %d Physical damage" % amount)
-	assert_eq(AbilityRow.format_damage(ENFORCE, attributes), "", "a self-buff deals no damage")
-
-func test_format_damage_names_the_damage_type() -> void:
-	var attributes := CharacterAttributesData.new()
-	var palm_amount: int = roundi((EMPTY_PALM.effects_on_target[0] as CombatEffectData).calculate_value(attributes))
-	assert_eq(AbilityRow.format_damage(EMPTY_PALM, attributes), "about %d Spirit damage" % palm_amount)
-	assert_eq(AbilityRow.format_damage(_ability_with(_damage(12.0, CombatEffectData.DamageType.TRUE)), attributes), "about 12 True damage")
-	assert_eq(AbilityRow.format_damage(_ability_with(_damage(8.4, CombatEffectData.DamageType.MIXED)), attributes), "about 8 Mixed damage")
-	assert_eq(AbilityRow.format_damage(_ability_with(_damage(8.5, CombatEffectData.DamageType.PHYSICAL)), attributes), "about 9 Physical damage", "a half rounds up")
+	var palm_amount: int = roundi((EMPTY_PALM.effects_on_target[0] as CombatEffectData).calculate_value(plain))
+	var cases: Array[Dictionary] = [
+		{"name": "Basic Strike: Physical", "ability": BASIC_STRIKE, "attributes": strong, "line": "about %d Physical damage" % amount},
+		{"name": "Empty Palm: Spirit", "ability": EMPTY_PALM, "attributes": plain, "line": "about %d Spirit damage" % palm_amount},
+		{"name": "True", "ability": _ability_with(_damage(12.0, CombatEffectData.DamageType.TRUE)), "attributes": plain, "line": "about 12 True damage"},
+		{"name": "Mixed", "ability": _ability_with(_damage(8.4, CombatEffectData.DamageType.MIXED)), "attributes": plain, "line": "about 8 Mixed damage"},
+		{"name": "a half rounds up", "ability": _ability_with(_damage(8.5, CombatEffectData.DamageType.PHYSICAL)), "attributes": plain, "line": "about 9 Physical damage"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AbilityRow.format_damage(case["ability"], case["attributes"]), case["line"], case["name"])
+	assert_eq(AbilityRow.format_damage(ENFORCE, strong), "", "a self-buff deals no damage")
 
 ## Only the first effect on the target counts, and only when it is damage.
 func test_format_damage_reads_the_first_target_effect_only() -> void:

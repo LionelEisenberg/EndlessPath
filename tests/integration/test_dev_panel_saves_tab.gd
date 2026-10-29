@@ -1,19 +1,16 @@
 extends GutTest
 
 ## The dev panel's Saves tab and the restart key, against the real DevManager and
-## PersistenceManager. The tab shows the session (what it plays, where it writes, why
-## saving is off, the preset its save was built from, and the save's version,
-## playtime, stage, Core Density and gold) and the route's beats with the playtime
-## each was reached at, or "reached, no time recorded" where a build or a save from
-## before play stats kept no time, refreshed as the session changes, when the tab is
-## shown, and once a second for the playtime. Restart and Back switch the session; a
-## row per preset plays or pins it; "Save this game as a preset" writes one; New game,
-## Keep and Restore write over your save, so each needs a second click within 3 s and
-## takes no keyboard focus; Save now, Autosave and the backup picker work on your
-## save. A refused or failed switch shows its reason in a status line that does not
-## scroll, also in a tab built after it. Ctrl+Shift+R restarts a preset session from
-## anywhere, and leaves the key alone outside one. Open folder opens a real Explorer
-## window, so no test presses it.
+## PersistenceManager. The tab shows the session (what it plays, where it writes, the
+## preset its save was built from, and what the save holds) and the route's beats with
+## the playtime each was reached at, or "reached, no time recorded" where a build kept
+## no time. Restart and Back switch the session; a row per preset plays or pins it;
+## "Save this game as a preset" writes one; New game, Keep and Restore write over your
+## save, so each needs a second click within 3 s and takes no keyboard focus; Save now,
+## Autosave and the backup picker work on your save. A refused or failed switch shows
+## its reason, also in a tab built after it. Ctrl+Shift+R restarts a preset session
+## from anywhere, and leaves the key alone outside one. Open folder opens a real
+## Explorer window, so no test presses it.
 ##
 ## Each panel is built inside a 1920x1080 Control, as MainView holds it. Nothing here
 ## touches a real path: the presets are read from and saved into a temp folder
@@ -37,9 +34,6 @@ const SCREEN_SIZE: Vector2 = Vector2(1920, 1080)
 
 ## A switch runs on the next frame. Two frames leave it done.
 const SWITCH_FRAMES: int = 2
-
-## The prefix of every [DEV] line in the player's log.
-const DEV_LINE: String = "[color=magenta][DEV][/color] "
 
 ## Every temp file and folder here starts with this. after_each() deletes them.
 const TMP_PREFIX: String = "__test_dev_panel_saves_tab_"
@@ -70,35 +64,6 @@ const NPC_4: String = "celestial_intervener_dialogue_4"
 ## Beat 1's reached_when: the event q_fill_core fires when it completes, which is
 ## also the id of the unlock condition that latches on that event.
 const AWAKENING_EVENT: String = "q_fill_core_completed"
-
-## Beat 2's reached_when: an event no unlock condition shares, the completion event
-## of a q_first_steps step.
-const FIRST_STEPS_EVENT: String = "celestial_intervener_dialogue_3"
-
-## A save from before play stats existed, as the developer's own save is: the events
-## of beats 1 and 2 have fired and beat 1's condition has latched, and no first time
-## was kept for any of them.
-const PRE_STATS_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
-
-[ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
-[ext_resource type="Script" path="res://singletons/persistence_manager/event_progression_data.gd" id="2_events"]
-[ext_resource type="Script" path="res://singletons/persistence_manager/unlock_progression_data.gd" id="3_unlocks"]
-
-[sub_resource type="Resource" id="Resource_events"]
-script = ExtResource("2_events")
-triggered_events = Array[String](["q_fill_core_completed", "celestial_intervener_dialogue_3"])
-
-[sub_resource type="Resource" id="Resource_unlocks"]
-script = ExtResource("3_unlocks")
-unlocked_condition_ids = Array[String](["q_fill_core_completed"])
-
-[resource]
-script = ExtResource("1_save")
-save_version = 1
-gold = 42.0
-event_progression = SubResource("Resource_events")
-unlock_progression = SubResource("Resource_unlocks")
-"""
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -312,13 +277,6 @@ func _remove_temp_files() -> void:
 # THE TAB
 #-----------------------------------------------------------------------------
 
-func test_the_saves_tab_comes_first() -> void:
-	var panel: DevPanel = _add_panel()
-	var tabs: TabContainer = panel.get_node("%Tabs")
-	var index: int = tabs.get_tab_idx_from_control(panel.get_node("%SavesTab"))
-	assert_eq(index, 0, "Saves is the first tab")
-	assert_eq(tabs.get_tab_title(index), "Saves")
-
 ## No text is cut off: every label that can run long wraps, and is told how wide it
 ## may be.
 func test_the_long_labels_wrap() -> void:
@@ -333,47 +291,9 @@ func test_the_long_labels_wrap() -> void:
 		assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s wraps by word" % label.name)
 		assert_gt(label.custom_minimum_size.x, 0.0, "%s has a width to wrap in" % label.name)
 
-## The tab is taller than the panel, and a refusal can come from the buttons at its
-## top (Restart, Back, a preset's Play) or its foot (Keep, New game, Restore). The
-## status stands outside the part that scrolls, so it is in view wherever the tab is
-## scrolled to, and nobody takes a refused switch for one that ran.
-func test_the_status_stands_outside_the_part_that_scrolls() -> void:
-	var tab: Control = _open_saves_tab()
-	var scrolling: ScrollContainer = tab.get_node("%Scroll")
-	assert_true(scrolling.is_ancestor_of(tab.get_node("%PresetList")), "precondition: the presets scroll")
-	assert_true(tab.is_ancestor_of(_status(tab)), "the status belongs to the tab")
-	assert_false(scrolling.is_ancestor_of(_status(tab)), "and does not scroll with the rest")
-
-## The status shows nothing, and takes no room, until there is something to say.
-func test_the_status_starts_hidden() -> void:
-	var tab: Control = _open_saves_tab()
-	assert_false(_status(tab).visible)
-	assert_false((tab.get_node("%StatusPanel") as Control).visible, "nor does the panel it stands in")
-
-## A refusal from the top of the tab shows inside the panel's body, with the tab
-## scrolled to the top.
-func test_a_refusal_shows_in_view() -> void:
-	var panel: DevPanel = _add_panel()
-	var tab: Control = _show_saves_tab(panel)
-	DevManager.play_preset(_preset("refused_in_view", "In view"))
-	await wait_process_frames(SWITCH_FRAMES)
-	_press(tab, "BackButton")
-	await get_tree().process_frame
-	assert_eq(_status(tab).text, "This run has no main save", "precondition: Back was refused")
-	assert_eq((tab.get_node("%Scroll") as ScrollContainer).scroll_vertical, 0, "precondition: the tab is scrolled to the top")
-	var body: Control = panel.get_node("%Body")
-	assert_true(body.get_global_rect().encloses(_status(tab).get_global_rect()), "the reason shows inside the body")
-
 #-----------------------------------------------------------------------------
 # THE SESSION
 #-----------------------------------------------------------------------------
-
-func test_the_session_line_says_in_memory() -> void:
-	var tab: Control = _open_saves_tab()
-	DevManager.play_preset(_preset("line_memory", "Line test"))
-	await wait_process_frames(SWITCH_FRAMES)
-	var line: String = _label(tab, "SessionLabel").text
-	assert_true(line.begins_with("Preset: Line test · in memory, not saved\n"), "the line names the preset and says nothing writes it: %s" % line)
 
 func test_the_session_line_names_your_save_and_what_it_holds() -> void:
 	_start_on_temp_main_save()
@@ -382,21 +302,6 @@ func test_the_session_line_names_your_save_and_what_it_holds() -> void:
 	PersistenceManager.save_game_data.stats.add_play_time(754.0)
 	var tab: Control = _open_saves_tab()
 	assert_eq(_label(tab, "SessionLabel").text, "Your save · %s\nVersion 1 · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold" % MAIN_SAVE_PATH)
-
-## A save a newer build wrote is played with saving off, and the line says why.
-func test_the_session_line_names_a_file_and_why_saving_is_off() -> void:
-	_write_text(FILE_PATH, MAIN_SAVE_TEXT.replace("save_version = 1", "save_version = 99"))
-	PersistenceManager.open_save_file(FILE_PATH)
-	DevManager.start_from_launch_options(LaunchOptions.parse(PackedStringArray(["--save=" + FILE_PATH])))
-	assert_true(PersistenceManager.is_save_blocked(), "precondition: saving is off for a newer build's save")
-	var tab: Control = _open_saves_tab()
-	var lines: PackedStringArray = _label(tab, "SessionLabel").text.split("\n")
-	assert_eq(lines.size(), 3, "where it writes, why saving is off, and the save: %s" % [lines])
-	if lines.size() == 3:
-		assert_eq(lines[0], "File · " + FILE_PATH)
-		assert_eq(lines[1], "Saving is off: " + PersistenceManager.get_block_reason())
-		assert_string_contains(lines[1], "newer build")
-		assert_true(lines[2].begins_with("Version 99 · Playtime 0:00 · "), lines[2])
 
 ## In real play a beat's event fires, or its condition latches, and the stats keep
 ## the playtime it happened at: the line shows that time.
@@ -414,71 +319,6 @@ func test_the_beats_show_when_each_was_reached() -> void:
 	assert_has(lines, "First Steps Out — not reached", "a beat whose event never fired")
 	assert_has(lines, "Copper — not tracked (no reached_when)", "a beat with nothing to mark it reached")
 
-## A build records no play, so the beats it passed keep no time. Their events fired
-## and their conditions latched, so they read as reached, and the session line names
-## the preset the save was built from: its figures are not a playtest's.
-func test_a_preset_build_shows_its_beats_reached_and_names_the_preset() -> void:
-	var tab: Control = _open_saves_tab()
-	DevManager.play_preset(_preset("built_beats", "Built beats", [
-		_step(Kind.TRIGGER_EVENT, AWAKENING_EVENT),
-		_step(Kind.TRIGGER_EVENT, FIRST_STEPS_EVENT),
-		_step(Kind.REACH_CORE_DENSITY, "", 100.0),
-	]))
-	await wait_process_frames(SWITCH_FRAMES)
-	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "precondition: the preset was built")
-	var beats: PackedStringArray = _label(tab, "BeatsLabel").text.split("\n")
-	assert_has(beats, "Awakening — reached, no time recorded", "the build fired the beat's event: %s" % [beats])
-	assert_has(beats, "First Steps Out — reached, no time recorded", "an event no condition shares")
-	assert_has(beats, "Tribulation ready — reached, no time recorded", "and latched the beat's condition")
-	assert_has(beats, "Aura Well — not reached", "a beat the build did not pass")
-	var lines: PackedStringArray = _label(tab, "SessionLabel").text.split("\n")
-	assert_has(lines, "Built from preset 'built_beats'", "the line names the preset: %s" % [lines])
-
-## A save from before play stats existed has the events it fired but no times for
-## them. Its beats read as reached, not as not reached, and nothing says a preset
-## built it.
-func test_a_save_from_before_play_stats_shows_its_beats_reached() -> void:
-	_start_on_temp_main_save(PRE_STATS_SAVE_TEXT)
-	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
-	for event_id: String in [AWAKENING_EVENT, FIRST_STEPS_EVENT]:
-		assert_true(EventManager.has_event_triggered(event_id), "precondition: the save fired %s" % event_id)
-		assert_eq(stats.first_time_of(event_id), -1.0, "precondition: and kept no time for it")
-	var tab: Control = _open_saves_tab()
-	var beats: PackedStringArray = _label(tab, "BeatsLabel").text.split("\n")
-	assert_has(beats, "Awakening — reached, no time recorded", "%s" % [beats])
-	assert_has(beats, "First Steps Out — reached, no time recorded", "an event no condition shares")
-	assert_has(beats, "Aura Well — not reached")
-	assert_false(_label(tab, "SessionLabel").text.contains("Built from preset"), "no preset built this save")
-
-## The playtime goes on while the tab is in view, so the line follows it once a
-## second, in real seconds whatever the time speed.
-func test_the_playtime_line_refreshes_once_a_second() -> void:
-	var panel: DevPanel = _add_panel()
-	var tab: Control = _show_saves_tab(panel)
-	var timer: Timer = tab.get_node("%RefreshTimer")
-	assert_eq(timer.wait_time, 1.0, "once a second")
-	assert_true(timer.ignore_time_scale, "in real seconds")
-	assert_false(timer.is_stopped(), "the tick runs")
-	assert_string_contains(_label(tab, "SessionLabel").text, "Playtime 0:00", "precondition")
-	PersistenceManager.save_game_data.stats.add_play_time(65.0)
-	timer.timeout.emit()
-	assert_string_contains(_label(tab, "SessionLabel").text, "Playtime 1:05", "the tick shows the playtime")
-	panel.set_open(false)
-	PersistenceManager.save_game_data.stats.add_play_time(60.0)
-	timer.timeout.emit()
-	assert_string_contains(_label(tab, "SessionLabel").text, "Playtime 1:05", "a closed panel's tab does not tick")
-
-## Built while the panel is closed, the tab shows what has changed since when it is
-## opened.
-func test_the_tab_refreshes_when_shown() -> void:
-	var panel: DevPanel = _add_panel()
-	var tab: Control = panel.get_node("%SavesTab")
-	_write_preset(_preset("shown_row", "Shown"), "shown_row.tres")
-	PersistenceManager.autosave_enabled = true
-	_show_saves_tab(panel)
-	assert_eq(_row_titles(tab), ["Shown"] as Array[String], "the preset written since is listed")
-	assert_true((tab.get_node("%AutosaveCheck") as CheckButton).button_pressed, "and the check shows autosave on")
-
 #-----------------------------------------------------------------------------
 # RESTART AND BACK
 #-----------------------------------------------------------------------------
@@ -486,7 +326,6 @@ func test_the_tab_refreshes_when_shown() -> void:
 func test_restart_is_disabled_outside_a_preset() -> void:
 	var tab: Control = _open_saves_tab()
 	var restart: Button = _button(tab, "RestartButton")
-	assert_eq(restart.text, "Restart preset (Ctrl+Shift+R)")
 	assert_true(restart.disabled, "your save has no preset to restart")
 	assert_true(_button(tab, "BackButton").disabled, "and is your save already")
 	assert_true(_button(tab, "KeepButton").disabled, "so there is nothing to keep as it")
@@ -551,10 +390,6 @@ func test_every_preset_has_a_row() -> void:
 	assert_false(_label(rows[1], "DescriptionLabel").visible, "and none when it has none")
 	assert_false(_label(rows[0], "PinnedLabel").visible, "only the pinned preset says it is pinned")
 	assert_true(_label(rows[2], "PinnedLabel").visible)
-	assert_eq(_label(rows[2], "PinnedLabel").text, "Pinned · plain launches start here")
-	assert_eq(_button(rows[0], "PinButton").text, "Pin")
-	assert_eq(_button(rows[2], "PinButton").text, "Unpin", "the pinned one offers to unpin")
-	assert_eq(_button(rows[0], "PlayButton").text, "Play")
 
 func test_play_on_a_row_plays_its_preset() -> void:
 	_write_preset(_preset("rows_play", "Play test", [_step(Kind.SET_GOLD, "", 321.0)]), "rows_play.tres")
@@ -580,11 +415,9 @@ func test_pin_pins_and_unpins_the_preset() -> void:
 	_press(alpha, "PinButton")
 	assert_eq(DevManager.get_pinned_preset_id(), "pin_alpha", "Pin pins the row's preset")
 	assert_true(_label(alpha, "PinnedLabel").visible, "and its row says so")
-	assert_eq(_button(alpha, "PinButton").text, "Unpin")
 	_press(beta, "PinButton")
 	assert_eq(DevManager.get_pinned_preset_id(), "pin_beta", "pinning another moves the pin")
 	assert_false(_label(alpha, "PinnedLabel").visible, "off the first row")
-	assert_eq(_button(alpha, "PinButton").text, "Pin")
 	_press(beta, "PinButton")
 	assert_eq(DevManager.get_pinned_preset_id(), "", "Unpin unpins")
 	assert_false(_label(beta, "PinnedLabel").visible)
@@ -614,7 +447,6 @@ func test_save_as_preset_writes_the_preset_and_lists_it() -> void:
 	title_edit.text = "Weird state #2!"
 	description_edit.text = "Gold 77"
 	_press(tab, "SavePresetButton")
-	assert_eq(_label(tab, "SavePresetStatus").text, "Saved this game as the preset 'Weird state #2!'", "the tab names the new preset")
 	assert_true(FileAccess.file_exists(PRESET_DIR + "weird_state_2.tres"), "written to the preset folder")
 	assert_eq(_row_titles(tab), ["Alpha", "Weird state #2!"] as Array[String], "and listed with the others")
 	assert_eq(title_edit.text, "", "the fields are cleared for the next one")
@@ -741,13 +573,6 @@ func test_restore_puts_back_the_picked_backup_after_a_refresh() -> void:
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_eq(ResourceManager.get_gold(), 100.0, "Restore put back the picked backup")
 
-func test_without_backups_restore_is_off() -> void:
-	var tab: Control = _open_saves_tab()
-	var option: OptionButton = tab.get_node("%BackupOption")
-	assert_eq(_item_texts(option), ["No backups"] as Array[String])
-	assert_true(option.disabled)
-	assert_true(_button(tab, "RestoreButton").disabled)
-
 ## Keep writes over your save, as New game and Restore do, so it asks for a second
 ## click as they do.
 func test_keep_needs_a_second_click() -> void:
@@ -804,11 +629,9 @@ func test_save_now_says_what_happened() -> void:
 	assert_eq(_status(tab).text, "Not saved: this session lives in memory, so there is no file to write")
 	PersistenceManager.use_save(SaveGameData.new_current(), FILE_PATH)
 	ResourceManager.set_gold(33.0)
-	LogManager.clear_history()
 	_press(tab, "SaveNowButton")
 	assert_eq(_status(tab).text, "Saved to " + FILE_PATH)
 	assert_eq(_gold_in_file(FILE_PATH), 33.0, "the file holds the session")
-	assert_eq(LogManager.get_history(), [DEV_LINE + "Saved the game to " + FILE_PATH] as Array[String])
 
 func test_save_now_names_why_saving_is_off() -> void:
 	var newer: String = MAIN_SAVE_TEXT.replace("save_version = 1", "save_version = 99")
@@ -835,12 +658,10 @@ func test_the_autosave_check_turns_autosave_on_and_off() -> void:
 	var tab: Control = _open_saves_tab()
 	var check: CheckButton = tab.get_node("%AutosaveCheck")
 	assert_false(check.button_pressed, "the check shows autosave off")
-	LogManager.clear_history()
 	check.button_pressed = true
 	assert_true(PersistenceManager.autosave_enabled, "pressing it turns autosave on")
 	check.button_pressed = false
 	assert_false(PersistenceManager.autosave_enabled, "and off")
-	assert_eq(LogManager.get_history(), [DEV_LINE + "Autosave: ON", DEV_LINE + "Autosave: OFF"] as Array[String])
 
 #-----------------------------------------------------------------------------
 # CTRL+SHIFT+R

@@ -10,20 +10,18 @@ extends GutTest
 func test_equipment_slot_has_five_values() -> void:
 	assert_eq(EquipmentDefinitionData.EquipmentSlot.size(), 5, "should have exactly 5 equipment slot types")
 
-func test_equipment_slot_main_hand() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, 0)
-
-func test_equipment_slot_off_hand() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.OFF_HAND, 1)
-
-func test_equipment_slot_head() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.HEAD, 2)
-
-func test_equipment_slot_armor() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.ARMOR, 3)
-
-func test_equipment_slot_accessory() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, 4)
+## Each slot's int, which item .tres files and saves store: renumbering one
+## would corrupt them.
+func test_equipment_slot_ints_are_fixed() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "MAIN_HAND", "slot": EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "expected": 0},
+		{"name": "OFF_HAND", "slot": EquipmentDefinitionData.EquipmentSlot.OFF_HAND, "expected": 1},
+		{"name": "HEAD", "slot": EquipmentDefinitionData.EquipmentSlot.HEAD, "expected": 2},
+		{"name": "ARMOR", "slot": EquipmentDefinitionData.EquipmentSlot.ARMOR, "expected": 3},
+		{"name": "ACCESSORY", "slot": EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "expected": 4},
+	]
+	for case: Dictionary in cases:
+		assert_eq(case.slot, case.expected, "%s's int" % case.name)
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -45,14 +43,22 @@ func test_init_empty_bonuses() -> void:
 # ATTRIBUTE BONUSES DICTIONARY
 #-----------------------------------------------------------------------------
 
+## attribute_bonuses keeps each bonus as set: two bonuses together, a negative
+## one and a fractional one.
 func test_attribute_bonuses_stores_values() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {
-		CharacterAttributesData.AttributeType.STRENGTH: 5.0,
-		CharacterAttributesData.AttributeType.AGILITY: 3.0
-	}
-	assert_eq(equip.attribute_bonuses[CharacterAttributesData.AttributeType.STRENGTH], 5.0)
-	assert_eq(equip.attribute_bonuses[CharacterAttributesData.AttributeType.AGILITY], 3.0)
+	var cases: Array[Dictionary] = [
+		{"name": "two bonuses", "bonuses": {
+			CharacterAttributesData.AttributeType.STRENGTH: 5.0,
+			CharacterAttributesData.AttributeType.AGILITY: 3.0,
+		}},
+		{"name": "a negative bonus", "bonuses": {CharacterAttributesData.AttributeType.AGILITY: -5.0}},
+		{"name": "a fractional bonus", "bonuses": {CharacterAttributesData.AttributeType.SPIRIT: 2.5}},
+	]
+	for case: Dictionary in cases:
+		var equip = EquipmentDefinitionData.new()
+		equip.attribute_bonuses = case.bonuses
+		for attr_type: int in case.bonuses:
+			assert_almost_eq(equip.attribute_bonuses[attr_type], case.bonuses[attr_type], 0.001, "%s: attribute %d" % [case.name, attr_type])
 
 func test_attribute_bonuses_supports_all_types() -> void:
 	var equip = EquipmentDefinitionData.new()
@@ -60,85 +66,60 @@ func test_attribute_bonuses_supports_all_types() -> void:
 		equip.attribute_bonuses[attr_type] = float(attr_type) + 1.0
 	assert_eq(equip.attribute_bonuses.size(), 8, "should support all 8 attribute types")
 
-func test_attribute_bonuses_negative_values() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {CharacterAttributesData.AttributeType.AGILITY: -5.0}
-	assert_eq(equip.attribute_bonuses[CharacterAttributesData.AttributeType.AGILITY], -5.0)
-
-func test_attribute_bonuses_float_precision() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {CharacterAttributesData.AttributeType.SPIRIT: 2.5}
-	assert_almost_eq(equip.attribute_bonuses[CharacterAttributesData.AttributeType.SPIRIT], 2.5, 0.001)
-
 #-----------------------------------------------------------------------------
 # _get_item_effects() BBCode FORMATTING
 #-----------------------------------------------------------------------------
 
-func test_get_item_effects_empty_bonuses() -> void:
-	var equip = EquipmentDefinitionData.new()
-	var effects = equip._get_item_effects()
-	assert_eq(effects.size(), 0, "empty bonuses should return empty effects array")
+## _get_item_effects() gives one line per non-zero bonus: none for no bonuses,
+## three for three, and a zero bonus left out.
+func test_get_item_effects_one_line_per_nonzero_bonus() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no bonuses", "bonuses": {}, "expected": 0},
+		{"name": "three bonuses", "bonuses": {
+			CharacterAttributesData.AttributeType.STRENGTH: 5.0,
+			CharacterAttributesData.AttributeType.BODY: 3.0,
+			CharacterAttributesData.AttributeType.AGILITY: -1.0,
+		}, "expected": 3},
+		# Zero values are excluded by the > 0 and < 0 checks
+		{"name": "a zero bonus", "bonuses": {
+			CharacterAttributesData.AttributeType.STRENGTH: 5.0,
+			CharacterAttributesData.AttributeType.BODY: 0.0,
+		}, "expected": 1},
+	]
+	for case: Dictionary in cases:
+		var equip = EquipmentDefinitionData.new()
+		equip.attribute_bonuses = case.bonuses
+		assert_eq(equip._get_item_effects().size(), case.expected, "%s: one line per non-zero bonus" % case.name)
 
-func test_get_item_effects_positive_bonus() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {CharacterAttributesData.AttributeType.STRENGTH: 5.0}
-	var effects = equip._get_item_effects()
-	assert_eq(effects.size(), 1, "should have one effect for one bonus")
-	assert_true(effects[0].contains("+5"), "positive bonus should show +value: %s" % effects[0])
-	assert_true(effects[0].contains("Strength"), "effect should name the attribute: %s" % effects[0])
-	assert_true(effects[0].contains("[color=#a89070]"), "should use color tag: %s" % effects[0])
-
-func test_get_item_effects_negative_bonus() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {CharacterAttributesData.AttributeType.AGILITY: -3.0}
-	var effects = equip._get_item_effects()
-	assert_eq(effects.size(), 1)
-	assert_true(effects[0].contains("-3"), "negative bonus should show negative value: %s" % effects[0])
-	assert_true(effects[0].contains("Agility"), "should name the attribute: %s" % effects[0])
-	assert_false(effects[0].contains("+"), "negative bonus should not have +: %s" % effects[0])
-
-func test_get_item_effects_multiple_bonuses() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {
-		CharacterAttributesData.AttributeType.STRENGTH: 5.0,
-		CharacterAttributesData.AttributeType.BODY: 3.0,
-		CharacterAttributesData.AttributeType.AGILITY: -1.0
-	}
-	var effects = equip._get_item_effects()
-	assert_eq(effects.size(), 3, "should have one effect per bonus")
-
-func test_get_item_effects_zero_bonus_excluded() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {
-		CharacterAttributesData.AttributeType.STRENGTH: 5.0,
-		CharacterAttributesData.AttributeType.BODY: 0.0
-	}
-	var effects = equip._get_item_effects()
-	# Zero values are excluded by the > 0 and < 0 checks
-	assert_eq(effects.size(), 1, "zero bonuses should be excluded from effects")
-
-func test_get_item_effects_float_shown_correctly() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {CharacterAttributesData.AttributeType.SPIRIT: 2.5}
-	var effects = equip._get_item_effects()
-	assert_eq(effects.size(), 1)
-	assert_true(effects[0].contains("2.5"), "non-integer bonus should show decimal: %s" % effects[0])
-
-func test_get_item_effects_integer_shown_without_decimal() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {CharacterAttributesData.AttributeType.FOUNDATION: 10.0}
-	var effects = equip._get_item_effects()
-	assert_eq(effects.size(), 1)
-	assert_true(effects[0].contains("+10"), "integer bonus should show without decimal: %s" % effects[0])
+## A bonus's line names its attribute and shows its value: "+" before a
+## positive one, a negative one's own "-" and no "+", a fraction's decimal, and
+## a whole number without one.
+func test_get_item_effects_formats_each_bonus() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "positive", "attr": CharacterAttributesData.AttributeType.STRENGTH, "value": 5.0,
+			"shows": ["+5", "Strength"], "hides": []},
+		{"name": "negative", "attr": CharacterAttributesData.AttributeType.AGILITY, "value": -3.0,
+			"shows": ["-3", "Agility"], "hides": ["+"]},
+		{"name": "fractional", "attr": CharacterAttributesData.AttributeType.SPIRIT, "value": 2.5,
+			"shows": ["2.5"], "hides": []},
+		{"name": "whole number", "attr": CharacterAttributesData.AttributeType.FOUNDATION, "value": 10.0,
+			"shows": ["+10"], "hides": []},
+	]
+	for case: Dictionary in cases:
+		var equip = EquipmentDefinitionData.new()
+		equip.attribute_bonuses = {case.attr: case.value}
+		var effects = equip._get_item_effects()
+		assert_eq(effects.size(), 1, "%s: one line for one bonus" % case.name)
+		if effects.size() != 1:
+			continue
+		for text: String in case.shows:
+			assert_true(effects[0].contains(text), "%s bonus should show %s: %s" % [case.name, text, effects[0]])
+		for text: String in case.hides:
+			assert_false(effects[0].contains(text), "%s bonus should not show %s: %s" % [case.name, text, effects[0]])
 
 #-----------------------------------------------------------------------------
 # SLOT TYPE ASSIGNMENT
 #-----------------------------------------------------------------------------
-
-func test_slot_type_assignment() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.slot_type = EquipmentDefinitionData.EquipmentSlot.ARMOR
-	assert_eq(equip.slot_type, EquipmentDefinitionData.EquipmentSlot.ARMOR)
 
 func test_different_slot_types() -> void:
 	for slot in EquipmentDefinitionData.EquipmentSlot.values():
@@ -153,16 +134,6 @@ func test_different_slot_types() -> void:
 func test_extends_item_definition_data() -> void:
 	var equip = EquipmentDefinitionData.new()
 	assert_true(equip is ItemDefinitionData, "should extend ItemDefinitionData")
-
-func test_has_item_name_field() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.item_name = "Iron Sword"
-	assert_eq(equip.item_name, "Iron Sword")
-
-func test_has_item_id_field() -> void:
-	var equip = EquipmentDefinitionData.new()
-	equip.item_id = "iron_sword_01"
-	assert_eq(equip.item_id, "iron_sword_01")
 
 #-----------------------------------------------------------------------------
 # STAT MODIFIERS

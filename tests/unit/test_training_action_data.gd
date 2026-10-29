@@ -10,22 +10,20 @@ func _make_data(ticks_per_level: Array[int] = [60, 300, 600, 1200], tail: float 
 # get_ticks_required_for_level — incremental cost per level
 #-----------------------------------------------------------------------------
 
-func test_ticks_required_level_0_is_zero() -> void:
-	assert_eq(_make_data().get_ticks_required_for_level(0), 0)
-
-func test_ticks_required_level_1_reads_array_first_entry() -> void:
-	assert_eq(_make_data().get_ticks_required_for_level(1), 60)
-
-func test_ticks_required_level_4_reads_array_last_entry() -> void:
-	assert_eq(_make_data().get_ticks_required_for_level(4), 1200)
-
-func test_ticks_required_beyond_array_applies_tail_multiplier() -> void:
-	# Array size 4, tail 2.0 → level 5 = 1200*2.0 = 2400
-	assert_eq(_make_data().get_ticks_required_for_level(5), 2400)
-
-func test_ticks_required_two_levels_beyond_array() -> void:
-	# level 6 = 1200*2^2 = 4800
-	assert_eq(_make_data().get_ticks_required_for_level(6), 4800)
+## Each level's own cost with [60, 300, 600, 1200] and a tail of 2.0: none for
+## level 0, the array's entries for levels 1 to 4, and past the array the last
+## entry times the tail once per level beyond it.
+func test_ticks_required_for_level() -> void:
+	var data := _make_data()
+	var cases: Array[Dictionary] = [
+		{"name": "level 0 is zero", "level": 0, "ticks": 0},
+		{"name": "level 1 reads the array's first entry", "level": 1, "ticks": 60},
+		{"name": "level 4 reads the array's last entry", "level": 4, "ticks": 1200},
+		{"name": "level 5, one beyond the array: 1200*2.0", "level": 5, "ticks": 2400},
+		{"name": "level 6, two beyond the array: 1200*2^2", "level": 6, "ticks": 4800},
+	]
+	for case: Dictionary in cases:
+		assert_eq(data.get_ticks_required_for_level(case.level), case.ticks, case.name)
 
 func test_ticks_required_tail_multiplier_1_is_linear() -> void:
 	# With multiplier 1.0, level N beyond array equals the last array value.
@@ -37,49 +35,41 @@ func test_ticks_required_tail_multiplier_1_is_linear() -> void:
 # get_current_level — cumulative tick count -> current level
 #-----------------------------------------------------------------------------
 
-func test_current_level_zero_ticks_is_zero() -> void:
-	assert_eq(_make_data().get_current_level(0), 0)
-
-func test_current_level_just_before_first_threshold() -> void:
-	assert_eq(_make_data().get_current_level(59), 0)
-
-func test_current_level_exactly_first_threshold() -> void:
-	assert_eq(_make_data().get_current_level(60), 1)
-
-func test_current_level_mid_second_tier() -> void:
-	assert_eq(_make_data().get_current_level(359), 1)
-
-func test_current_level_exactly_second_threshold() -> void:
-	# level 2 requires cumulative 60 + 300 = 360
-	assert_eq(_make_data().get_current_level(360), 2)
-
-func test_current_level_beyond_array_uses_tail() -> void:
-	# cumulative to level 4 = 60+300+600+1200 = 2160; level 5 adds 2400 -> 4560
-	assert_eq(_make_data().get_current_level(4559), 4)
-	assert_eq(_make_data().get_current_level(4560), 5)
+## The level a cumulative tick count has reached with [60, 300, 600, 1200] and
+## a tail of 2.0, on each side of the level 1 and level 2 thresholds (60, and
+## 60 + 300 = 360) and of level 5, the first past the array (60+300+600+1200 =
+## 2160 to level 4, plus 2400 = 4560).
+func test_current_level() -> void:
+	var data := _make_data()
+	var cases: Array[Dictionary] = [
+		{"name": "zero ticks", "ticks": 0, "level": 0},
+		{"name": "just before the first threshold", "ticks": 59, "level": 0},
+		{"name": "exactly the first threshold", "ticks": 60, "level": 1},
+		{"name": "mid second tier", "ticks": 359, "level": 1},
+		{"name": "exactly the second threshold", "ticks": 360, "level": 2},
+		{"name": "just before level 5, beyond the array", "ticks": 4559, "level": 4},
+		{"name": "exactly level 5, from the tail", "ticks": 4560, "level": 5},
+	]
+	for case: Dictionary in cases:
+		assert_eq(data.get_current_level(case.ticks), case.level, case.name)
 
 #-----------------------------------------------------------------------------
 # get_progress_within_level — fraction toward next level
 #-----------------------------------------------------------------------------
 
-func test_progress_at_tier_start_is_zero() -> void:
-	assert_almost_eq(_make_data().get_progress_within_level(0), 0.0, 0.001)
-
-func test_progress_mid_first_tier() -> void:
-	# 30 ticks of 60 required for level 1 -> 0.5
-	assert_almost_eq(_make_data().get_progress_within_level(30), 0.5, 0.001)
-
-func test_progress_just_before_threshold() -> void:
-	# 59/60 -> ~0.983
-	assert_almost_eq(_make_data().get_progress_within_level(59), 59.0 / 60.0, 0.001)
-
-func test_progress_at_threshold_resets_to_zero() -> void:
-	# 60 ticks = exactly level 1; 0 ticks into level 2
-	assert_almost_eq(_make_data().get_progress_within_level(60), 0.0, 0.001)
-
-func test_progress_mid_second_tier() -> void:
-	# Cumulative 60 + 150 = 210; level 2 needs 300 -> 150/300 = 0.5
-	assert_almost_eq(_make_data().get_progress_within_level(210), 0.5, 0.001)
+## The fraction of the way to the next level with [60, 300, 600, 1200]: from
+## the start of a tier, through it, to the threshold, where it starts over.
+func test_progress_within_level() -> void:
+	var data := _make_data()
+	var cases: Array[Dictionary] = [
+		{"name": "tier start is zero", "ticks": 0, "progress": 0.0},
+		{"name": "mid first tier: 30 of 60", "ticks": 30, "progress": 0.5},
+		{"name": "just before the threshold: 59 of 60", "ticks": 59, "progress": 59.0 / 60.0},
+		{"name": "the threshold resets to zero: 0 ticks into level 2", "ticks": 60, "progress": 0.0},
+		{"name": "mid second tier: 60 + 150, 150 of 300", "ticks": 210, "progress": 0.5},
+	]
+	for case: Dictionary in cases:
+		assert_almost_eq(data.get_progress_within_level(case.ticks), case.progress, 0.001, case.name)
 
 #-----------------------------------------------------------------------------
 # action_type is set in _init

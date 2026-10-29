@@ -27,50 +27,34 @@ func _set_attrs(body: float, foundation: float) -> void:
 	attrs.body = body
 	attrs.foundation = foundation
 
-func test_flat_values_with_zero_multipliers() -> void:
-	_set_attrs(10.0, 10.0)
-	_effect.health_change = 5.0
-	_effect.madra_change = 3.0
-	_effect.stamina_change = 2.0
-	_effect.body_hp_multiplier = 0.0
-	_effect.foundation_madra_multiplier = 0.0
-
-	assert_eq(_effect.get_final_health_change(), 5.0)
-	assert_eq(_effect.get_final_madra_change(), 3.0)
-	assert_eq(_effect.get_final_stamina_change(), 2.0)
-
-func test_body_multiplier_scales_health() -> void:
-	_set_attrs(10.0, 0.0)
-	_effect.health_change = 0.0
-	_effect.body_hp_multiplier = 5.0
-
-	# 0 flat + 5 * BODY(10) = 50
-	assert_eq(_effect.get_final_health_change(), 50.0)
-
-func test_foundation_multiplier_scales_madra() -> void:
-	_set_attrs(0.0, 10.0)
-	_effect.madra_change = 0.0
-	_effect.foundation_madra_multiplier = 2.0
-
-	# 0 flat + 2 * FOUNDATION(10) = 20
-	assert_eq(_effect.get_final_madra_change(), 20.0)
-
-func test_flat_and_multiplier_combine() -> void:
-	_set_attrs(4.0, 3.0)
-	_effect.health_change = 2.0
-	_effect.madra_change = 1.0
-	_effect.body_hp_multiplier = 5.0
-	_effect.foundation_madra_multiplier = 2.0
-
-	# health: 2 + 5*4 = 22
-	# madra:  1 + 2*3 = 7
-	assert_eq(_effect.get_final_health_change(), 22.0)
-	assert_eq(_effect.get_final_madra_change(), 7.0)
-
-func test_stamina_is_never_scaled() -> void:
-	_set_attrs(100.0, 100.0)
-	_effect.stamina_change = 3.0
-	assert_eq(_effect.get_final_stamina_change(), 3.0)
+## Each final change is its flat value plus its multiplier x the attribute:
+## Health scales with Body, Madra with Foundation, and Stamina never scales.
+## The cases cover flat values with zero multipliers, each multiplier alone,
+## flat and multiplier together, and Stamina at Body and Foundation 100.
+func test_final_changes_are_flat_plus_scaled_attribute() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "flat values with zero multipliers", "body": 10.0, "foundation": 10.0,
+			"flat": [5.0, 3.0, 2.0], "body_mult": 0.0, "foundation_mult": 0.0, "final": [5.0, 3.0, 2.0]},
+		{"name": "0 flat + 5 x Body 10", "body": 10.0, "foundation": 0.0,
+			"flat": [0.0, 0.0, 0.0], "body_mult": 5.0, "foundation_mult": 0.0, "final": [50.0, 0.0, 0.0]},
+		{"name": "0 flat + 2 x Foundation 10", "body": 0.0, "foundation": 10.0,
+			"flat": [0.0, 0.0, 0.0], "body_mult": 0.0, "foundation_mult": 2.0, "final": [0.0, 20.0, 0.0]},
+		{"name": "2 + 5 x Body 4 and 1 + 2 x Foundation 3", "body": 4.0, "foundation": 3.0,
+			"flat": [2.0, 1.0, 0.0], "body_mult": 5.0, "foundation_mult": 2.0, "final": [22.0, 7.0, 0.0]},
+		{"name": "Stamina is never scaled", "body": 100.0, "foundation": 100.0,
+			"flat": [0.0, 0.0, 3.0], "body_mult": 0.0, "foundation_mult": 0.0, "final": [0.0, 0.0, 3.0]},
+	]
+	for case: Dictionary in cases:
+		_set_attrs(case.body, case.foundation)
+		var effect := ChangeVitalsEffectData.new()
+		effect.health_change = case.flat[0]
+		effect.madra_change = case.flat[1]
+		effect.stamina_change = case.flat[2]
+		effect.body_hp_multiplier = case.body_mult
+		effect.foundation_madra_multiplier = case.foundation_mult
+		assert_eq(effect.get_final_health_change(), case.final[0], "%s: Health" % case.name)
+		assert_eq(effect.get_final_madra_change(), case.final[1], "%s: Madra" % case.name)
+		assert_eq(effect.get_final_stamina_change(), case.final[2], "%s: Stamina" % case.name)
 
 func test_multipliers_default_to_zero() -> void:
 	assert_eq(_effect.body_hp_multiplier, 0.0)

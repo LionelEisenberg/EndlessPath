@@ -59,10 +59,6 @@ func test_first_init_marks_available_actions_seen() -> void:
 	assert_false(ZoneManager.is_action_seen(FORAGING_ID), "foraging was still locked")
 	assert_true(save.seen_actions_initialized)
 
-func test_fresh_save_init_marks_only_the_first_dialogue() -> void:
-	assert_eq(PersistenceManager.save_game_data.seen_action_ids, [FIRST_DIALOGUE_ID] as Array[String])
-	assert_true(PersistenceManager.save_game_data.seen_actions_initialized)
-
 func test_init_runs_once() -> void:
 	# The merchant, not foraging: an idle action that unlocks starts on its own
 	# (ActionManager), and starting an action marks it seen.

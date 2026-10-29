@@ -51,12 +51,28 @@ func _step(conditions: Array[UnlockConditionData]) -> QuestStepData:
 # TESTS
 #-----------------------------------------------------------------------------
 
-func test_event_step_measures_nothing() -> void:
-	var step: QuestStepData = QuestStepData.new()
-	step.completion_event_id = "some_event"
-	assert_null(step.get_measured_condition())
-	assert_eq(step.get_progress_text(), "")
-	assert_eq(step.get_progress_text(true), "", "finishing it invents no figure")
+## Steps without a figure: one that completes on an event; one with an event
+## id as well as measurable conditions, since the event id wins (QuestManager
+## advances such a step on its event); one with a condition that can't be
+## measured among its conditions; and one with no criteria at all. None
+## measures a condition, and none reads a figure, finished or not.
+func test_steps_without_a_figure() -> void:
+	var event_step: QuestStepData = QuestStepData.new()
+	event_step.completion_event_id = "some_event"
+	var event_and_conditions_step: QuestStepData = _step([_madra_condition(100.0)] as Array[UnlockConditionData])
+	event_and_conditions_step.completion_event_id = "some_event"
+	var cases: Array[Dictionary] = [
+		{"name": "an event step", "step": event_step},
+		{"name": "an event id over conditions", "step": event_and_conditions_step},
+		{"name": "one unmeasurable condition",
+			"step": _step([_madra_condition(100.0), _item_condition()] as Array[UnlockConditionData])},
+		{"name": "no criteria", "step": QuestStepData.new()},
+	]
+	for case: Dictionary in cases:
+		var step: QuestStepData = case.step
+		assert_null(step.get_measured_condition(), "%s measures nothing" % case.name)
+		assert_eq(step.get_progress_text(), "", "%s reads no figure" % case.name)
+		assert_eq(step.get_progress_text(true), "", "%s: finishing it invents no figure" % case.name)
 
 func test_madra_step_reads_like_the_goals_board() -> void:
 	var step: QuestStepData = _step([_madra_condition(100.0)] as Array[UnlockConditionData])
@@ -69,22 +85,7 @@ func test_figures_are_whole_numbers_rounded_down() -> void:
 	var step: QuestStepData = _step([_madra_condition(100.0)] as Array[UnlockConditionData])
 	assert_eq(step.get_progress_text(), "99 / 100")
 
-func test_an_event_id_wins_over_the_conditions() -> void:   # QuestManager advances such a step on its event
-	var step: QuestStepData = _step([_madra_condition(100.0)] as Array[UnlockConditionData])
-	step.completion_event_id = "some_event"
-	assert_null(step.get_measured_condition())
-	assert_eq(step.get_progress_text(), "")
-
-func test_one_unmeasurable_condition_leaves_the_step_without_a_figure() -> void:
-	var step: QuestStepData = _step([_madra_condition(100.0), _item_condition()] as Array[UnlockConditionData])
-	assert_null(step.get_measured_condition())
-	assert_eq(step.get_progress_text(), "")
-
 func test_the_first_of_several_measurable_conditions_is_the_figure() -> void:
 	var step: QuestStepData = _step([_madra_condition(80.0), _madra_condition(100.0)] as Array[UnlockConditionData])
 	assert_eq(step.get_measured_condition(), step.completion_conditions[0])
 	assert_eq(step.get_progress_text(), "25 / 80")
-
-func test_a_step_with_no_criteria_measures_nothing() -> void:
-	assert_null(QuestStepData.new().get_measured_condition())
-	assert_eq(QuestStepData.new().get_progress_text(), "")

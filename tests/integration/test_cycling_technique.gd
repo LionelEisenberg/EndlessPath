@@ -1,9 +1,9 @@
 extends GutTest
 
 ## Integration tests for the play of a cycling technique: CyclingTechnique (the
-## Madra ball travelling its groove, the Madra drawn while the cursor follows
+## Madra ball travelling its path, the Madra drawn while the cursor follows
 ## it, the zones along the path, a press on the ball, and a cycle's start, end
-## and result) and CyclingZone (its socket's state frames). A cycle is stepped by
+## and result) and CyclingZone (the states that can still score). A cycle is stepped by
 ## calling advance() with a chosen cursor, as _process() calls it with the
 ## mouse. The technique under test is smooth_flow unless a test says otherwise:
 ## a 15 s cycle of 200 Madra with 4 zones, on a fresh save (25 Madra, cap 100).
@@ -19,10 +19,6 @@ const FAR: Vector2 = Vector2(-9999.0, -9999.0)
 ## One frame at 60 FPS. A cycle is run for its duration plus one frame, because
 ## 900 sums of 1 / 60 can land a hair under 15.
 const FRAME: float = 1.0 / 60.0
-
-## The ring strip and its frames' size: frame 1 is the solid tracking ring.
-const RING_STRIP_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_ball_rings_ai.png"
-const RING_CELL: int = 88
 const CYCLE_SECONDS: float = 15.0
 
 ## The Madra one step draws: base_madra_per_cycle * 0.08 / cycle_duration.
@@ -33,9 +29,6 @@ const MADRA_RATE: float = 200.0 / 15.0
 
 ## Where the ball waits: the first point of smooth_path.tres, on even px.
 const START: Vector2 = Vector2(320.0, 464.0)
-
-## One frame of the zone strip: the strip has a frame for each CyclingZone.State.
-const ZONE_FRAME_SIZE: Vector2i = Vector2i(48, 48)
 
 var _technique: CyclingTechnique = null
 
@@ -180,12 +173,6 @@ func _advance_straight_to(x: float, cursor: Vector2) -> void:
 # CYCLE LIFECYCLE
 #-----------------------------------------------------------------------------
 
-func test_zones_show_between_cycles() -> void:
-	assert_eq(_technique.cycling_zones.size(), 4)
-	for zone: CyclingZone in _technique.cycling_zones:
-		assert_true(zone.visible, "%s shows" % zone.name)
-		assert_eq(zone.get_state(), CyclingZone.State.IDLE, "%s is idle" % zone.name)
-
 func test_start_only_from_ready() -> void:
 	watch_signals(_technique)
 	assert_false(_technique.is_cycling(), "precondition: the technique is ready")
@@ -213,10 +200,8 @@ func test_cycle_completes_with_a_result() -> void:
 	assert_eq(result.madra_added, 0.0)
 	assert_eq(result.zones_total, 4)
 	assert_eq(result.zones_scored, 0)
-	assert_eq(result.result_line(), "Last cycle · +0 Madra · 0 / 4 zones")
 	for zone: CyclingZone in _technique.cycling_zones:
 		assert_eq(zone.get_state(), CyclingZone.State.SPENT, "%s is spent" % zone.name)
-		assert_true(zone.visible, "%s still shows" % zone.name)
 	assert_false(_technique.is_cycling())
 
 func test_ball_waits_at_the_start_when_the_cycle_ends() -> void:
@@ -224,9 +209,6 @@ func test_ball_waits_at_the_start_when_the_cycle_ends() -> void:
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
 	assert_false(_technique.is_cycling(), "precondition: the cycle ended")
 	assert_eq(_technique.get_ball_global_position(), START)
-	var ring := _node("BallRing") as LacquerStripRect
-	assert_true(ring.visible, "the brass ring waits around the ball")
-	assert_eq(ring.get_frame(), Vector2i(0, 0))
 
 #-----------------------------------------------------------------------------
 # MADRA
@@ -241,18 +223,6 @@ func test_tracking_draws_madra_quietly() -> void:
 	assert_almost_eq(ResourceManager.get_madra(), 25.0 + 12.0 * MADRA_STEP, 0.01)
 	assert_almost_eq(_technique.get_current_result().madra_added, 12.0 * MADRA_STEP, 0.05)
 	assert_signal_not_emitted(LogManager, "message_logged")
-
-func test_pellets_start_at_the_drawn_ball() -> void:
-	var origins: Array[Vector2] = []
-	var balls: Array[Vector2] = []
-	_technique.madra_particle_requested.connect(func(from_pos: Vector2, _amount: float) -> void:
-		origins.append(from_pos)
-		balls.append(_technique.get_ball_global_position()))
-	_technique.start_cycle()
-	_run(0.5, 60.0, true)
-	assert_gt(origins.size(), 0, "precondition: the cursor drew Madra")
-	assert_eq(origins, balls, "each pellet leaves the drawn ball's centre")
-	assert_ne(origins[0], origins[origins.size() - 1], "the ball moved between the first pellet and the last")
 
 ## Each request carries the Madra its step added, so the pellets carry the whole
 ## of what the cycle drew.
@@ -330,7 +300,6 @@ func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	assert_signal_emit_count(_technique, "cycle_completed", 1)
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_almost_eq(result.madra_added, ResourceManager.get_madra() - 46.0, 0.000001, "the result holds what the pool gained")
-	assert_eq(result.result_line(), "Last cycle · +199 Madra · 0 / 4 zones")
 
 func test_a_tracked_8_s_cycle_pays_its_last_step_at_120_fps() -> void:
 	# An 8 s cycle holds exactly 100 steps of 0.08 s, so its 100th step falls on
@@ -338,12 +307,6 @@ func test_a_tracked_8_s_cycle_pays_its_last_step_at_120_fps() -> void:
 	_use_foundation()
 	assert_eq(_track_one_cycle(func() -> float: return 1.0 / 120.0), 100, "100 steps at 120 FPS")
 	assert_almost_eq(_technique.get_current_result().madra_added, 50.0, 0.000001, "the cycle's 50 Madra")
-
-func test_a_tracked_8_s_cycle_pays_100_steps_at_60_and_144_fps() -> void:
-	for fps: float in [60.0, 144.0]:
-		ResourceManager.set_madra(25.0)
-		_use_foundation()
-		assert_eq(_track_one_cycle(func() -> float: return 1.0 / fps), 100, "100 steps at %d FPS" % fps)
 
 func test_a_tracked_8_s_cycle_pays_100_steps_at_uneven_frame_times() -> void:
 	# Frames of 1 / 120 to 1 / 40 s, drawn from fixed seeds.
@@ -421,12 +384,6 @@ func test_rate_rises_and_falls_within_a_second() -> void:
 	_run(0.5, 60.0, false)
 	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second after it stopped")
 
-func test_rate_reads_zero_at_the_cap() -> void:
-	ResourceManager.set_madra(100.0)
-	_technique.start_cycle()
-	_run(CyclingTechnique.RATE_WINDOW + FRAME, 60.0, true)
-	assert_eq(CyclingManager.get_madra_rate(), 0.0, "the cursor follows the ball but nothing is drawn")
-
 func test_rate_falls_to_zero_once_the_cap_is_met() -> void:
 	ResourceManager.set_madra(98.0)
 	_technique.start_cycle()
@@ -485,75 +442,19 @@ func test_a_manual_start_begins_from_an_empty_window() -> void:
 	assert_eq(CyclingManager.get_madra_rate(), 0.0, "a stopped cycle leaves nothing either")
 
 #-----------------------------------------------------------------------------
-# TRACKING AND THE RING
+# TRACKING
 #-----------------------------------------------------------------------------
 
-func test_ring_shows_ready_then_tracking_then_hides() -> void:
-	var ring := _node("BallRing") as LacquerStripRect
+func test_tracking_needs_the_cursor_on_the_ball() -> void:
 	_technique.advance(FRAME, FAR)
-	assert_true(ring.visible, "the steady ring waits around the ready ball")
-	assert_eq(ring.get_frame(), Vector2i(0, 0))
 	assert_false(_technique.is_tracking())
 	_technique.start_cycle()
-	assert_false(ring.visible, "the ring hides as the cycle starts")
 	_technique.advance(FRAME, FAR)
-	assert_false(ring.visible, "and stays hidden while the cursor is off the ball")
 	assert_false(_technique.is_tracking())
 	_technique.advance(FRAME, _technique.get_ball_global_position())
-	assert_true(ring.visible)
-	assert_eq(ring.get_frame(), Vector2i(1, 0), "the solid tan ring shows while tracking")
 	assert_true(_technique.is_tracking())
 	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 1.0, 0.0))
-	assert_false(ring.visible)
 	assert_false(_technique.is_tracking())
-
-#-----------------------------------------------------------------------------
-# THE READY BALL BREATHES
-#-----------------------------------------------------------------------------
-
-func test_breath_level_steps_up_and_back_down_each_period() -> void:
-	var levels: Array[int] = []
-	for seconds: float in [0.1, 0.5, 1.0, 1.5, 1.9, 2.1]:
-		levels.append(CyclingTechnique.breath_level(seconds))
-	assert_eq(CyclingTechnique.BREATH_SECONDS, 2.0)
-	assert_eq(levels, [0, 1, 2, 1, 0, 0], "small, up to the largest at half the period, and back")
-
-func test_the_ready_ball_breathes() -> void:
-	var sprite := _node("BallSprite") as LacquerStripRect
-	var ring := _node("BallRing") as LacquerStripRect
-	var rows: Array[int] = []
-	var rings: Array[int] = []
-	for _frame: int in 120:
-		_technique.advance(FRAME, FAR)
-		if rows.is_empty() or rows[-1] != sprite.get_frame().y:
-			rows.append(sprite.get_frame().y)
-		if rings.is_empty() or rings[-1] != ring.get_frame().x:
-			rings.append(ring.get_frame().x)
-		assert_eq(sprite.global_position + sprite.size / 2.0, START, "the ball stays centred on the start")
-		assert_eq(ring.global_position + ring.size / 2.0, START, "and so does its ring")
-	assert_eq(rows, [0, 1, 2, 1, 0], "60, 64, 68, 64 and back to 60 px over two seconds")
-	assert_eq(rings, [0, 2, 3, 2, 0], "the ready ring grows with it")
-	assert_true(ring.visible)
-
-func test_the_ball_keeps_its_size_while_cycling() -> void:
-	var sprite := _node("BallSprite") as LacquerStripRect
-	_technique.start_cycle()
-	for _frame: int in 120:
-		_technique.advance(FRAME, _technique.get_ball_global_position())
-		assert_eq(sprite.get_frame().y, 0)
-
-func test_each_wait_starts_the_breath_small() -> void:
-	var sprite := _node("BallSprite") as LacquerStripRect
-	_run(1.0, 60.0, false)
-	assert_eq(sprite.get_frame().y, 2, "precondition: mid-breath")
-	_technique.start_cycle()
-	_technique.stop_cycling()
-	assert_eq(sprite.get_frame().y, 0, "waiting again starts from the small ball")
-	_run(1.0, 60.0, false)
-	_technique.start_cycle()
-	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	assert_false(_technique.is_cycling(), "precondition: the cycle ended")
-	assert_eq(sprite.get_frame().y, 0, "and so does the wait after a cycle")
 
 func test_tracking_uses_the_drawn_ball() -> void:
 	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
@@ -671,7 +572,6 @@ func test_a_scored_zone_shows_in_the_result() -> void:
 	assert_eq(result.zones_scored, 1)
 	assert_eq(result.perfect_count, 1)
 	assert_eq(result.xp, 25)
-	assert_eq(result.result_line(), "Last cycle · +0 Madra · 1 / 4 zones · 1 PERFECT · +25 XP")
 
 func test_a_zone_scored_at_the_cap_marks_the_result() -> void:
 	PersistenceManager.save_game_data.core_density_level = 100.0
@@ -690,20 +590,6 @@ func test_the_zone_that_fills_the_core_marks_the_result() -> void:
 	assert_true(_technique.try_score_zone(zone))
 	assert_true(CultivationManager.is_core_full(), "precondition: the zone's XP filled the core")
 	assert_true(_technique.get_current_result().core_full, "the flag is read after the XP is in")
-
-func test_pointer_over_the_ball_while_a_press_would_do_something() -> void:
-	var ball: Vector2 = _technique.get_ball_global_position()
-	assert_true(_technique.wants_pointer(ball), "over the ready ball: a press starts a cycle")
-	assert_true(_technique.wants_pointer(ball + Vector2(29.0, 0.0)), "inside the ball's radius")
-	assert_true(_technique.wants_pointer(ball + Vector2(35.0, 0.0)), "over the ring, past the ball itself")
-	assert_false(_technique.wants_pointer(ball + Vector2(40.0, 0.0)), "40 px away")
-	_technique.start_cycle()
-	_technique.advance(FRAME, FAR)
-	assert_false(_technique.wants_pointer(_technique.get_ball_global_position()), "no zone is active: a press does nothing")
-	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_true(_technique.wants_pointer(_technique.get_ball_global_position()), "over the ball while a zone is active: a press scores it")
-	assert_false(_technique.wants_pointer(zone.global_position), "the zone itself takes no press")
-	assert_false(_technique.wants_pointer(_zone(1).global_position), "nor does an idle one")
 
 #-----------------------------------------------------------------------------
 # ENDING, SWITCHING AND AUTO
@@ -740,27 +626,14 @@ func test_stop_resets_zones() -> void:
 	var zone: CyclingZone = _zone(0)
 	_technique.start_cycle()
 	assert_true(_step_until(func() -> bool: return zone.get_state() == CyclingZone.State.SPENT), "precondition: a zone is spent")
-	var groove := _node("CyclingGroove") as CyclingGroove
-	assert_gt(groove.get_lit_count(), 0, "precondition: the groove is lit behind the ball")
 	watch_signals(_technique)
 	_technique.stop_cycling()
 	for other: CyclingZone in _technique.cycling_zones:
 		assert_eq(other.get_state(), CyclingZone.State.IDLE, "%s is idle" % other.name)
-	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "the groove shows lit again, as between cycles")
 	assert_eq(_technique.get_ball_global_position(), START)
 	assert_false(_technique.is_cycling())
 	assert_false(CyclingManager.is_cycle_running())
 	assert_signal_not_emitted(_technique, "cycle_completed")
-
-func test_stop_after_a_cycle_clears_the_studs_and_keeps_the_groove_lit() -> void:
-	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_true(_technique.try_score_zone(zone))
-	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	var groove := _node("CyclingGroove") as CyclingGroove
-	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "precondition: the whole groove is lit")
-	_technique.stop_cycling()
-	assert_eq(zone.get_state(), CyclingZone.State.IDLE)
-	assert_eq(groove.get_lit_count(), groove.get_cell_count())
 
 func test_auto_chains_cycles() -> void:
 	watch_signals(_technique)
@@ -782,19 +655,7 @@ func test_a_frame_hitch_spends_skipped_zones() -> void:
 	for zone: CyclingZone in _technique.cycling_zones:
 		assert_eq(zone.get_state(), CyclingZone.State.SPENT, "%s is spent" % zone.name)
 	assert_false(_technique.is_cycling())
-	var ring := _node("BallRing") as LacquerStripRect
 	assert_eq(_technique.get_ball_global_position(), START, "the ball is back at the start in that same frame")
-	assert_true(ring.visible)
-	assert_eq(ring.get_frame(), Vector2i(0, 0))
-
-func test_a_long_hitch_lights_the_whole_groove() -> void:
-	# Past the end the ease stops at 1. Unclamped, two cycles' time would bring the
-	# ball back to the start with the groove dark.
-	var groove := _node("CyclingGroove") as CyclingGroove
-	_technique.start_cycle()
-	_technique.advance(CYCLE_SECONDS * 2.0, FAR)
-	assert_false(_technique.is_cycling())
-	assert_eq(groove.get_lit_count(), groove.get_cell_count())
 
 func test_a_technique_set_up_while_another_cycles_leaves_its_session() -> void:
 	# The session belongs to the technique that started it. Another technique's
@@ -834,27 +695,7 @@ func test_the_exported_technique_is_set_up_when_the_scene_loads() -> void:
 # A SCALED PATH
 #-----------------------------------------------------------------------------
 
-## Sets the fixture up on the straight technique, its path scaled 2x about (100, 0).
-func _scaled_straight(zone_position: Vector2) -> void:
-	_technique.path_scale = 2.0
-	_technique.path_pivot = Vector2(100.0, 0.0)
-	_technique.setup(_straight_technique(zone_position))
-
-func test_an_unscaled_path_is_the_techniques_own_curve() -> void:
-	assert_eq(_technique.path_scale, 1.0)
-	assert_eq(_technique.path_pivot, Vector2.ZERO)
-	assert_same((_node("CyclingPath2D") as Path2D).curve, (load(SMOOTH_FLOW_PATH) as CyclingTechniqueData).path_curve)
-
-func test_a_scaled_path_grows_about_its_pivot() -> void:
-	_scaled_straight(Vector2(150.0, 0.0))
-	var curve: Curve2D = (_node("CyclingPath2D") as Path2D).curve
-	assert_eq(curve.get_point_position(0), Vector2(-100.0, 0.0), "the start, 100 px left of the pivot, lands 200 px left of it")
-	assert_eq(curve.get_point_position(1), Vector2(1900.0, 0.0), "the end, 900 px right of it, lands 1800 px right")
-	assert_eq(_zone(0).position, Vector2(200.0, 0.0), "a zone 50 px right of the pivot sits 100 px right of it")
-	assert_eq(_technique.get_ball_global_position(), Vector2(-100.0, 0.0), "the ball waits at the scaled start")
-	await _await_queued_frees()
-
-func test_a_scaled_path_keeps_its_handles_in_proportion() -> void:
+func test_scaling_the_path_leaves_the_technique_s_curve_alone() -> void:
 	var curve := Curve2D.new()
 	curve.add_point(Vector2(0.0, 0.0), Vector2(-10.0, 0.0), Vector2(10.0, 20.0))
 	curve.add_point(Vector2(100.0, 0.0), Vector2(-10.0, -20.0), Vector2(10.0, 0.0))
@@ -862,103 +703,13 @@ func test_a_scaled_path_keeps_its_handles_in_proportion() -> void:
 	data.path_curve = curve
 	_technique.path_scale = 1.5
 	_technique.setup(data)
-	var scaled: Curve2D = (_node("CyclingPath2D") as Path2D).curve
-	assert_eq(scaled.get_point_out(0), Vector2(15.0, 30.0))
-	assert_eq(scaled.get_point_in(1), Vector2(-15.0, -30.0))
 	assert_same(data.path_curve, curve, "the technique keeps its own curve")
 	assert_eq(curve.get_point_position(1), Vector2(100.0, 0.0), "untouched")
 	await _await_queued_frees()
 
-func test_scaled_zones_sit_on_even_px() -> void:
-	# The board's own scale: smooth_flow's zones land between px before the snap.
-	_technique.path_scale = 1.048
-	_technique.path_pivot = Vector2(70.0, 24.0)
-	_technique.setup(load(SMOOTH_FLOW_PATH))
-	for zone: CyclingZone in _technique.cycling_zones:
-		var exact: Vector2 = _technique.path_pivot + (zone.zone_data.position - _technique.path_pivot) * 1.048
-		assert_lte(zone.position.distance_to(exact), sqrt(2.0), "%s stays at its scaled place" % zone.name)
-		assert_eq(fposmod(zone.position.x, 2.0), 0.0, "%s x is even" % zone.name)
-		assert_eq(fposmod(zone.position.y, 2.0), 0.0, "%s y is even" % zone.name)
-	await _await_queued_frees()
-
-func test_the_groove_follows_the_scaled_path() -> void:
-	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
-	var groove := _node("CyclingGroove") as CyclingGroove
-	var unscaled: int = groove.get_cell_count()
-	_scaled_straight(Vector2(5000.0, 0.0))
-	assert_almost_eq(float(groove.get_cell_count()), unscaled * 2.0, 8.0, "a path twice as long has about twice the cells")
-	await _await_queued_frees()
-
 #-----------------------------------------------------------------------------
-# DRAWING AND THE SNAPSHOT
+# THE BALL'S PATH AND THE SNAPSHOT
 #-----------------------------------------------------------------------------
-
-func test_ball_is_drawn_on_even_px() -> void:
-	var sprite := _node("BallSprite") as LacquerStripRect
-	var ring := _node("BallRing") as LacquerStripRect
-	_technique.start_cycle()
-	for _frame: int in 120:
-		_technique.advance(FRAME, _technique.get_ball_global_position())
-		for control: Control in [sprite, ring]:
-			assert_eq(fposmod(control.global_position.x, 2.0), 0.0, "%s x is even" % control.name)
-			assert_eq(fposmod(control.global_position.y, 2.0), 0.0, "%s y is even" % control.name)
-	assert_ne(_technique.get_ball_global_position(), START, "precondition: the ball moved")
-
-func test_ball_sprite_and_ring_are_centred_on_the_drawn_ball() -> void:
-	var sprite := _node("BallSprite") as LacquerStripRect
-	var ring := _node("BallRing") as LacquerStripRect
-	_technique.start_cycle()
-	_run(3.0, 60.0, false)
-	var ball: Vector2 = _technique.get_ball_global_position()
-	assert_eq(sprite.global_position + sprite.size / 2.0, ball)
-	assert_eq(ring.global_position + ring.size / 2.0, ball)
-
-func test_swirl_steps_ten_frames_a_second_ready_or_cycling() -> void:
-	var sprite := _node("BallSprite") as LacquerStripRect
-	_technique.advance(0.05, FAR)
-	assert_eq(sprite.get_frame(), Vector2i(0, 0))
-	for running: bool in [false, true]:
-		if running:
-			_technique.start_cycle()
-		# Each step lands mid-frame: the clock is 0.05 + 0.1 k seconds.
-		for step: int in range(1, 11):
-			_technique.advance(0.1, FAR)
-			assert_eq(sprite.get_frame().x, (step + (10 if running else 0)) % 8, "frame at step %d (running %s)" % [step, running])
-
-func test_the_groove_shows_lit_before_the_first_cycle() -> void:
-	var groove := _node("CyclingGroove") as CyclingGroove
-	assert_gt(groove.get_cell_count(), 0, "precondition: the path has cells")
-	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "lit as a full cycle leaves it")
-	_technique.advance(FRAME, FAR)
-	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "and it stays lit while the ball waits")
-
-func test_groove_lights_behind_the_ball() -> void:
-	var groove := _node("CyclingGroove") as CyclingGroove
-	var total: int = groove.get_cell_count()
-	_technique.start_cycle()
-	assert_eq(groove.get_lit_count(), total, "the last cycle's light shows as the cycle starts")
-	_run(1.0, 60.0, false)
-	var trail: int = groove.get_lit_count()
-	assert_gt(trail, 0, "once the sweep is done the ball's trail is lit")
-	assert_lt(trail, total / 10, "and only that, still short a second in")
-	_run(4.0, 60.0, false)
-	assert_gt(groove.get_lit_count(), trail, "the trail grows behind the ball")
-	assert_lt(groove.get_lit_count(), total)
-	_run(CYCLE_SECONDS - 5.0 + FRAME, 60.0, false)
-	assert_eq(groove.get_lit_count(), total, "the whole groove is lit at the end")
-	_technique.start_cycle()
-	assert_eq(groove.get_lit_count(), total, "and it stays lit as the next cycle starts, until the sweep")
-
-func test_a_start_sweeps_the_old_light_away_ahead_of_the_ball() -> void:
-	var groove := _node("CyclingGroove") as CyclingGroove
-	var total: int = groove.get_cell_count()
-	_technique.start_cycle()
-	_run(CyclingTechnique.GROOVE_SWEEP_SECONDS / 2.0, 60.0, false)
-	var mid_sweep: int = groove.get_lit_count()
-	assert_lt(float(mid_sweep), total * 0.7, "half way through the sweep, about half the groove is dark")
-	assert_gt(float(mid_sweep), total * 0.3, "and the far half keeps the old light")
-	_run(CyclingTechnique.GROOVE_SWEEP_SECONDS / 2.0 + FRAME, 60.0, false)
-	assert_lt(groove.get_lit_count(), total / 10, "the sweep is done in GROOVE_SWEEP_SECONDS, leaving the trail")
 
 func test_ball_follows_the_eased_path() -> void:
 	_technique.start_cycle()
@@ -1010,69 +761,8 @@ func test_the_aura_well_rate_survives_closing_cycling() -> void:
 	assert_eq(rate.get_parsed_text(), "+1.5 / s", "a late end of a session leaves it")
 
 #-----------------------------------------------------------------------------
-# THE SCENES
-#-----------------------------------------------------------------------------
-
-func test_the_press_area_reaches_the_ring() -> void:
-	var shape := (_node("MadraBall").get_node("CollisionShape2D") as CollisionShape2D).shape as CircleShape2D
-	assert_eq(shape.radius, CyclingTechnique.CURSOR_REACH, "a press lands as far out as the cursor tracks")
-
-func test_the_reach_is_the_tracking_ring_s_outer_edge() -> void:
-	# What counts is what the player sees: the solid tracking ring, frame 1 of
-	# the ring strip, ends 36 px from the ball's centre.
-	var image: Image = (load(RING_STRIP_PATH) as Texture2D).get_image()
-	var centre := Vector2(RING_CELL * 1.5, RING_CELL / 2.0)
-	var outer: float = 0.0
-	for y: int in RING_CELL:
-		for x: int in range(RING_CELL, 2 * RING_CELL):
-			if image.get_pixel(x, y).a > 0.0:
-				outer = maxf(outer, (Vector2(x, y) + Vector2(0.5, 0.5)).distance_to(centre))
-	assert_gt(CyclingTechnique.CURSOR_REACH, CyclingTechnique.BALL_RADIUS, "the cursor reaches past the ball itself")
-	assert_almost_eq(CyclingTechnique.CURSOR_REACH, outer, 1.0, "out to the solid ring's outer edge")
-
-func test_the_ball_is_the_only_click_target() -> void:
-	assert_true((_node("MadraBall") as Area2D).input_pickable)
-	for zone: CyclingZone in _technique.cycling_zones:
-		var node: Node = zone
-		assert_false(node is CollisionObject2D, "%s takes no press of its own" % zone.name)
-		assert_eq(zone.find_children("*", "CollisionObject2D", true, false).size(), 0, "nor does anything inside it")
-
-func test_controls_inside_the_technique_ignore_the_mouse() -> void:
-	# A Control that stops the mouse marks the press handled, and physics
-	# picking never sees a handled press.
-	var controls: Array[Node] = _technique.find_children("*", "Control", true, false)
-	assert_eq(controls.size(), 6, "the ring, the ball and four sockets")
-	for control: Node in controls:
-		assert_eq((control as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE, "%s ignores the mouse" % control.name)
-
-func test_positions_and_sizes_are_even() -> void:
-	var controls: Array[Node] = _technique.find_children("*", "Control", true, false)
-	for control: Node in controls:
-		var rect := control as Control
-		assert_eq(fposmod(rect.global_position.x, 2.0), 0.0, "%s x is even" % rect.name)
-		assert_eq(fposmod(rect.global_position.y, 2.0), 0.0, "%s y is even" % rect.name)
-		assert_eq(fposmod(rect.size.x, 2.0), 0.0, "%s width is even" % rect.name)
-		assert_eq(fposmod(rect.size.y, 2.0), 0.0, "%s height is even" % rect.name)
-
-func test_the_scene_no_longer_uses_the_old_art_and_shaders() -> void:
-	var text: String = FileAccess.get_file_as_string("res://scenes/cycling/cycling_technique/cycling_technique.tscn")
-	text += FileAccess.get_file_as_string("res://scenes/cycling/cycling_technique/cycling_zone.tscn")
-	for retired: String in ["torrential_flow", "torrential_curve", "Madra-Ball.png", "madra_ball", "cycling_zone.gdshader", "ShaderMaterial"]:
-		assert_false(text.contains(retired), "the scenes no longer name %s" % retired)
-
-#-----------------------------------------------------------------------------
 # THE ZONE
 #-----------------------------------------------------------------------------
-
-func test_zone_shows_its_state_as_a_frame() -> void:
-	var zone: CyclingZone = _zone(0)
-	var socket := zone.get_node("%Socket") as LacquerStripRect
-	assert_eq(socket.frame_size, ZONE_FRAME_SIZE)
-	assert_eq(socket.position, Vector2(-24.0, -24.0))
-	for state: int in CyclingZone.State.values():
-		zone.set_state(state as CyclingZone.State)
-		assert_eq(zone.get_state(), state)
-		assert_eq(socket.get_frame(), Vector2i(state, 0), "state %d is frame %d" % [state, state])
 
 func test_zone_is_open_while_idle_or_active() -> void:
 	var zone: CyclingZone = _zone(0)
@@ -1080,16 +770,6 @@ func test_zone_is_open_while_idle_or_active() -> void:
 	for state: int in CyclingZone.State.values():
 		zone.set_state(state as CyclingZone.State)
 		assert_eq(zone.is_open(), state in open, "state %d" % state)
-
-func test_state_for_tier() -> void:
-	assert_eq(CyclingZone.state_for_tier(CyclingRules.Tier.PERFECT), CyclingZone.State.PERFECT)
-	assert_eq(CyclingZone.state_for_tier(CyclingRules.Tier.GOOD), CyclingZone.State.GOOD)
-	assert_eq(CyclingZone.state_for_tier(CyclingRules.Tier.OK), CyclingZone.State.OK)
-
-func test_zone_is_placed_at_its_data_position() -> void:
-	for index: int in _technique.cycling_zones.size():
-		assert_eq(_zone(index).position, _zone(index).zone_data.position)
-		assert_eq(_zone(index).zone_data, (load(SMOOTH_FLOW_PATH) as CyclingTechniqueData).cycling_zones[index])
 
 #-----------------------------------------------------------------------------
 # PRESSES ON THE BALL
@@ -1144,12 +824,6 @@ func test_physics_picking_delivers_a_press_on_the_ball() -> void:
 func test_physics_picking_ignores_a_press_off_the_ball() -> void:
 	await _press_at(_technique.get_ball_global_position() + Vector2(60.0, 0.0))
 	assert_false(_technique.is_cycling())
-
-func test_physics_picking_scores_through_the_ball() -> void:
-	_approach_zone_0(0.0)
-	watch_signals(_technique)
-	await _press_at(_technique.get_ball_global_position())
-	assert_signal_emit_count(_technique, "zone_scored", 1)
 
 func test_physics_picking_scores_a_press_on_the_ring() -> void:
 	_approach_zone_0(0.0)

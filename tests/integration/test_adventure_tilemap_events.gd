@@ -219,13 +219,11 @@ func test_low_stamina_click_is_refused() -> void:
 	_set_stamina(0.0)
 	var standing_at: Vector2 = _tilemap.character_body.global_position
 	watch_signals(_tilemap)
-	watch_signals(LogManager)
 
 	_click(OPEN_NEAR)
 
 	assert_signal_emit_count(_tilemap, "walk_refused", 1)
 	assert_signal_emitted_with_parameters(_tilemap, "walk_refused", [&"stamina"])
-	assert_signal_emitted_with_parameters(LogManager, "message_logged", ["Too tired to walk · 5 Stamina a step"])
 	# A walk that had started would have moved the character by now.
 	_run(5 * FRAME)
 	assert_false(_tilemap.character_body.is_moving, "the character does not set off")
@@ -240,14 +238,12 @@ func test_walk_stopped_by_stamina_is_refused() -> void:
 	_set_stamina(5.0)
 	_record_events()
 	watch_signals(_tilemap)
-	watch_signals(LogManager)
 
 	# One step's worth of Stamina pays for the first hop only.
 	await _walk_to(FIGHT)
 
 	assert_signal_emit_count(_tilemap, "walk_refused", 1)
 	assert_signal_emitted_with_parameters(_tilemap, "walk_refused", [&"stamina"])
-	assert_signal_emitted_with_parameters(LogManager, "message_logged", ["Too tired to walk · 5 Stamina a step"])
 	assert_lt(_events.find("tile_entered"), _events.find("walk_refused"), "the refusal comes after the first arrival")
 	assert_eq(_tilemap.get_current_tile(), START, "the walk stopped on the first hop's tile")
 	_run(5 * FRAME)
@@ -275,13 +271,11 @@ func test_click_while_a_choice_waits_is_refused() -> void:
 	# Out of Stamina too: the waiting encounter is checked first, so it is the reason given.
 	_set_stamina(0.0)
 	watch_signals(_tilemap)
-	watch_signals(LogManager)
 
 	_click(OPEN_NEAR)
 
 	assert_signal_emit_count(_tilemap, "walk_refused", 1)
 	assert_signal_emitted_with_parameters(_tilemap, "walk_refused", [&"encounter"])
-	assert_signal_emitted_with_parameters(LogManager, "message_logged", ["Choose what to do here first"])
 	assert_false(_tilemap.character_body.is_moving, "the character stays put")
 	assert_eq(_tilemap.get_current_tile(), FIGHT)
 

@@ -1,27 +1,19 @@
 extends GutTest
 
-func test_parser_class_loads() -> void:
-	assert_not_null(ItemsMdParser)
-
 const AT = CharacterAttributesData.AttributeType
 
-func test_parse_stats_single_attr() -> void:
-	var result = ItemsMdParser.parse_stats("STRENGTH+3")
-	assert_eq(result, { AT.STRENGTH: 3.0 })
-
-func test_parse_stats_multi_attr() -> void:
-	var result = ItemsMdParser.parse_stats("STRENGTH+3, AGILITY+1")
-	assert_eq(result.size(), 2)
-	assert_eq(result[AT.STRENGTH], 3.0)
-	assert_eq(result[AT.AGILITY], 1.0)
-
-func test_parse_stats_empty_returns_empty() -> void:
-	assert_eq(ItemsMdParser.parse_stats("").size(), 0)
-	assert_eq(ItemsMdParser.parse_stats("   ").size(), 0)
-
-func test_parse_stats_negative_value() -> void:
-	var result = ItemsMdParser.parse_stats("WILLPOWER-2")
-	assert_eq(result[AT.WILLPOWER], -2.0)
+## parse_stats() reads each ATTRIBUTE+N or ATTRIBUTE-N into a bonus: one pair,
+## two pairs, a negative value, and blank text (empty or spaces) as none.
+func test_parse_stats_reads_each_pair() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "one pair", "text": "STRENGTH+3", "expected": {AT.STRENGTH: 3.0}},
+		{"name": "two pairs", "text": "STRENGTH+3, AGILITY+1", "expected": {AT.STRENGTH: 3.0, AT.AGILITY: 1.0}},
+		{"name": "negative value", "text": "WILLPOWER-2", "expected": {AT.WILLPOWER: -2.0}},
+		{"name": "empty", "text": "", "expected": {}},
+		{"name": "spaces only", "text": "   ", "expected": {}},
+	]
+	for case: Dictionary in cases:
+		assert_eq(ItemsMdParser.parse_stats(case.text), case.expected, case.name)
 
 func test_parse_stats_unknown_attr_returns_empty() -> void:
 	# Invalid input -> push_error + empty dict (caller decides whether to abort)
@@ -31,51 +23,49 @@ func test_parse_stats_unknown_attr_returns_empty() -> void:
 
 const ES = EquipmentDefinitionData.EquipmentSlot
 
-func test_parse_slot_main_hand() -> void:
-	assert_eq(ItemsMdParser.parse_slot("MAIN_HAND"), ES.MAIN_HAND)
-
-func test_parse_slot_off_hand() -> void:
-	assert_eq(ItemsMdParser.parse_slot("OFF_HAND"), ES.OFF_HAND)
-
-func test_parse_slot_trims_whitespace() -> void:
-	assert_eq(ItemsMdParser.parse_slot("  HEAD  "), ES.HEAD)
+## parse_slot() maps a slot name to its EquipmentSlot, trimming whitespace.
+func test_parse_slot_maps_names() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "MAIN_HAND", "text": "MAIN_HAND", "expected": ES.MAIN_HAND},
+		{"name": "OFF_HAND", "text": "OFF_HAND", "expected": ES.OFF_HAND},
+		{"name": "padded HEAD", "text": "  HEAD  ", "expected": ES.HEAD},
+	]
+	for case: Dictionary in cases:
+		assert_eq(ItemsMdParser.parse_slot(case.text), case.expected, case.name)
 
 func test_parse_slot_unknown_returns_negative_one() -> void:
 	assert_eq(ItemsMdParser.parse_slot("BOGUS"), -1)
 	assert_push_error("unknown slot 'BOGUS'")
 
+## parse_table_header() returns the columns in order, stripped of whitespace
+## and of backticks (a header may write `id` as markdown inline code).
 func test_parse_table_header_returns_columns_in_order() -> void:
-	var line = "| # | id | name | slot | stats |"
-	var cols = ItemsMdParser.parse_table_header(line)
-	assert_eq(cols, ["#", "id", "name", "slot", "stats"])
-
-func test_parse_table_header_strips_whitespace_and_backticks() -> void:
-	# Allow `id` (markdown inline-code) in header
-	var line = "| ` # ` | `id` | name |"
-	var cols = ItemsMdParser.parse_table_header(line)
-	assert_eq(cols, ["#", "id", "name"])
+	var cases: Array[Dictionary] = [
+		{"name": "plain header", "line": "| # | id | name | slot | stats |", "expected": ["#", "id", "name", "slot", "stats"]},
+		{"name": "padded and backticked header", "line": "| ` # ` | `id` | name |", "expected": ["#", "id", "name"]},
+	]
+	for case: Dictionary in cases:
+		assert_eq(ItemsMdParser.parse_table_header(case.line), case.expected, case.name)
 
 func test_is_separator_line() -> void:
 	assert_true(ItemsMdParser.is_separator_line("|---|---|---|"))
 	assert_true(ItemsMdParser.is_separator_line("| --- | :--: | ---: |"))
 	assert_false(ItemsMdParser.is_separator_line("| id | name |"))
 
+## parse_table_row() maps each column to its cell, and a column past the
+## row's last cell to an empty string.
 func test_parse_table_row_maps_columns_to_cells() -> void:
-	var cols = ["#", "id", "name", "slot"]
-	var line = "| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND |"
-	var row = ItemsMdParser.parse_table_row(line, cols)
-	assert_eq(row["#"], "E1")
-	assert_eq(row["id"], "makeshift_dagger")
-	assert_eq(row["name"], "Makeshift Dagger")
-	assert_eq(row["slot"], "MAIN_HAND")
-
-func test_parse_table_row_handles_missing_columns_with_empty_string() -> void:
-	var cols = ["a", "b", "c"]
-	var line = "| x | y |"
-	var row = ItemsMdParser.parse_table_row(line, cols)
-	assert_eq(row["a"], "x")
-	assert_eq(row["b"], "y")
-	assert_eq(row["c"], "")
+	var cases: Array[Dictionary] = [
+		{"name": "full row", "cols": ["#", "id", "name", "slot"],
+			"line": "| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND |",
+			"expected": {"#": "E1", "id": "makeshift_dagger", "name": "Makeshift Dagger", "slot": "MAIN_HAND"}},
+		{"name": "missing columns", "cols": ["a", "b", "c"], "line": "| x | y |",
+			"expected": {"a": "x", "b": "y", "c": ""}},
+	]
+	for case: Dictionary in cases:
+		var row = ItemsMdParser.parse_table_row(case.line, case.cols)
+		for column: String in case.expected:
+			assert_eq(row[column], case.expected[column], "%s: column %s" % [case.name, column])
 
 func test_is_roster_header_true_for_equipment_columns() -> void:
 	var cols: Array[String] = ["#", "id", "name", "slot", "stats", "tier", "cost", "identity", "source", "description"]

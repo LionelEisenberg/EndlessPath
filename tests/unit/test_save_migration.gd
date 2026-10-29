@@ -39,22 +39,19 @@ func _make_gear(item_id: String, slot: EquipmentDefinitionData.EquipmentSlot) ->
 # ZONE ID MIGRATION
 #-----------------------------------------------------------------------------
 
-func test_test_zone_save_moves_to_spirit_valley() -> void:
-	var data := SaveGameData.new()
-	data.current_selected_zone_id = "TestZone"
-	data.migrate()
-	assert_eq(data.current_selected_zone_id, "SpiritValley")
-
-func test_other_zone_is_unchanged() -> void:
-	var data := SaveGameData.new()
-	data.current_selected_zone_id = "SpiritValley"
-	data.migrate()
-	assert_eq(data.current_selected_zone_id, "SpiritValley")
-
-func test_empty_zone_is_unchanged() -> void:
-	var data := SaveGameData.new()
-	data.migrate()
-	assert_eq(data.current_selected_zone_id, "", "an empty id still means 'the first zone in the list'")
+## migrate() moves a save standing in Test Zone to Spirit Valley, and leaves any
+## other zone, the empty id included, where it is.
+func test_migrate_maps_the_zone_id() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Test Zone moves to Spirit Valley", "zone": "TestZone", "expected": "SpiritValley"},
+		{"name": "another zone is unchanged", "zone": "SpiritValley", "expected": "SpiritValley"},
+		{"name": "an empty id still means 'the first zone in the list'", "zone": "", "expected": ""},
+	]
+	for case: Dictionary in cases:
+		var data := SaveGameData.new()
+		data.current_selected_zone_id = case.zone
+		data.migrate()
+		assert_eq(data.current_selected_zone_id, case.expected, case.name)
 
 func test_migrated_test_zone_save_still_verifies() -> void:
 	var data := SaveGameData.new()

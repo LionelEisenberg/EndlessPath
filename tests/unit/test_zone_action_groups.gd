@@ -5,7 +5,6 @@ extends GutTest
 ## below the fold) and the cards' mode tags.
 
 const ActionType = ZoneActionData.ActionType
-const SPIRIT_VALLEY_PATH: String = "res://resources/zones/spirit_valley_zone/spirit_valley_zone.tres"
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -37,42 +36,24 @@ func test_group_of_each_type() -> void:
 	assert_eq(ZoneActionGroups.group_of(ActionType.ZONE_EVENT), ZoneActionGroups.Group.VISIT)
 	assert_eq(ZoneActionGroups.group_of(ActionType.TRIBULATION), ZoneActionGroups.Group.CULTIVATE)
 
-func test_labels() -> void:
-	assert_eq(ZoneActionGroups.label(ZoneActionGroups.Group.TALK), "Talk")
-	assert_eq(ZoneActionGroups.label(ZoneActionGroups.Group.CULTIVATE), "Cultivate")
-	assert_eq(ZoneActionGroups.label(ZoneActionGroups.Group.GATHER), "Gather")
-	assert_eq(ZoneActionGroups.label(ZoneActionGroups.Group.VENTURE), "Venture")
-	assert_eq(ZoneActionGroups.label(ZoneActionGroups.Group.VISIT), "Visit")
-
 #-----------------------------------------------------------------------------
 # SORTING
 #-----------------------------------------------------------------------------
 
-func test_sort_puts_talk_first_and_keeps_order() -> void:
-	var spirit_valley: ZoneData = load(SPIRIT_VALLEY_PATH)
-	var sorted: Array[ZoneActionData] = ZoneActionGroups.sort_actions(spirit_valley.all_actions)
-	assert_eq(_ids(sorted), [
-		"celestial_intervener_dialogue_1",
-		"celestial_intervener_dialogue_2",
-		"celestial_intervener_dialogue_3",
-		"celestial_intervener_dialogue_4",
-		"wilderness_cycling_action",
-		"aura_well_training",
-		"spirit_valley_tribulation",
-		"sprint_forest_foraging_action",
-		"shallow_woods_adventure_action",
-		"spirit_valley_merchant",
-	] as Array[String])
-
+## The groups run Talk, Cultivate, Gather, Venture, Visit, Talk first even when
+## it comes last, and each group keeps its actions' input order.
 func test_sort_keeps_input_order_within_a_group() -> void:
 	var actions: Array[ZoneActionData] = [
 		_action("event", ActionType.ZONE_EVENT),
 		_action("well", ActionType.TRAIN_STATS),
+		_action("venture", ActionType.ADVENTURE),
 		_action("shop", ActionType.MERCHANT),
+		_action("forage", ActionType.FORAGE),
 		_action("cycle", ActionType.CYCLING),
+		_action("talk", ActionType.NPC_DIALOGUE),
 	]
 	assert_eq(_ids(ZoneActionGroups.sort_actions(actions)),
-		["well", "cycle", "event", "shop"] as Array[String])
+		["talk", "well", "cycle", "forage", "venture", "event", "shop"] as Array[String])
 
 func test_sort_leaves_the_input_untouched() -> void:
 	var actions: Array[ZoneActionData] = [

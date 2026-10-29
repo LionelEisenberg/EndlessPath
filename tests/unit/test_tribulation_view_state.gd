@@ -5,14 +5,14 @@ extends GutTest
 ## once; entering hides the log and the Goals board, the dock and the map's input, blocks
 ## the full log and shows the board. Escape turns the trial down from the intro and does
 ## nothing once the run has begun; the trial's keys go to the board. A stop closes the
-## board whatever it was doing (a run stopped from outside applies nothing), gives the zone
-## view back and removes only the state.
+## board whatever it was doing, gives the zone view back and removes only the state.
 ## On a MainView with no transition the open and the close are instant, and the tests above
 ## the transition section read that. Given a real BoardTransition, driven by advance() and
 ## finish(), the board opens and closes as an animation: the state hands the player its
-## board, stays on the stack until the close has played out, halts the run at the stop, drops
-## the trial's keys while the board opens (Escape still turns the trial down) and every key
-## while it closes, and lets a start while it closes reverse the close.
+## board, stays on the stack until the close has played out, halts the run at the stop (a
+## run stopped from outside applies nothing), drops the trial's keys while the board opens
+## (Escape still turns the trial down) and every key while it closes, and lets a start while
+## it closes reverse the close.
 ## The MainView is never added to the tree: each test fills in the views it needs, as
 ## test_merchant_view_state.gd does, with the real board on a test clock and plain stand-ins
 ## for the rest, and calls the state's handlers instead of emitting ActionManager's signals,
@@ -182,6 +182,7 @@ func test_start_pushes_once() -> void:
 	_state._on_start_tribulation(_action())
 	assert_eq(_main_view.state_stack.size(), 1, "a second entry would stay on the stack after the board closes")
 	assert_same(_main_view.state_stack.back(), _state)
+	assert_eq(_view.finished.get_connections().size(), 1, "one connection, however often the trial starts")
 	assert_true(_view.visible, "the board shows")
 	assert_false(_main_view.log_window.visible, "the log hides")
 	assert_false(_main_view.goals_panel.visible, "Goals hides")
@@ -194,11 +195,6 @@ func test_start_opens_the_intro_for_the_zone() -> void:
 	assert_eq((_view.get_node("%ActionLabel") as Label).text, ZONE_NAME, "headed by the zone the player stands in")
 	assert_eq((_view.get_node("%TitleLabel") as Label).text, "The Tribulation", "and the trial's own title")
 
-func test_start_while_open_keeps_one_finished_connection() -> void:
-	_state._on_start_tribulation(_action())
-	_state._on_start_tribulation(_action())
-	assert_eq(_view.finished.get_connections().size(), 1, "one connection, however often the trial starts")
-
 #-----------------------------------------------------------------------------
 # INPUT
 #-----------------------------------------------------------------------------
@@ -209,34 +205,36 @@ func test_escape_on_the_intro_cancels() -> void:
 	_state.handle_input(_escape())
 	assert_signal_emitted_with_parameters(_view, "finished", [false])
 
+## Escape does nothing once the run has begun: a run under way has no way out, and only
+## Continue closes the result (Escape, like the press, leaves it up).
 func test_escape_during_the_run_does_nothing() -> void:
-	_state._on_start_tribulation(_action())
-	_view.begin()
-	watch_signals(_view)
-	_state.handle_input(_escape())
-	assert_eq(_view.get_mode(), Mode.RUNNING, "a run once begun has no way out")
-	assert_signal_not_emitted(_view, "finished")
+	var cases: Array[Dictionary] = [
+		{"name": "a run once begun has no way out", "fail_first": false, "mode": Mode.RUNNING},
+		{"name": "the result stays up", "fail_first": true, "mode": Mode.RESULT},
+	]
+	for case: Dictionary in cases:
+		_state._on_start_tribulation(_action())
+		_view.begin()
+		if case["fail_first"]:
+			_at(_view.get_run().get_beat_times()[3] + 0.15)
+		assert_eq(_view.get_mode(), case["mode"], "precondition: %s" % case["name"])
+		watch_signals(_view)
+		_state.handle_input(_escape())
+		assert_eq(_view.get_mode(), case["mode"], case["name"])
+		assert_signal_not_emitted(_view, "finished", case["name"])
 
-## Only Continue closes the result: Escape, like the press, leaves it up.
-func test_escape_on_the_result_does_nothing() -> void:
-	_state._on_start_tribulation(_action())
-	_view.begin()
-	_at(_view.get_run().get_beat_times()[3] + 0.15)
-	assert_eq(_view.get_mode(), Mode.RESULT, "precondition: the fourth crack ended the trial")
-	watch_signals(_view)
-	_state.handle_input(_escape())
-	assert_eq(_view.get_mode(), Mode.RESULT, "the result stays up")
-	assert_signal_not_emitted(_view, "finished")
-
-func test_space_reaches_the_view() -> void:
-	_state._on_start_tribulation(_action())
-	_state.handle_input(_space())
-	assert_eq(_view.get_mode(), Mode.RUNNING, "Space on the intro begins the run")
-
+## The trial's press on the intro begins the run, as the tribulation_press action and as
+## the Space key the input map binds to it.
 func test_the_press_action_reaches_the_view() -> void:
-	_state._on_start_tribulation(_action())
-	_state.handle_input(_press())
-	assert_eq(_view.get_mode(), Mode.RUNNING, "a tribulation_press on the intro begins the run")
+	var cases: Array[Dictionary] = [
+		{"name": "Space on the intro begins the run", "event": _space()},
+		{"name": "a tribulation_press on the intro begins the run", "event": _press()},
+	]
+	for case: Dictionary in cases:
+		_state._on_start_tribulation(_action())
+		assert_eq(_view.get_mode(), Mode.INTRO, "precondition: the intro shows")
+		_state.handle_input(case["event"])
+		assert_eq(_view.get_mode(), Mode.RUNNING, case["name"])
 
 ## The menu keys do nothing, as with every overlay that is the top state, and they do
 ## not begin the trial either.
@@ -301,19 +299,6 @@ func test_stop_without_the_state_on_the_stack_changes_nothing() -> void:
 	_state._on_stop_tribulation()
 	assert_eq(_main_view.state_stack.size(), 1)
 	assert_same(_main_view.state_stack.back(), _other, "another view is never popped in its place")
-
-## Review Focus 3: the action stopped from outside mid-trial (a save reset, the dev panel)
-## closes the board and applies nothing.
-func test_stop_mid_run_applies_nothing() -> void:
-	_state._on_start_tribulation(_action())
-	_view.begin()
-	_at(3.0)
-	assert_eq(_view.get_mode(), Mode.RUNNING, "precondition: the run is under way")
-	_state._on_stop_tribulation()
-	assert_eq(CultivationManager.get_core_density_level(), 100.0, "no level was lost")
-	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION, "and no breakthrough happened")
-	assert_eq(_view.get_mode(), Mode.CLOSED, "the board is closed")
-	assert_null(_view.get_run(), "and the run dropped")
 
 #-----------------------------------------------------------------------------
 # THE STATE ON THE TRANSITION

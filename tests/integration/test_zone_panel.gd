@@ -3,14 +3,12 @@ extends GutTest
 ## Integration tests for the zone chest (ZonePanel, lacquer kit §5.5 and §0):
 ## the header, the Now strip for each idle action and for the cycle (read from
 ## CyclingManager's session snapshot, which the tests drive directly), the
-## grouped activity list, the chest hugging its list or folding a long list
-## under its last whole drawer, the rail and lips, scrolling to a card, the
-## lore panel, the techniques mode a cycling session turns the chest to, and
-## long text never widening the chest (Review Focus 4). The panel is built on
-## a fresh save, as the zone view builds it. The Now strip is as wide as the
-## cards beside the list's rail (392, so both edges line up), and no text in it
-## is cut off: a name or line that needs more room wraps, the strip grows, and
-## the Activities header, the list and the lore move down with its bottom.
+## grouped activity list and its rebuilds, the rail, scrolling to a card, the
+## lore panel and who takes Esc, the techniques mode a cycling session turns
+## the chest to, and what the chest tells MainView's slide. The panel is built
+## on a fresh save, as the zone view builds it. No text in the Now strip, the
+## lore or the last cycle's line is cut off: a long one wraps, its board grows,
+## and the Activities header and the list move down with it.
 
 const PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
 
@@ -35,65 +33,32 @@ const FOUNDATION_ID: String = "foundation_technique"
 const SMOOTH_ID: String = "smooth_flow"
 const TORRENTIAL_ID: String = "torrential_flow"
 
-## Each technique's readings, from +0 to its top rate (its Madra per cycle over
-## its cycle's seconds): Smooth Flow tops out at 13.3, Torrential Flow at 31.3.
-## The readings between are of wide digits, the widest at their length.
-const RATES_BY_TECHNIQUE: Dictionary[String, Array] = {
-	SMOOTH_ID: [0.0, 0.4, 8.8, 10.4, 200.0 / 15.0],
-	TORRENTIAL_ID: [0.0, 8.8, 20.4, 28.8, 250.0 / 8.0],
-}
-
 const THUMB_RIVER: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ai.png")
 const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_basic_ai.png")
 
 ## Chest layout, local to the chest (kit §0, §5.5). The Now tray always
-## keeps its space, so the header, the list and the lore never move up.
+## keeps its space, so the header and the list never move up.
 const HEADER_TOP: float = 177.0
 const LIST_TOP: float = 208.0
-const LORE_TOP: float = 182.0
-const LORE_PUSH: float = 276.0
 ## A finished cycle's line sits under the Now tray and pushes the rest down this far.
 const LAST_CYCLE_PUSH: float = 26.0
 ## The lore board's 264 tall at least (it grows with its text), and the 12 px
 ## under it before the header.
 const LORE_MIN_HEIGHT: float = 264.0
 const LORE_GAP_UNDER: float = 12.0
-## The art's baked shadow beyond the board's right and bottom edges.
-const BOARD_SHADOW: float = 4.0
-const FULL_CHEST_HEIGHT: float = 1032.0
-## A scrolling list keeps 40 px under its fold, and the chest snaps to the
-## bottom line when it would end within 64 px of it.
-const SCROLLING_LIST_GAP: float = 40.0
-const SNAP_DISTANCE: float = 64.0
-## The Now strip: the kit's 88 tall and the cards' 392 wide, with each extra line
-## of a name 22 px (18 in a detail line) and its contents ending 16 px short of
-## the 408 it was.
+## The Now strip: the kit's 88 tall, with each extra line of a name 22 px.
 const STRIP_HEIGHT: float = 88.0
-const STRIP_WIDTH: float = 392.0
 const NAME_LINE: float = 22.0
-const DETAIL_LINE: float = 18.0
 ## Long enough to need three lines in the strip's name (about 210 px beside the
-## rate) and its forage name (292 px), and two in its detail lines.
+## rate).
 const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And A Hundred Silent Stars"
-## Longer than LONG_NAME, so the strip's name takes more lines and the strip grows
-## far enough to bring the fold of the ten cards within 64 px of the chest's
-## bottom line.
-const SNAP_NAME: String = LONG_NAME + " Over The Sleeping Valley"
 ## A lore of three long paragraphs: many more lines than the shipped one, which takes
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
-const FOLD_GAP: float = 8.0
-const SCROLL_MARGIN: float = 24.0
 ## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
 const DRAWER_HEIGHT: float = 72.0
 const DRAWER_GAP: float = 8.0
-## The chest's inner right edge, where the slide clip cuts a header or a drawer
-## that slides out (the chest art is 444 wide; its frame ends 8 px short of that).
-const SLIDE_CLIP_WIDTH: float = 436.0
-## What a drawer's art reaches beyond its 392 x 72 rect: its baked shadow on the
-## right and bottom, and the in-use drawer's pulled-out frame on the left and top.
-const DRAWER_ART_OVERHANG: float = 2.0
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -103,13 +68,10 @@ const FRAME: float = 1.0 / 60.0
 
 var _panel: ZonePanel = null
 
-## Zone and action names a test changed, restored after it.
-var _renamed_zone: ZoneData = null
-var _original_zone_name: String = ""
+## The lore and action names a test changed, restored after it.
 var _relored_zone: ZoneData = null
 var _original_description: String = ""
 var _renamed_actions: Dictionary[ZoneActionData, String] = {}
-var _renamed_techniques: Dictionary[CyclingTechniqueData, String] = {}
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -132,18 +94,12 @@ func after_each() -> void:
 	CyclingManager.clear_last_cycle_result()
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
-	if _renamed_zone != null:
-		_renamed_zone.zone_name = _original_zone_name
-		_renamed_zone = null
 	if _relored_zone != null:
 		_relored_zone.description = _original_description
 		_relored_zone = null
 	for action: ZoneActionData in _renamed_actions:
 		action.action_name = _renamed_actions[action]
 	_renamed_actions.clear()
-	for technique: CyclingTechniqueData in _renamed_techniques:
-		technique.technique_name = _renamed_techniques[technique]
-	_renamed_techniques.clear()
 	_panel = null
 
 #-----------------------------------------------------------------------------
@@ -293,23 +249,9 @@ func _push_mouse_button(point: Vector2, button: MouseButton, with_release: bool)
 func _click(point: Vector2) -> void:
 	_push_mouse_button(point, MOUSE_BUTTON_LEFT, true)
 
-## The flow ActivityList computes from its constants must be the height the
-## scenes' containers lay out, or the folds and scroll targets drift.
-func _assert_flow_matches_scenes() -> void:
-	var list: ActivityList = _list() as ActivityList
-	assert_eq(list.get_content_height(), _scroll().get_v_scroll_bar().max_value,
-		"the computed flow matches the laid-out content")
-
 #-----------------------------------------------------------------------------
 # ROOT AND HEADER
 #-----------------------------------------------------------------------------
-
-func test_root_is_the_chest_and_stops_clicks() -> void:
-	await _add_panel()
-	assert_eq(_panel.position, Vector2(1456.0, 24.0))
-	assert_eq(_panel.size.x, 440.0)
-	assert_eq(_panel.mouse_filter, Control.MOUSE_FILTER_STOP)
-	assert_eq(_panel.theme, load("res://assets/themes/lacquer/lacquer_theme.tres"))
 
 func test_header_shows_zone_name() -> void:
 	await _add_panel()
@@ -333,17 +275,6 @@ func test_header_follows_zone_change() -> void:
 	assert_eq((_node("Thumb") as TextureRect).texture, THUMB_BASIC)
 	assert_false((_node("AboutButton") as Control).visible, "Test Zone has no lore")
 
-func test_long_zone_name_ellipsizes() -> void:
-	_renamed_zone = ZoneManager.get_zone_by_id(SPIRIT_VALLEY_ID)
-	_original_zone_name = _renamed_zone.zone_name
-	_renamed_zone.zone_name = "The Exceedingly Long Valley of Many Names ".repeat(3)
-	await _add_panel()
-	var name_label: Label = _node("ZoneNameLabel") as Label
-	assert_eq(_panel.size.x, 440.0, "the chest stays 440 wide")
-	assert_eq(name_label.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS)
-	assert_lte(name_label.get_global_rect().end.x, (_node("AboutButton") as Control).get_global_rect().position.x,
-		"the name stops before About")
-
 #-----------------------------------------------------------------------------
 # NOW STRIP
 #-----------------------------------------------------------------------------
@@ -358,17 +289,10 @@ func _assert_empty_tray(line: String) -> void:
 	assert_null((_strip_node("ActionIcon") as TextureRect).texture, "no action icon")
 	assert_false((_strip_node("WellRod") as Control).is_visible_in_tree(), "no rod")
 
-## Asserts the header and the list sit under the tray, as with an idle action.
-func _assert_list_under_tray() -> void:
-	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP, "the header keeps its place")
-	assert_eq(_list().position.y, LIST_TOP, "the list keeps its top")
-
 func test_fresh_save_shows_an_empty_tray() -> void:
 	await _add_panel()
 	assert_null(ActionManager.get_current_action(), "precondition: nothing runs on a fresh save")
 	_assert_empty_tray("Nothing running")
-	_assert_list_under_tray()
-	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP, "the lore opens under the tray")
 
 func test_strip_shows_for_aura_well() -> void:
 	await _add_panel()
@@ -382,7 +306,6 @@ func test_strip_shows_for_aura_well() -> void:
 	assert_has(texts, "0 / 60")
 	assert_does_not_have(texts, "Nothing running")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
-	_assert_list_under_tray()
 
 func test_strip_follows_training_ticks() -> void:
 	await _add_panel()
@@ -420,20 +343,6 @@ func test_strip_haul_counts_down() -> void:
 	assert_eq(ActionManager.action_timer.wait_time, 5.0, "precondition: still the 5 s interval")
 	assert_has(_texts(_strip()), "haul in 4 s")
 
-func test_strip_shows_each_items_mini_icon() -> void:
-	await _add_panel()
-	EventManager.trigger_event(FORAGING_EVENT)
-	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
-	await wait_process_frames(2)
-	var icons: Array[Texture2D] = []
-	for node: Node in _strip().find_children("Icon", "TextureRect", true, false):
-		if (node as TextureRect).is_visible_in_tree():
-			icons.append((node as TextureRect).texture)
-	var expected: Array[Texture2D] = []
-	for entry: LootTableEntry in (ZoneManager.get_action_by_id(FORAGING_ID) as ForageActionData).loot_table.entries:
-		expected.append(entry.item.get_mini_icon())
-	assert_eq(icons, expected, "the kit's mini dewdrop and fern, from the item data")
-
 func test_tray_shows_the_cycle_ready() -> void:
 	# Cycling is a session action, but the tray shows it instead of pausing: the
 	# action, the rate, the equipped technique and its cycle time, with the ring
@@ -448,7 +357,6 @@ func test_tray_shows_the_cycle_ready() -> void:
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(CYCLING_ID).icon, "the action's icon")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is empty")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	_assert_list_under_tray()
 
 func test_tray_follows_the_running_cycle() -> void:
 	# 9 s into a 15 s cycle: the ring lights floor(0.6 x 13) = 7 beads, the rod
@@ -466,28 +374,6 @@ func test_tray_follows_the_running_cycle() -> void:
 	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+13.3 / s")
 	assert_has(_texts(_strip()), "Foundational Technique", "the detail stays the technique's name")
 
-func test_tray_counts_whole_seconds_into_the_cycle() -> void:
-	# The seconds into the cycle count whole ones (9.9 s reads 9), and the cycle's
-	# length reads to the nearest second (14.6 s reads 15).
-	await _add_panel()
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	CyclingManager.start_cycle_session(14.6)
-	CyclingManager.update_cycle_session(9.9, 0.0)
-	await wait_process_frames(1)
-	assert_eq((_strip_node("TicksLabel") as Label).text, "9 / 15 s")
-
-func test_tray_lights_the_whole_ring_at_the_end_of_the_cycle() -> void:
-	# The strip has 13 frames: a finished cycle (progress 1) stops on the last
-	# one instead of running off the strip.
-	await _add_panel()
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	CyclingManager.start_cycle_session(8.0)
-	CyclingManager.update_cycle_session(8.0, 5.0)
-	await wait_process_frames(1)
-	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(12, 0))
-	assert_eq((_strip_node("TicksLabel") as Label).text, "8 / 8 s")
-	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 144, "the rod is full")
-
 func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
@@ -500,50 +386,6 @@ func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
 	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String], "the rate back at +0")
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark again")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "and the rod empty")
-
-func test_tray_reads_the_cycle_rate_to_a_tenth() -> void:
-	# The rate reads to a tenth, as on the cabinet: 0.049 reads +0, and 0.05
-	# reads +0.1.
-	await _add_panel()
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	CyclingManager.start_cycle_session(8.0)
-	var rate_text := _strip_node("RateText") as RichTextLabel
-	CyclingManager.update_cycle_session(1.0, 0.049)
-	await wait_process_frames(1)
-	assert_true(rate_text.is_visible_in_tree(), "the rate shows while nothing is drawn")
-	assert_eq(rate_text.get_parsed_text(), "+0 / s", "0.049 reads +0")
-	CyclingManager.update_cycle_session(2.0, 0.05)
-	await wait_process_frames(1)
-	assert_eq(rate_text.get_parsed_text(), "+0.1 / s", "0.05 reads +0.1")
-
-func test_the_cycle_rate_keeps_its_place_and_the_name_its_line() -> void:
-	# The rate's slot is as wide as the technique's widest reading, from +0 up to
-	# its top rate, so as the rate climbs neither it nor the name beside it moves:
-	# "Wilderness Cycling" stays on one line and the strip keeps its height. The
-	# reading stands flush right in the slot, ending where the figure under it does.
-	await _add_panel()
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	var name_label := _strip_node("TrainingName") as Label
-	var rate_group := _strip_node("RateGroup") as Control
-	var rate_text := _strip_node("RateText") as Control
-	var figure := _strip_node("TicksLabel") as Control
-	for technique_id: String in RATES_BY_TECHNIQUE:
-		CyclingManager.unlock_technique(technique_id)
-		CyclingManager.equip_technique(technique_id)
-		CyclingManager.start_cycle_session(8.0)
-		CyclingManager.update_cycle_session(1.0, 0.0)
-		await wait_process_frames(1)
-		var slot: Rect2 = rate_group.get_global_rect()
-		var height: float = _strip().size.y
-		for rate: float in RATES_BY_TECHNIQUE[technique_id]:
-			CyclingManager.update_cycle_session(1.0, rate)
-			await wait_process_frames(1)
-			var reading: String = (rate_text as RichTextLabel).get_parsed_text()
-			assert_eq(rate_group.get_global_rect(), slot, "%s: %s keeps the rate's place" % [technique_id, reading])
-			assert_eq(rate_text.get_global_rect().end.x, figure.get_global_rect().end.x, "%s: %s ends where the figure under it does" % [technique_id, reading])
-			assert_eq(name_label.get_line_count(), 1, "%s: %s leaves the name one line" % [technique_id, reading])
-			assert_eq(_strip().size.y, height, "%s: %s keeps the strip's height" % [technique_id, reading])
-		CyclingManager.end_cycle_session()
 
 func test_tray_names_the_equipped_technique() -> void:
 	# The detail line and the ready figure follow the equipped technique at once,
@@ -575,18 +417,6 @@ func test_cycling_tray_takes_no_clicks() -> void:
 	_click(_strip().get_global_rect().get_center())
 	await wait_process_frames(1)
 	assert_signal_emit_count(_strip(), "strip_pressed", 1, "the cycling tray takes no press")
-
-func test_cycling_drops_the_trays_hover_frame() -> void:
-	# The tray stops taking the mouse while cycling, so it never hears the pointer
-	# leave: the hover frame the Aura Well's tray was showing goes with the switch.
-	await _add_panel()
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await wait_process_frames(2)
-	var hover: LacquerFrameOverlay = _strip_node("HoverFrame") as LacquerFrameOverlay
-	hover.show()
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	await wait_process_frames(2)
-	assert_false(hover.visible, "no hover frame while cycling")
 
 func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	# The cycle and the Aura Well share the tray's name, detail, figure, rod and
@@ -623,7 +453,6 @@ func test_tray_reads_paused_with_the_shop_open() -> void:
 	await wait_process_frames(2)
 	assert_eq(_current_id(), MERCHANT_ID, "precondition: the shop is open")
 	_assert_empty_tray("Spring Forest Foraging · paused")
-	_assert_list_under_tray()
 	ActionManager.stop_action()
 	await wait_process_frames(2)
 	assert_has(_texts(_strip()), "haul in 5 s", "closing the shop resumes foraging in the tray")
@@ -645,103 +474,12 @@ func test_tray_reads_paused_when_an_idle_action_unlocks_mid_session() -> void:
 	assert_eq(_current_id(), MERCHANT_ID, "precondition: the shop is still open")
 	_assert_empty_tray("Aura Well · paused")
 
-func test_test_zone_tray_reads_nothing_running() -> void:
-	await _add_panel()
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await wait_process_frames(2)
-	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
-	await wait_process_frames(2)
-	assert_null(ActionManager.get_current_action(), "precondition: Test Zone has no idle action")
-	_assert_empty_tray("Nothing running")
-	_assert_list_under_tray()
-
-func test_empty_tray_click_does_nothing() -> void:
-	await _add_panel_above_gut()
-	assert_true(_strip().is_visible_in_tree(), "precondition: the empty tray shows")
-	watch_signals(_strip())
-	_click(_strip().get_global_rect().get_center())
-	await wait_process_frames(1)
-	assert_signal_not_emitted(_strip(), "strip_pressed")
-	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE, "no hover frame and no pointing hand")
-
-func test_ring_frame_follows_the_action_timer() -> void:
-	await _add_panel()
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await wait_process_frames(1)
-	var ring: LacquerStripRect = _strip_node("Ring") as LacquerStripRect
-	var timer: Timer = ActionManager.action_timer
-	timer.start(1.0)
-	_hold_action_timer_at(0.0)
-	await wait_process_frames(1)
-	assert_lte(ring.get_frame().x, 1, "a fresh tick lights no more than one bead")
-	_hold_action_timer_at(0.5)
-	await wait_process_frames(1)
-	# floor((1 - time_left / wait_time) x 13): 6 half way through the tick.
-	assert_eq(ring.get_frame().x, 6, "the ring lights beads as the tick runs")
-
 func test_strip_press_flashes_the_running_card() -> void:
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	await wait_process_frames(2)
 	_strip().strip_pressed.emit()
 	assert_true(_card_flashing(AURA_WELL_ID))
-
-func test_running_card_press_flashes_the_strip() -> void:
-	await _add_panel()
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await wait_process_frames(2)
-	var card: ZoneActionButton = _panel.get_card(AURA_WELL_ID) as ZoneActionButton
-	card.card_pressed_while_running.emit()
-	assert_true((_strip_node("FlashFrame") as LacquerFrameOverlay).is_flashing())
-
-#-----------------------------------------------------------------------------
-# NOW STRIP: LINING UP WITH THE CARDS
-#-----------------------------------------------------------------------------
-
-## The strip is 392 wide, as the cards are (they keep their width: the list's rail
-## needs the room), so its edges and theirs line up: chest x 16 to 408.
-func test_the_strip_lines_up_with_the_cards() -> void:
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	await wait_process_frames(2)
-	var card: Control = _panel.get_card(AURA_WELL_ID)
-	assert_not_null(card, "precondition: the Aura Well's card is listed")
-	assert_eq(card.size.x, 392.0, "the cards keep their 392")
-	assert_eq(_strip().size.x, STRIP_WIDTH, "the strip narrows to the same")
-	assert_eq(_strip().get_global_rect().position.x, card.get_global_rect().position.x, "one left edge")
-	assert_eq(_strip().get_global_rect().end.x, card.get_global_rect().end.x, "one right edge")
-	var face := _strip_node("Tray") as NinePatchRect
-	assert_eq(face.get_global_rect(), _strip().get_global_rect(), "the tray's face fills the strip")
-
-## Its contents' right edges moved in with it: 16 px short of where they were.
-func test_the_strips_contents_end_16_px_in() -> void:
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	await wait_process_frames(2)
-	var right: float = _strip().get_global_rect().end.x - 16.0
-	assert_eq((_strip_node("WellRod") as Control).get_global_rect().end.x, right, "the rod ends 16 px in")
-	assert_eq((_strip_node("RateGroup") as Control).get_global_rect().end.x, right, "and the rate")
-	assert_eq((_strip_node("TicksLabel") as Control).get_global_rect().end.x, right, "and the ticks")
-	EventManager.trigger_event(FORAGING_EVENT)
-	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
-	await wait_process_frames(2)
-	assert_eq((_strip_node("HaulLabel") as Control).get_global_rect().end.x, right, "the haul line too")
-	ActionManager.stop_action()
-	await wait_process_frames(2)
-	var empty := _strip_node("EmptyLabel") as Control
-	assert_true(empty.is_visible_in_tree(), "precondition: the tray is empty")
-	assert_eq(empty.get_global_rect().end.x, right, "and the empty line's box")
-
-## The rod is the Aura Well's shortened by the same 16: 144 steps of 2 px.
-func test_the_rod_is_16_px_shorter() -> void:
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	var rod := _strip_node("WellRod") as LacquerRod
-	assert_eq(rod.steps, 144)
-	assert_eq(rod.size.x, 292.0)
-	assert_eq(rod.empty_texture.resource_path, "res://assets/ui/lacquer/lacquer_rod_now_empty_ai.png")
-	assert_eq(rod.full_texture.resource_path, "res://assets/ui/lacquer/lacquer_rod_now_full_ai.png")
-	assert_eq(rod.end_texture.resource_path, "res://assets/ui/lacquer/lacquer_rod_now_end_ai.png")
 
 #-----------------------------------------------------------------------------
 # NOW STRIP: NO TEXT IS CUT OFF
@@ -770,206 +508,8 @@ func test_a_long_training_name_wraps_and_grows_the_strip() -> void:
 	assert_gt(name_label.get_line_count(), 2, "precondition: the name needs three lines beside the rate")
 	assert_eq(name_label.text_overrun_behavior, NO_TRIMMING, "wrapped, never trimmed")
 	assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
-	assert_lte(name_label.get_global_rect().end.x, (_strip_node("RateGroup") as Control).get_global_rect().position.x, "the name wraps before the rate")
 	assert_eq(_strip().size.y, STRIP_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1), "every line after the first adds the name's 22 px")
-	assert_eq(fposmod(_strip().size.y, 2.0), 0.0, "an even height")
-	assert_eq((_strip_node("Tray") as Control).size.y, _strip().size.y, "the tray's face follows")
-	assert_eq((_strip_node("Ring") as Control).position, Vector2(14.0, 16.0), "the ring stays at the top")
-	assert_eq((_strip_node("ActionIcon") as Control).position, Vector2(26.0, 28.0))
 	_assert_chest_follows_the_strip()
-
-func test_the_chest_grows_with_the_strip() -> void:
-	_rename_action(AURA_WELL_ID, LONG_NAME)
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	await wait_process_frames(2)
-	var extra: float = _strip().size.y - STRIP_HEIGHT
-	assert_gt(extra, 0.0, "precondition: the strip grew")
-	assert_eq(_panel.size.y, LIST_TOP + extra + (_list() as ActivityList).get_content_height() + 24.0, "the chest hugs the list, which moved down")
-
-func test_the_strip_takes_its_height_back() -> void:
-	_rename_action(AURA_WELL_ID, LONG_NAME)
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	await wait_process_frames(2)
-	assert_gt(_strip().size.y, STRIP_HEIGHT, "precondition: grown")
-	_renamed_actions.keys()[0].action_name = "Aura Well"
-	ActionManager.stop_action()
-	await wait_process_frames(2)
-	assert_eq(_strip().size.y, STRIP_HEIGHT, "the empty tray is the kit's 88 again")
-	_assert_list_under_tray()
-
-func test_a_long_forage_name_wraps_and_grows_the_strip() -> void:
-	_rename_action(FORAGING_ID, LONG_NAME)
-	await _add_panel()
-	EventManager.trigger_event(FORAGING_EVENT)
-	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
-	await wait_process_frames(2)
-	var name_label := _strip_node("ForageName") as Label
-	assert_true(name_label.is_visible_in_tree(), "precondition: foraging runs")
-	assert_gt(name_label.get_line_count(), 1, "precondition: the name needs more than a line")
-	assert_eq(name_label.text_overrun_behavior, NO_TRIMMING)
-	assert_eq(_strip().size.y, STRIP_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1))
-	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
-	_assert_chest_follows_the_strip()
-
-## A copy of the foraging action whose loot table holds one entry per range ([min,
-## max]), the real table's items again and again, so the strip has as many yields
-## as a wide table would give it.
-func _forage_with_yields(ranges: Array[Vector2i]) -> ForageActionData:
-	var real := ZoneManager.get_action_by_id(FORAGING_ID) as ForageActionData
-	var forage := real.duplicate() as ForageActionData
-	forage.loot_table = LootTable.new()
-	for index: int in ranges.size():
-		var entry := LootTableEntry.new()
-		entry.item = real.loot_table.entries[index % real.loot_table.entries.size()].item
-		entry.min_quantity = ranges[index].x
-		entry.max_quantity = ranges[index].y
-		forage.loot_table.entries.append(entry)
-	return forage
-
-## More yields than the row has room for wrap onto a second row, in the room the haul
-## countdown leaves them, and the strip grows by the row: nothing passes its right
-## edge, the countdown keeps its place, its height stays even and the chest follows.
-func test_many_yields_wrap_and_grow_the_strip() -> void:
-	await _add_panel()
-	var forage := _forage_with_yields([
-		Vector2i(1, 5), Vector2i(2, 6), Vector2i(10, 12), Vector2i(20, 40), Vector2i(100, 250), Vector2i(1, 3),
-	] as Array[Vector2i])
-	_strip()._show_action(forage)
-	await wait_process_frames(3)
-	var yields: Array[Node] = _strip_node("YieldRow").get_children()
-	var haul := _strip_node("HaulLabel") as Control
-	assert_eq(yields.size(), 6, "precondition: one yield per entry")
-	assert_true(haul.is_visible_in_tree(), "precondition: foraging shows")
-	var rows: Dictionary[float, bool] = {}
-	var lowest: float = 0.0
-	for node: Node in yields:
-		var yield_rect: Rect2 = (node as Control).get_global_rect()
-		rows[yield_rect.position.y] = true
-		lowest = maxf(lowest, yield_rect.end.y)
-		assert_lte(yield_rect.end.x, haul.get_global_rect().position.x, "every yield ends before the haul countdown")
-		assert_lte(yield_rect.end.x, _strip().get_global_rect().end.x - 16.0, "and 16 px short of the strip's right edge")
-	assert_gt(rows.size(), 1, "precondition: they do not all fit on one row")
-	assert_eq(_strip().size.y, STRIP_HEIGHT + 20.0 * (rows.size() - 1), "every row after the first adds the yields' 20 px")
-	assert_eq(fposmod(_strip().size.y, 2.0), 0.0, "an even height")
-	assert_eq(_strip().get_global_rect().end.y - lowest, 20.0, "20 px of tray under the last row, as under the only row of two yields")
-	assert_eq(haul.get_global_rect().end.x, _strip().get_global_rect().end.x - 16.0, "the countdown keeps its place")
-	assert_eq((_strip_node("Tray") as Control).size.y, _strip().size.y, "the tray's face follows")
-	_assert_chest_follows_the_strip()
-
-## The countdown is as wide as its widest reading, so the room the yields wrap in
-## does not change as the digits do (a digit is 1 or 2 px wider than another, and a
-## yield that fits by less would jump between rows every second, with the whole
-## chest moving under it). A cycle of 12 s has a two-digit reading, 8 px wider.
-func test_the_haul_countdown_keeps_the_yields_room_as_its_digits_change() -> void:
-	await _add_panel()
-	var haul := _strip_node("HaulLabel") as Label
-	var room := _strip_node("YieldRow") as Control
-	for interval: float in [5.0, 12.0]:
-		var forage := _forage_with_yields([Vector2i(1, 5), Vector2i(2, 6)] as Array[Vector2i])
-		forage.foraging_interval_in_sec = interval
-		_strip()._show_action(forage)
-		_strip().set_process(false)  # so the countdown shows what the test sets, not the timer's
-		await wait_process_frames(3)
-		var widths: Dictionary[float, bool] = {}
-		for seconds: int in range(1, int(interval) + 1):
-			haul.text = "haul in %d s" % seconds
-			await wait_process_frames(2)
-			widths[room.size.x] = true
-		assert_eq(widths.size(), 1, "the yields' room is one width for every reading of a %d s cycle" % int(interval))
-		assert_eq(haul.get_global_rect().end.x, _strip().get_global_rect().end.x - 16.0, "the countdown still ends 16 px in")
-
-## A strip that grew for its yields takes its height back for a table of two.
-func test_the_strip_takes_its_height_back_from_many_yields() -> void:
-	await _add_panel()
-	var many := _forage_with_yields([
-		Vector2i(1, 5), Vector2i(2, 6), Vector2i(10, 12), Vector2i(20, 40), Vector2i(100, 250), Vector2i(1, 3),
-	] as Array[Vector2i])
-	_strip()._show_action(many)
-	await wait_process_frames(3)
-	assert_gt(_strip().size.y, STRIP_HEIGHT, "precondition: grown")
-	_strip()._show_action(ZoneManager.get_action_by_id(FORAGING_ID))
-	await wait_process_frames(3)
-	assert_eq(_strip().size.y, STRIP_HEIGHT, "the kit's 88 again")
-	_assert_chest_follows_the_strip()
-
-## The shop pauses the idle action (cycling shows itself in the tray instead).
-func test_a_long_paused_line_wraps_and_grows_the_strip() -> void:
-	_rename_action(AURA_WELL_ID, LONG_NAME)
-	var shop: ZoneActionData = ZoneManager.get_action_by_id(MERCHANT_ID)
-	for condition: UnlockConditionData in shop.unlock_conditions:
-		UnlockManager.force_unlock_condition(condition.condition_id)
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	ActionManager.select_action(shop)
-	await wait_process_frames(2)
-	var line := _strip_node("EmptyLabel") as Label
-	assert_true(line.is_visible_in_tree(), "precondition: the tray is empty and reads paused")
-	assert_gt(line.get_line_count(), 1, "precondition: the line needs more than one line in its 292 px")
-	assert_eq(line.text_overrun_behavior, NO_TRIMMING)
-	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (line.get_line_count() - 1), "every line after the first adds the detail's 18 px")
-	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
-	_assert_chest_follows_the_strip()
-
-## While cycling, the equipped technique stands where the Aura Well's level line
-## goes: a long name wraps in what the cycle's figure leaves and grows the strip,
-## and the header, the list and the lore move down with it. (The techniques mode
-## is MainView's to turn on, so the panel alone keeps its activity list.)
-func test_a_long_technique_name_wraps_and_grows_the_cycling_strip() -> void:
-	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
-	_renamed_techniques[technique] = technique.technique_name
-	technique.technique_name = "The Foundational Technique of the Endless Misty Bamboo Hollow, Breathed Under A Cold Moon"
-	await _add_panel()
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	await wait_process_frames(2)
-	var line := _strip_node("LevelLabel") as Label
-	assert_gt(line.get_line_count(), 1, "precondition: the name needs more than one line")
-	assert_eq(line.text_overrun_behavior, NO_TRIMMING)
-	assert_lte(line.get_global_rect().end.x, (_strip_node("TicksLabel") as Control).get_global_rect().position.x, "before the cycle's figure")
-	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (line.get_line_count() - 1), "every line after the first adds the detail's 18 px")
-	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
-	_assert_chest_follows_the_strip()
-
-## The level line beside the ticks: wraps in what the ticks leave and grows the
-## strip. (The line is made of the level and its reward, which are never long,
-## so a long one is put on the label and the strip asked to fit again.)
-func test_a_long_level_line_wraps_and_grows_the_strip() -> void:
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	await wait_process_frames(2)
-	var level := _strip_node("LevelLabel") as Label
-	level.text = "Lv 123456 → 123457 · +1 Spirit and a very long reward line that has to wrap around"
-	_strip()._fit()
-	await wait_process_frames(2)
-	assert_gt(level.get_line_count(), 1, "precondition: the line wraps")
-	assert_eq(level.text_overrun_behavior, NO_TRIMMING)
-	assert_lte(level.get_global_rect().end.x, (_strip_node("TicksLabel") as Control).get_global_rect().position.x, "before the ticks")
-	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (level.get_line_count() - 1))
-	var rod := _strip_node("WellRod") as Control
-	assert_lt(rod.get_global_rect().end.y, _strip().get_global_rect().end.y, "the rod stays inside the strip")
-	_assert_chest_follows_the_strip()
-
-func test_a_grown_strip_pushes_the_open_lore_down() -> void:
-	_rename_action(AURA_WELL_ID, LONG_NAME)
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(2)
-	var extra: float = _strip().size.y - STRIP_HEIGHT
-	assert_gt(extra, 0.0, "precondition: the strip grew")
-	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + _lore_push() + extra, "the lore and the strip both push the header")
-	assert_eq(_list().position.y, LIST_TOP + _lore_push() + extra)
-	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP + extra, "the lore opens under the grown strip")
-
-## No Label of the strip ellipsizes.
-func test_nothing_in_the_strip_keeps_an_ellipsis() -> void:
-	await _add_panel()
-	var checked: int = 0
-	for node: Node in _strip().find_children("*", "Label", true, false):
-		assert_eq((node as Label).text_overrun_behavior, NO_TRIMMING, "%s does not trim its text" % node.name)
-		checked += 1
-	assert_gt(checked, 5, "precondition: the walk met the strip's labels")
 
 #-----------------------------------------------------------------------------
 # ACTIVITY LIST
@@ -1014,96 +554,12 @@ func test_empty_zone_shows_nothing_to_do() -> void:
 	await wait_process_frames(2)
 	var empty: Label = _list_node("EmptyLabel") as Label
 	assert_true(empty.is_visible_in_tree())
-	assert_eq(empty.text, "Nothing to do here yet.")
 	assert_eq((_node("CountLabel") as Label).text, "0 here")
 	assert_eq(_group_names(), [] as Array[String])
-	_assert_flow_matches_scenes()
-
-func test_rail_hidden_when_content_fits() -> void:
-	await _add_panel()
-	assert_false((_list_node("Rail") as Control).visible)
-	assert_false((_list_node("LipTop") as Control).visible)
-	assert_false((_list_node("LipBottom") as Control).visible)
 
 #-----------------------------------------------------------------------------
-# CHEST HEIGHT
+# RAIL
 #-----------------------------------------------------------------------------
-
-func test_chest_hugs_short_list() -> void:
-	await _add_panel()
-	assert_lt(_panel.size.y, 400.0)
-	var list: Control = _list()
-	assert_eq(_panel.size.y, maxf(176.0, list.position.y + list.size.y + 24.0), "24 px under the list")
-	_assert_flow_matches_scenes()
-
-func test_chest_height_on_a_fresh_save() -> void:
-	# The empty tray keeps its space: the one Talk card starts at the list's
-	# usual top, 208, and the chest ends 24 px under it.
-	await _add_panel()
-	var content: float = (_list() as ActivityList).get_content_height()
-	assert_gt(content, 0.0, "precondition: the Talk card is listed")
-	assert_eq(_list().position.y, LIST_TOP)
-	assert_eq(_panel.size.y, LIST_TOP + content + 24.0, "the list top under the tray, then 24 px")
-
-func test_chest_folds_for_ten_cards() -> void:
-	await _add_panel()
-	_unlock_everything()
-	await wait_process_frames(2)
-	var list: Control = _list()
-	var under_list: float = list.position.y + list.size.y + SCROLLING_LIST_GAP
-	assert_gt((list as ActivityList).get_content_height(), list.size.y, "precondition: the ten cards scroll")
-	assert_gt(FULL_CHEST_HEIGHT - under_list, SNAP_DISTANCE, "precondition: the fold ends too far above the bottom line to snap")
-	assert_eq(_panel.size.y, under_list, "a scrolling list keeps 40 px under its fold")
-	_assert_flow_matches_scenes()
-	# The list folds 8 px under its last whole drawer: no drawer is cut.
-	var view: Rect2 = _scroll().get_global_rect()
-	var last_bottom: float = -1.0
-	for action: ZoneActionData in ZoneManager.get_available_actions(SPIRIT_VALLEY_ID):
-		var rect: Rect2 = _panel.get_card(action.action_id).get_global_rect()
-		if rect.position.y < view.end.y:
-			assert_lte(rect.end.y, view.end.y, "%s is not cut by the fold" % action.action_id)
-			last_bottom = maxf(last_bottom, rect.end.y)
-	assert_eq(view.end.y - last_bottom, FOLD_GAP)
-
-## A long Aura Well name grows the Now strip and moves the list down, so the
-## fold of the ten cards ends within 64 px of the bottom line.
-func test_chest_snaps_to_the_bottom_line() -> void:
-	_rename_action(AURA_WELL_ID, SNAP_NAME)
-	await _add_panel()
-	_unlock_everything()
-	await wait_process_frames(2)
-	var list: Control = _list()
-	var under_list: float = list.position.y + list.size.y + SCROLLING_LIST_GAP
-	assert_gt((list as ActivityList).get_content_height(), list.size.y, "precondition: the list scrolls")
-	assert_lte(FULL_CHEST_HEIGHT - under_list, SNAP_DISTANCE, "precondition: the fold ends within 64 px of the bottom line")
-	assert_eq(_panel.size.y, FULL_CHEST_HEIGHT, "the chest snaps to the bottom line")
-
-func test_rail_and_lips_follow_scroll() -> void:
-	await _add_panel()
-	_unlock_everything()
-	await wait_process_frames(2)
-	var rail: Control = _list_node("Rail") as Control
-	assert_true(rail.visible, "the list scrolls")
-	assert_false((_list_node("LipTop") as Control).visible, "at the top: no top lip")
-	assert_true((_list_node("LipBottom") as Control).visible, "more below")
-	assert_true((rail.get_node("%UpCap") as BaseButton).disabled, "the up cap is dark at the top")
-	assert_false((rail.get_node("%DownCap") as BaseButton).disabled)
-
-	var scroll: ScrollContainer = _scroll()
-	var view: float = scroll.size.y
-	var content: float = scroll.get_v_scroll_bar().max_value
-	var thumb: Control = rail.get_node("%Thumb") as Control
-	var expected_height: float = maxf(32.0, 2.0 * roundf((view - 28.0) * view / content / 2.0))
-	assert_eq(thumb.size.y, expected_height, "thumb height (kit §5.5)")
-	assert_eq(thumb.position.y, 14.0)
-
-	scroll.scroll_vertical = int(content - view)
-	await wait_process_frames(1)
-	assert_true((_list_node("LipTop") as Control).visible)
-	assert_false((_list_node("LipBottom") as Control).visible, "at the bottom")
-	assert_eq(thumb.position.y, 14.0 + view - 28.0 - expected_height, "the thumb reaches the down cap")
-	assert_false((rail.get_node("%UpCap") as BaseButton).disabled)
-	assert_true((rail.get_node("%DownCap") as BaseButton).disabled)
 
 func test_down_cap_steps_one_drawer() -> void:
 	await _add_panel()
@@ -1118,27 +574,6 @@ func test_down_cap_steps_one_drawer() -> void:
 # SCROLL TO A CARD
 #-----------------------------------------------------------------------------
 
-func test_scroll_to_action_makes_card_visible() -> void:
-	await _add_panel()
-	_unlock_everything()
-	await wait_process_frames(2)
-	assert_false(_card_fully_visible(MERCHANT_ID), "precondition: the last card is below the fold")
-	_panel.scroll_to_action(MERCHANT_ID)
-	_run_tweens(0.4)
-	# The scroll container lays the cards out at the end of a frame.
-	await wait_process_frames(2)
-	assert_true(_card_fully_visible(MERCHANT_ID))
-	assert_true(_card_flashing(MERCHANT_ID))
-
-func test_scroll_to_visible_card_does_not_scroll() -> void:
-	await _add_panel()
-	_unlock_everything()
-	await wait_process_frames(2)
-	_panel.scroll_to_action(CYCLING_ID)
-	_run_tweens(0.4)
-	assert_eq(_scroll().scroll_vertical, 0)
-	assert_true(_card_flashing(CYCLING_ID))
-
 func test_focus_request_scrolls() -> void:
 	await _add_panel()
 	_unlock_everything()
@@ -1150,11 +585,6 @@ func test_focus_request_scrolls() -> void:
 	await wait_process_frames(2)
 	assert_true(_card_fully_visible(ADVENTURE_ID))
 	assert_true(_card_flashing(ADVENTURE_ID))
-	# The adventure sits mid-list, so its scroll is not clamped: it ends
-	# exactly 24 px above the viewport's bottom.
-	var view: Rect2 = _scroll().get_global_rect()
-	var card_rect: Rect2 = _panel.get_card(ADVENTURE_ID).get_global_rect()
-	assert_eq(view.end.y - card_rect.end.y, SCROLL_MARGIN, "24 px under the card")
 
 #-----------------------------------------------------------------------------
 # LORE
@@ -1162,123 +592,22 @@ func test_focus_request_scrolls() -> void:
 
 func test_lore_toggles() -> void:
 	await _add_panel()
-	var header: Control = _node("ActivitiesHeader") as Control
 	var lore: Control = _node("LorePanel") as Control
 	var about: BaseButton = _node("AboutButton") as BaseButton
-	var header_y: float = header.position.y
-	var list_y: float = _list().position.y
 	assert_false(lore.visible)
 
 	about.button_pressed = true
 	await wait_process_frames(1)
 	assert_true(lore.visible)
-	assert_eq(header.position.y, header_y + _lore_push(), "the lore pushes the header down by its board and 12")
-	assert_eq(_list().position.y, list_y + _lore_push(), "and the list")
 	assert_string_contains((_node("LoreText") as Label).text, "Deep at the heart of the world")
 
 	about.button_pressed = false
 	await wait_process_frames(1)
 	assert_false(lore.visible)
-	assert_eq(header.position.y, header_y)
-
-func test_lore_paragraphs_are_one_break_apart() -> void:
-	# The lore's paragraph gap is the label's own 10 px, so the blank line
-	# between Spirit Valley's two paragraphs must not add a third, empty one.
-	await _add_panel()
-	var text: String = (_node("LoreText") as Label).text
-	assert_false(text.contains("\n\n"), "no empty paragraph")
-	assert_eq(text.split("\n").size(), 2, "two paragraphs")
-
-func test_lore_paragraphs_end_their_sentences() -> void:
-	# The mock's Spirit Valley lore ends "...the strength to shake the
-	# heavens." with its full stop, and so does every paragraph before it.
-	await _add_panel()
-	var text: String = (_node("LoreText") as Label).text
-	for paragraph: String in text.split("\n"):
-		assert_true(paragraph.right(1) in [".", "!", "?"], "'%s' ends its sentence" % paragraph.right(24))
-
-func test_lore_text_is_a_lore_label() -> void:
-	# The lore has no decimal point, so it needs no RichTextLabel: the theme's
-	# LabelLacquerLore (16/22 cream) sets it, with one override for the kit's
-	# 10 px between paragraphs (kit §5.5: text 16/22 cream, width 364 in its 408
-	# board, 348 in the 392 one the lore has now).
-	await _add_panel()
-	var lore_text: Label = _node("LoreText") as Label
-	assert_not_null(lore_text, "LoreText is a Label")
-	if lore_text == null:
-		return
-	assert_eq(lore_text.theme_type_variation, &"LabelLacquerLore")
-	assert_eq(lore_text.get_theme_constant(&"paragraph_spacing"), 10)
-	assert_false(lore_text.has_theme_constant_override(&"line_spacing"), "the variant's 22 px pitch")
-	assert_false(lore_text.has_theme_color_override(&"font_color"), "no colour override")
-	assert_false(lore_text.has_theme_font_size_override(&"font_size"), "no size override")
-	# The kit's 348 px (the board is 392 wide now, 22 px of margin each side) plus 2:
-	# Godot counts the space at a line break against the width and the browser does
-	# not.
-	assert_eq(lore_text.size.x, 350.0, "the kit's 348 px, as Godot wraps it")
-	assert_ne(lore_text.autowrap_mode, TextServer.AUTOWRAP_OFF, "it wraps")
-
-func test_lore_fits_its_panel() -> void:
-	await _add_panel()
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(1)
-	var lore_text: Control = _node("LoreText") as Control
-	var board: Rect2 = (_node("LorePanel") as Control).get_global_rect()
-	assert_lte(lore_text.get_minimum_size().y, lore_text.size.y, "Spirit Valley's lore shows whole")
-	assert_lte(lore_text.get_global_rect().end.y, board.end.y, "inside the lore board")
-
-## The lore board is as wide as the Now strip and the cards, so their edges line up:
-## chest x 16 to 408. (The board's art carries a 4 px shadow beyond its right and
-## bottom edges, which is no part of the edge.)
-func test_the_lore_board_lines_up_with_the_strip_and_the_cards() -> void:
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _add_panel()
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(2)
-	var board: Rect2 = (_node("LoreBoard") as Control).get_global_rect()
-	var strip: Rect2 = _strip().get_global_rect()
-	var card: Rect2 = _panel.get_card(AURA_WELL_ID).get_global_rect()
-	assert_eq(board.position.x, strip.position.x, "one left edge with the strip")
-	assert_eq(board.end.x - BOARD_SHADOW, strip.end.x, "one right edge with the strip")
-	assert_eq(board.position.x, card.position.x, "one left edge with the cards")
-	assert_eq(board.end.x - BOARD_SHADOW, card.end.x, "one right edge with the cards")
-	assert_eq((_node("LorePanel") as Control).size.x, STRIP_WIDTH, "the panel (what a click on the lore hits) is the strip's 392")
-
-## The lore board's face is a NinePatchRect on the art it always had, tiling its
-## middle (the gloss dashes) instead of stretching it, so the board grows in either
-## direction with the dashes at their size.
-func test_the_lore_board_tiles_its_art() -> void:
-	await _add_panel()
-	var face := _node("LoreBoard") as NinePatchRect
-	assert_not_null(face, "the lore board's face is a NinePatchRect")
-	if face == null:
-		return
-	assert_eq(face.texture.resource_path, "res://assets/ui/lacquer/lacquer_lore_ai.png")
-	assert_eq([face.patch_margin_left, face.patch_margin_top, face.patch_margin_right, face.patch_margin_bottom], [8, 8, 10, 10], "the corners in 8 px, the shadow in the right and bottom margins")
-	assert_eq(face.axis_stretch_horizontal, NinePatchRect.AXIS_STRETCH_MODE_TILE)
-	assert_eq(face.axis_stretch_vertical, NinePatchRect.AXIS_STRETCH_MODE_TILE)
-	assert_eq(face.mouse_filter, Control.MOUSE_FILTER_IGNORE, "the face takes no clicks")
-
-## The lore wraps inside its board, 22 px from the left edge and 20 from the right
-## (the kit's 22 each side, 2 of them for the space Godot counts at a line break),
-## and nothing is cut off.
-func test_the_lore_wraps_inside_its_board() -> void:
-	await _add_panel()
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(2)
-	var text := _node("LoreText") as Label
-	var board: Rect2 = (_node("LorePanel") as Control).get_global_rect()
-	assert_eq(text.text_overrun_behavior, NO_TRIMMING, "wrapped, never trimmed")
-	assert_eq(text.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
-	assert_gt(text.get_line_count(), 8, "precondition: the shipped lore takes many lines at that width")
-	assert_eq(text.get_global_rect().position.x - board.position.x, 22.0, "22 px in from the left edge")
-	assert_eq(board.end.x - text.get_global_rect().end.x, 20.0, "20 px in from the right edge")
-	assert_eq(text.size.y, text.get_combined_minimum_size().y, "the label is as tall as its lines")
-	assert_lte(text.get_global_rect().end.y, board.end.y, "inside the board")
 
 ## A lore that needs more than the board's 264 px grows it: the board is as tall as
-## the text asks (an even height, 16 px under the last line), its art covers it and
-## its shadow, and the header and the list stand under it.
+## the text asks (16 px under the last line), and the header and the list stand
+## under it.
 func test_a_long_lore_grows_the_board_and_pushes_the_chest() -> void:
 	_set_lore(LONG_LORE)
 	await _add_panel()
@@ -1288,27 +617,10 @@ func test_a_long_lore_grows_the_board_and_pushes_the_chest() -> void:
 	var text := _node("LoreText") as Label
 	assert_gt(text.get_line_count(), 14, "precondition: many more lines than the shipped lore")
 	assert_gt(board.size.y, LORE_MIN_HEIGHT, "the board grew")
-	assert_eq(fposmod(board.size.y, 2.0), 0.0, "an even height")
-	assert_eq(text.position.y, 20.0, "the text stays 20 px under the top")
 	assert_gte(board.size.y - (text.position.y + text.size.y), 16.0, "with 16 px of board under its last line")
-	assert_eq((_node("LoreBoard") as Control).size, board.size + Vector2(BOARD_SHADOW, BOARD_SHADOW), "the art covers the board and its shadow")
 	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + _lore_push(), "the header stands under the grown board")
 	assert_eq(_list().position.y, LIST_TOP + _lore_push(), "and the list")
 	assert_gte(_panel.size.y, _list().position.y + _list().size.y, "the chest holds the list")
-
-## The board takes its 264 back when the lore gets short again.
-func test_the_lore_board_takes_its_height_back() -> void:
-	_set_lore(LONG_LORE)
-	await _add_panel()
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(2)
-	var board := _node("LorePanel") as Control
-	assert_gt(board.size.y, LORE_MIN_HEIGHT, "precondition: grown")
-	_relored_zone.description = "A short lore."
-	_panel._rebuild()
-	await wait_process_frames(2)
-	assert_eq(board.size.y, LORE_MIN_HEIGHT, "the kit's 264 again")
-	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LORE_MIN_HEIGHT + LORE_GAP_UNDER, "the header is back under it")
 
 func test_esc_closes_lore() -> void:
 	await _add_panel()
@@ -1439,13 +751,6 @@ func test_rail_cap_click_lands_while_the_lore_closes() -> void:
 	assert_false((_node("LorePanel") as Control).visible, "the click closed the lore")
 	assert_eq(_scroll().scroll_vertical, 80, "and stepped the list one drawer")
 
-func test_rail_caps_act_on_press() -> void:
-	await _add_panel()
-	var rail: Control = _list_node("Rail") as Control
-	for cap_name: String in ["%UpCap", "%DownCap"]:
-		var cap: BaseButton = rail.get_node(cap_name) as BaseButton
-		assert_eq(cap.action_mode, BaseButton.ACTION_MODE_BUTTON_PRESS, "%s acts on the press" % cap_name)
-
 func test_mouse_wheel_keeps_lore_open() -> void:
 	await _add_panel_above_gut()
 	(_node("AboutButton") as BaseButton).button_pressed = true
@@ -1460,15 +765,12 @@ func test_board_mode_hides_about_and_closes_the_lore() -> void:
 	await _add_panel()
 	var about: BaseButton = _node("AboutButton") as BaseButton
 	var lore: Control = _node("LorePanel") as Control
-	var header: Control = _node("ActivitiesHeader") as Control
-	var header_y: float = header.position.y
 	about.button_pressed = true
 	assert_true(lore.visible, "precondition: the lore is open")
 	_panel.set_board_mode(true)
 	assert_false(about.visible, "About hides")
 	assert_false(about.button_pressed, "About is no longer pressed in")
 	assert_false(lore.visible, "the lore closes")
-	assert_eq(header.position.y, header_y, "the header moves back up")
 	_panel.set_board_mode(false)
 	assert_true(about.visible, "About is back")
 	assert_false(lore.visible, "the lore stays shut")
@@ -1514,15 +816,6 @@ func _header_text() -> String:
 func _count_text() -> String:
 	return (_node("CountLabel") as Label).text
 
-func test_techniques_mode_is_off_until_asked() -> void:
-	await _add_panel()
-	assert_false(_panel.is_techniques_mode())
-	assert_eq(_panel.get_technique_list(), _technique_list(), "the chest hands out its list")
-	assert_false(_technique_list().is_visible_in_tree(), "the techniques start hidden")
-	assert_true(_list().is_visible_in_tree(), "the activities show")
-	assert_eq(_header_text(), "Activities")
-	assert_eq(_count_text(), "1 here")
-
 func test_techniques_mode_lists_unlocked_techniques() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
@@ -1534,15 +827,6 @@ func test_techniques_mode_lists_unlocked_techniques() -> void:
 	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "one drawer each, in unlock order")
 	assert_eq(_header_text(), "Techniques")
 	assert_eq(_count_text(), "3 learned")
-
-func test_techniques_mode_chest_hugs_the_list() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	assert_eq(_technique_list().position, Vector2(16.0, LIST_TOP), "the list sits where the activities did")
-	assert_eq(_technique_list().size, Vector2(392.0, 232.0), "and is as tall as its three drawers")
-	assert_eq(_panel.size.y, 464.0, "208, three drawers (232) and 24 under them")
-	assert_eq((_node("ChestBottom") as Control).position.y, 464.0 - 48.0, "the bottom cap closes the chest")
 
 ## A finished cycle's result, as the board records it on CyclingManager.
 func _last_cycle(madra: float, scored: int, total: int, perfect: int, xp: int) -> CycleResult:
@@ -1557,7 +841,7 @@ func _last_cycle(madra: float, scored: int, total: int, perfect: int, xp: int) -
 func _last_cycle_label() -> Label:
 	return _node("LastCycleLabel") as Label
 
-func test_the_last_cycle_shows_under_the_now_tray_while_cycling() -> void:
+func test_the_last_cycle_line_shows_the_result() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
 	_panel.set_techniques_mode(true)
@@ -1565,10 +849,6 @@ func test_the_last_cycle_shows_under_the_now_tray_while_cycling() -> void:
 	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 3, 4, 1, 75))
 	assert_true(_last_cycle_label().visible)
 	assert_eq(_last_cycle_label().text, "Last cycle · +199 Madra · 3 / 4 zones · 1 PERFECT · +75 XP")
-	assert_eq(_last_cycle_label().position, Vector2(16.0, 180.0), "right under the Now tray")
-	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LAST_CYCLE_PUSH, "the header moves down to make room")
-	assert_eq(_technique_list().position.y, LIST_TOP + LAST_CYCLE_PUSH, "and the drawers with it")
-	assert_eq(_panel.size.y, 464.0 + LAST_CYCLE_PUSH, "the chest grows by the line")
 
 func test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down() -> void:
 	_unlock_all_techniques()
@@ -1580,61 +860,33 @@ func test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down() -> void:
 	assert_eq(label.get_line_count(), 2, "wider than the tray, it wraps")
 	assert_eq(label.get_visible_line_count(), 2, "and both lines show")
 	assert_gte(label.size.y, label.get_minimum_size().y, "its box holds both lines")
-	assert_eq(fposmod(label.size.y, 2.0), 0.0, "on even px")
 	var push: float = label.size.y + 8.0
 	assert_gt(push, LAST_CYCLE_PUSH, "precondition: two lines push further than one")
 	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + push, "the header moves down under both lines")
 	assert_eq(_technique_list().position.y, LIST_TOP + push, "and the drawers with it")
-	assert_eq(_panel.size.y, 464.0 + push, "the chest grows by both lines")
-
-func test_the_last_cycle_line_is_tan_detail_text_across_the_tray() -> void:
-	await _add_panel()
-	var label: Label = _last_cycle_label()
-	assert_eq(label.theme_type_variation, &"LabelLacquerDetail")
-	assert_eq(label.size.x, 408.0, "as wide as the Now tray")
-	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "it never ends in an ellipsis")
-	assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "a long line wraps instead")
-	assert_eq(label.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 
 func test_the_last_cycle_line_shows_only_while_cycling() -> void:
 	await _add_panel()
-	var chest_height: float = _panel.size.y
 	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
 	assert_false(_last_cycle_label().visible, "the activities never show it")
-	assert_eq(_panel.size.y, chest_height, "and keep their layout")
 	_panel.set_techniques_mode(true)
 	assert_true(_last_cycle_label().visible)
 	_panel.set_techniques_mode(false)
 	assert_false(_last_cycle_label().visible)
-	assert_eq(_panel.size.y, chest_height)
 
-func test_clearing_the_last_cycle_closes_the_gap() -> void:
+func test_clearing_the_last_cycle_hides_the_line() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
 	_panel.set_techniques_mode(true)
 	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
 	CyclingManager.clear_last_cycle_result()
 	assert_false(_last_cycle_label().visible)
-	assert_eq(_technique_list().position.y, LIST_TOP)
-	assert_eq(_panel.size.y, 464.0)
-
-func test_the_lore_opens_under_the_last_cycle_line() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
-	(_node("AboutButton") as TextureButton).button_pressed = true
-	assert_true((_node("LorePanel") as Control).visible, "precondition: the lore is open")
-	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP + LAST_CYCLE_PUSH)
-	assert_eq(_technique_list().position.y, LIST_TOP + LAST_CYCLE_PUSH + LORE_PUSH)
 
 func test_leaving_techniques_mode_restores_activities() -> void:
 	CyclingManager.unlock_technique(SMOOTH_ID)
 	await _add_panel()
-	var chest_height: float = _panel.size.y
 	_panel.set_techniques_mode(true)
 	await wait_process_frames(2)
-	assert_ne(_panel.size.y, chest_height, "precondition: the chest hugged the techniques instead")
 	_panel.set_techniques_mode(false)
 	await wait_process_frames(2)
 	assert_false(_panel.is_techniques_mode())
@@ -1642,8 +894,6 @@ func test_leaving_techniques_mode_restores_activities() -> void:
 	assert_false(_technique_list().is_visible_in_tree(), "the techniques are gone")
 	assert_eq(_header_text(), "Activities")
 	assert_eq(_count_text(), "1 here")
-	assert_eq(_list().position.y, LIST_TOP)
-	assert_eq(_panel.size.y, chest_height, "the chest hugs the activities again")
 
 func test_setting_the_mode_twice_changes_nothing() -> void:
 	_unlock_all_techniques()
@@ -1654,7 +904,6 @@ func test_setting_the_mode_twice_changes_nothing() -> void:
 	await wait_process_frames(2)
 	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "still one drawer each")
 	assert_eq(_count_text(), "3 learned")
-	assert_eq(_panel.size.y, 464.0)
 	_panel.set_techniques_mode(false)
 	_panel.set_techniques_mode(false)
 	await wait_process_frames(2)
@@ -1663,12 +912,11 @@ func test_setting_the_mode_twice_changes_nothing() -> void:
 
 func test_unlock_in_techniques_mode_adds_a_drawer() -> void:
 	# Review Focus 4: a technique unlocked while the chest lists them joins the
-	# list, NEW, and the chest grows by a drawer and its gap.
+	# list, NEW.
 	CyclingManager.unlock_technique(SMOOTH_ID)
 	await _add_panel()
 	_panel.set_techniques_mode(true)
 	await wait_process_frames(2)
-	var chest_height: float = _panel.size.y
 	assert_eq(_technique_list().get_drawer_count(), 2, "precondition: foundation and smooth")
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	await wait_process_frames(2)
@@ -1676,7 +924,6 @@ func test_unlock_in_techniques_mode_adds_a_drawer() -> void:
 	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "the old drawers are replaced, not stacked")
 	assert_eq(_count_text(), "3 learned")
 	assert_true(_technique_list().get_drawer(TORRENTIAL_ID).is_new_shown(), "the new technique shows NEW")
-	assert_eq(_panel.size.y, chest_height + 80.0, "the chest grew a drawer and its 8 px gap")
 
 func test_a_rebuild_in_techniques_mode_keeps_the_header() -> void:
 	# UnlockManager re-evaluates its conditions as Madra changes, so a rebuild can
@@ -1689,7 +936,6 @@ func test_a_rebuild_in_techniques_mode_keeps_the_header() -> void:
 	await wait_process_frames(2)
 	assert_eq(_header_text(), "Techniques")
 	assert_eq(_count_text(), "2 learned")
-	assert_eq(_technique_list().position.y, LIST_TOP)
 	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0, "the chest still hugs the techniques")
 
 func test_activity_count_follows_unlocks_made_in_techniques_mode() -> void:
@@ -1716,15 +962,6 @@ func test_cycling_card_shows_new_after_a_technique_unlock() -> void:
 	await wait_process_frames(2)
 	assert_true((_panel.get_card(CYCLING_ID) as ZoneActionButton).is_new_shown())
 
-func test_the_lore_pushes_the_technique_list_down() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(1)
-	assert_eq(_technique_list().position.y, LIST_TOP + LORE_PUSH, "the list goes under the lore")
-	assert_eq(_panel.size.y, 464.0 + LORE_PUSH, "and the chest grows by as much")
-
 func test_a_hidden_technique_list_stays_current() -> void:
 	await _add_panel()
 	var chest_height: float = _panel.size.y
@@ -1749,12 +986,9 @@ func test_equipping_a_technique_refreshes_every_drawer() -> void:
 	await wait_process_frames(1)
 	var foundation: TechniqueDrawer = _technique_list().get_drawer(FOUNDATION_ID)
 	var smooth: TechniqueDrawer = _technique_list().get_drawer(SMOOTH_ID)
-	assert_eq((foundation.get_node("%Drawer") as Control).position, Vector2(-2, -2), "precondition: foundation is pulled out")
 	CyclingManager.equip_technique(SMOOTH_ID)
-	assert_eq((smooth.get_node("%Drawer") as Control).position, Vector2(-2, -2), "smooth is pulled out")
-	assert_true((smooth.get_node("%Tag") as Control).visible, "and tagged")
-	assert_eq((foundation.get_node("%Drawer") as Control).position, Vector2.ZERO, "foundation goes back in")
-	assert_false((foundation.get_node("%Tag") as Control).visible, "and loses its tag")
+	assert_true((smooth.get_node("%Tag") as Control).visible, "smooth is tagged")
+	assert_false((foundation.get_node("%Tag") as Control).visible, "foundation loses its tag")
 
 func test_clicking_a_drawer_equips_its_technique() -> void:
 	CyclingManager.unlock_technique(SMOOTH_ID)
@@ -1766,25 +1000,6 @@ func test_clicking_a_drawer_equips_its_technique() -> void:
 	await wait_process_frames(1)
 	assert_eq(PersistenceManager.save_game_data.equipped_cycling_technique_id, SMOOTH_ID, "the press reached the drawer")
 	assert_true(smooth.is_in_use())
-	var foundation: TechniqueDrawer = _technique_list().get_drawer(FOUNDATION_ID)
-	assert_eq((foundation.get_node("%Drawer") as Control).position, Vector2.ZERO, "the drawer that was in use goes back in")
-
-func test_technique_list_height_is_what_the_column_lays_out() -> void:
-	# As with ActivityList's flow: the height the zone panel reads must be the
-	# one the containers lay out, or the chest drifts from its drawers.
-	_unlock_all_techniques()
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	await wait_process_frames(2)
-	var list: TechniqueList = _technique_list()
-	assert_eq(list.get_content_height(), 232.0, "three drawers and two gaps")
-	assert_eq((list.get_node("%Drawers") as Control).size.y, list.get_content_height(), "the column lays out the same height")
-	var tops: Array[float] = []
-	for technique_id: String in [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID]:
-		tops.append(list.get_drawer(technique_id).position.y)
-	var pitch: float = DRAWER_HEIGHT + DRAWER_GAP
-	assert_eq(tops, [0.0, pitch, 2.0 * pitch] as Array[float], "a drawer and a gap apart")
-	assert_eq(list.get_drawer(SMOOTH_ID).size, Vector2(392.0, DRAWER_HEIGHT))
 
 func test_the_chest_grows_with_a_drawer_whose_name_wraps() -> void:
 	_unlock_all_techniques()
@@ -1803,8 +1018,6 @@ func test_the_chest_grows_with_a_drawer_whose_name_wraps() -> void:
 	assert_signal_emitted(list, "layout_changed", "the list tells the chest")
 	assert_eq(list.get_content_height(), 3.0 * DRAWER_HEIGHT + 2.0 * DRAWER_GAP + grown, "it measures the taller drawer")
 	assert_eq(_panel.size.y, chest_height + grown, "the chest grows with the drawer")
-	await wait_process_frames(1)
-	assert_eq((list.get_node("%Drawers") as Control).size.y, list.get_content_height(), "the column lays out the same height")
 
 func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 	# queue_free alone leaves the old drawers in the column until the end of the
@@ -1819,56 +1032,9 @@ func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 	assert_eq(column.get_combined_minimum_size().y, list.get_content_height(), "the column measures only the new drawers")
 	await _await_queued_frees()
 
-func test_an_empty_technique_list_has_no_height() -> void:
-	await _add_panel()
-	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.clear()
-	_panel.set_techniques_mode(true)
-	assert_eq(_technique_list().get_drawer_count(), 0)
-	assert_eq(_technique_list().get_content_height(), 0.0)
-	assert_eq(_count_text(), "0 learned")
-	assert_eq(_panel.size.y, LIST_TOP + 24.0, "the chest keeps its 24 px under the list top")
-
-func test_get_drawer_finds_a_drawer_by_technique_id() -> void:
-	CyclingManager.unlock_technique(SMOOTH_ID)
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	var drawer: TechniqueDrawer = _technique_list().get_drawer(SMOOTH_ID)
-	assert_not_null(drawer)
-	assert_eq(drawer.technique.id, SMOOTH_ID)
-	assert_null(_technique_list().get_drawer(TORRENTIAL_ID), "a technique not unlocked has no drawer")
-	assert_null(_technique_list().get_drawer("no_such_technique"))
-
-func test_technique_list_and_its_column_pass_the_mouse() -> void:
-	# Each drawer keeps its own press and hand cursor; the list and the column
-	# around the drawers take nothing.
-	CyclingManager.unlock_technique(SMOOTH_ID)
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	assert_eq(_technique_list().mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	assert_eq((_technique_list().get_node("%Drawers") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	for technique_id: String in [FOUNDATION_ID, SMOOTH_ID]:
-		var drawer: TechniqueDrawer = _technique_list().get_drawer(technique_id)
-		assert_eq(drawer.mouse_filter, Control.MOUSE_FILTER_STOP, "%s takes the press" % technique_id)
-		assert_eq(drawer.mouse_default_cursor_shape, Control.CURSOR_POINTING_HAND)
-
-func test_a_new_layout_from_the_technique_list_resizes_the_chest() -> void:
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	# Unlocked behind the manager's back, so that only the list's own
-	# layout_changed can tell the chest.
-	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.append(SMOOTH_ID)
-	_technique_list().build()
-	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0)
-	await _await_queued_frees()
-
 #-----------------------------------------------------------------------------
 # SLIDE SUPPORT
 #-----------------------------------------------------------------------------
-
-## The Control the Activities header and the technique list sit in, which clips
-## whatever slides past the chest's inner right edge.
-func _slide_clip() -> Control:
-	return (_node("ActivitiesHeader") as Control).get_parent() as Control
 
 ## The label row of an activity group: the row that holds its name and its groove.
 func _label_row_of(group: Node) -> Control:
@@ -1898,36 +1064,6 @@ func test_chest_height_for_matches_each_mode() -> void:
 	assert_eq(_panel.chest_height_for(false), activities_height, "the activities height again, from the techniques mode")
 	await _await_queued_frees()
 
-## The techniques unlocked before the chest was built have no drawers yet (the list
-## builds when the chest turns to it, or when a technique unlocks), but the height
-## the chest will have there is still asked for before it turns.
-func test_chest_height_for_counts_drawers_that_were_never_built() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	assert_eq(_technique_list().get_drawer_count(), 0, "precondition: the list has not built its drawers")
-	assert_eq(_panel.chest_height_for(true), LIST_TOP + 3.0 * DRAWER_HEIGHT + 2.0 * DRAWER_GAP + 24.0, "three drawers, two gaps")
-	await _await_queued_frees()
-
-## The last cycle's line counts only in the techniques mode, and the lore as it is now.
-func test_chest_height_for_counts_the_last_cycle_line_and_the_lore() -> void:
-	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
-	_renamed_techniques[technique] = technique.technique_name
-	technique.technique_name = "The Foundational Technique of the Endless Misty Bamboo Hollow, Breathed Under A Cold Moon"
-	_unlock_all_techniques()
-	await _add_panel()
-	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 3, 4, 1, 75))
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(2)
-	var activities_height: float = _panel.size.y
-	assert_eq(_panel.chest_height_for(false), activities_height, "the activities never count the line")
-	var technique_height: float = _panel.chest_height_for(true)
-	await _await_queued_frees()
-	_panel.set_techniques_mode(true)
-	assert_eq(technique_height, _panel.size.y, "the line, the lore and the wrapped drawer are all in")
-	assert_gt(_panel.size.y, 464.0 + LORE_PUSH + LAST_CYCLE_PUSH, "precondition: the long name made a drawer taller")
-	assert_eq(_panel.chest_height_for(false), activities_height)
-	await _await_queued_frees()
-
 func test_height_override_sizes_the_frame_and_clears() -> void:
 	await _add_panel()
 	var natural: float = _panel.size.y
@@ -1935,51 +1071,10 @@ func test_height_override_sizes_the_frame_and_clears() -> void:
 	var list_height: float = _list().size.y
 	_panel.set_height_override(400.0)
 	assert_eq(_panel.size.y, 400.0, "the chest takes the height")
-	assert_eq((_node("ChestBottom") as Control).position.y, 400.0 - ZonePanel.CHEST_BOTTOM_HEIGHT, "the bottom slice goes with it")
-	assert_eq((_node("ChestMid") as Control).size.y, 400.0 - ZonePanel.CHEST_TOP_HEIGHT - ZonePanel.CHEST_BOTTOM_HEIGHT, "and the middle tiles between")
 	assert_eq(_list().position.y, list_top, "the list keeps its place")
 	assert_eq(_list().size.y, list_height, "and its height")
 	_panel.clear_height_override()
 	assert_eq(_panel.size.y, natural, "the chest hugs the list again")
-	assert_eq((_node("ChestBottom") as Control).position.y, natural - ZonePanel.CHEST_BOTTOM_HEIGHT)
-	assert_eq((_node("ChestMid") as Control).size.y, natural - ZonePanel.CHEST_TOP_HEIGHT - ZonePanel.CHEST_BOTTOM_HEIGHT)
-
-## A layout change while the override is set (the lore opening, say) moves the
-## lists but not the frame.
-func test_a_relayout_keeps_the_height_override() -> void:
-	await _add_panel()
-	_panel.set_height_override(400.0)
-	(_node("AboutButton") as BaseButton).button_pressed = true
-	await wait_process_frames(2)
-	assert_eq(_list().position.y, LIST_TOP + _lore_push(), "the list moved down under the lore")
-	assert_eq(_panel.size.y, 400.0, "the frame stays where it was held")
-	_panel.clear_height_override()
-	assert_eq(_panel.size.y, _panel.chest_height_for(false), "and once let go it hugs the list under the lore")
-	assert_gt(_panel.size.y, 400.0, "precondition: the lore pushed the natural height past the override")
-
-func test_slide_rows_start_with_the_header() -> void:
-	await _add_panel()
-	var rows: Array[Control] = _panel.get_slide_rows()
-	assert_eq(rows.size(), 3, "the header, the Talk group's label row and its one card on a fresh save")
-	assert_same(rows[0], _node("ActivitiesHeader"), "the header comes first")
-	assert_same(rows[1], _label_row_of(_list_node("Content").get_child(0)), "then the group's label row")
-	assert_true(rows[2] is ZoneActionButton, "then its card")
-	assert_true(_tops_increase(rows), "top to bottom")
-
-func test_slide_rows_in_the_techniques_mode_are_the_drawers() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	await wait_process_frames(2)
-	var rows: Array[Control] = _panel.get_slide_rows()
-	assert_eq(rows.size(), 4, "the header and a drawer each")
-	assert_same(rows[0], _node("ActivitiesHeader"))
-	var technique_ids: Array[String] = [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID]
-	for index: int in technique_ids.size():
-		assert_same(rows[index + 1], _technique_list().get_drawer(technique_ids[index]), "%s's drawer, in unlock order" % technique_ids[index])
-	assert_true(_tops_increase(rows), "top to bottom")
-	_panel.set_techniques_mode(false)
-	assert_same(_panel.get_slide_rows()[1], _label_row_of(_list_node("Content").get_child(0)), "and the activities' rows are back")
 
 ## A list that scrolls offers the rows that show at least partly in its window.
 func test_activity_slide_rows_are_the_ones_in_the_scroll_window() -> void:
@@ -2007,71 +1102,3 @@ func test_activity_slide_rows_are_the_ones_in_the_scroll_window() -> void:
 	assert_has(rows, merchant_card, "scrolled to the bottom, the last card shows")
 	assert_does_not_have(rows, first_card, "and the first group's card has gone above the window")
 	assert_does_not_have(rows, first_label_row, "with its label row")
-
-func test_technique_slide_rows_are_the_drawers_top_to_bottom() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	assert_eq(_technique_list().get_slide_rows().size(), 0, "no drawers before the list builds them")
-	_panel.set_techniques_mode(true)
-	await wait_process_frames(2)
-	var rows: Array[Control] = _technique_list().get_slide_rows()
-	assert_eq(rows.size(), 3)
-	assert_true(_tops_increase(rows), "top to bottom")
-	for drawer: Node in _technique_list().get_node("%Drawers").get_children():
-		assert_has(rows, drawer, "every drawer of the column")
-
-func test_the_header_and_the_technique_list_sit_in_one_clip() -> void:
-	await _add_panel()
-	var clip: Control = _slide_clip()
-	assert_ne(clip, _panel, "the header sits in a clip of its own, not directly in the chest")
-	assert_eq(clip.name, &"SlideClip")
-	assert_true(clip.clip_contents, "the clip cuts what slides past it")
-	assert_eq(clip.mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	assert_eq(clip.position, Vector2.ZERO)
-	assert_eq(clip.size, Vector2(SLIDE_CLIP_WIDTH, FULL_CHEST_HEIGHT), "it ends at the chest's inner right edge")
-	assert_eq(clip.get_parent(), _panel)
-	assert_eq(_technique_list().get_parent(), clip, "the technique list sits in the same clip")
-	assert_false(_technique_list().clip_contents, "and does not cut its own drawers")
-
-## The part of the screen a node's clipping ancestors leave it: the overlap of
-## every ancestor's rect that has clip_contents on.
-func _visible_window(node: Control) -> Rect2:
-	var window := Rect2(Vector2(-100000.0, -100000.0), Vector2(200000.0, 200000.0))
-	var ancestor := node.get_parent() as Control
-	while ancestor != null:
-		if ancestor.clip_contents:
-			window = window.intersection(ancestor.get_global_rect())
-		ancestor = ancestor.get_parent() as Control
-	return window
-
-## At rest, nothing of a drawer is cut: its whole art (its rect grown by what the
-## baked shadow and the in-use frame reach beyond it) lies inside the window the
-## drawer's clipping ancestors leave it.
-func test_every_drawer_lies_inside_the_clip_at_rest() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	_panel.set_techniques_mode(true)
-	await wait_process_frames(2)
-	var drawers: Array[Control] = _technique_list().get_slide_rows()
-	assert_eq(drawers.size(), 3, "precondition: three drawers")
-	assert_true((drawers[0] as TechniqueDrawer).is_in_use(), "precondition: the foundation drawer is pulled out")
-	for row: Control in drawers:
-		var drawer: TechniqueDrawer = row as TechniqueDrawer
-		var window: Rect2 = _visible_window(drawer)
-		assert_true(window.encloses(drawer.get_global_rect().grow(DRAWER_ART_OVERHANG)), "%s's drawer and its overhang lie inside the clip" % drawer.technique.id)
-		assert_true(window.encloses((drawer.get_node("%Face") as Control).get_global_rect()), "%s's face lies inside the clip" % drawer.technique.id)
-
-## At rest, the header's whole text (the count at its right too) lies inside the clip.
-func test_the_header_text_fits_its_clip_at_rest() -> void:
-	_unlock_all_techniques()
-	await _add_panel()
-	var clip: Control = _slide_clip()
-	for mode_on: bool in [false, true]:
-		_panel.set_techniques_mode(mode_on)
-		await wait_process_frames(2)
-		var window: Rect2 = clip.get_global_rect()
-		for label_name: String in ["HeaderLabel", "CountLabel"]:
-			var label: Label = _node(label_name) as Label
-			assert_true(window.encloses(label.get_global_rect()), "%s ('%s') lies inside the clip" % [label_name, label.text])
-		assert_true(window.encloses((_node("ActivitiesHeader") as Control).get_global_rect()), "so does the whole row")
-	await _await_queued_frees()

@@ -1,6 +1,6 @@
 extends GutTest
 
-## Unit tests for EncounterIcon.configure_for_type()
+## Unit tests for EncounterIcon.configure_for_type() and set_completed()
 
 const EncounterIconScene := preload("res://scenes/adventure/encounter_icon/encounter_icon.tscn")
 
@@ -12,10 +12,21 @@ func before_each() -> void:
 	# Force _ready by simulating a frame
 	await get_tree().process_frame
 
-func test_configure_combat_returns_true() -> void:
-	var result := icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	assert_true(result)
-	assert_eq(icon.get_configured_type(), AdventureEncounter.EncounterType.COMBAT_REGULAR)
+## Every encounter type but NONE configures an icon and remembers its type.
+func test_configure_returns_true_for_every_encounter() -> void:
+	var cases: Array[AdventureEncounter.EncounterType] = [
+		AdventureEncounter.EncounterType.COMBAT_REGULAR,
+		AdventureEncounter.EncounterType.COMBAT_AMBUSH,
+		AdventureEncounter.EncounterType.COMBAT_ELITE,
+		AdventureEncounter.EncounterType.COMBAT_BOSS,
+		AdventureEncounter.EncounterType.REST_SITE,
+		AdventureEncounter.EncounterType.TREASURE,
+		AdventureEncounter.EncounterType.TRAP,
+	]
+	var type_names: Array = AdventureEncounter.EncounterType.keys()
+	for type: AdventureEncounter.EncounterType in cases:
+		assert_true(icon.configure_for_type(type), "%s configures" % type_names[type])
+		assert_eq(icon.get_configured_type(), type, "%s is the configured type" % type_names[type])
 
 func test_configure_ambush_uses_combat_visuals() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
@@ -23,35 +34,18 @@ func test_configure_ambush_uses_combat_visuals() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_AMBUSH)
 	assert_eq(icon._glyph.texture, combat_texture, "ambush should look identical to regular combat")
 
-func test_configure_elite_returns_true() -> void:
-	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_ELITE))
-
-func test_configure_boss_returns_true() -> void:
-	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_BOSS))
-
-func test_configure_rest_returns_true() -> void:
-	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.REST_SITE))
-
-func test_configure_treasure_returns_true() -> void:
-	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.TREASURE))
-
-func test_configure_trap_returns_true() -> void:
-	var result := icon.configure_for_type(AdventureEncounter.EncounterType.TRAP)
-	assert_true(result, "trap should configure like any other encounter")
-
 func test_configure_none_returns_false() -> void:
 	var result := icon.configure_for_type(AdventureEncounter.EncounterType.NONE)
 	assert_false(result)
 
-func test_set_completed_dims_dimmable_wrapper() -> void:
+## set_completed() shows the checkmark badge on a cleared tile, and hides it
+## again when the tile is set back.
+func test_set_completed_toggles_the_checkmark() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	icon.set_completed(true)
-	assert_almost_eq(icon._dimmable.modulate.a, 0.9, 0.01, "completed state should dim the Dimmable wrapper")
-	assert_true(icon._checkmark.visible, "completed state should show the checkmark badge")
-
-func test_set_completed_false_restores_full_opacity() -> void:
-	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	icon.set_completed(true)
-	icon.set_completed(false)
-	assert_almost_eq(icon._dimmable.modulate.a, 1.0, 0.01, "uncompleted state should be fully opaque")
-	assert_false(icon._checkmark.visible, "uncompleted state should hide the checkmark badge")
+	var cases: Array[Array] = [
+		[true, true],
+		[false, false],
+	]
+	for case: Array in cases:
+		icon.set_completed(case[0])
+		assert_eq(icon._checkmark.visible, case[1], "completed %s: checkmark shows %s" % [case[0], case[1]])

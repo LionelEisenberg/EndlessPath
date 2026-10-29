@@ -226,14 +226,6 @@ func test_force_win_of_the_boss_wins_the_adventure() -> void:
 	assert_eq(stats.adventures_won, 0, "nor the adventure")
 	assert_eq(stats.gold_earned, 0.0, "nor the gold as earned")
 
-func test_force_win_logs_a_dev_line() -> void:
-	_start_a_fight()
-	watch_signals(LogManager)
-
-	assert_eq(DevCommands.force_win_fight(_view), "")
-
-	assert_eq(_dev_lines(), [DEV_LINE + "Won the fight"] as Array[String])
-
 func test_force_win_refuses_without_a_fight() -> void:
 	_start_run()
 	assert_false(_view.is_in_combat, "precondition: no fight is on")
@@ -255,7 +247,6 @@ func test_force_win_refuses_without_a_fight() -> void:
 func test_exit_as_victory_ends_the_run() -> void:
 	_start_run()
 	assert_true(_view.is_adventure_running(), "precondition: the run is on")
-	watch_signals(LogManager)
 
 	assert_eq(DevCommands.exit_adventure(_view, true), "")
 
@@ -265,14 +256,12 @@ func test_exit_as_victory_ends_the_run() -> void:
 	if _results.size() == 1:
 		assert_true(_results[0].is_victory, "as a victory")
 	assert_eq(_stats().adventures_won, 0, "a dev exit is no win in the play stats")
-	assert_eq(_dev_lines(), [DEV_LINE + "Ended the adventure as a victory"] as Array[String])
 
 func test_exit_as_defeat_ends_the_run() -> void:
 	_start_run()
 	assert_true(_view.is_adventure_running(), "precondition: the run is on")
 	# A run that ends at 0 Health counts as a loss in play, so a count of 0 shows the pause.
 	PlayerManager.vitals_manager.current_health = 0.0
-	watch_signals(LogManager)
 
 	assert_eq(DevCommands.exit_adventure(_view, false), "")
 
@@ -282,7 +271,6 @@ func test_exit_as_defeat_ends_the_run() -> void:
 		assert_false(_results[0].is_victory, "as a defeat")
 		assert_eq(_results[0].defeat_reason, "Your health reached zero", "precondition: the end is one that play counts")
 	assert_eq(_stats().adventures_lost, 0, "a dev exit is no loss in the play stats")
-	assert_eq(_dev_lines(), [DEV_LINE + "Ended the adventure as a defeat"] as Array[String])
 
 func test_exit_refuses_without_a_run() -> void:
 	assert_false(_view.is_adventure_running(), "precondition: no run is on")

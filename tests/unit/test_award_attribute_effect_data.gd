@@ -12,26 +12,20 @@ func before_each() -> void:
 func after_each() -> void:
 	CharacterManager.live_save_data = _original_live_save
 
-func test_process_adds_amount_to_spirit() -> void:
-	var effect := AwardAttributeEffectData.new()
-	effect.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
-	effect.amount = 1.0
-	effect.process()
-	assert_eq(
-		_save_data.character_attributes.get_attribute(CharacterAttributesData.AttributeType.SPIRIT),
-		11.0,
-		"Spirit should go from 10.0 -> 11.0 after +1.0 award"
-	)
-
-func test_process_adds_fractional_amount_to_body() -> void:
-	var effect := AwardAttributeEffectData.new()
-	effect.attribute_type = CharacterAttributesData.AttributeType.BODY
-	effect.amount = 2.5
-	effect.process()
-	assert_eq(
-		_save_data.character_attributes.get_attribute(CharacterAttributesData.AttributeType.BODY),
-		12.5
-	)
+## process() adds the amount to the attribute's base 10: a whole +1.0 to
+## Spirit and a fractional +2.5 to Body.
+func test_process_adds_amount_to_the_attribute() -> void:
+	var cases: Array[Array] = [
+		[CharacterAttributesData.AttributeType.SPIRIT, 1.0, 11.0],
+		[CharacterAttributesData.AttributeType.BODY, 2.5, 12.5],
+	]
+	for case: Array in cases:
+		var effect := AwardAttributeEffectData.new()
+		effect.attribute_type = case[0]
+		effect.amount = case[1]
+		effect.process()
+		assert_eq(_save_data.character_attributes.get_attribute(case[0]), case[2],
+			"%s should go from 10.0 to %.1f after a +%.1f award" % [CharacterAttributesData.AttributeType.keys()[case[0]], case[2], case[1]])
 
 func test_process_sets_effect_type() -> void:
 	var effect := AwardAttributeEffectData.new()

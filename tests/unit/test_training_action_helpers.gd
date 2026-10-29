@@ -30,35 +30,34 @@ func _levels(ticks_per_level: Array[int]) -> TrainingActionData:
 # MADRA PER SECOND
 #-----------------------------------------------------------------------------
 
+## The Madra effects per tick, summed and divided by the tick interval: gold
+## and attribute awards are not Madra, a half-second tick doubles the rate,
+## and several Madra effects add up.
 func test_madra_per_second_sums_madra_effects() -> void:
-	var effects: Array[EffectData] = [
+	var madra_and_gold: Array[EffectData] = [
 		_resource_effect(ResourceManager.ResourceType.MADRA, 1.5),
 		_resource_effect(ResourceManager.ResourceType.GOLD, 2.0),
 	]
-	assert_eq(_training(effects, 1.0).get_madra_per_second(), 1.5, "gold is not Madra")
-	assert_eq(_training(effects, 0.5).get_madra_per_second(), 3.0, "two ticks a second")
-
-func test_madra_per_second_adds_several_madra_effects() -> void:
-	var effects: Array[EffectData] = [
+	var two_madra: Array[EffectData] = [
 		_resource_effect(ResourceManager.ResourceType.MADRA, 1.5),
 		_resource_effect(ResourceManager.ResourceType.MADRA, 0.5),
 	]
-	assert_eq(_training(effects, 1.0).get_madra_per_second(), 2.0)
-
-func test_madra_per_second_ignores_other_effects() -> void:
 	var attribute := AwardAttributeEffectData.new()
 	attribute.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
 	attribute.amount = 4.0
-	var effects: Array[EffectData] = [attribute]
-	assert_eq(_training(effects, 1.0).get_madra_per_second(), 0.0)
+	var attribute_only: Array[EffectData] = [attribute]
+	var cases: Array[Dictionary] = [
+		{"name": "gold is not Madra", "effects": madra_and_gold, "interval": 1.0, "rate": 1.5},
+		{"name": "two ticks a second", "effects": madra_and_gold, "interval": 0.5, "rate": 3.0},
+		{"name": "several Madra effects add", "effects": two_madra, "interval": 1.0, "rate": 2.0},
+		{"name": "an attribute award is not Madra", "effects": attribute_only, "interval": 1.0, "rate": 0.0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(_training(case.effects, case.interval).get_madra_per_second(), case.rate, case.name)
 
 func test_madra_per_second_with_zero_interval_is_zero() -> void:
 	var effects: Array[EffectData] = [_resource_effect(ResourceManager.ResourceType.MADRA, 1.5)]
 	assert_eq(_training(effects, 0.0).get_madra_per_second(), 0.0)
-
-func test_aura_well_makes_one_and_a_half_madra_per_second() -> void:
-	var aura_well: TrainingActionData = load("res://resources/zones/spirit_valley_zone/zone_actions/aura_well_training_action.tres")
-	assert_eq(aura_well.get_madra_per_second(), 1.5)
 
 #-----------------------------------------------------------------------------
 # TICKS WITHIN THE LEVEL

@@ -15,17 +15,20 @@ const L_RECTS: Array[Rect2] = [Rect2(0.0, 0.0, 200.0, 100.0), Rect2(0.0, 0.0, 10
 # NEAREST POINT
 #-----------------------------------------------------------------------------
 
-func test_a_point_inside_a_rect_stays() -> void:
-	assert_eq(CameraClampController.nearest_point_in_rects(Vector2(150.0, 50.0), L_RECTS), Vector2(150.0, 50.0))
-	assert_eq(CameraClampController.nearest_point_in_rects(Vector2(50.0, 150.0), L_RECTS), Vector2(50.0, 150.0))
-
-func test_a_point_in_the_empty_corner_goes_to_the_nearest_rect() -> void:
-	assert_eq(CameraClampController.nearest_point_in_rects(Vector2(190.0, 120.0), L_RECTS), Vector2(190.0, 100.0), "nearer the wide rect")
-	assert_eq(CameraClampController.nearest_point_in_rects(Vector2(120.0, 190.0), L_RECTS), Vector2(100.0, 190.0), "nearer the tall rect")
-
-func test_no_rects_leave_the_point() -> void:
+## A point inside either rect of the L stays, a point in its empty corner goes to
+## the nearest rect, and with no rects the point is left where it is.
+func test_nearest_point_in_rects() -> void:
 	var none: Array[Rect2] = []
-	assert_eq(CameraClampController.nearest_point_in_rects(Vector2(999.0, -5.0), none), Vector2(999.0, -5.0))
+	var cases: Array[Dictionary] = [
+		{"name": "inside the wide rect", "point": Vector2(150.0, 50.0), "rects": L_RECTS, "expected": Vector2(150.0, 50.0)},
+		{"name": "inside the tall rect", "point": Vector2(50.0, 150.0), "rects": L_RECTS, "expected": Vector2(50.0, 150.0)},
+		{"name": "the empty corner, nearer the wide rect", "point": Vector2(190.0, 120.0), "rects": L_RECTS, "expected": Vector2(190.0, 100.0)},
+		{"name": "the empty corner, nearer the tall rect", "point": Vector2(120.0, 190.0), "rects": L_RECTS, "expected": Vector2(100.0, 190.0)},
+		{"name": "no rects", "point": Vector2(999.0, -5.0), "rects": none, "expected": Vector2(999.0, -5.0)},
+	]
+	for case: Dictionary in cases:
+		var rects: Array[Rect2] = case.rects
+		assert_eq(CameraClampController.nearest_point_in_rects(case.point, rects), case.expected, case.name)
 
 #-----------------------------------------------------------------------------
 # CLAMPING A CAMERA

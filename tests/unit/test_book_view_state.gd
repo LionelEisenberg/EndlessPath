@@ -70,13 +70,13 @@ func test_close_tab_pops_the_state() -> void:
 	_main_view.character_view.close_requested.emit()
 	assert_true(_main_view.state_stack.is_empty())
 
-func test_escape_pops_the_state() -> void:
-	_state.handle_input(_action("ui_cancel"))
-	assert_true(_main_view.state_stack.is_empty())
-
-func test_menu_key_pops_the_state() -> void:
-	_state.handle_input(_action("open_character"))
-	assert_true(_main_view.state_stack.is_empty())
+## Esc and the menu's own key each close the book.
+func test_each_close_key_pops_the_state() -> void:
+	for action_name: String in ["ui_cancel", "open_character"]:
+		if _main_view.state_stack.is_empty():
+			_main_view.push_state(_state)
+		_state.handle_input(_action(action_name))
+		assert_true(_main_view.state_stack.is_empty(), "%s pops the state" % action_name)
 
 func test_clicking_the_backdrop_pops_the_state() -> void:
 	_main_view.grey_background.clicked.emit()

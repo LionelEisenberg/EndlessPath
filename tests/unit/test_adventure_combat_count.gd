@@ -26,75 +26,60 @@ func _place(coord: Vector3i, type: AdventureEncounter.EncounterType) -> void:
 	_tilemap._encounter_tile_dictionary[coord] = encounter
 
 #-----------------------------------------------------------------------------
-# EMPTY MAP
+# ONE ENCOUNTER
 #-----------------------------------------------------------------------------
 
-func test_empty_map_zero_combats() -> void:
-	assert_eq(_tilemap.get_total_combat_count(), 0)
+## Each encounter type alone on the map: the four combat types count once, the
+## rest not at all.
+func test_each_encounter_type_on_its_own() -> void:
+	var cases: Array[Array] = [
+		[AdventureEncounter.EncounterType.COMBAT_REGULAR, 1],
+		[AdventureEncounter.EncounterType.COMBAT_BOSS, 1],
+		[AdventureEncounter.EncounterType.COMBAT_ELITE, 1],
+		[AdventureEncounter.EncounterType.COMBAT_AMBUSH, 1],
+		[AdventureEncounter.EncounterType.REST_SITE, 0],
+		[AdventureEncounter.EncounterType.TRAP, 0],
+		[AdventureEncounter.EncounterType.TREASURE, 0],
+		[AdventureEncounter.EncounterType.NONE, 0],
+	]
+	var type_names: Array = AdventureEncounter.EncounterType.keys()
+	for case: Array in cases:
+		_tilemap._encounter_tile_dictionary.clear()
+		_place(Vector3i.ZERO, case[0])
+		assert_eq(_tilemap.get_total_combat_count(), case[1], type_names[case[0]])
 
 #-----------------------------------------------------------------------------
-# COMBAT TYPES COUNTED
+# WHOLE MAPS
 #-----------------------------------------------------------------------------
 
-func test_regular_combat_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	assert_eq(_tilemap.get_total_combat_count(), 1)
-
-func test_boss_combat_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.COMBAT_BOSS)
-	assert_eq(_tilemap.get_total_combat_count(), 1)
-
-func test_elite_combat_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.COMBAT_ELITE)
-	assert_eq(_tilemap.get_total_combat_count(), 1)
-
-func test_ambush_combat_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.COMBAT_AMBUSH)
-	assert_eq(_tilemap.get_total_combat_count(), 1)
-
-#-----------------------------------------------------------------------------
-# NON-COMBAT TYPES NOT COUNTED
-#-----------------------------------------------------------------------------
-
-func test_rest_site_not_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.REST_SITE)
-	assert_eq(_tilemap.get_total_combat_count(), 0)
-
-func test_trap_not_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.TRAP)
-	assert_eq(_tilemap.get_total_combat_count(), 0)
-
-func test_treasure_not_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.TREASURE)
-	assert_eq(_tilemap.get_total_combat_count(), 0)
-
-func test_none_not_counted() -> void:
-	_place(Vector3i.ZERO, AdventureEncounter.EncounterType.NONE)
-	assert_eq(_tilemap.get_total_combat_count(), 0)
-
-#-----------------------------------------------------------------------------
-# MIXED MAPS
-#-----------------------------------------------------------------------------
-
-func test_mixed_map_counts_only_combats() -> void:
-	_place(Vector3i(0, 0, 0), AdventureEncounter.EncounterType.NONE)
-	_place(Vector3i(1, 0, -1), AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	_place(Vector3i(0, 1, -1), AdventureEncounter.EncounterType.REST_SITE)
-	_place(Vector3i(-1, 1, 0), AdventureEncounter.EncounterType.COMBAT_ELITE)
-	_place(Vector3i(1, -1, 0), AdventureEncounter.EncounterType.TREASURE)
-	_place(Vector3i(2, 0, -2), AdventureEncounter.EncounterType.COMBAT_BOSS)
-	assert_eq(_tilemap.get_total_combat_count(), 3, "should count regular + elite + boss")
-
-func test_all_combat_types_in_one_map() -> void:
-	_place(Vector3i(0, 0, 0), AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	_place(Vector3i(1, 0, -1), AdventureEncounter.EncounterType.COMBAT_BOSS)
-	_place(Vector3i(0, 1, -1), AdventureEncounter.EncounterType.COMBAT_ELITE)
-	_place(Vector3i(-1, 1, 0), AdventureEncounter.EncounterType.COMBAT_AMBUSH)
-	assert_eq(_tilemap.get_total_combat_count(), 4, "all four combat types should count")
-
-func test_no_combats_on_peaceful_map() -> void:
-	_place(Vector3i(0, 0, 0), AdventureEncounter.EncounterType.NONE)
-	_place(Vector3i(1, 0, -1), AdventureEncounter.EncounterType.REST_SITE)
-	_place(Vector3i(0, 1, -1), AdventureEncounter.EncounterType.TREASURE)
-	_place(Vector3i(-1, 1, 0), AdventureEncounter.EncounterType.TRAP)
-	assert_eq(_tilemap.get_total_combat_count(), 0, "no combat encounters on peaceful map")
+## Maps of several encounters count only their combats: an empty map, a mixed
+## one, all four combat types at once, and a peaceful map with none.
+func test_maps_count_only_their_combats() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "empty map", "count": 0, "tiles": {}},
+		{"name": "mixed map: regular + elite + boss", "count": 3, "tiles": {
+			Vector3i(0, 0, 0): AdventureEncounter.EncounterType.NONE,
+			Vector3i(1, 0, -1): AdventureEncounter.EncounterType.COMBAT_REGULAR,
+			Vector3i(0, 1, -1): AdventureEncounter.EncounterType.REST_SITE,
+			Vector3i(-1, 1, 0): AdventureEncounter.EncounterType.COMBAT_ELITE,
+			Vector3i(1, -1, 0): AdventureEncounter.EncounterType.TREASURE,
+			Vector3i(2, 0, -2): AdventureEncounter.EncounterType.COMBAT_BOSS,
+		}},
+		{"name": "all four combat types", "count": 4, "tiles": {
+			Vector3i(0, 0, 0): AdventureEncounter.EncounterType.COMBAT_REGULAR,
+			Vector3i(1, 0, -1): AdventureEncounter.EncounterType.COMBAT_BOSS,
+			Vector3i(0, 1, -1): AdventureEncounter.EncounterType.COMBAT_ELITE,
+			Vector3i(-1, 1, 0): AdventureEncounter.EncounterType.COMBAT_AMBUSH,
+		}},
+		{"name": "peaceful map", "count": 0, "tiles": {
+			Vector3i(0, 0, 0): AdventureEncounter.EncounterType.NONE,
+			Vector3i(1, 0, -1): AdventureEncounter.EncounterType.REST_SITE,
+			Vector3i(0, 1, -1): AdventureEncounter.EncounterType.TREASURE,
+			Vector3i(-1, 1, 0): AdventureEncounter.EncounterType.TRAP,
+		}},
+	]
+	for case: Dictionary in cases:
+		_tilemap._encounter_tile_dictionary.clear()
+		for coord: Vector3i in case.tiles:
+			_place(coord, case.tiles[coord])
+		assert_eq(_tilemap.get_total_combat_count(), case.count, case.name)

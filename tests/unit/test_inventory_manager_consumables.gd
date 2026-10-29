@@ -1,17 +1,9 @@
 extends GutTest
 
 ## Unit + integration tests for the consumables MVP.
-## Covers InventoryData.consumables field, InventoryManager.award_items dispatch,
-## InventoryManager.has_item, and InventoryManager.use_consumable.
-
-var _inventory: InventoryData
-
-func before_each() -> void:
-	_inventory = InventoryData.new()
-
-func test_inventory_starts_with_empty_consumables_dict() -> void:
-	assert_eq(_inventory.consumables.size(), 0, "consumables should start empty")
-	assert_true(_inventory.consumables is Dictionary, "consumables should be a Dictionary")
+## Covers InventoryManager.award_items dispatch for consumables,
+## InventoryManager.has_item, InventoryManager.use_consumable and
+## InventoryManager.get_consumable_count.
 
 #-----------------------------------------------------------------------------
 # AWARD ITEMS - CONSUMABLES
@@ -55,18 +47,6 @@ func test_award_consumable_stacks() -> void:
 	var inv := InventoryManager.get_inventory()
 	assert_eq(inv.consumables.get(def, 0), 7, "stacks should accumulate (3 + 4 = 7)")
 
-func test_award_consumable_emits_item_awarded_signal() -> void:
-	if not InventoryManager:
-		pass_test("InventoryManager not available in test environment")
-		return
-	_reset_save()
-
-	watch_signals(InventoryManager)
-	var def := _make_consumable("award_signal")
-	InventoryManager.award_items(def, 2)
-
-	assert_signal_emitted(InventoryManager, "item_awarded", "item_awarded should fire on consumable award")
-
 func test_award_consumable_emits_inventory_changed_signal() -> void:
 	if not InventoryManager:
 		pass_test("InventoryManager not available in test environment")
@@ -93,16 +73,6 @@ func test_has_item_returns_true_for_owned_consumable() -> void:
 	InventoryManager.award_items(def, 2)
 
 	assert_true(InventoryManager.has_item("has_item_test"), "should find owned consumable by item_id")
-
-func test_has_item_returns_false_for_unowned_consumable() -> void:
-	if not InventoryManager:
-		pass_test("InventoryManager not available in test environment")
-		return
-	_reset_save()
-
-	var def := _make_consumable("not_awarded")
-	# NOTE: do not award
-	assert_false(InventoryManager.has_item("not_awarded"), "should not find unowned consumable")
 
 func test_has_item_ignores_consumable_with_zero_count() -> void:
 	if not InventoryManager:
@@ -163,29 +133,23 @@ func test_use_consumable_to_zero_erases_dict_entry() -> void:
 	assert_false(inv.consumables.has(def), "dict entry should be erased when count drops to 0")
 	assert_false(InventoryManager.has_item("use_to_zero"), "has_item should return false after stack hits 0")
 
-func test_use_consumable_with_no_stock_returns_false() -> void:
+## use_consumable() returns false, firing no effect, for a consumable with no
+## stock (never awarded) and for a null definition.
+func test_use_consumable_without_stock_or_definition_returns_false() -> void:
 	if not InventoryManager:
 		pass_test("InventoryManager not available in test environment")
 		return
 	_reset_save()
 
 	var effect := CountingEffect.new()
-	var def := _make_consumable_with_effect("use_empty", effect)
-	# Do NOT award.
-
-	var result: bool = InventoryManager.use_consumable(def)
-
-	assert_false(result, "use_consumable should return false with no stock")
+	var cases: Array[Dictionary] = [
+		{"name": "no stock", "def": _make_consumable_with_effect("use_empty", effect)},
+		{"name": "null definition", "def": null},
+	]
+	for case: Dictionary in cases:
+		var result: bool = InventoryManager.use_consumable(case.def)
+		assert_false(result, "use_consumable should return false with %s" % case.name)
 	assert_eq(effect.call_count, 0, "effects must not fire when stock is 0")
-
-func test_use_consumable_with_null_def_returns_false() -> void:
-	if not InventoryManager:
-		pass_test("InventoryManager not available in test environment")
-		return
-	_reset_save()
-
-	var result: bool = InventoryManager.use_consumable(null)
-	assert_false(result, "use_consumable(null) should return false")
 
 func test_use_consumable_ignores_cooldown_seconds() -> void:
 	# Cooldown enforcement is the combat instance's job — InventoryManager

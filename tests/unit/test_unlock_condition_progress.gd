@@ -25,33 +25,27 @@ func after_each() -> void:
 # MEASURABLE CONDITIONS
 #-----------------------------------------------------------------------------
 
-func test_resource_amount_is_measurable() -> void:
-	var condition: UnlockConditionData = load(MADRA_FULL_PATH)
-	assert_true(condition.is_measurable())
-	assert_eq(condition.get_current_value(), 25.0, "a fresh save holds 25 Madra")
-	assert_eq(condition.get_target_value(), 100.0)
-
-func test_resource_amount_follows_madra() -> void:
-	var condition: UnlockConditionData = load(MADRA_FULL_PATH)
+## Each measurable condition reads its target and the player's live figure: a
+## RESOURCE_AMOUNT condition the resource it names (Madra, which it follows as
+## it changes, or gold), a CULTIVATION_LEVEL condition the Core Density level.
+func test_measurable_conditions_read_current_and_target() -> void:
 	ResourceManager.set_madra(60.0)
-	assert_eq(condition.get_current_value(), 60.0)
-
-func test_gold_resource_amount_reads_gold() -> void:
-	var condition := UnlockConditionData.new()
-	condition.condition_type = UnlockConditionData.ConditionType.RESOURCE_AMOUNT
-	condition.target_value = 50
-	condition.optional_params = {"resource_type": "gold"}
 	ResourceManager.set_gold(12.0)
-	assert_true(condition.is_measurable())
-	assert_eq(condition.get_current_value(), 12.0)
-	assert_eq(condition.get_target_value(), 50.0)
-
-func test_cultivation_level_is_measurable() -> void:
-	var condition: UnlockConditionData = load(REACH_CD_10_PATH)
 	PersistenceManager.save_game_data.core_density_level = 4.0
-	assert_true(condition.is_measurable())
-	assert_eq(condition.get_current_value(), 4.0)
-	assert_eq(condition.get_target_value(), 10.0)
+	var gold_condition := UnlockConditionData.new()
+	gold_condition.condition_type = UnlockConditionData.ConditionType.RESOURCE_AMOUNT
+	gold_condition.target_value = 50
+	gold_condition.optional_params = {"resource_type": "gold"}
+	var cases: Array[Dictionary] = [
+		{"name": "Madra", "condition": load(MADRA_FULL_PATH), "current": 60.0, "target": 100.0},
+		{"name": "gold", "condition": gold_condition, "current": 12.0, "target": 50.0},
+		{"name": "Core Density level", "condition": load(REACH_CD_10_PATH), "current": 4.0, "target": 10.0},
+	]
+	for case: Dictionary in cases:
+		var condition: UnlockConditionData = case.condition
+		assert_true(condition.is_measurable(), "%s is measurable" % case.name)
+		assert_eq(condition.get_current_value(), case.current, "%s: current" % case.name)
+		assert_eq(condition.get_target_value(), case.target, "%s: target" % case.name)
 
 #-----------------------------------------------------------------------------
 # OTHER CONDITIONS

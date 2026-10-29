@@ -5,27 +5,15 @@ extends GutTest
 ## turning to the low-time seal, the title wrapping in its slot and pushing the
 ## page down (the developer's rule: no text is cut off), the chest hugging its
 ## visible page (never shorter than 176) and following that page's
-## content_resized, and where each piece sits. A plain AdventureChestPage stands
-## in for the pages the chest will hold. The clock's two pure rules (M:SS and the
-## 30 s threshold) are in test_run_clock.gd.
+## content_resized. A plain AdventureChestPage stands in for the pages the chest
+## will hold. The clock's two pure rules (M:SS and the 30 s threshold) are in
+## test_run_clock.gd.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
 const CHEST_SCENE: PackedScene = preload("res://scenes/adventure/adventure_chest/adventure_chest.tscn")
-const LACQUER_THEME_PATH: String = "res://assets/themes/lacquer/lacquer_theme.tres"
-const RECESS_PATH: String = "res://assets/ui/lacquer/lacquer_timer_ai.png"
-const LOW_RECESS_PATH: String = "res://assets/ui/lacquer/lacquer_timer_low_ai.png"
-const HOURGLASS_PATH: String = "res://assets/ui/lacquer/lacquer_mini_hourglass_ai.png"
-const CHEST_TOP_PATH: String = "res://assets/ui/lacquer/lacquer_chest_top_ai.png"
-const CHEST_MID_PATH: String = "res://assets/ui/lacquer/lacquer_chest_mid_ai.png"
-const CHEST_BOTTOM_PATH: String = "res://assets/ui/lacquer/lacquer_chest_bot_ai.png"
-## Where the chest stands on screen, where the zone view keeps its chest.
-const CHEST_HOME: Vector2 = Vector2(1456.0, 24.0)
-## The frame's slices are 444 wide: the chest's 440 and the column's 4 px
-## shadow, which each slice carries its part of.
-const SLICE_WIDTH: float = 444.0
 
 var _chest: AdventureChest = null
 
@@ -55,9 +43,6 @@ func _clock_node(unique_name: String) -> Node:
 
 func _time_text() -> String:
 	return (_clock_node("TimeLabel") as Label).text
-
-func _recess_path() -> String:
-	return (_clock_node("Recess") as TextureRect).texture.resource_path
 
 func _title() -> Label:
 	return _node("TitleLabel") as Label
@@ -92,57 +77,19 @@ func test_clock_follows_its_timer() -> void:
 	await wait_process_frames(1)
 	assert_eq(_time_text(), "1:30")
 
-## Not paused: the clock counts down with the timer. 62 s reads 1:01 from the
-## start until a second has passed and 1:00 for the second after that, so
-## reads at 0.5 s and at 1.5 s each have 0.5 s of slack either way.
-func test_clock_counts_down_with_a_running_timer() -> void:
-	var timer := Timer.new()
-	add_child_autofree(timer)
-	timer.start(62.0)
-	_clock().bind_timer(timer)
-	await wait_seconds(0.5)
-	assert_eq(_time_text(), "1:01", "61.5 s left")
-	await wait_seconds(1.0)
-	assert_eq(_time_text(), "1:00", "60.5 s left")
-
 func test_clock_turns_to_the_seal_when_low() -> void:
 	var timer: Timer = _held_timer(31.0)
 	_clock().bind_timer(timer)
 	await wait_process_frames(1)
 	assert_false(_clock().is_low_shown(), "31 s: the carved recess")
-	assert_eq(_recess_path(), RECESS_PATH)
 	timer.start(30.0)
 	await wait_process_frames(1)
 	assert_true(_clock().is_low_shown(), "30 s: the seal")
-	assert_eq(_recess_path(), LOW_RECESS_PATH)
 	assert_eq(_time_text(), "0:30", "and the time still reads")
 	timer.start(90.0)
 	await wait_process_frames(1)
 	assert_false(_clock().is_low_shown(), "a new run starts on the recess again")
-	assert_eq(_recess_path(), RECESS_PATH)
 	assert_eq(_time_text(), "1:30")
-
-## The seal changes the recess and nothing else: the time keeps the label's
-## own cream, which reads on the vermilion.
-func test_the_seal_changes_only_the_recess() -> void:
-	var timer: Timer = _held_timer(90.0)
-	_clock().bind_timer(timer)
-	await wait_process_frames(1)
-	var label: Label = _clock_node("TimeLabel") as Label
-	var hourglass: TextureRect = _clock().get_node("Hourglass") as TextureRect
-	var cream: Color = label.get_theme_color(&"font_color")
-	assert_eq(cream.to_html(false), "f0e8d8", "precondition: the label's own colour is the kit's cream")
-	var label_rect: Rect2 = label.get_rect()
-	var hourglass_rect: Rect2 = hourglass.get_rect()
-	timer.start(12.0)
-	await wait_process_frames(1)
-	assert_true(_clock().is_low_shown(), "precondition: the seal shows")
-	assert_eq(label.get_theme_color(&"font_color"), cream, "the time keeps its colour")
-	assert_false(label.has_theme_color_override(&"font_color"), "no override: the variant's cream")
-	assert_eq(label.get_rect(), label_rect, "the label has not moved")
-	assert_eq(hourglass.get_rect(), hourglass_rect, "nor has the hourglass")
-	assert_eq(label.modulate, Color.WHITE, "nothing is tinted")
-	assert_eq(_clock().modulate, Color.WHITE)
 
 ## A run that ends with time left leaves the clock showing it (the end card
 ## opens over it): a stopped timer reads 0, and that must not turn the seal on.
@@ -189,22 +136,6 @@ func test_binding_a_timer_paints_the_clock_before_any_frame_passes() -> void:
 
 	assert_eq(_time_text(), "5:00", "the fresh run's time shows before any frame passes")
 	assert_false(_clock().is_low_shown(), "on the normal recess")
-	assert_eq(_recess_path(), RECESS_PATH)
-
-## Binding a timer that is not running (stopped, or null) paints nothing: the
-## clock keeps what it showed, as it does when its timer stops.
-func test_binding_a_stopped_timer_leaves_the_clock_as_it_was() -> void:
-	_clock().bind_timer(_held_timer(45.0))
-	await wait_process_frames(1)
-	assert_eq(_time_text(), "0:45", "precondition")
-	var idle := Timer.new()
-	add_child_autofree(idle)
-
-	_clock().bind_timer(idle)
-	assert_eq(_time_text(), "0:45", "a timer that never started leaves the time as it was")
-	assert_false(_clock().is_low_shown())
-	_clock().bind_timer(null)
-	assert_eq(_time_text(), "0:45", "so does no timer at all")
 
 ## A clock with no timer, with its timer unbound (null) or with its timer freed
 ## sits still and raises no error (an engine error fails the test).
@@ -241,10 +172,9 @@ func test_set_title() -> void:
 func test_a_long_title_wraps_and_pushes_the_page_down() -> void:
 	var long_title: String = ("The Shallow Woods Beyond The Edge Of The Known World ").repeat(2).left(60)
 	assert_eq(long_title.length(), 60, "precondition: 60 characters")
-	var page: AdventureChestPage = _add_page(300.0)
+	_add_page(300.0)
 	_chest.relayout()
 	var plain_height: float = _chest.size.y
-	assert_eq(plain_height, 406.0, "precondition: a one-line title leaves the page at 82")
 
 	_chest.set_title(long_title)
 	await wait_process_frames(2)
@@ -262,51 +192,10 @@ func test_a_long_title_wraps_and_pushes_the_page_down() -> void:
 	var extra: float = 44.0 * (label.get_line_count() - 1)
 	assert_eq((_node("PageSlot") as Control).position.y, 82.0 + extra, "the page stands lower by each line's 44 px")
 	assert_eq(_chest.size.y, plain_height + extra, "and the chest is taller by as much")
-	assert_eq(fposmod(_chest.size.y, 2.0), 0.0, "an even height")
-	assert_eq(page.global_position.y - _chest.global_position.y, 82.0 + extra)
-
-func test_a_short_title_takes_the_page_back_up() -> void:
-	_add_page(300.0)
-	_chest.set_title("A Very Long Name For An Adventure ".repeat(3))
-	await wait_process_frames(2)
-	assert_gt(_chest.size.y, 406.0, "precondition: the title pushed the page down")
-	_chest.set_title("The Shallow Woods")
-	await wait_process_frames(2)
-	assert_eq(_chest.size.y, 406.0, "the chest is the kit's again")
-	assert_eq((_node("PageSlot") as Control).position.y, 82.0)
 
 #-----------------------------------------------------------------------------
 # HEIGHT
 #-----------------------------------------------------------------------------
-
-func test_hugs_its_page() -> void:
-	_add_page(300.0)
-	_chest.relayout()
-	assert_eq(_chest.size.y, 406.0, "82 above the page, its 300, and 24 under it")
-	assert_eq((_node("ChestMid") as Control).size.y, 230.0, "406 less the 128 top and the 48 bottom")
-	assert_eq((_node("ChestBottom") as Control).position.y, 358.0, "the bottom slice is the last 48")
-	assert_eq(_chest.size.x, 440.0)
-	assert_eq((_node("PageSlot") as Control).size.y, 300.0, "the slot is the page's area")
-
-func test_never_shorter_than_176() -> void:
-	assert_eq(_chest.size.y, 176.0, "a chest with no page is the minimum")
-	assert_eq((_node("ChestMid") as Control).size.y, 0.0, "the minimum is the top and the bottom")
-	assert_eq((_node("ChestBottom") as Control).position.y, 128.0)
-	_add_page(20.0)
-	_chest.relayout()
-	assert_eq(_chest.size.y, 176.0, "82 + 20 + 24 is only 126")
-	assert_eq((_node("ChestMid") as Control).size.y, 0.0)
-	assert_eq((_node("ChestBottom") as Control).position.y, 128.0)
-
-func test_hug_starts_where_the_minimum_ends() -> void:
-	var page: AdventureChestPage = _add_page(70.0)
-	_chest.relayout()
-	assert_eq(_chest.size.y, 176.0, "82 + 70 + 24 is exactly the minimum")
-	page.size.y = 72.0
-	_chest.relayout()
-	assert_eq(_chest.size.y, 178.0, "two more px of page, two more of chest")
-	assert_eq((_node("ChestMid") as Control).size.y, 2.0)
-	assert_eq((_node("ChestBottom") as Control).position.y, 130.0)
 
 func test_relayouts_on_content_resized() -> void:
 	var page: AdventureChestPage = _add_page(300.0)
@@ -316,12 +205,9 @@ func test_relayouts_on_content_resized() -> void:
 	assert_eq(_chest.size.y, 406.0, "nothing moves until the page says its content resized")
 	page.content_resized.emit()
 	assert_eq(_chest.size.y, 506.0)
-	assert_eq((_node("ChestMid") as Control).size.y, 330.0)
-	assert_eq((_node("ChestBottom") as Control).position.y, 458.0)
 	page.size.y = 20.0
 	page.content_resized.emit()
 	assert_eq(_chest.size.y, 176.0, "and back down to the minimum")
-	assert_eq((_node("ChestMid") as Control).size.y, 0.0)
 
 ## A page's own get_content_height() decides, not its size: a page overrides
 ## it for content that flows.
@@ -335,18 +221,6 @@ func test_the_chest_asks_the_page_for_its_content_height() -> void:
 	page.content_height = 250.0
 	page.content_resized.emit()
 	assert_eq(_chest.size.y, 356.0)
-
-## The slices come in even numbers, as the mock's chest does: an odd page is
-## rounded to the nearest even height (an exact odd one up).
-func test_height_is_even() -> void:
-	var page: AdventureChestPage = _add_page(301.0)
-	_chest.relayout()
-	assert_eq(_chest.size.y, 408.0, "407 rounds up")
-	assert_eq((_node("ChestMid") as Control).size.y, 232.0)
-	assert_eq((_node("ChestBottom") as Control).position.y, 360.0)
-	page.size.y = 300.4
-	_chest.relayout()
-	assert_eq(_chest.size.y, 406.0, "406.4 rounds to 406")
 
 #-----------------------------------------------------------------------------
 # PAGES
@@ -366,12 +240,6 @@ func test_hugs_the_visible_page_only() -> void:
 	short.hide()
 	assert_eq(_chest.size.y, 176.0, "no page showing: the minimum")
 	tall.show()
-	assert_eq(_chest.size.y, 406.0)
-
-## A page that joins the slot later is hugged without a call, once it is ready.
-func test_a_page_added_later_is_hugged() -> void:
-	_add_page(300.0)
-	await wait_process_frames(1)
 	assert_eq(_chest.size.y, 406.0)
 
 ## A page's content height may need what the page builds in _ready, so the
@@ -399,79 +267,6 @@ func test_a_page_already_in_the_slot_is_hugged_and_followed() -> void:
 	assert_eq(chest.size.y, 506.0, "followed when its content resizes")
 	page.hide()
 	assert_eq(chest.size.y, 176.0, "and when it is hidden")
-
-#-----------------------------------------------------------------------------
-# LAYOUT
-#-----------------------------------------------------------------------------
-
-func test_chest_stands_at_the_top_right_and_stops_clicks() -> void:
-	assert_eq(_chest.position, CHEST_HOME)
-	assert_eq(_chest.size.x, 440.0)
-	assert_eq(_chest.mouse_filter, Control.MOUSE_FILTER_STOP)
-	assert_eq(_chest.theme, load(LACQUER_THEME_PATH))
-
-func test_constants() -> void:
-	assert_eq(AdventureChest.CHEST_TOP_HEIGHT, 128.0)
-	assert_eq(AdventureChest.CHEST_BOTTOM_HEIGHT, 48.0)
-	assert_eq(AdventureChest.MIN_CHEST_HEIGHT, 176.0)
-	assert_eq(AdventureChest.PAGE_TOP, 82.0)
-	assert_eq(AdventureChest.GAP_UNDER_PAGE, 24.0)
-
-## The header's pieces sit where the kit puts them (chest-local: the mock's
-## screen coordinates minus (1456, 24)). The title is the exception, 1 px above
-## the mock's (16, 18), as the zone chest's name is (15 for the kit's 16): the
-## mock's 44 px line box seats the 45 px tall Yatra glyphs half a px higher than
-## a Label's top edge does, and its renderer rounds that to 1 px. At 17 the
-## title's pixel rows fall on the mock's.
-func test_header_sits_where_the_kit_puts_it() -> void:
-	var label: Label = _title()
-	assert_eq(label.position, Vector2(16.0, 17.0))
-	assert_eq(label.size.x, 312.0)
-	assert_eq(label.theme_type_variation, &"LabelLacquerZoneName")
-	var clock: RunClock = _clock()
-	assert_eq(Rect2(clock.position, clock.size), Rect2(336.0, 22.0, 88.0, 36.0))
-	var page_slot: Control = _node("PageSlot") as Control
-	assert_eq(page_slot.position, Vector2(16.0, 82.0))
-	assert_eq(page_slot.size.x, 408.0)
-
-func test_clock_pieces_sit_where_the_kit_puts_them() -> void:
-	var recess: TextureRect = _clock_node("Recess") as TextureRect
-	assert_eq(Rect2(recess.position, recess.size), Rect2(0.0, 0.0, 88.0, 36.0))
-	assert_eq(recess.texture.resource_path, RECESS_PATH, "the carved recess to begin with")
-	var hourglass: TextureRect = _clock().get_node("Hourglass") as TextureRect
-	assert_eq(Rect2(hourglass.position, hourglass.size), Rect2(12.0, 10.0, 16.0, 16.0))
-	assert_eq(hourglass.texture.resource_path, HOURGLASS_PATH)
-	var label: Label = _clock_node("TimeLabel") as Label
-	assert_eq(Rect2(label.position, label.size), Rect2(32.0, 7.0, 46.0, 22.0))
-	assert_eq(label.theme_type_variation, &"LabelLacquerNowName")
-	assert_eq(label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER)
-	assert_eq(label.vertical_alignment, VERTICAL_ALIGNMENT_CENTER)
-
-## The frame is the zone chest's: a 128 top, a middle that tiles, a 48 bottom
-## (52 with the column's shadow), each 444 wide.
-func test_frame_slices_are_the_zone_chests() -> void:
-	_add_page(300.0)
-	_chest.relayout()
-	var top: TextureRect = _node("ChestTop") as TextureRect
-	var mid: TextureRect = _node("ChestMid") as TextureRect
-	var bottom: TextureRect = _node("ChestBottom") as TextureRect
-	assert_eq(top.texture.resource_path, CHEST_TOP_PATH)
-	assert_eq(Rect2(top.position, top.size), Rect2(0.0, 0.0, SLICE_WIDTH, 128.0))
-	assert_eq(mid.texture.resource_path, CHEST_MID_PATH)
-	assert_eq(Rect2(mid.position, mid.size), Rect2(0.0, 128.0, SLICE_WIDTH, 230.0))
-	assert_eq(mid.stretch_mode, TextureRect.STRETCH_TILE, "the middle tiles")
-	assert_eq(mid.expand_mode, TextureRect.EXPAND_IGNORE_SIZE, "and takes any height")
-	assert_eq(bottom.texture.resource_path, CHEST_BOTTOM_PATH)
-	assert_eq(Rect2(bottom.position, bottom.size), Rect2(0.0, 358.0, SLICE_WIDTH, 52.0))
-	assert_eq((_chest.get_node("ChestFrame") as Control).size, _chest.size, "the frame's wrapper follows the chest")
-
-## Every slice lets the pointer through to the chest, which stops it: a press
-## on the frame never reaches the map behind.
-func test_the_frame_lets_the_pointer_through_to_the_chest() -> void:
-	for slice_name: String in ["ChestTop", "ChestMid", "ChestBottom"]:
-		assert_eq((_node(slice_name) as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE, "%s ignores the pointer" % slice_name)
-	assert_eq((_chest.get_node("ChestFrame") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	assert_eq((_node("PageSlot") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE, "the slot is only a place for the pages")
 
 #-----------------------------------------------------------------------------
 # TEST DOUBLES

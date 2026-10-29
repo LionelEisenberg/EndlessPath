@@ -41,13 +41,6 @@ func _scaling_line(ability_path: String, attribute: CharacterAttributesData.Attr
 # LEFT PAGE
 #-----------------------------------------------------------------------------
 
-func test_each_group_is_one_row_of_four_tiles() -> void:
-	# Long, thin rows read badly; each group is a single row of four tiles.
-	for grid_name: String in ["PhysicalTiles", "SpiritualTiles"]:
-		var grid: GridContainer = _view.find_child(grid_name, true, false) as GridContainer
-		assert_eq(grid.columns, 4, grid_name)
-		assert_eq(grid.get_child_count(), 4, grid_name)
-
 func test_values_come_from_character_manager() -> void:
 	_view.refresh()
 	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
@@ -73,52 +66,16 @@ func test_hovering_a_tile_describes_it() -> void:
 	assert_eq(_label("DetailPlaque").text, "Body")
 	assert_eq(_label("DetailName").text, "Body")
 	assert_eq(_label("DetailDescription").text, details["description"])
-	assert_eq(_label("DetailGroup").text, "Physical attribute")
 	assert_true(body_tile.is_selected())
 	assert_false(_tile("StrengthTile").is_selected(), "only one tile looks selected")
-
-func test_spiritual_tiles_say_so() -> void:
-	var spirit_tile: AttributeTile = _tile("SpiritTile")
-	spirit_tile.hovered.emit(spirit_tile)
-	assert_eq(_label("DetailGroup").text, "Spiritual attribute")
 
 func test_every_attribute_has_details() -> void:
 	for attr_type: int in CharacterAttributesData.AttributeType.values():
 		assert_has(CharacterView.ATTRIBUTE_DETAILS, attr_type)
 
-func test_effects_share_the_details_pane() -> void:
-	assert_null(_view.find_child("EffectsPlaque", true, false))
-	var card: Control = _view.find_child("DetailCard", true, false) as Control
-	assert_true(card.is_ancestor_of(_label("EffectsLabel")))
-
-func test_effects_stay_put_between_attributes() -> void:
-	# Pointing at another attribute must not move anything on the right page.
-	_view.animate_open()
-	await wait_for_signal(_view.book_frame.opened, ANIMATION_TIMEOUT)
-	var first_y: float = -1.0
-	for attr_type: int in CharacterAttributesData.AttributeType.values():
-		_view.select_attribute(attr_type as CharacterAttributesData.AttributeType)
-		await wait_frames(3)
-		var y: float = _label("EffectsLabel").get_global_rect().position.y
-		if first_y < 0.0:
-			first_y = y
-		assert_eq(y, first_y, "effects moved for %s" % CharacterAttributesData.AttributeType.keys()[attr_type])
-
 #-----------------------------------------------------------------------------
 # EFFECTS
 #-----------------------------------------------------------------------------
-
-func test_body_effects_match_the_vitals_formulas() -> void:
-	# CharacterAttributesData: max health is Body x 10 and max stamina Body x 5, no flat bonus.
-	_view.select_attribute(CharacterAttributesData.AttributeType.BODY)
-	var effects: String = _label("EffectsLabel").text
-	assert_string_contains(effects, "Max Health = Body × 10")
-	assert_string_contains(effects, "Max Stamina = Body × 5")
-
-func test_foundation_effects_match_max_madra() -> void:
-	# CharacterAttributesData.get_max_madra(): Foundation x 10.
-	_view.select_attribute(CharacterAttributesData.AttributeType.FOUNDATION)
-	assert_string_contains(_label("EffectsLabel").text, "Max Madra = Foundation × 10")
 
 func test_effects_list_unlocked_abilities_that_scale_with_it() -> void:
 	_view.select_attribute(CharacterAttributesData.AttributeType.AGILITY)

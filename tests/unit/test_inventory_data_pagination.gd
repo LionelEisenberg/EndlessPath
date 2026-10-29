@@ -7,15 +7,16 @@ func test_default_unlocked_pages_is_two() -> void:
 func test_slots_per_page_constant() -> void:
 	assert_eq(InventoryData.SLOTS_PER_PAGE, 36)
 
-func test_capacity_one_page() -> void:
-	var inv := InventoryData.new()
-	inv.unlocked_equipment_pages = 1
-	assert_eq(inv.equipment_capacity(), 36)
-
-func test_capacity_three_pages() -> void:
-	var inv := InventoryData.new()
-	inv.unlocked_equipment_pages = 3
-	assert_eq(inv.equipment_capacity(), 108)
+## equipment_capacity() is the unlocked pages times 36 slots: one page and three.
+func test_capacity_is_pages_times_slots() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "one page", "pages": 1, "expected": 36},
+		{"name": "three pages", "pages": 3, "expected": 108},
+	]
+	for case: Dictionary in cases:
+		var inv := InventoryData.new()
+		inv.unlocked_equipment_pages = case.pages
+		assert_eq(inv.equipment_capacity(), case.expected, "%s capacity" % case.name)
 
 #-----------------------------------------------------------------------------
 # FREE SLOTS

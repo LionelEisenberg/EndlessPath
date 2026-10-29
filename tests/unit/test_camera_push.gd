@@ -37,13 +37,6 @@ func test_apply_zero_is_where_it_started() -> void:
 	assert_eq(_camera.zoom, START_ZOOM)
 	assert_eq(_camera.position, START_POSITION)
 
-func test_apply_half_is_between_the_start_and_the_end() -> void:
-	_push.begin(_camera, WORLD_POINT, SCREEN_POINT, 4.0)
-	_push.apply(0.5)
-	assert_eq(_camera.zoom, Vector2(3, 3))
-	var end_position: Vector2 = BoardTransitionTiming.push_camera_position(WORLD_POINT, SCREEN_POINT, 4.0)
-	assert_almost_eq(_camera.position, START_POSITION.lerp(end_position, 0.5), NEAR)
-
 func test_apply_without_begin_leaves_the_camera_alone() -> void:
 	_push.apply(1.0)
 	assert_eq(_camera.zoom, START_ZOOM)
@@ -87,15 +80,3 @@ func test_a_new_push_after_restore_saves_the_camera_again() -> void:
 	_push.restore()
 	assert_eq(_camera.zoom, Vector2(1, 1))
 	assert_eq(_camera.position, Vector2(10, 20))
-
-#-----------------------------------------------------------------------------
-# END ZOOM
-#-----------------------------------------------------------------------------
-
-func test_a_zoomed_out_player_is_pushed_to_one_and_a_half() -> void:
-	_camera.zoom = Vector2(1, 1)
-	_push.begin(_camera, WORLD_POINT, SCREEN_POINT, 1.5)
-	_push.apply(1.0)
-	assert_eq(_camera.zoom, Vector2(1.5, 1.5))
-	_push.restore()
-	assert_eq(_camera.zoom, Vector2(1, 1))

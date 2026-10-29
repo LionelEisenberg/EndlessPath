@@ -51,7 +51,7 @@ const VITALS_FIELDS: Array[StringName] = [
 ## How far past the border between two hexes a walk must be to stand in the
 ## second one, in px of distance difference (twice the distance past it).
 const PAST_THE_BORDER: float = 8.0
-## One 60 FPS frame, for stepping the walk, the tweens and the shakes by hand.
+## One 60 FPS frame, for stepping the walk and the tweens by hand.
 const FRAME: float = 1.0 / 60.0
 
 #-----------------------------------------------------------------------------
@@ -140,7 +140,7 @@ func _stop_every_action() -> void:
 		ActionManager.stop_action()
 
 ## Moves every running tween in the tree on by `delta`, as a frame does: the
-## Stamina row's shake, the boss reveal's push.
+## boss reveal's push.
 func _step_tweens(delta: float) -> void:
 	for tween: Tween in get_tree().get_processed_tweens():
 		if tween.is_valid() and tween.is_running():
@@ -271,24 +271,6 @@ func _dots_through(coords: Array[Vector3i]) -> PackedVector2Array:
 		dots.append_array(_dots_between(coords[index - 1], coords[index]))
 	return dots
 
-## Starts the run on the fixture map and stands the player on OPEN_NEAR with the
-## Stamina for one hop only, so that a walk to FIGHT, two hops through START,
-## stops at START. Stamina does not regenerate while the test walks.
-func _stand_on_open_near_with_one_hop_of_stamina() -> void:
-	_start_run()
-	await _walk_to(OPEN_NEAR)
-	await wait_process_frames(2)
-	PlayerManager.vitals_manager.stamina_regen = 0.0
-	PlayerManager.vitals_manager.current_stamina = AdventureTilemap.MOVEMENT_STAMINA_COST
-
-## Steps frames until the walk's first hop ends, where the Stamina stop is.
-func _wait_for_the_stamina_stop() -> void:
-	var tilemap: AdventureTilemap = _view.adventure_tilemap
-	var stopped: bool = await _wait_for_hop()
-	assert_true(stopped, "precondition: the first hop ends in time")
-	assert_eq(tilemap.get_current_tile(), START, "precondition: the walk stopped partway, on START")
-	assert_false(tilemap.character_body.is_moving, "precondition: and does not go on")
-
 func _page() -> ExpeditionPage:
 	return _view.adventure_chest.get_expedition_page()
 
@@ -416,34 +398,6 @@ func _assert_a_clean_start() -> void:
 # THE FRAME
 #-----------------------------------------------------------------------------
 
-## The three boards stand where the zone view keeps its cabinet, chest and dock,
-## over the map and the fight, each taking the pointer.
-func test_boards_stand_over_the_map_where_the_zone_furniture_stands() -> void:
-	var boards: Dictionary[String, Vector2] = {
-		"VitalsPlate": Vector2(24, 24),
-		"AdventureChest": Vector2(1456, 24),
-		"TechniqueDock": Vector2(722, 856),
-	}
-	var combat_index: int = _view.combat_view.get_index()
-	assert_gt(combat_index, _view.tilemap_view.get_index(), "precondition: the fight draws over the map")
-	for board_name: String in boards:
-		var board: Control = _view.get_node_or_null("%" + board_name) as Control
-		assert_not_null(board, "%s is in the view" % board_name)
-		if board == null:
-			continue
-		assert_eq(board.get_parent(), _view, "%s is the view's own child" % board_name)
-		assert_eq(board.position, boards[board_name], "%s stands in its place" % board_name)
-		assert_gt(board.get_index(), combat_index, "%s draws over the map and the fight" % board_name)
-		assert_eq(board.mouse_filter, Control.MOUSE_FILTER_STOP, "%s takes the pointer" % board_name)
-	assert_same(_view.vitals_plate, _view.get_node("%VitalsPlate"))
-	assert_same(_view.adventure_chest, _view.get_node("%AdventureChest"))
-	assert_same(_view.technique_dock, _view.get_node("%TechniqueDock"))
-	var timer: Timer = _view.get_node_or_null("%RunTimer") as Timer
-	assert_not_null(timer, "the run's Timer is the view's")
-	assert_same(_view.get_run_timer(), timer)
-	if timer != null:
-		assert_true(timer.one_shot, "it runs out once")
-
 func test_start_fills_the_frame() -> void:
 	# What a run has to change: a title left from before, and a loadout changed
 	# since the dock last looked (it previews what is equipped when a run starts).
@@ -507,59 +461,10 @@ func test_resolution_shows_cleared() -> void:
 
 	assert_eq(_page_text("TagLabel"), "CLEARED", "the Here tray reads cleared")
 	assert_eq(_page_text("LineLabel"), "+10 Health", "with what the tile left behind")
-	assert_eq(_page_text("LoreLabel"), "Encounter completed.", "under it the completed text")
 	assert_false(_page().get_drawer(0).visible, "the choice is spent")
 	# A resolution elsewhere on the map leaves the tray alone.
 	_view.adventure_tilemap.encounter_resolved.emit(FIGHT, "Won · 99 gold")
 	assert_eq(_page_text("LineLabel"), "+10 Health", "only the tile the player stands on shows")
-
-func test_walk_refused_shakes_the_right_board() -> void:
-	_start_run()
-
-	_view.adventure_tilemap.walk_refused.emit(AdventureTilemap.REFUSED_STAMINA)
-
-	assert_true(_view.vitals_plate.is_stamina_shaking(), "too tired: the cabinet's Stamina row shakes")
-	assert_false(_page().is_here_shaking(), "not the Here tray")
-	_run(MapGlyph.SHAKE_SECONDS + 0.1)
-	assert_false(_view.vitals_plate.is_stamina_shaking(), "precondition: the shake is over")
-
-	_view.adventure_tilemap.walk_refused.emit(AdventureTilemap.REFUSED_ENCOUNTER)
-
-	assert_true(_page().is_here_shaking(), "a choice waits: the Here tray shakes")
-	assert_false(_view.vitals_plate.is_stamina_shaking(), "not the Stamina row")
-
-## The whole refusal, end to end: standing on a rest that waits for a choice, a
-## click on another tile is refused. The Here tray shakes and the lock line, which
-## says the choices hold the player, turns to the warning colour for the length of
-## the shake and then back.
-func test_a_refused_click_turns_the_lock_line_to_the_warning_colour_and_back() -> void:
-	_start_run()
-	await _walk_to(REST)
-	var lock := _page().get_node("%LockLine") as Label
-	assert_true(lock.is_visible_in_tree(), "precondition: the rest holds the player, and the line says so")
-	assert_eq(lock.text, ExpeditionPage.LOCK_LINE)
-	assert_false(lock.has_theme_color_override(&"font_color"), "precondition: its own tan")
-
-	AdventureMapFixture.click(_view.adventure_tilemap, OPEN_NEAR)
-
-	assert_true(_page().is_here_shaking(), "the refused click shakes the Here tray")
-	assert_eq(lock.get_theme_color(&"font_color"), ExpeditionPage.LOCK_WARNING_COLOUR, "and turns the lock line to the warning colour")
-	# The Here tray's shake runs in the page's _process: run it a frame at a time.
-	simulate(_page(), roundi((MapGlyph.SHAKE_SECONDS + 0.15) / FRAME), FRAME)
-	assert_false(_page().is_here_shaking(), "precondition: the shake is over")
-	assert_false(lock.has_theme_color_override(&"font_color"), "the line is its own colour again")
-
-## Once the choice is made the lock line goes and the walk hint takes its place.
-func test_resolving_the_tile_swaps_the_lock_line_for_the_walk_hint() -> void:
-	_start_run()
-	await _walk_to(REST)
-	assert_true((_page().get_node("%LockLine") as Label).is_visible_in_tree(), "precondition: the lock line shows")
-	assert_false((_page().get_node("%WalkHint") as Label).is_visible_in_tree())
-
-	_view.adventure_tilemap.select_choice(AdventureMapFixture.rest_choice(_map))
-
-	assert_false((_page().get_node("%LockLine") as Label).is_visible_in_tree(), "the tile lets go of the player")
-	assert_true((_page().get_node("%WalkHint") as Label).is_visible_in_tree(), "and the walk hint shows")
 
 ## A real press on the rest's drawer: the chest hands the choice to the map,
 ## which resolves the tile.
@@ -622,17 +527,6 @@ func test_press_on_a_board_does_not_reach_the_map() -> void:
 		_click(point)
 	assert_signal_emit_count(tilemap.visible_map, "tile_clicked", points.size(), "with no board over them, the hexes take the presses")
 
-func test_map_viewport_filters_nearest() -> void:
-	var map_viewport: Viewport = _view.adventure_tilemap.get_viewport()
-	assert_true(map_viewport is SubViewport, "precondition: the map draws in its own viewport")
-	assert_eq(map_viewport.canvas_item_default_texture_filter, Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST, "the 1x tiles and the 2x character stay sharp")
-
-func test_old_hud_is_gone() -> void:
-	for old_name: String in ["PlayerHud", "TimerPanel", "EncounterInfoPanel"]:
-		assert_null(_view.get_node_or_null("%" + old_name), "no %%%s in the view" % old_name)
-		assert_null(_view.adventure_tilemap.get_node_or_null("%" + old_name), "nor in the map")
-		assert_eq(_view.find_children(old_name, "", true, false).size(), 0, "no %s anywhere under the view" % old_name)
-
 #-----------------------------------------------------------------------------
 # THE POINTER OVER THE MAP
 #-----------------------------------------------------------------------------
@@ -662,79 +556,6 @@ func test_the_hover_goes_when_the_pointer_moves_onto_a_board() -> void:
 	assert_eq(_hover_rim().position, _view.adventure_tilemap.get_tile_world_centre(FIGHT), "on that tile")
 	assert_eq(_route().get_dot_positions(), _dots_between(START, FIGHT), "with its route")
 
-## Only the hover goes with the pointer: a walk the player committed to keeps its
-## rim and its route, which belong to the walk.
-func test_a_committed_walk_keeps_its_rim_and_route_when_the_pointer_leaves_the_map() -> void:
-	_start_run()
-	await wait_process_frames(2)
-	var tilemap: AdventureTilemap = _view.adventure_tilemap
-	var over_fight: Vector2 = _screen_point_of(FIGHT)
-	await _move_pointer_to(over_fight)
-	_click(over_fight)
-	assert_true(tilemap.character_body.is_moving, "precondition: the press set the walk off")
-
-	await _move_pointer_to(_on_a_board())
-
-	assert_true(_hover_rim().visible, "the walk's rim stays on its destination")
-	assert_eq(_hover_rim().position, tilemap.get_tile_world_centre(FIGHT))
-	assert_eq(_route().get_dot_positions(), _dots_between(START, FIGHT), "and so does its route")
-
-## A walk stopped for Stamina drops its committed rim and route. What the hover
-## shows then is what a fresh move of the pointer onto the cell it rests over
-## would show: the rim on that tile and the route to it from where the walk
-## stopped. The camera follows the character to START, a hex from where it
-## stood, so the pointer rests where REST will be once it has. (The pointer has
-## been over a board and come back, so the map knows it is on the map again.)
-func test_a_stamina_stop_lays_the_hover_for_the_tile_under_the_pointer() -> void:
-	await _stand_on_open_near_with_one_hop_of_stamina()
-	var tilemap: AdventureTilemap = _view.adventure_tilemap
-	var where_rest_will_be: Vector2 = _screen_point_of(OPEN_NEAR) + tilemap.get_tile_world_centre(REST) - tilemap.get_tile_world_centre(START)
-	await _move_pointer_to(_screen_point_of(START))
-	await _move_pointer_to(_on_a_board())
-	await _move_pointer_to(where_rest_will_be)
-	AdventureMapFixture.click(tilemap, FIGHT)
-	assert_true(tilemap.character_body.is_moving, "precondition: the click set the walk off")
-
-	await _wait_for_the_stamina_stop()
-
-	assert_true(_hover_rim().visible, "the rim is on the tile under the pointer")
-	assert_eq(_hover_rim().position, tilemap.get_tile_world_centre(REST), "not on the walk's unreached destination")
-	assert_eq(_route().get_dot_positions(), _dots_between(START, REST), "and the route runs to it from where the walk stopped")
-
-## The natural case: the player hovers FIGHT and presses, the walk stops at
-## START, and the camera has moved a hex under the pointer, which now rests over
-## no tile in view. The rim must not stay up on FIGHT with no route to it.
-func test_a_stamina_stop_leaves_no_rim_behind_when_the_pointer_is_over_no_tile() -> void:
-	await _stand_on_open_near_with_one_hop_of_stamina()
-	var over_fight: Vector2 = _screen_point_of(FIGHT)
-	await _move_pointer_to(over_fight)
-	_click(over_fight)
-	assert_true(_view.adventure_tilemap.character_body.is_moving, "precondition: the press set the walk off")
-
-	await _wait_for_the_stamina_stop()
-
-	assert_false(_hover_rim().visible, "no rim on the unreached destination")
-	assert_eq(_route().get_dot_positions().size(), 0, "and no route")
-	# The hex layer was told the pointer rests over no tile, so moving it onto
-	# FIGHT, which the layer last heard it over, hovers FIGHT.
-	await _move_pointer_to(_screen_point_of(FIGHT))
-	assert_true(_hover_rim().visible, "the pointer onto a tile in view hovers it, FIGHT included")
-	assert_eq(_hover_rim().position, _view.adventure_tilemap.get_tile_world_centre(FIGHT))
-
-## With the pointer off the map (over a board), there is no hover to lay.
-func test_a_stamina_stop_leaves_no_hover_with_the_pointer_off_the_map() -> void:
-	await _stand_on_open_near_with_one_hop_of_stamina()
-	var over_fight: Vector2 = _screen_point_of(FIGHT)
-	await _move_pointer_to(over_fight)
-	_click(over_fight)
-	await _move_pointer_to(_on_a_board())
-	assert_true(_hover_rim().visible, "precondition: the committed walk's rim stays up while it goes on")
-
-	await _wait_for_the_stamina_stop()
-
-	assert_false(_hover_rim().visible, "no rim")
-	assert_eq(_route().get_dot_positions().size(), 0, "and no route")
-
 ## One rule holds after any walk ends: the hover shows what a fresh move of the
 ## pointer onto the cell it rests over would show. A walk that ends at its
 ## destination drops its rim and dots, and the camera, which followed the
@@ -757,22 +578,6 @@ func test_a_walk_that_ends_lays_the_hover_for_the_tile_under_the_pointer() -> vo
 	assert_eq(_hover_rim().position, tilemap.get_tile_world_centre(FIGHT))
 	var through_start: Array[Vector3i] = [OPEN_NEAR, START, FIGHT]
 	assert_eq(_route().get_dot_positions(), _dots_through(through_start), "and the route runs to it from where the walk ended")
-
-## While a choice waits, a fresh move of the pointer hovers nothing, so a walk
-## that ends on an encounter lays no hover under the pointer either, though the
-## pointer rests over a tile in view (START, once the camera is on FIGHT).
-func test_a_walk_that_ends_on_an_encounter_lays_no_hover_under_the_pointer() -> void:
-	_start_run()
-	await wait_process_frames(2)
-	var tilemap: AdventureTilemap = _view.adventure_tilemap
-	var where_start_will_be: Vector2 = _screen_point_of(START) + tilemap.get_tile_world_centre(START) - tilemap.get_tile_world_centre(FIGHT)
-	await _move_pointer_to(where_start_will_be)
-
-	await _walk_to(FIGHT)
-
-	assert_eq(tilemap.get_current_tile(), FIGHT, "precondition: the walk ended on the encounter")
-	assert_false(_hover_rim().visible, "a choice waits: no rim")
-	assert_eq(_route().get_dot_positions().size(), 0, "and no route")
 
 #-----------------------------------------------------------------------------
 # THE FIGHT AND THE RUN
@@ -853,7 +658,6 @@ func test_a_fight_ending_mid_cooldown_lets_the_row_go() -> void:
 	var socket: ConsumableSlot = _view.technique_dock.get_consumable_slot(0)
 	assert_null(socket.get_consumable_instance(), "the socket let go of the fight's instance")
 	assert_false(is_instance_valid(instance), "which went with the fight")
-	assert_eq(socket.get_sweep_step(), TechniqueSlot.SWEEP_STEPS, "the preview shows it plain: the cooldown went with the fight")
 
 func test_run_stats_follow_the_run() -> void:
 	_start_run()

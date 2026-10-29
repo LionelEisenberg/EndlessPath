@@ -38,11 +38,14 @@ func test_price_is_zero_without_item() -> void:
 	var entry := MerchantStockEntry.new()
 	assert_eq(entry.get_price(), 0)
 
-func test_stock_limit_zero_is_unlimited() -> void:
-	assert_true(_make_entry(10.0, 0).is_unlimited())
-
-func test_stock_limit_one_is_limited() -> void:
-	assert_false(_make_entry(10.0, 1).is_unlimited())
+## is_unlimited() is true for a stock_limit of 0 and false for a limit of 1.
+func test_only_stock_limit_zero_is_unlimited() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "stock_limit 0", "limit": 0, "expected": true},
+		{"name": "stock_limit 1", "limit": 1, "expected": false},
+	]
+	for case: Dictionary in cases:
+		assert_eq(_make_entry(10.0, case.limit).is_unlimited(), case.expected, "%s unlimited" % case.name)
 
 #-----------------------------------------------------------------------------
 # MERCHANT ACTION DATA

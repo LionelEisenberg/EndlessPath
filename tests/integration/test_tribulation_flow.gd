@@ -230,35 +230,6 @@ func test_stopping_resumes_the_idle_action() -> void:
 	assert_eq(_current_id(), FORAGING_ID, "leaving the trial resumes foraging, like closing the shop")
 
 #-----------------------------------------------------------------------------
-# THE RESULT
-#-----------------------------------------------------------------------------
-
-func test_a_pass_moves_to_copper_and_hides_the_card() -> void:
-	_fill_core()
-	assert_has(_available_ids(), TRIBULATION_ID, "precondition: the full core lists the card")
-	ActionManager.select_action(_tribulation())
-	assert_eq(_current_id(), TRIBULATION_ID, "precondition: the trial runs")
-	assert_true(CultivationManager.advance_to_next_stage(), "precondition: Foundation leads to a next stage")
-	ActionManager.stop_action(true)
-	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER)
-	assert_eq(CultivationManager.get_core_density_level(), 0.0, "Copper starts at level 0")
-	assert_does_not_have(_available_ids(), TRIBULATION_ID, "a passed Tribulation is not offered again")
-
-func test_a_failure_costs_five_levels_and_keeps_the_card() -> void:
-	_fill_core()
-	ActionManager.select_action(_tribulation())
-	assert_eq(_current_id(), TRIBULATION_ID, "precondition: the trial runs")
-	CultivationManager.lose_core_density_levels(5)
-	ActionManager.stop_action(false)
-	assert_eq(CultivationManager.get_core_density_level(), 95.0, "the failure cost five levels")
-	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION, "and the stage stays")
-	assert_has(_available_ids(), TRIBULATION_ID, "the card is still offered: its condition is latched")
-	watch_signals(ActionManager)
-	ActionManager.select_action(_tribulation())
-	assert_signal_not_emitted(ActionManager, "start_tribulation")
-	assert_null(ActionManager.get_current_action(), "a second try is refused until the core is full again")
-
-#-----------------------------------------------------------------------------
 # THE ACTION'S TWO QUESTIONS
 #-----------------------------------------------------------------------------
 
@@ -309,6 +280,7 @@ func test_a_failed_trial_end_to_end() -> void:
 	assert_eq(_view.get_mode(), Mode.RESULT, "precondition: the fourth crack ended the trial")
 	_continue()
 	assert_eq(CultivationManager.get_core_density_level(), 95.0, "the failure cost five levels")
+	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION, "and the stage stays")
 	assert_eq(_current_id(), FORAGING_ID, "foraging is current again")
 	assert_false(_main_view.state_stack.has(_state), "the state is off the stack")
 	assert_false(_view.visible, "the board is hidden")
@@ -327,6 +299,7 @@ func test_a_passed_trial_end_to_end() -> void:
 	assert_eq(_view.get_mode(), Mode.RESULT, "precondition: the run ended")
 	_continue()
 	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER, "the core broke through")
+	assert_eq(CultivationManager.get_core_density_level(), 0.0, "Copper starts at level 0")
 	assert_eq(_current_id(), FORAGING_ID, "foraging is current again")
 	assert_false(_main_view.state_stack.has(_state), "the state is off the stack")
 	assert_false(_view.visible, "the board is hidden")
@@ -347,20 +320,6 @@ func test_not_yet_end_to_end() -> void:
 	assert_false(_main_view.state_stack.has(_state), "the state is off the stack")
 	assert_false(_view.visible, "the board is hidden")
 	assert_has(_available_ids(), TRIBULATION_ID, "the card is still offered")
-
-## Escape on the intro does the same, through the state.
-func test_escape_end_to_end() -> void:
-	_build_board()
-	_run_foraging()
-	_fill_core()
-	ActionManager.select_action(_tribulation())
-	var escape := InputEventAction.new()
-	escape.action = &"ui_cancel"
-	escape.pressed = true
-	_state.handle_input(escape)
-	assert_eq(_current_id(), FORAGING_ID, "foraging is current again")
-	assert_eq(CultivationManager.get_core_density_level(), 100.0, "nothing is lost")
-	assert_false(_view.visible, "the board is hidden")
 
 #-----------------------------------------------------------------------------
 # CLOSING

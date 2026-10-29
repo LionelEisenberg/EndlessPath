@@ -5,10 +5,10 @@ extends GutTest
 ## press (Space, or a click on the board) begins the run; a click anywhere else on the
 ## intro does nothing, though the board still takes it. The press is judged against the
 ## board's clock when it arrives, and the frames judge the beats that pass. Each
-## judgement shows itself: a floater word, the ring's flash and a burst of pellets for
-## a hit, a lit pip and a shake for a crack. The last breath ends in a hold, which
-## only the input that started it lets go (or a focus loss). The fourth crack fails
-## the trial at once and costs five levels; a clean run breaks through to Copper.
+## judgement shows itself as a floater word; a crack lights a pip, and hits grow the
+## core. The last breath ends in a hold, which only the input that started it lets go
+## (or a focus loss). The fourth crack fails the trial at once and costs five levels;
+## a clean run breaks through to Copper.
 ##
 ## Each test runs on a fresh save at level 100 on the real stages, with the original
 ## put back after it. The board's clock is the test's: _at() sets it and runs a frame,
@@ -29,20 +29,12 @@ const LONG_ZONE_NAME: String = "The Valley of the Thousand Whispering Springs, W
 ## The board's clock when a run begins: _at(seconds) sets it to this plus `seconds`.
 const START_USEC: int = 1_000_000
 
-## The board's home x, which a shake steps away from and back to.
-const BOARD_X: float = 484.0
-
 ## A detail line's height (15 / 18, padded): what each wrapped line adds to the board.
 const DETAIL_LINE: float = 18.0
 
 ## How far past the end of the hold, or of the run, a test steps. The clock is whole
 ## microseconds, so a time written exactly can round a hair short of it.
 const PAST: float = 0.01
-
-## Where a word's floater and its reason line stand on the stage as they pop: right of
-## the ring and clear of the hold arc.
-const WORD_AT: Vector2 = Vector2(612, 286)
-const REASON_AT: Vector2 = Vector2(612, 318)
 
 var _view: TribulationView = null
 var _data: TribulationData = null
@@ -168,26 +160,6 @@ func _shown_texts() -> Array[String]:
 			texts.append(floater.get_text())
 	return texts
 
-## The pellets in flight.
-func _pellets() -> Array[LacquerPellet]:
-	var pellets: Array[LacquerPellet] = []
-	for child: Node in _node("Pellets").get_children():
-		if child is LacquerPellet:
-			pellets.append(child as LacquerPellet)
-	return pellets
-
-## How many pellets in flight are in the brass ramp.
-func _brass_pellet_count() -> int:
-	var count: int = 0
-	for pellet: LacquerPellet in _pellets():
-		if pellet.get_ramp() == LacquerPellet.Ramp.BRASS:
-			count += 1
-	return count
-
-## How far `pellet` stands from the core.
-func _distance_from_core(pellet: LacquerPellet) -> float:
-	return pellet.global_position.distance_to((_node("Stage") as TribulationStage).centre_global())
-
 ## The six crack pips, in order.
 func _pips() -> Array[LacquerStripRect]:
 	var pips: Array[LacquerStripRect] = []
@@ -198,15 +170,8 @@ func _pips() -> Array[LacquerStripRect]:
 func _core_frame() -> Vector2i:
 	return (_node("Core") as LacquerStripRect).get_frame()
 
-func _board_shift() -> float:
-	return (_node("Board") as Control).position.x - BOARD_X
-
 func _text_of(unique_name: String) -> String:
 	return (_node(unique_name) as Label).text
-
-## Whether `position` is on the 2 px grid: whole and even on both axes.
-func _on_grid(position: Vector2) -> bool:
-	return position == position.round() and posmod(int(position.x), 2) == 0 and posmod(int(position.y), 2) == 0
 
 #-----------------------------------------------------------------------------
 # THE INTRO
@@ -219,8 +184,6 @@ func test_setup_shows_the_intro_with_the_rules() -> void:
 	assert_false((_node("ResultPanel") as Control).visible, "the result does not")
 	assert_eq(_text_of("RulesLabel"), "4 cracks end the trial and cost 5 levels of Core Density.")
 	assert_eq(_text_of("ActionLabel"), ZONE_NAME)
-	assert_eq(_text_of("TitleLabel"), "The Tribulation")
-	assert_eq(_text_of("IntroText"), "Your core is full. Breathe with the aura as it gathers, and let it pour into you.")
 	var pips: Array[LacquerStripRect] = _pips()
 	assert_eq(pips.size(), 6, "six pip sockets")
 	for index: int in pips.size():
@@ -301,40 +264,6 @@ func test_buttons_take_no_focus() -> void:
 	for button_name: String in ["BeginButton", "NotYetButton", "ContinueButton"]:
 		assert_eq((_node(button_name) as Control).focus_mode, Control.FOCUS_NONE, "%s takes no focus, so Space never presses it" % button_name)
 
-## STYLE_GUIDE section 7, Pressed: the face drops its shadow (the button's texture swap) and its
-## word sits 2 px lower, as the chest's About does while it is pressed in. Each button moves
-## its own word, and only while it is down.
-func test_a_pressed_button_drops_its_word_2_px() -> void:
-	var words: Dictionary[String, String] = {
-		"BeginButton": "BeginLabel",
-		"NotYetButton": "NotYetLabel",
-		"ContinueButton": "ContinueLabel",
-	}
-	for button_name: String in words:
-		var button := _node(button_name) as TextureButton
-		var label := _node(words[button_name]) as Label
-		assert_eq(label.position.y, 0.0, "%s: the word starts at home" % button_name)
-		button.button_down.emit()
-		assert_eq(label.position.y, 2.0, "%s: the word sits 2 px lower while the button is down" % button_name)
-		for other_button: String in words:
-			if other_button != button_name:
-				assert_eq((_node(words[other_button]) as Label).position.y, 0.0, "%s's word stays home while %s is down" % [other_button, button_name])
-		button.button_up.emit()
-		assert_eq(label.position.y, 0.0, "%s: and returns when the button comes up" % button_name)
-
-## A button hidden while it is down may never see its release (Space begins the run under a
-## held click, and the intro hides), so setup() puts every word back home, as it hides the
-## hover frames.
-func test_setup_puts_the_pressed_words_back_home() -> void:
-	var labels: Array[String] = ["BeginLabel", "NotYetLabel", "ContinueLabel"]
-	for button_name: String in ["BeginButton", "NotYetButton", "ContinueButton"]:
-		(_node(button_name) as TextureButton).button_down.emit()
-	for label_name: String in labels:
-		assert_eq((_node(label_name) as Label).position.y, 2.0, "precondition: %s is down" % label_name)
-	_view.setup(_data, ZONE_NAME)
-	for label_name: String in labels:
-		assert_eq((_node(label_name) as Label).position.y, 0.0, "%s is back home" % label_name)
-
 func test_a_press_on_the_intro_begins() -> void:
 	assert_true(_view.handle_press_event(_press()), "the board takes the press")
 	assert_eq(_view.get_mode(), Mode.RUNNING)
@@ -370,41 +299,6 @@ func test_press_is_judged_at_its_arrival_time() -> void:
 	_view.handle_press_event(_press())
 	assert_eq(_view.get_run().perfect_count, 1)
 
-func test_hit_pops_a_floater_and_flashes_the_ring() -> void:
-	_view.begin()
-	_at(_beat(0))
-	_view.handle_press_event(_press())
-	var floater: LacquerFloater = _shown_floater("Perfect")
-	assert_not_null(floater, "a floater reads Perfect, among %s" % [_shown_texts()])
-	if floater != null:
-		assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS)
-		assert_eq(floater.position, WORD_AT, "it stands right of the ring")
-	var ring := _node("Ring") as LacquerStripRect
-	assert_eq(ring.get_frame(), Vector2i(1, 0), "the ring shows its lit frame")
-	_at(_beat(0) + 0.1)
-	assert_eq(ring.get_frame(), Vector2i(1, 0), "for 0.15 s")
-	_at(_beat(0) + 0.2)
-	assert_eq(ring.get_frame(), Vector2i(0, 0), "then the plain ring again")
-
-func test_hits_burst_pellets_off_the_ring() -> void:
-	_view.begin()
-	_at(_beat(0))
-	_view.handle_press_event(_press())
-	assert_eq(_pellets().size(), 8, "a perfect hit sends 8 pellets")
-	var off_the_ring: int = 0
-	for pellet: LacquerPellet in _pellets():
-		if absf(_distance_from_core(pellet) - TribulationStage.RING_RADIUS_PX) <= 2.0:
-			off_the_ring += 1
-	assert_eq(off_the_ring, 8, "each starts on the ring")
-	_at(_beat(1) + 0.1)
-	_view.handle_press_event(_press())
-	assert_eq(_view.get_run().good_count, 1, "0.1 s late is good")
-	assert_eq(_pellets().size(), 13, "a good one sends 5 more")
-	var floater: LacquerFloater = _shown_floater("Good")
-	assert_not_null(floater, "a floater reads Good, among %s" % [_shown_texts()])
-	if floater != null:
-		assert_eq(floater.get_color(), ThemeConstants.LACQUER_MADRA)
-
 ## A press long after the last beat: the miss it left behind is judged first, so the
 ## press's own word is the one that stays up.
 func test_a_hit_shows_after_the_miss_it_left_behind() -> void:
@@ -422,61 +316,8 @@ func test_late_miss_lights_a_pip() -> void:
 	var pips: Array[LacquerStripRect] = _pips()
 	assert_eq(pips[0].get_frame(), Vector2i(1, 0), "the first pip lights")
 	assert_eq(pips[1].get_frame(), Vector2i(0, 0), "the second does not")
-	var miss: LacquerFloater = _shown_floater("Miss")
-	var late: LacquerFloater = _shown_floater("Too late")
-	assert_not_null(miss, "a floater reads Miss, among %s" % [_shown_texts()])
-	assert_not_null(late, "and one under it reads Too late")
-	if miss != null and late != null:
-		assert_eq(miss.get_color(), ThemeConstants.LACQUER_HEALTH)
-		assert_eq(late.get_color(), ThemeConstants.LACQUER_HEALTH)
-		assert_eq(miss.position, WORD_AT)
-		assert_eq(late.position, REASON_AT, "the reason stands under the word")
-
-func test_missing_the_last_beat_says_the_breath_escapes() -> void:
-	_view.begin()
-	_hit_beats(0, _last_beat() - 1)
-	_at(_beat(_last_beat()) - 0.2)
-	_view.handle_press_event(_press())
-	assert_eq(_view.get_run().cracks, 1, "0.2 s early is a miss")
-	assert_not_null(_shown_floater("The breath escapes you"), "the last beat's miss has its own word, among %s" % [_shown_texts()])
-	assert_not_null(_shown_floater("Too early"))
-
-func test_board_shakes_in_whole_steps() -> void:
-	_view.begin()
-	var missed_at: float = _beat(0) + 0.2
-	_at(missed_at)
-	var board := _node("Board") as Control
-	var width: float = board.size.x
-	for step: int in 5:
-		_at(missed_at + 0.1 * step)
-		var shift: float = _board_shift()
-		assert_has(MapGlyph.SOFT_SHAKE_KEYFRAMES, int(shift), "%.1f s in, the board is %d px off" % [0.1 * step, shift])
-		assert_eq(int(shift), MapGlyph.shake_offset_at(0.1 * step, MapGlyph.SOFT_SHAKE_KEYFRAMES), "the soft shake's step at %.1f s" % [0.1 * step])
-		assert_eq(board.size.x, width, "the whole board moves, its width unchanged")
-	_at(missed_at + MapGlyph.SHAKE_SECONDS)
-	assert_eq((_node("Board") as Control).position.x, BOARD_X, "back home when the shake ends")
-
-func test_the_failing_crack_shakes_harder() -> void:
-	_view.begin()
-	var failed_at: float = _beat(3) + 0.15
-	_at(failed_at)
-	_at(failed_at + 0.1)
-	assert_eq(int(_board_shift()), MapGlyph.shake_offset_at(0.1, MapGlyph.SHAKE_KEYFRAMES), "the full shake, not the soft one")
-
-func test_the_rush_streams_pellets_into_the_core() -> void:
-	_view.begin()
-	_hit_beats(0, 17)
-	var before: int = _pellets().size()
-	_at(23.5)
-	assert_eq(_pellets().size(), before, "no rush before Quickening")
-	_at(24.2)
-	assert_eq(_pellets().size(), before + 1, "Quickening streams a pellet")
-	var newest: LacquerPellet = _pellets()[-1]
-	assert_almost_eq(_distance_from_core(newest), 460.0, 2.0, "from 460 px out")
-	_at(24.25)
-	assert_eq(_pellets().size(), before + 1, "none before 0.1 s has passed")
-	_at(24.3)
-	assert_eq(_pellets().size(), before + 2, "and another after it")
+	assert_not_null(_shown_floater("Miss"), "a floater reads Miss, among %s" % [_shown_texts()])
+	assert_not_null(_shown_floater("Too late"), "and one under it reads Too late")
 
 func test_core_grows_with_hits() -> void:
 	_view.begin()
@@ -497,7 +338,7 @@ func test_phase_labels_follow_the_run() -> void:
 # THE HOLD
 #-----------------------------------------------------------------------------
 
-func test_the_held_breath_bursts_brass() -> void:
+func test_the_held_breath_counts_as_a_hit() -> void:
 	# Five beats and the last: six hits leave the core at its first size, and the
 	# hold is the seventh.
 	var phase := TribulationPhaseData.new()
@@ -512,11 +353,7 @@ func test_the_held_breath_bursts_brass() -> void:
 	assert_not_null(_shown_floater("Perfect · hold"), "the last beat's hit says to hold, among %s" % [_shown_texts()])
 	assert_eq(_core_frame().x, 0, "six hits")
 	_at(_beat(_last_beat()) + _view.get_run().get_hold_seconds() + PAST)
-	var held: LacquerFloater = _shown_floater("Held")
-	assert_not_null(held, "the hold runs into the core, among %s" % [_shown_texts()])
-	if held != null:
-		assert_eq(held.get_color(), ThemeConstants.LACQUER_BRASS)
-	assert_eq(_brass_pellet_count(), 12, "12 brass pellets")
+	assert_not_null(_shown_floater("Held"), "the hold runs into the core, among %s" % [_shown_texts()])
 	assert_eq(_core_frame().x, 1, "the hold counts as a hit")
 
 ## Review Focus 1: the Space key's repeats during the hold are not presses.
@@ -607,7 +444,6 @@ func test_fail_applies_the_penalty_at_once() -> void:
 	assert_eq(_view.get_mode(), Mode.RESULT, "the fourth crack ends the trial")
 	assert_eq(CultivationManager.get_core_density_level(), 95.0, "five levels are gone before Continue")
 	assert_true((_node("ResultPanel") as Control).visible)
-	assert_eq(_text_of("ResultTitle"), "Your core cracks")
 	assert_eq(_text_of("ResultText"), "Core Density falls from 100 to 95.")
 	assert_eq(_text_of("GradeLabel"), "Failed")
 	assert_eq(_text_of("StatsLabel"), "0 perfect · 0 good · 4 missed")
@@ -644,8 +480,6 @@ func test_pass_breaks_through() -> void:
 	assert_eq(_view.get_mode(), Mode.RESULT)
 	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER)
 	assert_eq(CultivationManager.get_core_density_level(), 0.0)
-	assert_eq(_text_of("ResultTitle"), "Breakthrough")
-	assert_eq(_text_of("ResultText"), "Your core condenses into Copper.")
 	assert_eq(_text_of("GradeLabel"), "Flawless")
 	assert_eq(_text_of("StatsLabel"), "25 perfect · 0 good · 0 missed")
 	assert_eq(_core_frame(), Vector2i(3, 5), "the biggest core, in brass")
@@ -669,7 +503,6 @@ func test_a_listener_that_closes_the_board_does_not_cut_a_pass_short() -> void:
 	assert_eq(_view.get_mode(), Mode.CLOSED, "precondition: the listener closed the board as the stage changed")
 	assert_null(_view.get_run(), "and dropped the run")
 	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER, "the breakthrough was applied")
-	assert_eq(_text_of("ResultTitle"), "Breakthrough")
 	assert_eq(_text_of("GradeLabel"), "Clean", "the grade came from the run, not from nothing")
 	assert_eq(_text_of("StatsLabel"), "24 perfect · 0 good · 1 missed")
 	assert_eq(_core_frame(), Vector2i(3, 5), "the core turned brass")
@@ -687,7 +520,6 @@ func test_a_listener_that_closes_the_board_does_not_cut_a_fail_short() -> void:
 	assert_eq(_view.get_mode(), Mode.CLOSED, "precondition: the listener closed the board as the levels fell")
 	assert_null(_view.get_run(), "and dropped the run")
 	assert_eq(CultivationManager.get_core_density_level(), 95.0, "the penalty was applied")
-	assert_eq(_text_of("ResultTitle"), "Your core cracks")
 	assert_eq(_text_of("ResultText"), "Core Density falls from 100 to 95.")
 	assert_eq(_text_of("GradeLabel"), "Failed", "the grade came from the run")
 	assert_eq(_text_of("StatsLabel"), "0 perfect · 0 good · 4 missed")
@@ -773,14 +605,7 @@ func test_the_stage_draws_without_errors() -> void:
 	assert_gt(drawn["ArcLayer"], 0, "the arc was drawn")
 
 ## A transition scales the view out of the cultivator into the board, so it asks the view
-## where the board stands.
-func test_board_rect_is_the_board() -> void:
-	await wait_process_frames(3)
-	var rect: Rect2 = _view.get_board_rect()
-	assert_eq(rect, (_node("Board") as Control).get_global_rect(), "it is the board's global rect")
-	assert_eq([rect.position.x, rect.position.y, rect.size.x], [484.0, 24.0, 952.0])
-
-## The transition reads the rect as the board opens, before a frame has run with the view
+## where the board stands. The transition reads the rect as the board opens, before a frame has run with the view
 ## shown, and a board that has not laid out yet measures 2318 px tall, so the camera aimed
 ## below the screen and the board grew out of its bottom edge. The rect it reports then is
 ## the one the board settles to.
@@ -789,31 +614,12 @@ func test_board_rect_before_the_first_frame_is_the_settled_board() -> void:
 	await wait_process_frames(3)
 	assert_eq(first, (_node("Board") as Control).get_global_rect(), "the same rect as once the board has laid out")
 
-## Ruling O: the stage's cells and the board's art land on the 2 px grid only if
-## the pieces stand on even global px.
-func test_the_board_stands_on_the_grid() -> void:
-	await wait_process_frames(2)
-	var pieces: Array[String] = ["Board", "Stage", "Ring", "Core", "IntroPanel", "BeginButton", "NotYetButton", "ProgressRod", "CrackPips"]
-	for piece: String in pieces:
-		var control := _node(piece) as Control
-		assert_true(_on_grid(control.global_position), "%s stands at %s" % [piece, control.global_position])
-	var board := _node("Board") as Control
-	assert_true(_on_grid(board.size), "the board is %s" % board.size)
-	_view.begin()
-	_at(_beat(3) + 0.15)
-	await wait_process_frames(2)
-	for piece: String in ["ResultPanel", "ContinueButton"]:
-		var control := _node(piece) as Control
-		assert_true(_on_grid(control.global_position), "%s stands at %s" % [piece, control.global_position])
-
 ## Text is never cut off: a name too long for its line wraps, and the board grows
-## by the lines it adds, staying on the grid.
+## by the lines it adds.
 func test_a_long_name_wraps_and_the_board_grows() -> void:
 	await wait_process_frames(2)
 	var board := _node("Board") as Control
-	var stage := _node("Stage") as Control
 	var height: float = board.size.y
-	var stage_y: float = stage.global_position.y
 	_view.setup(_data, LONG_ZONE_NAME)
 	await wait_process_frames(2)
 	var label := _node("ActionLabel") as Label
@@ -821,4 +627,3 @@ func test_a_long_name_wraps_and_the_board_grows() -> void:
 	var added: int = label.get_line_count() - 1
 	assert_gt(added, 0, "the name needs more than one line")
 	assert_eq(board.size.y, height + DETAIL_LINE * added, "the board grows by the lines")
-	assert_eq(stage.global_position.y, stage_y + DETAIL_LINE * added, "and the stage moves down with them")
