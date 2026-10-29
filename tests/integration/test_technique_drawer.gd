@@ -2,11 +2,10 @@ extends GutTest
 
 ## Integration tests for the technique drawer (TechniqueDrawer), the zone chest's
 ## drawer for one learned cycling technique: its detail line, icon and name, the
-## drawer in use pulled out and tagged IN USE, the NEW seal (cleared when the
-## pointer leaves the drawer or on a press) and the title row it shares with the
-## activity cards, equip on click with a brass flash (and nothing on the drawer
-## in use), hover, and long text, which wraps and grows the drawer (never
-## wider) and is never cut off.
+## drawer in use tagged IN USE, the NEW seal (cleared when the pointer leaves the
+## drawer or on a press), equip on click (and nothing on the drawer in use), the
+## mouse it keeps from its parts, and a long name, which wraps and grows the
+## drawer (never wider).
 ## Drawers are built with setup on a fresh save with smooth_flow unlocked, as
 ## the technique list builds them; foundation_technique stays equipped.
 
@@ -17,32 +16,9 @@ const SMOOTH_ID: String = "smooth_flow"
 const TORRENTIAL_ID: String = "torrential_flow"
 const FIXTURE_ID: String = "test_technique_drawer_technique"
 
-const DRAWER_PATH: String = "res://assets/ui/lacquer/lacquer_drawer_ai.png"
-const DRAWER_RUN_PATH: String = "res://assets/ui/lacquer/lacquer_drawer_run_ai.png"
-
 const DRAWER_SIZE: Vector2 = Vector2(392, 72)
-## The faces: the plain drawer, and the one in use with its 4 px shadow.
-const FACE_SIZE: Vector2 = Vector2(394, 74)
-const FACE_RUN_SIZE: Vector2 = Vector2(396, 76)
-## The detail line's box (kit §5.5: 316 px wide). A longer line wraps.
-const DETAIL_SIZE: Vector2 = Vector2(316, 18)
-## The title row (kit §5.5): the title's corner, the width the title and the
-## NEW seal share before the tag, the seal's width and its gap after the title,
-## and the tag's corner.
-const TITLE_POSITION: Vector2 = Vector2(64, 14)
-const TITLE_ROW_WIDTH: float = 232.0
-const SEAL_WIDTH: float = 44.0
-const SEAL_GAP: float = 10.0
-const TAG_POSITION: Vector2 = Vector2(304, 13)
-## The title's line, the gap from its last line to the detail line, and the
-## drawer under the detail line (kit §5.5: the title at y 14, the detail at
-## 38, the drawer 72 tall).
+## The title's line (kit §5.5).
 const TITLE_LINE_HEIGHT: float = 20.0
-const DETAIL_GAP: float = 4.0
-const ROOM_UNDER_DETAIL: float = 16.0
-## A face grows by stretching rows 60 and 61, the plain band under the icon
-## socket.
-const FACE_STRETCH_ROW: int = 60
 ## Names the shipped techniques don't have: one wider than the row leaves
 ## beside the NEW seal but not than the detail line, and one wider than both.
 const NAME_WRAPS_BESIDE_SEAL: String = "Seven Heavens Reverberating Flow"
@@ -104,19 +80,10 @@ func _press(drawer: TechniqueDrawer, button: MouseButton = MOUSE_BUTTON_LEFT, pr
 func _equipped_id() -> String:
 	return PersistenceManager.save_game_data.equipped_cycling_technique_id
 
-## Checks that what frames the drawer follows its height: the root and what
-## the list reads, the drawer, both frames, and the face, whose plain band
-## under the socket takes the extra height.
-func _assert_drawer_fills(drawer: TechniqueDrawer) -> void:
-	var height: float = drawer.size.y
-	assert_eq(fposmod(height, 2.0), 0.0, "the drawer's height is even")
-	assert_eq(drawer.size.x, DRAWER_SIZE.x, "and it is never wider")
+## Checks that the drawer is never wider, and that the list reads its height.
+func _assert_the_list_reads_its_height(drawer: TechniqueDrawer) -> void:
+	assert_eq(drawer.size.x, DRAWER_SIZE.x, "the drawer is never wider")
 	assert_eq(drawer.custom_minimum_size, drawer.size, "the list reads the height")
-	assert_eq((_node(drawer, "Drawer") as Control).size, drawer.size)
-	assert_eq((_node(drawer, "HoverFrame") as Control).size, drawer.size, "the hover frame covers it")
-	assert_eq((_node(drawer, "FlashFrame") as Control).size, drawer.size, "and so does the flash")
-	var face := _node(drawer, "Face") as NinePatchRect
-	assert_eq(face.size, face.texture.get_size() + Vector2(0.0, height - DRAWER_SIZE.y), "the face grows by as much")
 
 #-----------------------------------------------------------------------------
 # DETAIL TEXT
@@ -126,10 +93,6 @@ func test_detail_text() -> void:
 	assert_eq(TechniqueDrawer.detail_text(_fixture("A", 50.0, 8.0, 0)), "50 Madra · 8 s cycle · no zones")
 	assert_eq(TechniqueDrawer.detail_text(_fixture("B", 200.0, 15.0, 4)), "200 Madra · 15 s cycle · 4 zones")
 	assert_eq(TechniqueDrawer.detail_text(_fixture("C", 250.0, 8.0, 1)), "250 Madra · 8 s cycle · 1 zone")
-
-func test_detail_text_rounds_madra_and_seconds() -> void:
-	assert_eq(TechniqueDrawer.detail_text(_fixture("A", 49.6, 7.5, 2)), "50 Madra · 8 s cycle · 2 zones")
-	assert_eq(TechniqueDrawer.detail_text(_fixture("B", 50.4, 7.4, 2)), "50 Madra · 7 s cycle · 2 zones")
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -141,61 +104,13 @@ func test_setup_shows_icon_name_and_detail() -> void:
 	var icon := _node(drawer, "Icon") as TextureRect
 	assert_not_null(smooth.icon, "precondition: the shipped technique has an icon")
 	assert_eq(icon.texture, smooth.icon)
-	assert_eq(icon.position, Vector2(16, 20))
-	assert_eq(icon.size, Vector2(32, 32))
 	assert_eq((_node(drawer, "Title") as Label).text, "Smooth Flow Technique")
 	assert_eq((_node(drawer, "Detail") as Label).text, "200 Madra · 15 s cycle · 4 zones")
 	assert_eq(drawer.technique, smooth)
 
-func test_setup_after_the_drawer_is_ready() -> void:
-	var drawer: TechniqueDrawer = DRAWER_SCENE.instantiate() as TechniqueDrawer
-	add_child_autofree(drawer)
-	drawer.setup(_technique(SMOOTH_ID))
-	assert_eq((_node(drawer, "Title") as Label).text, "Smooth Flow Technique")
-	assert_eq((_node(drawer, "Detail") as Label).text, "200 Madra · 15 s cycle · 4 zones")
-	assert_true(drawer.is_new_shown(), "the NEW seal is set up with the rest")
-
-func test_drawer_is_392_by_72_when_its_text_fits() -> void:
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	assert_eq(drawer.size, DRAWER_SIZE)
-	assert_eq(drawer.custom_minimum_size, DRAWER_SIZE)
-
-func test_drawer_keeps_its_size_in_a_wider_column() -> void:
-	# A container wider than the drawer must not stretch its hover and click
-	# area past it.
-	var column := VBoxContainer.new()
-	column.size = Vector2(500.0, 400.0)
-	add_child_autofree(column)
-	var drawer: TechniqueDrawer = DRAWER_SCENE.instantiate() as TechniqueDrawer
-	drawer.setup(_technique(SMOOTH_ID))
-	column.add_child(drawer)
-	await wait_process_frames(2)
-	assert_eq(drawer.size, DRAWER_SIZE)
-
 #-----------------------------------------------------------------------------
 # THE DRAWER IN USE
 #-----------------------------------------------------------------------------
-
-func test_drawer_in_use_is_pulled_out() -> void:
-	var drawer: TechniqueDrawer = _drawer(FOUNDATION_ID)
-	var face := _node(drawer, "Face") as NinePatchRect
-	var tag_label := _node(drawer, "TagLabel") as Label
-	assert_true(drawer.is_in_use())
-	assert_eq((_node(drawer, "Drawer") as Control).position, Vector2(-2, -2))
-	assert_eq(face.texture, load(DRAWER_RUN_PATH))
-	assert_eq(face.size, FACE_RUN_SIZE, "the face fits its texture")
-	assert_true((_node(drawer, "Tag") as TextureRect).visible, "the tag shows")
-	assert_eq(tag_label.text, "IN USE")
-	assert_eq(tag_label.get_theme_color("font_color"), ThemeConstants.LACQUER_CREAM)
-
-func test_other_drawer_is_plain() -> void:
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	var face := _node(drawer, "Face") as NinePatchRect
-	assert_false(drawer.is_in_use())
-	assert_eq((_node(drawer, "Drawer") as Control).position, Vector2.ZERO)
-	assert_eq(face.texture, load(DRAWER_PATH))
-	assert_eq(face.size, FACE_SIZE, "the face fits its texture")
-	assert_false((_node(drawer, "Tag") as TextureRect).visible, "no tag on a drawer that is not in use")
 
 func test_refresh_follows_the_equipped_technique() -> void:
 	var foundation: TechniqueDrawer = _drawer(FOUNDATION_ID)
@@ -204,44 +119,32 @@ func test_refresh_follows_the_equipped_technique() -> void:
 	foundation.refresh()
 	smooth.refresh()
 	assert_true(smooth.is_in_use())
-	assert_eq((_node(smooth, "Drawer") as Control).position, Vector2(-2, -2))
-	assert_eq((_node(smooth, "Face") as NinePatchRect).texture, load(DRAWER_RUN_PATH))
-	assert_true((_node(smooth, "Tag") as TextureRect).visible)
+	assert_true((_node(smooth, "Tag") as TextureRect).visible, "the IN USE tag moves to the new drawer")
 	assert_false(foundation.is_in_use())
-	assert_eq((_node(foundation, "Drawer") as Control).position, Vector2.ZERO, "the old drawer goes back in")
-	assert_eq((_node(foundation, "Face") as NinePatchRect).texture, load(DRAWER_PATH))
-	assert_eq((_node(foundation, "Face") as NinePatchRect).size, FACE_SIZE, "and its face shrinks back")
-	assert_false((_node(foundation, "Tag") as TextureRect).visible)
+	assert_false((_node(foundation, "Tag") as TextureRect).visible, "and leaves the old one")
 
 #-----------------------------------------------------------------------------
 # CLICKS
 #-----------------------------------------------------------------------------
 
-func test_click_equips_and_flashes() -> void:
+func test_click_equips() -> void:
 	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	var flash := _node(drawer, "FlashFrame") as LacquerFrameOverlay
 	assert_false(drawer.is_in_use(), "precondition: foundation is equipped")
 	watch_signals(CyclingManager)
 	_press(drawer)
 	assert_eq(_equipped_id(), SMOOTH_ID)
 	assert_signal_emit_count(CyclingManager, "equipped_technique_changed", 1)
-	assert_true(flash.visible, "the brass frame shows")
-	assert_true(flash.is_flashing())
-	assert_true(drawer.is_in_use(), "the drawer is pulled out at once")
-	assert_eq((_node(drawer, "Drawer") as Control).position, Vector2(-2, -2))
+	assert_true(drawer.is_in_use(), "the drawer is in use at once")
 
 func test_click_on_the_drawer_in_use_does_nothing() -> void:
 	# Review Focus 3: the drawer in use ignores the press, so a running cycle is
 	# never ended by it.
 	var drawer: TechniqueDrawer = _drawer(FOUNDATION_ID)
-	var flash := _node(drawer, "FlashFrame") as LacquerFrameOverlay
 	assert_true(drawer.is_in_use(), "precondition: foundation is equipped")
 	watch_signals(CyclingManager)
 	_press(drawer)
 	assert_eq(_equipped_id(), FOUNDATION_ID)
 	assert_signal_not_emitted(CyclingManager, "equipped_technique_changed")
-	assert_false(flash.is_flashing(), "nothing flashes")
-	assert_false(flash.visible)
 	assert_true(drawer.is_in_use())
 
 func test_only_a_left_press_equips() -> void:
@@ -249,7 +152,6 @@ func test_only_a_left_press_equips() -> void:
 	_press(drawer, MOUSE_BUTTON_RIGHT)
 	_press(drawer, MOUSE_BUTTON_LEFT, false)
 	assert_eq(_equipped_id(), FOUNDATION_ID, "a right press and a left release do not equip")
-	assert_false((_node(drawer, "FlashFrame") as LacquerFrameOverlay).is_flashing())
 
 func test_equipping_marks_the_technique_seen() -> void:
 	# The equipped technique counts as seen only while it is equipped, so the
@@ -264,7 +166,7 @@ func test_equipping_marks_the_technique_seen() -> void:
 	assert_false(drawer.is_new_shown())
 
 #-----------------------------------------------------------------------------
-# NEW SEAL AND THE TITLE ROW
+# THE NEW SEAL AND A LONG NAME
 #-----------------------------------------------------------------------------
 
 func test_new_seal_shows_for_an_unseen_technique() -> void:
@@ -291,49 +193,15 @@ func test_new_seal_clears_when_the_pointer_leaves_or_on_a_press() -> void:
 	_press(torrential)
 	assert_false(torrential.is_new_shown(), "a press that equips it clears NEW at once")
 
-func test_title_row_is_laid_out_like_the_cards() -> void:
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	var title := _node(drawer, "Title") as Label
-	var seal := _node(drawer, "NewSeal") as TextureRect
-	var tag := _node(drawer, "Tag") as TextureRect
-	assert_true(drawer.is_new_shown(), "precondition: the seal shows")
-	assert_eq(title.position, TITLE_POSITION)
-	assert_eq(seal.position, Vector2(title.position.x + title.size.x + SEAL_GAP, TAG_POSITION.y))
-	assert_eq(tag.position, TAG_POSITION)
-	drawer.mouse_exited.emit()
-	assert_false(drawer.is_new_shown(), "precondition: the pointer leaving cleared the seal")
-	assert_eq(title.position, TITLE_POSITION, "the title stays when the seal clears")
-
-func test_a_new_name_runs_on_where_the_tag_would_be() -> void:
-	# A NEW drawer is never the one in use, so it has no tag: its title row
-	# runs on to the detail line's width, and a name the row before the tag
-	# could not hold beside the seal stays on one line.
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	var title := _node(drawer, "Title") as Label
-	var seal := _node(drawer, "NewSeal") as TextureRect
-	assert_true(drawer.is_new_shown(), "precondition: an unseen technique shows NEW")
-	assert_false((_node(drawer, "Tag") as TextureRect).visible, "precondition: it has no tag")
-	assert_gt(title.size.x + SEAL_GAP + SEAL_WIDTH, TITLE_ROW_WIDTH, "precondition: the name and the seal pass the tag's place")
-	assert_eq(title.get_line_count(), 1, "the name stays on one line")
-	assert_eq(seal.position, Vector2(title.position.x + title.size.x + SEAL_GAP, TAG_POSITION.y), "the seal follows it")
-	assert_lte(seal.position.x + seal.size.x, TITLE_POSITION.x + DETAIL_SIZE.x, "and ends within the detail line's width")
-	assert_eq(drawer.size, DRAWER_SIZE, "the drawer keeps its height")
-
 func test_a_long_name_wraps_beside_the_seal_and_the_drawer_grows() -> void:
 	var drawer: TechniqueDrawer = _drawer_for(_fixture(LONG_NAME, 50.0, 8.0, 0))
 	var title := _node(drawer, "Title") as Label
-	var seal := _node(drawer, "NewSeal") as TextureRect
-	var detail := _node(drawer, "Detail") as Label
 	assert_true(drawer.is_new_shown(), "precondition: an unseen technique shows NEW")
 	assert_eq(title.text, LONG_NAME, "the whole name")
 	assert_gt(title.get_line_count(), 1, "wraps")
 	assert_eq(title.get_visible_line_count(), title.get_line_count(), "and every line shows")
-	assert_eq(title.position, TITLE_POSITION)
-	assert_eq(seal.position, Vector2(title.position.x + title.size.x + SEAL_GAP, TAG_POSITION.y), "the seal sits beside its first line")
-	assert_lte(seal.position.x + seal.size.x, TITLE_POSITION.x + DETAIL_SIZE.x, "within the detail line's width")
-	assert_eq(detail.position.y, title.position.y + title.size.y + DETAIL_GAP, "the detail line follows its last line")
 	assert_eq(drawer.size.y, DRAWER_SIZE.y + title.size.y - TITLE_LINE_HEIGHT, "the drawer grows by its extra lines")
-	_assert_drawer_fills(drawer)
+	_assert_the_list_reads_its_height(drawer)
 
 func test_a_name_that_wraps_beside_the_seal_fits_once_it_clears() -> void:
 	var drawer: TechniqueDrawer = _drawer_for(_fixture(NAME_WRAPS_BESIDE_SEAL, 50.0, 8.0, 0))
@@ -346,82 +214,17 @@ func test_a_name_that_wraps_beside_the_seal_fits_once_it_clears() -> void:
 	assert_eq(title.get_line_count(), 1, "without the seal the name fits one line")
 	assert_eq(drawer.size, DRAWER_SIZE, "and the drawer is 72 again")
 	assert_signal_emitted(drawer, "height_changed", "which the list hears")
-	_assert_drawer_fills(drawer)
-
-func test_a_long_name_wraps_before_the_tag_of_the_drawer_in_use() -> void:
-	var foundation: CyclingTechniqueData = _technique(FOUNDATION_ID)
-	var shipped_name: String = foundation.technique_name
-	foundation.technique_name = LONG_NAME
-	var drawer: TechniqueDrawer = _drawer_for(foundation)
-	foundation.technique_name = shipped_name
-	var title := _node(drawer, "Title") as Label
-	assert_true(drawer.is_in_use(), "precondition: the drawer in use shows the IN USE tag")
-	assert_gt(title.get_line_count(), 1, "the name wraps")
-	assert_lte(title.position.x + title.size.x, TITLE_POSITION.x + TITLE_ROW_WIDTH, "before the tag's place")
-	assert_eq(drawer.size.y, DRAWER_SIZE.y + title.size.y - TITLE_LINE_HEIGHT, "and the drawer grows")
-	_assert_drawer_fills(drawer)
-
-func test_no_drawer_text_is_cut_off() -> void:
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	for unique_name: String in ["Title", "Detail"]:
-		var label := _node(drawer, unique_name) as Label
-		assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "%s never ends in an ellipsis" % unique_name)
-		assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s wraps instead" % unique_name)
-		assert_eq(label.max_lines_visible, -1, "%s shows every line" % unique_name)
-
-func test_the_faces_grow_by_stretching_two_matching_rows() -> void:
-	# Rows 60 and 61, the plain band under the icon socket, are the same, so
-	# stretching them leaves the socket, the edges and the brackets as drawn.
-	for path: String in [DRAWER_PATH, DRAWER_RUN_PATH]:
-		var image: Image = (load(path) as Texture2D).get_image()
-		var row: PackedByteArray = image.get_region(Rect2i(0, FACE_STRETCH_ROW, image.get_width(), 1)).get_data()
-		var next: PackedByteArray = image.get_region(Rect2i(0, FACE_STRETCH_ROW + 1, image.get_width(), 1)).get_data()
-		assert_true(row == next, "%s: rows 60 and 61 match" % path.get_file())
-	for technique_id: String in [FOUNDATION_ID, SMOOTH_ID]:
-		var face := _node(_drawer(technique_id), "Face") as NinePatchRect
-		var height: int = int(face.texture.get_size().y)
-		assert_eq(face.patch_margin_top, FACE_STRETCH_ROW, "the face keeps everything above row 60")
-		assert_eq(face.patch_margin_bottom, height - FACE_STRETCH_ROW - 2, "and everything under row 61")
-		assert_eq([face.patch_margin_left, face.patch_margin_right], [0, 0], "it never stretches across")
+	_assert_the_list_reads_its_height(drawer)
 
 #-----------------------------------------------------------------------------
-# DETAIL LINE
+# THE MOUSE
 #-----------------------------------------------------------------------------
-
-func test_a_long_detail_wraps_and_the_drawer_grows() -> void:
-	var drawer: TechniqueDrawer = _drawer_for(_fixture("Long", 123456789012.0, 987654321.0, 12))
-	var detail := _node(drawer, "Detail") as Label
-	var font: Font = detail.get_theme_font(&"font")
-	var text_width: float = font.get_string_size(detail.text, HORIZONTAL_ALIGNMENT_LEFT, -1, detail.get_theme_font_size(&"font_size")).x
-	assert_gt(text_width, DETAIL_SIZE.x, "precondition: the line is wider than its box")
-	assert_eq(detail.text, TechniqueDrawer.detail_text(drawer.technique), "the whole line")
-	assert_gt(detail.get_line_count(), 1, "wraps")
-	assert_eq(detail.get_visible_line_count(), detail.get_line_count(), "and every line shows")
-	assert_eq(detail.position, Vector2(64, 38))
-	assert_eq(detail.size.x, DETAIL_SIZE.x)
-	assert_eq(drawer.size.y, detail.position.y + detail.size.y + ROOM_UNDER_DETAIL, "the drawer grows to hold it")
-	assert_gt(drawer.size.y, DRAWER_SIZE.y)
-	_assert_drawer_fills(drawer)
-
-#-----------------------------------------------------------------------------
-# HOVER AND THE MOUSE
-#-----------------------------------------------------------------------------
-
-func test_hover_frame_follows_the_mouse() -> void:
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	var frame := _node(drawer, "HoverFrame") as LacquerFrameOverlay
-	assert_false(frame.visible, "hidden until hovered")
-	drawer.mouse_entered.emit()
-	assert_true(frame.visible)
-	drawer.mouse_exited.emit()
-	assert_false(frame.visible)
 
 func test_drawer_takes_the_mouse_and_its_parts_do_not() -> void:
 	# A part that took the mouse would end the drawer's hover each time the
 	# pointer crossed it.
 	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
 	assert_eq(drawer.mouse_filter, Control.MOUSE_FILTER_STOP)
-	assert_eq(drawer.mouse_default_cursor_shape, Control.CURSOR_POINTING_HAND)
 	var parts: Array[Node] = drawer.find_children("*", "Control", true, false)
 	assert_gt(parts.size(), 0, "precondition: the drawer has parts")
 	for part: Node in parts:

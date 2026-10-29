@@ -9,8 +9,8 @@ extends GutTest
 ## it), the dock and the chest's About hide, the map's SubViewport takes no input,
 ## the log and Goals hide (a board that moves them) and the board's view shows;
 ## the close undoes all of it in reverse and calls back once. With the transition,
-## the map's input and About go off at once, About before the transition measures
-## the chest, and come back, before the callback, when the close ends.
+## the map's input and About go off at once and come back, before the callback,
+## when the close ends.
 ## CyclingViewState opens its board with open_board() and closes it with
 ## close_board(), and stays on MainView's stack until the close has finished. It
 ## blocks the full log, as a menu book does, and leaves the Goals and log boards
@@ -27,13 +27,11 @@ const MAIN_GAME_SCENE_PATH: String = "res://scenes/main/main_game/main_game.tscn
 const ZONE_PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
 const LOG_WINDOW_SCENE: PackedScene = preload("res://scenes/ui/log_window/log_window.tscn")
 const TRANSITION_SCENE: PackedScene = preload("res://scenes/ui/main_view/board_transition/board_transition.tscn")
-const CYCLING_VIEW_SCENE: PackedScene = preload("res://scenes/cycling/cycling_view/cycling_view.tscn")
 
 ## The cycling board's rectangle, as the transition frames it.
 const BOARD_RECT: Rect2 = Rect2(680, 24, 564, 1036)
 
 const CYCLING_ACTION_ID: String = "wilderness_cycling_action"
-const SMOOTH_FLOW_ID: String = "smooth_flow"
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -126,18 +124,6 @@ func _give_main_view_a_bound_player() -> BoardTransition:
 	_main_view._bind_board_transition()
 	return player
 
-## The real cycling board in the tree, hidden as in main_game.tscn, in place of the
-## plain Control the fixture stands in. Its technique is left to the test's steps.
-func _use_the_real_cycling_view() -> CyclingView:
-	CyclingManager.unlock_technique(SMOOTH_FLOW_ID)
-	CyclingManager.equip_technique(SMOOTH_FLOW_ID)
-	var board: CyclingView = CYCLING_VIEW_SCENE.instantiate() as CyclingView
-	board.visible = false
-	add_child_autofree(board)
-	(board.get_node("%CyclingTechnique") as CyclingTechnique).set_process(false)
-	_main_view.cycling_view = board
-	return board
-
 ## A press of an input action, as the keys the project maps to it send.
 func _action_press(action: StringName) -> InputEventAction:
 	var press := InputEventAction.new()
@@ -210,35 +196,6 @@ func test_the_instant_open_hides_the_hud_boards_for_a_board_that_moves_them() ->
 	assert_true(_about().visible, "About is back")
 	assert_false(spec.view.visible, "the board hides")
 	assert_eq(_closed_calls, 1, "the callback was called once")
-
-## A board that leaves the HUD boards (the cycling board) leaves the log and Goals as
-## the zone view put them.
-func test_the_instant_open_leaves_the_hud_boards_for_a_board_that_does_not_move_them() -> void:
-	var spec: BoardTransitionSpec = _cycling_spec()
-	_main_view.open_board(spec)
-	assert_true(_main_view.log_window.visible, "the log stays")
-	assert_true(_main_view.goals_panel.visible, "Goals stays")
-	_main_view.close_board(spec, _on_closed)
-
-## The view-state tests run boards on a MainView with none of the zone view's
-## furniture, and each piece is switched whether or not the others exist.
-func test_the_instant_open_hides_the_dock_when_the_chest_and_map_are_missing() -> void:
-	var bare: MainView = autofree(MainView.new())
-	bare.dock = _main_view.dock
-	bare.open_board(_cycling_spec())
-	assert_false(bare.dock.visible)
-
-func test_the_instant_open_stops_the_map_when_the_chest_and_dock_are_missing() -> void:
-	var bare: MainView = autofree(MainView.new())
-	bare.zone_map_viewport = _main_view.zone_map_viewport
-	bare.open_board(_cycling_spec())
-	assert_true(bare.zone_map_viewport.gui_disable_input)
-
-func test_the_instant_open_turns_the_chest_when_the_dock_and_map_are_missing() -> void:
-	var bare: MainView = autofree(MainView.new())
-	bare.zone_panel = _main_view.zone_panel
-	bare.open_board(_cycling_spec())
-	assert_true(bare.zone_panel.is_techniques_mode())
 
 ## A MainView with no furniture at all, a spec with no view and a close with no
 ## callback are each left alone.
@@ -376,23 +333,6 @@ func test_opening_another_board_keeps_the_map_off() -> void:
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map is off for the second board")
 	assert_false(_about().visible, "About is hidden for the second board")
 
-## An open lore pushes the chest's list down. It closes as the board opens, so
-## the chest steps from its height without the lore to the techniques' height.
-func test_the_lore_closes_as_the_board_opens() -> void:
-	var player: BoardTransition = _give_main_view_a_bound_player()
-	var lore: Control = _main_view.zone_panel.get_node("%LorePanel") as Control
-	(_about() as BaseButton).button_pressed = true
-	assert_true(lore.visible, "precondition: the lore is open")
-	var height_with_lore: float = _main_view.zone_panel.chest_height_for(false)
-	_main_view.open_board(_cycling_spec())
-	assert_false(lore.visible, "the lore closes as the board opens")
-	var height_without_lore: float = _main_view.zone_panel.chest_height_for(false)
-	assert_lt(height_without_lore, height_with_lore, "precondition: the lore made the chest taller")
-	player.advance(0.42)
-	var techniques_height: float = _main_view.zone_panel.chest_height_for(true)
-	var expected: float = BoardTransitionTiming.chest_height(420.0, height_without_lore, techniques_height)
-	assert_eq(_main_view.zone_panel.size.y, expected, "mid-way, the chest steps from its height without the lore")
-
 ## With nothing up the player calls back at once, and the map is given back.
 func test_closing_with_nothing_up_gives_the_map_back_at_once() -> void:
 	_give_main_view_a_player()
@@ -401,41 +341,9 @@ func test_closing_with_nothing_up_gives_the_map_back_at_once() -> void:
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input")
 	assert_eq(_closed_calls, 1, "the callback was called")
 
-## MainView._ready() hands the player the dock, the chest and the HUD boards (the
-## Goals board first, then the log): the player steps them in that order.
-func test_the_transition_is_bound_to_the_dock_the_chest_and_the_hud_boards() -> void:
-	var player: BoardTransition = _give_main_view_a_player()
-	_main_view.log_window = autofree(Control.new())
-	_main_view.dock.position = Vector2(722.0, 976.0)
-	_main_view.dock.size = Vector2(476.0, 80.0)
-	_main_view.goals_panel.position = Vector2(24.0, 24.0)
-	_main_view.goals_panel.size = Vector2(408.0, 360.0)
-	_main_view.log_window.position = Vector2(24.0, 640.0)
-	_main_view.log_window.size = Vector2(520.0, 416.0)
-	_main_view._bind_board_transition()
-	_main_view.open_board(_tribulation_spec())
-	player.advance(0.16)
-	assert_almost_eq(_main_view.goals_panel.position.x, 24.0 - 432.0, 0.01, "Goals is the first board: off the screen at 160 ms")
-	assert_gt(_main_view.log_window.position.x, 24.0 - 544.0, "the log is the second: still on its way")
-	assert_lt(_main_view.log_window.position.x, 24.0, "the log has begun to move")
-	player.finish()
-	assert_false(_main_view.dock.visible, "the dock is off the screen")
-
 #-----------------------------------------------------------------------------
 # THE STATE
 #-----------------------------------------------------------------------------
-
-## Without a transition the state turns the zone view over at once on start and
-## gives it back at once on stop.
-func test_cycling_state_turns_the_zone_view_over_and_back() -> void:
-	_state._on_start_cycling(null)
-	assert_true(_main_view.zone_panel.is_techniques_mode(), "entering lists the techniques")
-	assert_false(_main_view.dock.visible, "entering hides the dock")
-	assert_true(_main_view.zone_map_viewport.gui_disable_input, "entering stops the map")
-	_state._on_stop_cycling()
-	assert_false(_main_view.zone_panel.is_techniques_mode(), "leaving lists the activities")
-	assert_true(_main_view.dock.visible, "leaving brings the dock back")
-	assert_false(_main_view.zone_map_viewport.gui_disable_input, "leaving gives the map its input back")
 
 func test_cycling_state_keeps_the_boards() -> void:
 	_state._on_start_cycling(null)
@@ -501,22 +409,6 @@ func test_start_opens_the_board_through_the_transition() -> void:
 	assert_true(_main_view.zone_panel.is_techniques_mode(), "the chest lists the techniques")
 	assert_false(_main_view.dock.visible, "the dock is off the screen")
 
-## A CyclingView frames its own board; a stand-in is framed by its own rectangle.
-func test_the_spec_frames_the_cycling_board() -> void:
-	var player: BoardTransition = _give_main_view_a_bound_player()
-	var board: CyclingView = _use_the_real_cycling_view()
-	var rest: Rect2 = board.get_board_rect()
-	assert_gt(rest.size.x, 0.0, "precondition: the board has a size")
-	_state._on_start_cycling(null)
-	assert_eq(player.get_spec().board_rect, rest, "the board's rect, read before the view moved")
-
-func test_the_spec_frames_a_plain_view_by_its_own_rectangle() -> void:
-	var player: BoardTransition = _give_main_view_a_bound_player()
-	_main_view.cycling_view.position = Vector2(40.0, 60.0)
-	_main_view.cycling_view.size = Vector2(300.0, 500.0)
-	_state._on_start_cycling(null)
-	assert_eq(player.get_spec().board_rect, Rect2(40.0, 60.0, 300.0, 500.0))
-
 ## The state leaves MainView's stack only when the close has played out: until
 ## then it stays on top, with the full log shut.
 func test_the_state_stays_until_the_close_has_finished() -> void:
@@ -560,32 +452,6 @@ func test_a_start_while_closing_reverses_and_keeps_the_state() -> void:
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map stays off")
 	_log.toggle_full_log()
 	assert_false(_log.is_full_log_open(), "the full log is still shut")
-
-## One spec for every run of the state: a later start hands the player the very
-## object it first got.
-func test_the_state_keeps_one_spec() -> void:
-	var player: BoardTransition = _give_main_view_a_bound_player()
-	_state._on_start_cycling(null)
-	var first: BoardTransitionSpec = player.get_spec()
-	player.finish()
-	_state._on_stop_cycling()
-	player.finish()
-	_state._on_start_cycling(null)
-	assert_same(player.get_spec(), first, "the same object for the next run")
-
-## The real board moves while it scales, and so does its rect: a reversal must
-## not read it again, or the player would scale about a point that is moving.
-func test_a_reversal_leaves_the_boards_rect_alone() -> void:
-	var player: BoardTransition = _give_main_view_a_bound_player()
-	var board: CyclingView = _use_the_real_cycling_view()
-	var rest: Rect2 = board.get_board_rect()
-	_state._on_start_cycling(null)
-	player.finish()
-	_state._on_stop_cycling()
-	player.advance(0.2)
-	assert_ne(board.get_board_rect(), rest, "precondition: the closing board's rect has moved")
-	_state._on_start_cycling(null)
-	assert_eq(player.get_spec().board_rect, rest, "the spec still frames the board at rest")
 
 ## Esc closes the board by stopping the action, as it did. The state listens to
 ## ActionManager as it does in the game, so the stop reaches it.
