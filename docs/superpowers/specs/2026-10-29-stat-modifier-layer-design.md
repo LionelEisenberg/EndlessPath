@@ -103,11 +103,22 @@ It is a Resource so a later elixir or script definition can list its modifiers i
 - `docs/infrastructure/CHARACTER.md`:
   - totals come from the modifier layer; describe `get_stat()`, the `Stat` enum, `stats_changed`, sources, the additive stacking rule and its order;
   - derived vitals live on `CharacterAttributesData`;
+  - the InventoryManager dependency row: `CharacterManager` reads equipped gear from its own save and listens to `inventory_changed`;
   - drop the player-vitals-ignore-gear bug.
+- `docs/infrastructure/RESOURCES.md`:
+  - the adventure capacity rows cite `CharacterManager.get_stat(MAX_MADRA)`;
+  - the file table lists `CharacterAttributesData`'s three vitals getters.
 - `docs/combat/COMBAT.md`:
   - the vitals table cites `CharacterAttributesData.get_max_health()` / `get_max_stamina()` / `get_max_madra()` and the player's `get_stat()`;
+  - the test-gaps line no longer names `max_health_for()`;
   - drop the gear bug.
+- `docs/adventuring/ADVENTURING.md`: the Here tray paragraph and the "No enemy Health before a fight" item cite `CharacterAttributesData.get_max_health()` instead of `VitalsManager.max_health_for()`.
 - `docs/cultivation/CULTIVATION.md`: the adventure capacity row reads `CharacterManager.get_stat(MAX_MADRA)`.
-- `docs/zones/ZONES.md`: the adventure-gate paragraph cites `get_stat(MAX_MADRA)`.
+- `docs/zones/ZONES.md`:
+  - the `AdventurePresenter` row refreshes on `CharacterManager.stats_changed`;
+  - the adventure-start paragraph cites `get_stat(MAX_MADRA)`.
+- `docs/planned/SOULSMITHING.md`: the stats pipeline is the modifier layer's gear source (`EquipmentDefinitionData.get_stat_modifiers()`), not `_get_attribute_bonuses()`.
 - `docs/progression/PATH_PROGRESSION.md`, Work Remaining: perks plug in as a modifier source.
 - `docs/STATE_OF_THE_GAME.md` and `docs/CODEBASE_STATE.md` (at the next milestone refresh): remove "Player max vitals ignore equipment".
+
+Historical records (`docs/inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md`, `docs/testing/TEST_SUITE_PROMPT.md`) keep their old names.
