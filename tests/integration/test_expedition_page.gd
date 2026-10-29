@@ -296,7 +296,7 @@ func test_here_line_for_a_fight_names_the_enemy() -> void:
 	assert_eq(ExpeditionPage.here_line(AMORPHOUS_SPIRIT_ENCOUNTER), "Fight · Amorphous Spirit")
 
 ## The enemy's Health is not on the tray (it may come back as an unlockable). The
-## rule that finds it stays: VitalsManager.max_health_for(), tested in
+## rule that finds it stays: CharacterAttributesData.get_max_health(), tested in
 ## test_fight_rules.gd.
 func test_here_line_leaves_the_enemys_health_out() -> void:
 	var enemy: CombatantData = _enemy("Big Beast", 10.15)

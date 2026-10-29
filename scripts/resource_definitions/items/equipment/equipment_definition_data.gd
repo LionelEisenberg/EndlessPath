@@ -34,6 +34,19 @@ func _init() -> void:
 	item_type = ItemType.EQUIPMENT
 
 #-----------------------------------------------------------------------------
+# STAT MODIFIERS
+#-----------------------------------------------------------------------------
+
+## The item's attribute bonuses as flat stat modifiers, one per bonus, for
+## CharacterManager's gear source.
+func get_stat_modifiers() -> Array[StatModifierData]:
+	var modifiers: Array[StatModifierData] = []
+	for attr_type: int in attribute_bonuses:
+		modifiers.append(StatModifierData.new(
+			StatModifierData.for_attribute(attr_type), StatModifierData.Kind.FLAT, attribute_bonuses[attr_type]))
+	return modifiers
+
+#-----------------------------------------------------------------------------
 # TOOLTIP
 #-----------------------------------------------------------------------------
 

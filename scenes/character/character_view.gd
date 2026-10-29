@@ -7,8 +7,9 @@ extends MenuBookView
 ## last attribute pointed at; Strength is shown when the book opens.
 
 ## What the right page says about each attribute: a description and the
-## formulas it feeds, written to match the code (VitalsManager,
-## CharacterAttributesData.get_max_madra, CombatEffectData.calculate_damage).
+## formulas it feeds. The vitals formulas are built from
+## CharacterAttributesData's constants, the rules every VitalsManager runs; the
+## defense ones are written to match CombatEffectData.calculate_damage.
 ## Abilities that scale with the attribute are added from their data.
 const ATTRIBUTE_DETAILS: Dictionary = {
 	CharacterAttributesData.AttributeType.STRENGTH: {
@@ -17,7 +18,10 @@ const ATTRIBUTE_DETAILS: Dictionary = {
 	},
 	CharacterAttributesData.AttributeType.BODY: {
 		"description": "Physical constitution. Determines your health and stamina pools.",
-		"formulas": ["Max Health = Body × 10", "Max Stamina = Body × 5"],
+		"formulas": [
+			"Max Health = Body × %d" % CharacterAttributesData.HEALTH_PER_BODY,
+			"Max Stamina = Body × %d" % CharacterAttributesData.STAMINA_PER_BODY,
+		],
 	},
 	CharacterAttributesData.AttributeType.AGILITY: {
 		"description": "Speed and precision. Scales technique-based damage.",
@@ -33,7 +37,7 @@ const ATTRIBUTE_DETAILS: Dictionary = {
 	},
 	CharacterAttributesData.AttributeType.FOUNDATION: {
 		"description": "Depth of your Madra channels. Determines your Madra capacity.",
-		"formulas": ["Max Madra = Foundation × 10"],
+		"formulas": ["Max Madra = Foundation × %d" % CharacterAttributesData.MADRA_PER_FOUNDATION],
 	},
 	CharacterAttributesData.AttributeType.CONTROL: {
 		"description": "Mastery over your techniques. Will reduce ability cooldowns.",

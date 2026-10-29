@@ -163,3 +163,24 @@ func test_has_item_id_field() -> void:
 	var equip = EquipmentDefinitionData.new()
 	equip.item_id = "iron_sword_01"
 	assert_eq(equip.item_id, "iron_sword_01")
+
+#-----------------------------------------------------------------------------
+# STAT MODIFIERS
+#-----------------------------------------------------------------------------
+
+func test_get_stat_modifiers_turns_bonuses_into_flat_modifiers() -> void:
+	var equip := EquipmentDefinitionData.new()
+	equip.attribute_bonuses = {
+		CharacterAttributesData.AttributeType.BODY: 4.0,
+		CharacterAttributesData.AttributeType.RESILIENCE: 2.0,
+	}
+	var values: Dictionary = {}
+	for modifier: StatModifierData in equip.get_stat_modifiers():
+		assert_eq(modifier.kind, StatModifierData.Kind.FLAT)
+		values[modifier.stat] = modifier.value
+	assert_eq(values.size(), 2)
+	assert_eq(values.get(StatModifierData.Stat.BODY), 4.0)
+	assert_eq(values.get(StatModifierData.Stat.RESILIENCE), 2.0)
+
+func test_get_stat_modifiers_without_bonuses_is_empty() -> void:
+	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers().size(), 0)

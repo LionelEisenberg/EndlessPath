@@ -1,7 +1,7 @@
 extends GutTest
 
 ## The two rules a fight runs on: an enemy's max Health
-## (VitalsManager.max_health_for(), Body x 10) and what a win pays
+## (CharacterAttributesData.get_max_health(), Body x 10) and what a win pays
 ## (AdventureCombat.gold_reward_for()). The chest's Here tray and choice drawers
 ## no longer quote either figure (the developer asked for less in the chest), but
 ## the rules stay for what may bring them back: the Health as an unlockable, the
@@ -90,17 +90,17 @@ func _on_combat_end(is_successful: bool, gold_earned: int) -> void:
 func test_max_health_is_body_times_ten() -> void:
 	var attributes := CharacterAttributesData.new()
 	attributes.body = 12.0
-	assert_eq(VitalsManager.max_health_for(attributes), 120.0, "Body 12 is 120 Health")
+	assert_eq(attributes.get_max_health(), 120.0, "Body 12 is 120 Health")
 
 	var vitals := VitalsManager.new()
 	vitals.character_attributes_data = attributes
 	add_child_autofree(vitals)
 	assert_eq(vitals.max_health, 120.0, "the manager's max Health, once it is ready")
-	assert_eq(vitals.max_health, VitalsManager.max_health_for(attributes), "is the rule's answer")
+	assert_eq(vitals.max_health, attributes.get_max_health(), "is the rule's answer")
 
 func test_max_health_reads_only_body() -> void:
 	var attributes := CharacterAttributesData.new(99.0, 7.5, 99.0, 99.0, 99.0, 99.0, 99.0, 99.0)
-	assert_eq(VitalsManager.max_health_for(attributes), 75.0, "Body 7.5 is 75 Health, whatever the rest is")
+	assert_eq(attributes.get_max_health(), 75.0, "Body 7.5 is 75 Health, whatever the rest is")
 
 func test_a_manager_follows_the_rule_when_its_attributes_change() -> void:
 	var vitals := VitalsManager.new()
@@ -112,7 +112,7 @@ func test_a_manager_follows_the_rule_when_its_attributes_change() -> void:
 	attributes = CharacterAttributesData.new()
 	attributes.body = 20.0
 	vitals.character_attributes_data = attributes
-	assert_eq(vitals.max_health, VitalsManager.max_health_for(attributes))
+	assert_eq(vitals.max_health, attributes.get_max_health())
 	assert_eq(vitals.max_health, 200.0)
 
 #-----------------------------------------------------------------------------

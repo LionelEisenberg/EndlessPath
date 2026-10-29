@@ -5,8 +5,7 @@ extends Node
 # TYPE ALIASES
 #-----------------------------------------------------------------------------
 
-# Use the AttributeType from CharacterAttributesData
-const AttributeType = CharacterAttributesData.AttributeType
+const Stat = StatModifierData.Stat
 
 #-----------------------------------------------------------------------------
 # CHARACTER ADVENTURE DATA REFERENCES
@@ -61,9 +60,8 @@ func _ready() -> void:
 		Log.warn("VitalsManager: is_player and character_attributes_data should never be set at the same time")
 	
 	if is_player:
-		var f = func(_attr_type, _new_value): character_attributes_data = CharacterManager.get_total_attributes_data()
-		CharacterManager.base_attribute_changed.connect(f)
-		f.call(null, 0.0)
+		CharacterManager.stats_changed.connect(_on_stats_changed)
+		_on_stats_changed()
 
 func _process(delta: float) -> void:
 	if health_regen != 0:
@@ -74,9 +72,9 @@ func _process(delta: float) -> void:
 		_apply_madra_change(madra_regen * delta)
 
 func _update_combat_max() -> void:
-	max_health = _get_max_health()
-	max_stamina = _get_max_stamina()
-	max_madra = _get_max_madra()
+	max_health = character_attributes_data.get_max_health()
+	max_stamina = character_attributes_data.get_max_stamina()
+	max_madra = character_attributes_data.get_max_madra()
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -92,16 +90,18 @@ func apply_vitals_change(health_amount: float = 0.0, stamina_amount: float = 0.0
 	_apply_stamina_change(stamina_amount)
 	_apply_madra_change(madra_amount)
 
-## Returns the maximum Health the attributes give: Body x 10. A combatant's
-## manager uses it for its own max_health, and the adventure chest quotes it
-## for an enemy it has not met yet, so both read the one rule.
-static func max_health_for(attributes: CharacterAttributesData) -> float:
-	return attributes.get_attribute(AttributeType.BODY) * 10.0
-
 
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## The player's maxima are CharacterManager's derived vitals, so gear and any
+## other modifier source count as well as the base. An enemy's come from its
+## own character_attributes_data instead.
+func _on_stats_changed() -> void:
+	max_health = CharacterManager.get_stat(Stat.MAX_HEALTH)
+	max_stamina = CharacterManager.get_stat(Stat.MAX_STAMINA)
+	max_madra = CharacterManager.get_stat(Stat.MAX_MADRA)
 
 ## Adds or subtracts health, clamping to 0 and max health
 func _apply_health_change(amount: float) -> void:
@@ -126,15 +126,3 @@ func _apply_madra_change(amount: float) -> void:
 		if abs(current_madra - new_madra) > 1.0:
 			Log.info("VitalsManager: Madra changed by %.1f from %.1f to %.1f" % [amount, current_madra, new_madra])
 	current_madra = new_madra
-
-## Calculate maximum health based on Body attribute
-func _get_max_health() -> float:
-	return max_health_for(character_attributes_data)
-
-## Calculate maximum stamina based on Body attribute
-func _get_max_stamina() -> float:
-	return character_attributes_data.get_attribute(AttributeType.BODY) * 5.0
-
-## Calculate maximum madra based on Foundation attribute
-func _get_max_madra() -> float:
-	return character_attributes_data.get_max_madra()

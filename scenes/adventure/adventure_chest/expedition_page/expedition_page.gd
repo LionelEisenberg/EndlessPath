@@ -275,7 +275,7 @@ static func kind_tag(type: AdventureEncounter.EncounterType) -> String:
 ## Returns the Here tray's line for an unresolved encounter. A fight reads
 ## "<kind> · <enemy>": the kind word and the name of the first enemy of its first
 ## combat choice (the one AdventureCombat fights). The enemy's Health is left
-## out (it may come back as an unlockable; VitalsManager.max_health_for() is the
+## out (it may come back as an unlockable; CharacterAttributesData.get_max_health() is the
 ## rule for it). Any other encounter, and a fight with no enemy to name, reads
 ## its kind word.
 static func here_line(encounter: AdventureEncounter) -> String:
