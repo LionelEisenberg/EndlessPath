@@ -1,0 +1,55 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/title_menu/title_menu_button/title_menu_button.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://b12ec7dcq4rp2" path="res://assets/ui/lacquer/lacquer_drawer9_ai.png" id="3_drawer"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="4_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="5_frame_hover"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
+
+[node name="TitleMenuButton" type="Button" unique_id=1630477212]
+custom_minimum_size = Vector2(320, 48)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 320.0
+offset_bottom = 48.0
+size_flags_horizontal = 4
+theme = ExtResource("2_theme")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
+flat = true
+script = ExtResource("1_script")
+
+[node name="Face" type="NinePatchRect" parent="." unique_id=1093384817]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 2.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_drawer")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 6
+patch_margin_bottom = 6
+
+[node name="WordsLabel" type="Label" parent="." unique_id=1752913694]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelLacquerName"
+text = "Button"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HoverFrame" parent="." unique_id=1268931455 instance=ExtResource("4_frame")]
+unique_name_in_owner = true
+theme_override_styles/panel = ExtResource("5_frame_hover")

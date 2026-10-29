@@ -36,6 +36,7 @@
 [ext_resource type="PackedScene" uid="uid://cncex23qq8b18" path="res://scenes/tribulation/tribulation_view.tscn" id="35_tv"]
 [ext_resource type="PackedScene" uid="uid://cbt4rn5wq2k7h" path="res://scenes/ui/main_view/board_transition/board_transition.tscn" id="36_bt"]
 [ext_resource type="PackedScene" uid="uid://dt1g35yptbrw5" path="res://scenes/ui/view_dissolve/view_dissolve.tscn" id="36_vd"]
+[ext_resource type="PackedScene" path="res://scenes/ui/title_menu/title_menu.tscn" id="37_title"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"
@@ -309,3 +310,5 @@ adventure_view = NodePath("../AdventureView")
 wait_time = 5.0
 autostart = true
 script = ExtResource("4_11so6")
+
+[node name="TitleMenu" parent="." unique_id=1734582291 instance=ExtResource("37_title")]

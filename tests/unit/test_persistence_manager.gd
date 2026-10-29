@@ -221,6 +221,32 @@ func test_missing_save_is_created() -> void:
 	if written != null:
 		assert_eq(written.save_version, SaveGameData.CURRENT_VERSION, "a new save is written at the current version")
 
+## The title menu offers Continue only for a save that was there at launch.
+func test_opened_new_save_says_whether_the_save_was_there() -> void:
+	var missing := _make_manager(_path("opened_new_missing"))
+	_boot(missing)
+	assert_true(missing.opened_new_save(), "a path with no save gets a new one")
+	missing.use_save(SaveGameData.new_current(), missing.save_path)
+	assert_false(missing.opened_new_save(), "a save bound with use_save() was not opened")
+
+	var readable_path := _path("opened_new_readable")
+	_write(readable_path, READABLE_SAVE_TEXT % "SpiritValley")
+	var readable := _make_manager(readable_path)
+	_boot(readable)
+	assert_false(readable.opened_new_save(), "a save read from disk was there")
+
+	var unreadable_path := _path("opened_new_unreadable")
+	_write(unreadable_path, UNREADABLE_SAVE_TEXT)
+	var unreadable := _make_manager(unreadable_path)
+	_boot(unreadable)
+	_expect_load_errors()
+	assert_false(unreadable.opened_new_save(), "a save that would not load was there")
+
+	var reopened := _make_manager(_path("opened_new_reopened"))
+	_boot(reopened)
+	reopened.open_save_file(reopened.save_path)
+	assert_false(reopened.opened_new_save(), "the save the first open wrote is there the second time")
+
 func test_readable_save_loads_without_a_backup() -> void:
 	var path := _path("readable")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
