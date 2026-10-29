@@ -352,6 +352,8 @@ func test_inventory_starts_empty() -> void:
 	assert_eq(_inventory.equipped_gear.size(), 0, "equipped gear should start empty")
 	assert_eq(_inventory.equipped_accessories.size(), 0, "equipped accessories should start empty")
 	assert_eq(_inventory.materials.size(), 0, "materials should start empty")
+	assert_eq(_inventory.consumables.size(), 0, "consumables should start empty")
+	assert_true(_inventory.consumables is Dictionary, "consumables should be a Dictionary")
 
 # Equipment capacity (unlocked pages x InventoryData.SLOTS_PER_PAGE) is covered
 # by test_inventory_data_pagination.gd and test_inventory_manager_pages.gd.
@@ -359,13 +361,6 @@ func test_inventory_starts_empty() -> void:
 #-----------------------------------------------------------------------------
 # ITEM_AWARDED SIGNAL CONTRACT
 #-----------------------------------------------------------------------------
-
-func test_item_awarded_signal_exists() -> void:
-	# Verify the InventoryManager script defines the item_awarded signal
-	var mgr = Node.new()
-	mgr.set_script(load("res://singletons/inventory_manager/inventory_manager.gd"))
-	assert_true(mgr.has_signal("item_awarded"), "InventoryManager should have item_awarded signal")
-	mgr.free()
 
 func test_item_awarded_signal_emits_on_award() -> void:
 	var test_item := _make_equipment(EquipmentSlot.MAIN_HAND, "Signal Test Sword")
@@ -403,18 +398,18 @@ func test_award_quest_item_stacks() -> void:
 func test_has_item_false_when_inventory_empty() -> void:
 	assert_false(InventoryManager.has_item("nothing"), "empty inventory should report no items")
 
-func test_has_item_true_for_quest_item() -> void:
-	InventoryManager.award_items(_make_quest_item("quest_test_x"), 1)
-
-	assert_true(InventoryManager.has_item("quest_test_x"), "should find the quest item by id")
+## has_item() finds an awarded quest item and an awarded material by their ids,
+## and matches no other id.
+func test_has_item_true_for_quest_item_and_material() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "quest item", "item": _make_quest_item("quest_test_x"), "quantity": 1},
+		{"name": "material", "item": _make_material("Mat Test X"), "quantity": 5},
+	]
+	for case: Dictionary in cases:
+		var item: ItemDefinitionData = case.item
+		InventoryManager.award_items(item, case.quantity)
+		assert_true(InventoryManager.has_item(item.item_id), "should find the %s by id" % case.name)
 	assert_false(InventoryManager.has_item("unrelated_id"), "other ids should not match")
-
-func test_has_item_true_for_material() -> void:
-	var mat := _make_material("Mat Test X")
-
-	InventoryManager.award_items(mat, 5)
-
-	assert_true(InventoryManager.has_item(mat.item_id), "should find the material by id")
 
 func test_has_item_true_for_equipped_gear() -> void:
 	var def := _make_equipment(EquipmentSlot.MAIN_HAND, "Test Gear")

@@ -44,6 +44,8 @@ func test_get_item_effects_returns_one_line_per_effect() -> void:
 
 	assert_eq(lines.size(), 2, "should return one line per effect when cooldown is 0")
 	assert_true(lines[0].contains("CountingEffect"), "line should include effect _to_string")
+	for line in lines:
+		assert_false(line.contains("Cooldown"), "no cooldown line when cooldown_seconds == 0")
 
 func test_get_item_effects_includes_cooldown_line_when_positive() -> void:
 	var def := ConsumableDefinitionData.new()
@@ -55,13 +57,3 @@ func test_get_item_effects_includes_cooldown_line_when_positive() -> void:
 	assert_eq(lines.size(), 2, "should return effect line + cooldown line")
 	assert_true(lines[1].contains("Cooldown"), "second line should mention Cooldown")
 	assert_true(lines[1].contains("10"), "second line should include the cooldown value")
-
-func test_get_item_effects_omits_cooldown_line_when_zero() -> void:
-	var def := ConsumableDefinitionData.new()
-	def.effects = [CountingEffect.new()]
-	def.cooldown_seconds = 0.0
-
-	var lines := def._get_item_effects()
-
-	for line in lines:
-		assert_false(line.contains("Cooldown"), "no cooldown line when cooldown_seconds == 0")

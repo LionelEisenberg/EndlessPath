@@ -242,7 +242,7 @@ func test_buy_disabled_when_gold_short() -> void:
 		assert_true(row.get_node("%BuyButton").disabled, "%s needs gold" % row.get_entry().entry_id)
 	var scale_reason: Label = _row_for(view, "crude_scale").get_node("%BlockReasonLabel")
 	assert_true(scale_reason.visible)
-	assert_eq(scale_reason.text, "Need 10 more gold")
+	assert_eq(scale_reason.text, MerchantStockRow.MSG_NEED_GOLD % 10)
 
 func test_rows_refresh_when_gold_changes() -> void:
 	ResourceManager.set_gold(0.0)
@@ -273,7 +273,7 @@ func test_gear_rows_read_equipment_full() -> void:
 	var dagger_row := _row_for(view, "makeshift_dagger")
 	var reason: Label = dagger_row.get_node("%BlockReasonLabel")
 	assert_true(reason.visible)
-	assert_eq(reason.text, "Equipment full")
+	assert_eq(reason.text, MerchantStockRow.MSG_EQUIPMENT_FULL)
 	assert_true(dagger_row.get_node("%BuyButton").disabled, "gear can't be bought without a free slot")
 	assert_false(_row_for(view, "crude_scale").get_node("%BuyButton").disabled, "Crude Scales don't take an equipment slot")
 
@@ -285,7 +285,7 @@ func test_buy_press_purchases_and_reports() -> void:
 	dagger_row.get_node("%BuyButton").pressed.emit()
 	assert_eq(ResourceManager.get_gold(), 40.0)
 	assert_true(InventoryManager.has_item("makeshift_dagger"))
-	assert_eq(view.get_node("%StatusLabel").text, "Bought Makeshift Dagger.")
+	assert_eq(view.get_node("%StatusLabel").text, MerchantView.MSG_BOUGHT % "Makeshift Dagger")
 	assert_true(dagger_row.get_node("%SoldOutLabel").visible)
 	assert_false(dagger_row.get_node("%BuyButton").visible)
 
@@ -459,7 +459,7 @@ func test_hovering_buy_shows_the_gold_left_after() -> void:
 	_buy_button(view, "crude_scale").mouse_entered.emit()
 	var after: Label = view.get_node("%GoldAfterLabel")
 	assert_true(after.visible)
-	assert_eq(after.text, "205 left")
+	assert_eq(after.text, MerchantView.MSG_GOLD_LEFT % 205)
 	assert_false((view.get_node("%GoldShortLabel") as Label).visible)
 
 func test_hovering_a_disabled_buy_shows_the_shortfall() -> void:
@@ -469,7 +469,7 @@ func test_hovering_a_disabled_buy_shows_the_shortfall() -> void:
 	_buy_button(view, "reinforced_robes").mouse_entered.emit()
 	var short: Label = view.get_node("%GoldShortLabel")
 	assert_true(short.visible)
-	assert_eq(short.text, "80 short")
+	assert_eq(short.text, MerchantView.MSG_GOLD_SHORT % 80)
 	assert_false((view.get_node("%GoldAfterLabel") as Label).visible)
 
 func test_leaving_buy_clears_the_preview() -> void:
@@ -487,4 +487,4 @@ func test_preview_follows_a_purchase() -> void:
 	view.setup(_merchant_action())
 	_buy_button(view, "crude_scale").mouse_entered.emit()
 	_buy_button(view, "crude_scale").pressed.emit()
-	assert_eq((view.get_node("%GoldAfterLabel") as Label).text, "195 left", "with 205 left, the next scale leaves 195")
+	assert_eq((view.get_node("%GoldAfterLabel") as Label).text, MerchantView.MSG_GOLD_LEFT % 195, "with 205 left, the next scale leaves 195")
