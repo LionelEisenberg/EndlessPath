@@ -43,3 +43,16 @@ The first pass cut the six UI, HUD and dev-tool areas from 1,912 tests to 995, a
 | Dev tools | 331 | 245 |
 
 Dev tools kept the most, because their save-safety tests and the dev commands' rules stay: presets, the story route and other tests build on those commands.
+
+A second pass covered the logic the first one left alone, under a stricter bar: no behaviour loses its check. It folded tests that call one function with different inputs into table tests, with every case kept and named in its assert message. It also deleted true duplicates, and cut wording pins, shipped values nothing depends on, and the layout checks left in small UI files. The suite went from 2,318 to 2,040, and from 1,317 to 1,039 tests in the files it covered. Four more files were deleted, each holding only colour, size or shipped-value checks: book style data, the merchant theme, the Crude Scale values and the paper tag.
+
+| Area | Before | After |
+|---|---|---|
+| Cultivation, resources, character | 256 | 198 |
+| Inventory, items, merchant | 280 | 220 |
+| Zones, quests, unlocks | 204 | 157 |
+| Saves, persistence, small views | 216 | 178 |
+| Combat and adventure | 193 | 144 |
+| Cycling and Tribulation logic | 168 | 142 |
+
+Enum value tests stay where `.tres` files or saves store the ints. `test_story_route.gd`, `test_dev_hooks.gd` and `test_save_round_trip.gd` were left as they are.
