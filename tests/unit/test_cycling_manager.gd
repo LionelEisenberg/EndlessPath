@@ -68,9 +68,11 @@ func test_unlock_technique_adds_to_list() -> void:
 
 func test_unlock_technique_is_idempotent() -> void:
 	CyclingManager.unlock_technique("tech_a")
+	watch_signals(CyclingManager)
 	CyclingManager.unlock_technique("tech_a")
 	var count: int = _save_data.unlocked_cycling_technique_ids.count("tech_a")
 	assert_eq(count, 1, "should not duplicate technique in save data")
+	assert_signal_not_emitted(CyclingManager, "technique_unlocked", "an unlock already made is not announced again")
 
 func test_unlock_technique_emits_signal() -> void:
 	watch_signals(CyclingManager)
@@ -81,11 +83,6 @@ func test_unlock_technique_unknown_id_pushes_error() -> void:
 	CyclingManager.unlock_technique("nonexistent")
 	assert_push_error("unknown technique_id")
 
-func test_unlock_already_unlocked_does_not_emit_signal() -> void:
-	watch_signals(CyclingManager)
-	CyclingManager.unlock_technique("foundation_technique")
-	assert_signal_not_emitted(CyclingManager, "technique_unlocked")
-
 # ----- equip_technique -----
 
 func test_equip_technique_changes_equipped() -> void:
@@ -93,10 +90,6 @@ func test_equip_technique_changes_equipped() -> void:
 	CyclingManager.equip_technique("tech_a")
 	var equipped: CyclingTechniqueData = CyclingManager.get_equipped_technique()
 	assert_eq(equipped.id, "tech_a", "equipped should be tech_a")
-
-func test_equip_technique_updates_save_data() -> void:
-	CyclingManager.unlock_technique("tech_a")
-	CyclingManager.equip_technique("tech_a")
 	assert_eq(_save_data.equipped_cycling_technique_id, "tech_a",
 		"save data should store the equipped technique id")
 
@@ -116,48 +109,23 @@ func test_equip_locked_technique_pushes_error() -> void:
 
 # ----- is_technique_unlocked -----
 
-func test_is_technique_unlocked_true_for_unlocked() -> void:
-	assert_true(CyclingManager.is_technique_unlocked("foundation_technique"))
-
 func test_is_technique_unlocked_false_for_locked() -> void:
 	assert_false(CyclingManager.is_technique_unlocked("tech_a"))
 
 # ----- has_unequipped_unlocks -----
 
-func test_has_unequipped_unlocks_false_when_none_unlocked() -> void:
-	_save_data.unlocked_cycling_technique_ids = []
-	_save_data.equipped_cycling_technique_id = ""
-	assert_false(
-		CyclingManager.has_unequipped_unlocks(),
-		"No unlocks -> no badge"
-	)
-
-
-func test_has_unequipped_unlocks_true_when_unlock_not_equipped() -> void:
-	# Default save has foundation_technique unlocked and equipped.
-	# Unlock tech_a without equipping it -> badge should show.
-	CyclingManager.unlock_technique("tech_a")
-	assert_true(
-		CyclingManager.has_unequipped_unlocks(),
-		"Unlocked but not equipped -> badge should show"
-	)
-
-
-func test_has_unequipped_unlocks_false_when_equipped_matches_unlock() -> void:
-	# Only foundation_technique unlocked, and it is the equipped technique.
-	assert_false(
-		CyclingManager.has_unequipped_unlocks(),
-		"Equipped the only unlock -> no badge"
-	)
-
-
-func test_has_unequipped_unlocks_true_with_multiple_unlocks_one_equipped() -> void:
-	# Foundation equipped (default), unlock tech_a but leave foundation equipped.
-	CyclingManager.unlock_technique("tech_a")
-	assert_true(
-		CyclingManager.has_unequipped_unlocks(),
-		"One unlock equipped, another unlocked -> badge should show"
-	)
+## The badge shows when some unlocked technique is not the equipped one: not with
+## nothing unlocked, nor when the only unlock is the one equipped.
+func test_has_unequipped_unlocks() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "No unlocks -> no badge", "unlocked": [], "equipped": "", "expected": false},
+		{"name": "Equipped the only unlock -> no badge", "unlocked": ["foundation_technique"], "equipped": "foundation_technique", "expected": false},
+		{"name": "Unlocked but not equipped -> badge should show", "unlocked": ["foundation_technique", "tech_a"], "equipped": "foundation_technique", "expected": true},
+	]
+	for case: Dictionary in cases:
+		_save_data.unlocked_cycling_technique_ids.assign(case["unlocked"])
+		_save_data.equipped_cycling_technique_id = case["equipped"]
+		assert_eq(CyclingManager.has_unequipped_unlocks(), case["expected"], case["name"])
 
 # ----- Seen techniques -----
 

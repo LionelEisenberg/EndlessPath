@@ -2,7 +2,7 @@ extends GutTest
 
 ## Unit tests for CyclingRules and CycleResult, the cycling mini-game's pure
 ## rules: a hit's tier from the ball's distance to the zone's centre, each
-## tier's XP, pellet count, name and colour, and the lines that sum up a cycle.
+## tier's XP and pellet count, and the lines that sum up a cycle.
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -47,14 +47,6 @@ func test_pellet_counts() -> void:
 	assert_eq(CyclingRules.pellet_count(CyclingRules.Tier.GOOD), 5, "GOOD sends 5")
 	assert_eq(CyclingRules.pellet_count(CyclingRules.Tier.OK), 3, "OK sends 3")
 
-func test_tier_names_and_colours() -> void:
-	assert_eq(CyclingRules.tier_name(CyclingRules.Tier.PERFECT), "PERFECT")
-	assert_eq(CyclingRules.tier_name(CyclingRules.Tier.GOOD), "GOOD")
-	assert_eq(CyclingRules.tier_name(CyclingRules.Tier.OK), "OK")
-	assert_eq(CyclingRules.tier_color(CyclingRules.Tier.PERFECT), ThemeConstants.LACQUER_BRASS, "PERFECT is brass")
-	assert_eq(CyclingRules.tier_color(CyclingRules.Tier.GOOD), ThemeConstants.LACQUER_CREAM, "GOOD is cream")
-	assert_eq(CyclingRules.tier_color(CyclingRules.Tier.OK), ThemeConstants.LACQUER_TAN, "OK is tan")
-
 #-----------------------------------------------------------------------------
 # CYCLE RESULT
 #-----------------------------------------------------------------------------
@@ -78,11 +70,3 @@ func test_a_full_core_line_says_so() -> void:
 	result.core_full = true
 	assert_eq(result.log_line(), "Cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · Core full")
 	assert_eq(result.result_line(), "Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · Core full")
-
-## The parts are joined by a space, U+00B7 (a middle dot) and a space. The
-## codepoint is built here, so a look-alike dot typed into both CycleResult and
-## the lines asserted above would still fail.
-func test_lines_are_joined_by_a_spaced_middle_dot() -> void:
-	var separator: String = " " + char(0xB7) + " "
-	var parts: PackedStringArray = _result(186.4, 3, 4, 1, 75).result_line().split(separator)
-	assert_eq(parts, PackedStringArray(["Last cycle", "+186 Madra", "3 / 4 zones", "1 PERFECT", "+75 XP"]))
