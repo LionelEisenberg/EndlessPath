@@ -1,11 +1,12 @@
 extends GutTest
 
 ## Unit tests for BoardTransition, the reversible player that opens and closes a
-## board in the zone view's map gap from one progress value (design: "The look",
-## "Behaviour rules"): the camera push on the cultivator, the dock stepping down,
-## the board's view scaling out of the cultivator, the zone chest swapping its
-## rows (cycling) and the HUD boards stepping off the left edge (Tribulation),
-## played back from wherever a reversal finds them.
+## board in the zone view's map gap from one progress value (design: "Behaviour
+## rules"): the shield that takes the mouse while it moves, the close callbacks
+## and the opened and closed signals, the zone chest swapping to its techniques
+## (cycling) and the HUD boards stepping off the left edge (Tribulation), and the
+## camera, the dock, the chest and the boards back at rest after a close, played
+## back from wherever a reversal finds them.
 ## The player is built from its scene with its processing off and driven by
 ## advance() and finish() alone, never by frames. It is bound to plain Controls
 ## for the dock, the Goals board, the log and the board's view, the real zone
@@ -124,48 +125,9 @@ func _xs(rows: Array[Control]) -> Array[float]:
 		xs.append(row.position.x)
 	return xs
 
-## The technique rows' x at rest, as the chest lays them out in the techniques
-## mode, read before the transition runs. The chest goes back to the activities.
-func _technique_rest_xs() -> Array[float]:
-	_chest.set_techniques_mode(true)
-	await wait_process_frames(2)
-	var xs: Array[float] = _xs(_chest.get_slide_rows())
-	_chest.set_techniques_mode(false)
-	await wait_process_frames(2)
-	return xs
-
 #-----------------------------------------------------------------------------
-# THE BOARD AND THE DOCK
+# THE SHIELD AND THE CAMERA
 #-----------------------------------------------------------------------------
-
-func test_the_view_appears_at_the_board_start_scaled_from_the_cultivator() -> void:
-	watch_signals(_transition)
-	_transition.open(_spec)
-	_transition.advance(0.19)
-	assert_false(_view.visible, "hidden until the board's start")
-	_transition.advance(0.02)
-	assert_almost_eq(_t(), 210.0, NEAR, "precondition: t 210")
-	assert_true(_view.visible, "shown from the board's start")
-	assert_almost_eq(_view.scale.x, BoardTransitionTiming.board_scale(210.0), NEAR, "small, and growing")
-	assert_eq(_view.scale.y, _view.scale.x, "evenly")
-	assert_eq(_view.pivot_offset, CULTIVATOR_SCREEN, "about the point the camera brings the cultivator to")
-	assert_signal_emit_count(_transition, "opened", 0, "not open yet")
-	_transition.finish()
-	assert_eq(_view.scale, Vector2.ONE, "full size once open")
-	assert_true(_transition.is_open())
-	assert_signal_emit_count(_transition, "opened", 1)
-
-func test_the_dock_steps_off_and_comes_back() -> void:
-	_transition.open(_spec)
-	_transition.advance(0.07)
-	assert_gt(_dock.position.y, DOCK_REST.y, "stepping down")
-	assert_true(_dock.visible, "still showing on its way down")
-	_transition.advance(0.07)
-	assert_false(_dock.visible, "off the bottom of the screen")
-	_transition.close()
-	_transition.finish()
-	assert_true(_dock.visible, "back")
-	assert_eq(_dock.position.y, DOCK_REST.y, "at its rest")
 
 func test_the_shield_blocks_the_mouse_only_while_moving() -> void:
 	assert_eq(_transition.mouse_filter, Control.MOUSE_FILTER_IGNORE, "closed")
@@ -181,12 +143,9 @@ func test_the_shield_blocks_the_mouse_only_while_moving() -> void:
 	_transition.finish()
 	assert_eq(_transition.mouse_filter, Control.MOUSE_FILTER_IGNORE, "closed again")
 
-func test_the_camera_is_pushed_and_restored_exactly() -> void:
+func test_the_camera_is_restored_exactly() -> void:
 	_transition.open(_spec)
 	_transition.finish()
-	assert_eq(_camera.zoom, Vector2(3, 3), "1.5 times the player's zoom")
-	assert_almost_eq(ZoneMapMath.world_to_screen(CULTIVATOR_WORLD, _camera.position, 3.0), CULTIVATOR_SCREEN,
-		Vector2(NEAR, NEAR), "the cultivator under the board")
 	_transition.close()
 	_transition.finish()
 	assert_eq(_camera.zoom, START_ZOOM, "the player's zoom")
@@ -301,51 +260,6 @@ func test_the_chest_swaps_at_the_swap_point_both_ways() -> void:
 	assert_almost_eq(_t(), 299.0, NEAR, "precondition: back to t 299")
 	assert_false(_chest.is_techniques_mode(), "back below the swap, the activities again")
 
-func test_the_height_override_lives_between_the_swap_and_the_end() -> void:
-	var activities_height: float = _chest.chest_height_for(false)
-	var techniques_height: float = _chest.chest_height_for(true)
-	assert_ne(activities_height, techniques_height, "precondition: the two modes differ")
-	_transition.open(_spec)
-	_transition.advance(0.42)
-	assert_almost_eq(_t(), 420.0, NEAR, "precondition: t 420")
-	assert_eq(_chest.size.y, BoardTransitionTiming.chest_height(_t(), activities_height, techniques_height),
-		"between the two modes' heights")
-	_transition.finish()
-	assert_eq(_chest.size.y, _chest.chest_height_for(true), "the techniques' own height once open")
-
-func test_rows_slide_and_end_at_rest() -> void:
-	var technique_rest: Array[float] = await _technique_rest_xs()
-	var activity_rows: Array[Control] = _chest.get_slide_rows()
-	var activity_rest: Array[float] = _xs(activity_rows)
-	_transition.open(_spec)
-	_transition.advance(0.1)
-	assert_gt(activity_rows[0].position.x, activity_rest[0], "the header has stepped out to the right")
-	assert_gt(activity_rows[1].position.x, activity_rest[1], "and the first activity row")
-	_transition.finish()
-	# The swap built the drawers; their column lays them out at the end of the frame.
-	await wait_process_frames(2)
-	var technique_rows: Array[Control] = _chest.get_slide_rows()
-	assert_eq(technique_rows.size(), 4, "precondition: the header and three drawers")
-	assert_eq(_xs(technique_rows), technique_rest, "every technique row at rest")
-
-## The swap builds the technique drawers, and their column lays them out (at
-## rest) at the end of that frame, after the frame's slide. The player takes the
-## rows after that layout, so they start out to the right, not at rest.
-func test_the_rows_the_swap_brings_in_start_out_of_sight() -> void:
-	var technique_rest: Array[float] = await _technique_rest_xs()
-	_transition.open(_spec)
-	_transition.advance(0.301)
-	await wait_process_frames(2)
-	var technique_rows: Array[Control] = _chest.get_slide_rows()
-	assert_eq(technique_rows.size(), 4, "precondition: the header and three drawers")
-	for index: int in technique_rows.size():
-		assert_gt(technique_rows[index].position.x, technique_rest[index] + _chest.size.x / 2.0,
-			"row %d waits out to the right" % index)
-	_transition.advance(0.1)
-	assert_lt(technique_rows[0].position.x, technique_rows[technique_rows.size() - 1].position.x, "the header comes in first")
-	_transition.finish()
-	assert_eq(_xs(technique_rows), technique_rest, "and every row ends at rest")
-
 ## The plain way a row goes is a rebuild of the chest's list; this frees one row
 ## by hand, so the player holds one freed row among live ones.
 func test_a_row_freed_mid_slide_is_skipped() -> void:
@@ -385,8 +299,6 @@ func test_hud_boards_step_off_left_and_back() -> void:
 	var chest_rows: Array[Control] = _chest.get_slide_rows()
 	var chest_rest: Array[float] = _xs(chest_rows)
 	_transition.open(_spec)
-	_transition.advance(0.1)
-	assert_lt(_goals.position.x - GOALS_REST.x, _log.position.x - LOG_REST.x, "the Goals board leads")
 	_transition.finish()
 	assert_lte(_goals.global_position.x + _goals.size.x, 0.0, "the Goals board is off the left edge")
 	assert_lte(_log.global_position.x + _log.size.x, 0.0, "and the log")

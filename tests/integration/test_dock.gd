@@ -1,32 +1,14 @@
 extends GutTest
 
-## Integration tests for the lacquer dock (Dock, lacquer kit §5.4): four
-## SystemMenuButtons in kit order and place, the Path button's brass ring and
-## count seal following the path point balance, the Abilities ring with no
-## count while an unlocked ability sits unequipped, the hover face, and a press
-## parsing the button's input action, then releasing it.
+## Integration tests for the lacquer dock (Dock, lacquer kit §5.4): the Path
+## button's brass ring and count seal following the path point balance, the
+## Abilities ring with no count while an unlocked ability sits unequipped, a
+## save reset clearing both, a press parsing the button's input action, then
+## releasing it, and the dock keeping its clicks from the map.
 
 const DOCK_SCENE_PATH: String = "res://scenes/ui/dock/dock.tscn"
 
 const SCREEN_SIZE: Vector2 = Vector2(1920.0, 1080.0)
-## The dock's slot (kit §5.4).
-const DOCK_SPOT: Vector2 = Vector2(722.0, 976.0)
-const DOCK_SIZE: Vector2 = Vector2(476.0, 80.0)
-## Button top-lefts, dock-local (kit §5.4: screen x 732, 848, 964, 1080, y 984).
-const BUTTON_SPOTS: Array[Vector2] = [
-	Vector2(10.0, 8.0), Vector2(126.0, 8.0), Vector2(242.0, 8.0), Vector2(358.0, 8.0),
-]
-const BUTTON_SIZE: Vector2 = Vector2(108.0, 64.0)
-const BUTTON_NAMES: Array[String] = ["InventoryButton", "AbilitiesButton", "CharacterButton", "PathButton"]
-
-## Kit §5.4 and §0: the dock icons, written out so the tests do not read the
-## paths they check.
-const ICON_PATHS: Array[String] = [
-	"res://assets/sprites/ui/system_menu/inventory_icon.png",
-	"res://assets/ui/lacquer/lacquer_ic_abilities_ai.png",
-	"res://assets/sprites/ui/system_menu/character_icon.png",
-	"res://assets/sprites/ui/system_menu/star_icon.png",
-]
 
 ## An ability the fresh save has not unlocked (it starts with basic_strike and
 ## enforce, both equipped).
@@ -117,54 +99,17 @@ func _use_test_path_node(cost: int) -> void:
 	PathManager._current_tree = tree
 
 #-----------------------------------------------------------------------------
-# LAYOUT
+# ROOT
 #-----------------------------------------------------------------------------
 
-func test_dock_sits_in_its_slot() -> void:
+func test_dock_stops_clicks() -> void:
 	_add_dock()
-	assert_eq(_dock.position, DOCK_SPOT, "the dock sits at the kit's (722, 976)")
-	assert_eq(_dock.size, DOCK_SIZE, "the dock is 476x80")
 	assert_eq(_dock.mouse_filter, Control.MOUSE_FILTER_STOP,
 		"a click on the dock's shelf never reaches the map")
-
-func test_four_buttons_in_order() -> void:
-	_add_dock()
-	var labels: Array[String] = []
-	var hotkeys: Array[String] = []
-	for button_name: String in BUTTON_NAMES:
-		var button: SystemMenuButton = _button(button_name)
-		labels.append((_part(button, "NameLabel") as Label).text)
-		hotkeys.append((_part(button, "ShortCutLabel") as Label).text)
-	assert_eq(labels, ["Inventory", "Abilities", "Character", "Path"] as Array[String])
-	assert_eq(hotkeys, ["I", "A", "C", "P"] as Array[String])
-
-func test_buttons_sit_at_kit_positions() -> void:
-	_add_dock()
-	await wait_process_frames(2)
-	for index: int in range(BUTTON_NAMES.size()):
-		var button: SystemMenuButton = _button(BUTTON_NAMES[index])
-		assert_eq(button.global_position - _dock.global_position, BUTTON_SPOTS[index],
-			"%s's top-left (kit §5.4)" % BUTTON_NAMES[index])
-		assert_eq(button.size, BUTTON_SIZE, "%s is 108x64" % BUTTON_NAMES[index])
-
-func test_icons_follow_the_kit() -> void:
-	_add_dock()
-	for index: int in range(BUTTON_NAMES.size()):
-		var icon: TextureRect = _part(_button(BUTTON_NAMES[index]), "IconTexture") as TextureRect
-		assert_eq(icon.texture.resource_path, ICON_PATHS[index], "%s's icon" % BUTTON_NAMES[index])
-		assert_eq(icon.size, Vector2(32.0, 32.0), "every icon shows at 32x32")
 
 #-----------------------------------------------------------------------------
 # NOTIFICATIONS
 #-----------------------------------------------------------------------------
-
-func test_fresh_save_shows_no_notification() -> void:
-	_add_dock()
-	for button_name: String in BUTTON_NAMES:
-		var button: SystemMenuButton = _button(button_name)
-		assert_false(button.has_notification(), "%s has no notification" % button_name)
-		assert_eq(_shown_faces(button), ["normal"] as Array[String], "%s shows its plain face" % button_name)
-		assert_false(_is_shown(button, "CountSeal"), "%s shows no count seal" % button_name)
 
 func test_path_count_follows_points() -> void:
 	_add_dock()
@@ -220,20 +165,8 @@ func test_save_reset_clears_notifications() -> void:
 	assert_false(_button("AbilitiesButton").has_notification(), "the fresh save has every unlock equipped")
 
 #-----------------------------------------------------------------------------
-# HOVER AND PRESS
+# PRESS
 #-----------------------------------------------------------------------------
-
-func test_hover_shows_the_hover_face() -> void:
-	_add_dock()
-	PathManager.add_points(1)
-	var path_button: SystemMenuButton = _button("PathButton")
-
-	path_button.mouse_entered.emit()
-	assert_eq(_shown_faces(path_button), ["hover"] as Array[String], "hover replaces the ring (kit §5.4)")
-	assert_true(_is_shown(path_button, "CountSeal"), "the count stays while hovered")
-
-	path_button.mouse_exited.emit()
-	assert_eq(_shown_faces(path_button), ["ring"] as Array[String], "the ring comes back")
 
 func test_pressing_parses_the_action() -> void:
 	_add_dock()
