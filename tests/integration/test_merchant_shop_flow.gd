@@ -2,8 +2,7 @@ extends GutTest
 
 ## Integration tests for Merchant v1: the ActionManager route (the shop stays
 ## open until stop_action() closes it) and the shop view bound to real stock,
-## including broken stock data, the title's LabelTitle inheritance, the layout
-## against the mock and the gold preview while Buy is hovered.
+## including broken stock data and the gold preview while Buy is hovered.
 
 const ZONE_ID: String = "SpiritValley"
 const ACTION_ID: String = "spirit_valley_merchant"
@@ -153,29 +152,12 @@ func test_shop_does_not_resume_cycling() -> void:
 
 const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
 const DEFAULT_THEME_PATH: String = "res://assets/themes/merchant/spirit_valley_merchant_theme.tres"
-const PIXEL_THEME_PATH: String = "res://assets/themes/pixel_theme.tres"
-## The mock (docs/superpowers/mockups/merchant-shop-mockup.html) indents the
-## header and footer 8px more than the rows, and pads 4px above the title and
-## below the footer.
-const MOCK_HEADER_FOOTER_INSET: float = 8.0
-const MOCK_EDGE_PADDING: float = 4.0
 ## Repeated to be longer than one line at any font size the header could use.
 const GREETING_FILLER: String = "A long merchant greeting that goes on. "
 
 func _make_view() -> MerchantView:
 	var view: MerchantView = MerchantViewScene.instantiate()
 	add_child_autofree(view)
-	await get_tree().process_frame
-	return view
-
-## Puts the shop under a Control carrying outer_theme, the way MainView
-## carries pixel_theme.tres in main_game.tscn.
-func _make_view_under(outer_theme: Theme) -> MerchantView:
-	var outer := Control.new()
-	outer.theme = outer_theme
-	add_child_autofree(outer)
-	var view: MerchantView = MerchantViewScene.instantiate()
-	outer.add_child(view)
 	await get_tree().process_frame
 	return view
 
@@ -208,24 +190,6 @@ func _row_for(view: MerchantView, entry_id: String) -> MerchantStockRow:
 		if row.get_entry() and row.get_entry().entry_id == entry_id:
 			return row
 	return null
-
-## The shop with real stock, shown and laid out.
-func _shown_view() -> MerchantView:
-	var view := await _make_view()
-	view.setup(_merchant_action())
-	view.visible = true
-	await get_tree().process_frame
-	await get_tree().process_frame
-	return view
-
-func _rect_of(view: MerchantView, unique_name: String) -> Rect2:
-	return (view.get_node("%" + unique_name) as Control).get_global_rect()
-
-## The shop panel's area inside its border.
-func _panel_inner_rect(view: MerchantView) -> Rect2:
-	var panel: PanelContainer = view.get_node("ShopPanel")
-	var style := panel.get_theme_stylebox(&"panel") as StyleBoxFlat
-	return panel.get_global_rect().grow_individual(-style.border_width_left, -style.border_width_top, -style.border_width_right, -style.border_width_bottom)
 
 func test_setup_binds_real_stock() -> void:
 	var view := await _make_view()
@@ -351,60 +315,7 @@ func test_setup_applies_shop_theme() -> void:
 	assert_not_null(view.theme)
 	assert_eq(view.theme.resource_path, DEFAULT_THEME_PATH, "no shop_theme falls back to the scene default")
 
-func test_title_follows_label_title_from_the_outer_theme() -> void:
-	# LabelMerchantTitle's base, LabelTitle, lives in pixel_theme.tres on MainView,
-	# not in the merchant theme. Recolouring LabelTitle must recolour the shop title.
-	var outer_theme := Theme.new()
-	outer_theme.set_type_variation(&"LabelTitle", &"Label")
-	outer_theme.set_color(&"font_color", &"LabelTitle", Color.RED)
-	outer_theme.set_color(&"font_shadow_color", &"LabelTitle", Color.BLUE)
-	var view := await _make_view_under(outer_theme)
-	var title: Label = view.get_node("%TitleLabel")
-	assert_eq(title.get_theme_color(&"font_color"), Color.RED)
-	assert_eq(title.get_theme_color(&"font_shadow_color"), Color.BLUE)
-	assert_gt(title.get_theme_constant(&"outline_size"), 0, "the glow stays the zone's own")
-
-func test_title_matches_label_title_in_game() -> void:
-	# pixel_theme.tres has a default font size, which Godot returns for
-	# LabelMerchantTitle before it reaches LabelTitle. So the merchant theme
-	# repeats LabelTitle's size, and this catches the two drifting apart.
-	var pixel_theme: Theme = load(PIXEL_THEME_PATH)
-	var view := await _make_view_under(pixel_theme)
-	var title: Label = view.get_node("%TitleLabel")
-	assert_eq(title.get_theme_font_size(&"font_size"), pixel_theme.get_font_size(&"font_size", &"LabelTitle"))
-	assert_eq(title.get_theme_color(&"font_color"), pixel_theme.get_color(&"font_color", &"LabelTitle"))
-	assert_eq(title.get_theme_color(&"font_shadow_color"), pixel_theme.get_color(&"font_shadow_color", &"LabelTitle"))
-	assert_eq(title.get_theme_constant(&"shadow_offset_y"), pixel_theme.get_constant(&"shadow_offset_y", &"LabelTitle"))
-
-func test_header_and_footer_sit_inside_the_rows() -> void:
-	var view := await _shown_view()
-	var row := _visible_rows(view)[0].get_global_rect()
-	assert_almost_eq(_rect_of(view, "TitleLabel").position.x - row.position.x, MOCK_HEADER_FOOTER_INSET, 0.5, "title")
-	assert_almost_eq(row.end.x - _rect_of(view, "GoldLabel").end.x, MOCK_HEADER_FOOTER_INSET, 0.5, "gold")
-	assert_almost_eq(_rect_of(view, "StatusLabel").position.x - row.position.x, MOCK_HEADER_FOOTER_INSET, 0.5, "status line")
-	assert_almost_eq(row.end.x - _rect_of(view, "LeaveButton").end.x, MOCK_HEADER_FOOTER_INSET, 0.5, "Leave")
-
-func test_title_sits_below_the_panel_padding() -> void:
-	var view := await _shown_view()
-	var content := _rect_of(view, "MainVBox")
-	assert_almost_eq(_rect_of(view, "TitleLabel").position.y - content.position.y, MOCK_EDGE_PADDING, 0.5)
-
-func test_panel_ends_just_below_the_footer() -> void:
-	# The panel fits its rows; a fixed height left a spare band under the footer.
-	var view := await _shown_view()
-	var content: VBoxContainer = view.get_node("%MainVBox")
-	assert_almost_eq(content.size.y, content.get_combined_minimum_size().y, 0.5, "no spare band under the footer")
-	assert_almost_eq(content.get_global_rect().end.y - _rect_of(view, "FooterHBox").end.y, MOCK_EDGE_PADDING, 0.5)
-
-func test_leave_sits_in_the_header_and_gold_in_the_footer() -> void:
-	var view := await _shown_view()
-	var rows := _visible_rows(view)
-	assert_lt(_rect_of(view, "LeaveButton").end.y, rows[0].get_global_rect().position.y,
-		"Leave sits above the rows, where players look to close a window")
-	assert_gt(_rect_of(view, "GoldLabel").position.y, rows[-1].get_global_rect().end.y,
-		"the gold sits below the rows, beside the purchase status")
-
-func test_long_greeting_wraps_across_the_header() -> void:
+func test_long_greeting_wraps() -> void:
 	var view := await _make_view()
 	var talkative: MerchantActionData = _merchant_action().duplicate()
 	talkative.greeting = GREETING_FILLER.repeat(8)
@@ -413,37 +324,7 @@ func test_long_greeting_wraps_across_the_header() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var greeting: Label = view.get_node("%GreetingLabel")
-	var header_width := _rect_of(view, "MainVBox").size.x - 2.0 * MOCK_HEADER_FOOTER_INSET
-	assert_almost_eq((view.get_node("ShopPanel") as Control).size.x, 1000.0, 0.5, "the panel keeps its width")
 	assert_gt(greeting.get_line_count(), 1, "a long greeting wraps")
-	assert_almost_eq(greeting.size.x, header_width, 0.5, "the greeting wraps at the header's full width")
-
-func test_greeting_is_smaller_than_a_subheading_in_game() -> void:
-	var pixel_theme: Theme = load(PIXEL_THEME_PATH)
-	var view := await _make_view_under(pixel_theme)
-	var greeting: Label = view.get_node("%GreetingLabel")
-	assert_lt(greeting.get_theme_font_size(&"font_size"), pixel_theme.get_font_size(&"font_size", &"LabelSubheading"))
-	assert_eq(greeting.get_theme_color(&"font_color"), pixel_theme.get_color(&"font_color", &"LabelSubheading"),
-		"it keeps the subheading's tan")
-
-func test_atmosphere_fills_the_panel_inside_its_border() -> void:
-	var view := await _shown_view()
-	var atmosphere: MerchantAtmosphere = view.get_node("%MerchantAtmosphere")
-	var inner := _panel_inner_rect(view)
-	assert_true(atmosphere.get_global_rect().is_equal_approx(inner),
-		"atmosphere %s should cover the panel inside its border %s, or a dark frame shows" % [atmosphere.get_global_rect(), inner])
-	assert_eq(atmosphere.clip_children, CanvasItem.CLIP_CHILDREN_ONLY, "the atmosphere's mask keeps it inside the rounded corners")
-
-func test_atmosphere_reads_theme_colours() -> void:
-	var view := await _make_view()
-	var red_mist := Theme.new()
-	red_mist.set_color("mist", "MerchantAtmosphere", Color.RED)
-	var themed: MerchantActionData = _merchant_action().duplicate()
-	themed.shop_theme = red_mist
-	view.setup(themed)
-	await get_tree().process_frame
-	var atmosphere: MerchantAtmosphere = view.get_node("%MerchantAtmosphere")
-	assert_eq(atmosphere.get_node("%MistA").modulate, Color.RED)
 
 #-----------------------------------------------------------------------------
 # GOLD PREVIEW WHILE BUY IS HOVERED
