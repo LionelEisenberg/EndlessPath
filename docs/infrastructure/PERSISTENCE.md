@@ -22,9 +22,9 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 
 ## Player Experience
 
-- A player sees no save/load screen, no save slots and no "New Game" option: progress saves silently every 5 seconds and when the window closes, and is restored on launch. The dev panel's Saves tab can start a new game, restore a backup and switch sessions ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#saves)).
+- A launch on the player's own save opens on the title menu: Continue, New Game and Quit ([The title menu](#the-title-menu)). There are no save slots and no save button: progress saves silently every 5 seconds and when the window closes, and is restored on launch. The dev panel's Saves tab can also start a new game, restore a backup and switch sessions ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#saves)).
 - Quitting mid-adventure loses the adventure: the map, position, vitals and timer. The Madra drained to start it, and any gold or loot already awarded, stay as they were when the window closed (or at the last 5 s tick, when the process is killed).
-- To start over, press New game on my save in the dev panel's Saves tab (it backs `save.tres` up first), or delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save. `--preset=fresh` plays a new game that leaves `save.tres` alone.
+- To start over, press New Game on the title menu twice, or New game on my save in the dev panel's Saves tab (both back `save.tres` up first), or delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save. `--preset=fresh` plays a new game that leaves `save.tres` alone.
 - Each launch on `save.tres` first copies it to `user://backups/`, and so does the dev panel each time it opens `save.tres` again or writes over it; the newest 10 copies are kept. To go back to one, pick it in the dev panel's Saves tab and press Restore, or copy it over `save.tres` with the game closed.
 - After pulling or merging new art, run `--headless --import` before running the game or the tests. Without it, an item `.tres` the save names can fail to load its new texture, which makes the whole save unreadable. PersistenceManager then keeps the file and turns saving off, so the run shows a fresh game, but nothing is lost: re-import and launch again.
 
@@ -135,6 +135,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `is_in_memory() -> bool` | True when `save_path` is `""` |
 | `is_save_blocked() -> bool` | True when the save will not load, a newer build wrote it, or the managers `verify()` needs did not load, so it cannot be checked. Nothing writes it until another save becomes the session's |
 | `get_block_reason() -> String` | Why saving is blocked, or `""` |
+| `opened_new_save() -> bool` | True when `open_save_file()` found no save at its path and wrote a new one: the first launch on a save, or a `--save` path with no file. False for a save read from disk, one that would not load, and one bound with `use_save()`. The title menu offers Continue only when it is false ([The title menu](#the-title-menu)) |
 | `can_verify() -> bool` | False when a manager `verify()` and `repair()` ask is missing (`ZoneManager` after its zone list failed to load): such a save is played but never checked, repaired or written. `DevManager` asks it before it repairs a snapshot preset's copy |
 | `backup_main_save() -> String` | The one way the main save is backed up: copies it into `backup_dir` and keeps its newest `BACKUPS_KEPT`, whenever it is on disk. When only the temp file a cut-short write left is there, it copies that file, under its own stem. Returns the copy's path, or `""` when nothing is on disk to copy or the copy failed. `open_save_file()` calls it for the main save, and `DevManager` before a switch writes over it |
 | `has_main_save_on_disk() -> bool` | True when the main save, or the temp file a cut-short write left in its place, is on disk: what `backup_main_save()` would copy |
@@ -237,7 +238,7 @@ runs their _ready() in that order:
                                            no backup, nothing written; open_save_file() does not run
         open_save_file(save_path)
           the main save                   backed up as it is on disk
-          no save and no temp file        a new save, written at once
+          no save and no temp file        a new save, written at once; opened_new_save() is true
           the file will not load          copied aside as .unreadable., saving blocked, a new save in memory
           a newer build wrote the save    saving blocked, never migrated or written; repaired in memory only
           any other save                  migrate(); then repair() (the file is copied aside as .invalid. first
@@ -249,12 +250,13 @@ runs their _ready() in that order:
       a preset launch: builds the preset on the save step 1 bound, then clears the player's log
 
 main_game.tscn's own _ready() (MainGame sets the Log print level) → SaveTimer starts
+On a launch on the user's own save, TitleMenu opens and pauses the tree until the player picks
 ```
 
 The order inside `open_save_file()`:
 
 - **First the backup, for the main save.** When `path` is the main save, the save is copied to `user://backups/` as it is on disk, before anything can write it. That is the boot backup of a launch on the save, and the backup a switch takes when it opens the save again (Back to my save, or a failed switch coming back to it), so with a preset pinned, which makes every launch a preset session, the save is still backed up before the session writes it. `open_save_file(path, false)` skips it, for a restore, which backs up the save it replaces before it writes over it. When only the temp file a cut-short write left is there, that file may be the only copy of the save, so it is the one backed up, under its own stem (`save.tmp.<stamp>.tres`), which `list_backups()` does not list. All of this is `backup_main_save()`, the one way the main save is backed up; the dev switches that write over it call it too ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#switching-sessions)).
-- **No save and no temp file there:** a new save (`SaveGameData.new_current()`), written at once, with an `INFO` line.
+- **No save and no temp file there:** a new save (`SaveGameData.new_current()`), written at once, with an `INFO` line. `opened_new_save()` is then true, until another save becomes the session's.
 - **The file that `load_save()` reads fails to load as a `SaveGameData`.** That is the save, or its temp file when the save is missing. It is copied aside as `<name>.unreadable.<unix time>.<extension>` and left as it was, and the session runs on `SaveGameData.new_current()` in memory with saving blocked. `Log.critical` names the copy.
 - **A save from a newer build** (`is_from_newer_build()`): saving blocked, never migrated and never written, so nothing is copied aside. When `ZoneManager` is there, `repair()` still runs on the object in memory, so the session never stands in a zone this build does not know. The file stays as the newer build wrote it.
 - **Any other save:** `migrate()` first, then the check. When `ZoneManager` did not load (a stale import cache can do that) the save cannot be checked, and saving is blocked. Otherwise `repair()` fixes an unknown zone id and, when it changed something, the file as it was is copied aside as `<name>.invalid.<unix time>.<extension>` and a `Log.warn` names it. The repaired save is written at the next autosave.
@@ -271,6 +273,18 @@ Also at boot:
   - `ZoneManager` marks every action available at that moment as seen and sets `seen_actions_initialized`, once per save.
   - `CyclingManager` marks every technique unlocked at that moment as seen and sets `seen_cycling_techniques_initialized`, once per save (again after a save switch), so an older save shows no NEW seals.
   - `ActionManager` records the zone's `last_idle_action_id` whenever an idle action starts, including the one the load's `zone_changed` resumes.
+
+### The title menu
+
+A launch on the player's own save opens on a title menu, so a player can start over without the dev tools, and each new itch.io build can be tried from a clean slate. `TitleMenu` (`scenes/ui/title_menu/`) is a `CanvasLayer` in `main_game.tscn`, over every view, that pauses the tree while it shows: nothing runs, ticks or saves until the player picks. It is an overlay in the main scene rather than a scene of its own because the boot backup, the save on close and the dev switches all expect the main scene to be the game.
+
+It opens when `TitleMenu.should_open()` says so: only when the session is the user's own save (`DevManager.get_session_kind()`), so never for a preset, a pinned preset or a `--save` file; never in a GUT run; and once per run, so the main scene that New Game or a dev switch loads again comes up without it.
+
+| Button | What it does |
+|--------|--------------|
+| Continue | Closes the menu. Shown only when `TitleMenu.can_continue()`: the save was there at launch (`opened_new_save()` is false) and saving it is not blocked. A save that would not load plays as a new game in memory that nothing writes, so New Game is the way on from it |
+| New Game | On the save this launch wrote new, closes the menu: it is a new game already. On any other save, the first click asks for a second, which calls `DevManager.new_game()`: the save is backed up, a fresh one is written over it, and the main scene loads again ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#switching-sessions)). The first click is forgotten after a few seconds, and when the menu closes |
+| Quit | Closes the game as the window's close button does, so the close request saves first. Hidden in a web build, where a tab cannot close itself |
 
 ### Writing and the auto-save
 
@@ -378,6 +392,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `ZoneManager` | `has_zone()` backs the zone check of `SaveGameData.verify()` and `repair()`; it uses the `SaveGameData` zone helpers |
 | `ActionManager` | Remembers the save its current action started under (see [Switching the save](#switching-the-save)); counts an adventure start in the play stats |
 | `MainGame` / `SaveTimer` | `SaveTimer` calls `PersistenceManager.autosave()` every 5 s; `MainGame._process()` adds each frame to the playtime |
+| `TitleMenu` | Offers Continue from `opened_new_save()` and `is_save_blocked()`, starts New Game through `DevManager.new_game()`, and quits through the close request `PersistenceManager` saves on (see [The title menu](#the-title-menu)) |
 | The play stats recorders | `EventManager`, `UnlockManager`, `CyclingManager`, `AdventureView`, `AdventureTilemap` and `ResourceManager` (see [Play stats](#play-stats)) |
 | `DevManager` | Builds a preset session (`use_save()` on a save it makes), switches sessions in game (`open_save_file()`, `use_save()`, `autosave()`, `restore_launch_autosave()`, `backup_main_save()`, `save_data()`), copies the session's save into a snapshot preset and sets `stats.built_from_preset`. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#devmanager) |
 | `Log` | Boot diagnostics (`Log.info` / `Log.warn` / `Log.error` / `Log.critical`) |
@@ -399,6 +414,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `singletons/persistence_manager/event_progression_data.gd` | Event sub-resource |
 | `scripts/resource_definitions/character/character_attributes_data.gd` | Attribute sub-resource |
 | `scenes/main/main_game/save_timer.gd` | The 5 s tick (node in `main_game.tscn`) |
+| `scenes/ui/title_menu/title_menu.gd` | The title menu: when it opens, Continue, New Game and Quit |
 
 Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migration.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
@@ -415,3 +431,4 @@ Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migrat
 - `[LOW]` The zone check depends on autoload timing. `repair()` makes it before `ZoneManager._ready()` and relies on `_all_zone_data` being a preloaded member default. Moving that load into `_ready()` would make every save with a selected zone fail the check, and `repair()` would send each one back to the first zone.
 - `[LOW]` `boot()` recognises the main save by comparing path strings, so a `--save` that names the same file another way (`user://./save.tres`, or its absolute path) is a plain file session, with no boot backup.
 - `[LOW]` The save is a `.tres` resource. Godot resource files can embed scripts, so a shared or edited save file could run code when loaded. Consider a data-only format before saves are exchanged between players.
+- `[LOW]` The title menu's New Game is a dev switch (`DevManager.new_game()`), so the player's log after it reads `[DEV] Started a new game on your save`.

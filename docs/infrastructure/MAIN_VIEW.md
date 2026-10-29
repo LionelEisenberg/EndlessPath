@@ -8,6 +8,7 @@
 - Cycling, the merchant shop, the Tribulation, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
 - Cycling and the Tribulation are the overlays with no backdrop. Their boards sit in the map gap with the zone view up around them, and open and close through one reversible transition, `MainView.open_board()` and `close_board()` (see [Board transitions](#board-transitions)). What each board takes from the zone view is under [Cycling mode](#cycling-mode) and [Tribulation board](#tribulation-board).
 - Only the top state receives input. Everything else that reads input (the full log on L, the zone chest's lore and the map popover on Escape, combat hotkeys, camera pan/zoom, the dev hotkey, Dialogic) is handled outside the state machine.
+- A launch on the player's own save opens on the title menu, a `CanvasLayer` outside `MainView` that pauses the whole tree, the state machine and the dev hotkey included, until the player picks ([PERSISTENCE.md](PERSISTENCE.md#the-title-menu)).
 
 The zone view itself (map, cultivator cabinet, zone chest) is documented in [ZONES.md](../zones/ZONES.md). Related docs: [UI_STYLING.md](../UI_STYLING.md) (themes, including the lacquer theme), [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) (dev panel), [TESTING.md](../testing/TESTING.md).
 
@@ -55,7 +56,8 @@ MainGame (Node2D)                          main_game.gd: Log print level, the pl
 │   ├── BoardTransition         z 9        board_transition.tscn (class BoardTransition): opens and closes the map-gap boards; full rect, mouse Ignore at rest; %BoardTransition
 │   ├── ViewDissolve            z 9        view_dissolve.tscn (full-rect still of the old view, hidden by default)
 │   └── DevPanel                z 10       dev_panel.tscn: covers the screen and ignores the mouse; its body, a draggable board of tabs, is closed until Ctrl+Shift+D
-└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.autosave()
+├── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.autosave()
+└── TitleMenu (CanvasLayer)                title_menu.tscn: Continue, New Game, Quit over every view; pauses the tree while it shows, hidden otherwise
 ```
 
 The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save. The adventure's vitals cabinet, chest and technique dock are instanced the same way in `adventure_view.tscn`, for the same reason (`test_adventure_view_layout.gd`).
