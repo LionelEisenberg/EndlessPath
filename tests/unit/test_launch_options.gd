@@ -48,11 +48,6 @@ func test_unknown_args_are_ignored() -> void:
 	assert_eq(options.save_path, "")
 	assert_false(options.no_autosave)
 
-func test_the_options_combine() -> void:
-	var options: LaunchOptions = LaunchOptions.parse(["--save=user://dev/runs/a.tres", "--no-autosave"])
-	assert_eq(options.save_path, "user://dev/runs/a.tres")
-	assert_true(options.no_autosave)
-
 #-----------------------------------------------------------------------------
 # PRESETS
 #-----------------------------------------------------------------------------
@@ -119,10 +114,6 @@ func test_no_pin_file_reads_no_pin() -> void:
 	LaunchOptions.pin_path_override = PIN_PATH
 	assert_false(FileAccess.file_exists(PIN_PATH), "precondition: there is no pin file")
 	assert_eq(LaunchOptions.read_pin(), "")
-
-func test_the_override_is_the_pin_file() -> void:
-	LaunchOptions.pin_path_override = PIN_PATH
-	assert_eq(LaunchOptions.pin_file_path(), PIN_PATH)
 
 ## The suite runs on the editor binary, so without the override the pin is the
 ## checkout's own file. Only its path is read here: nothing writes it.

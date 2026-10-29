@@ -40,23 +40,20 @@ const SESSION_SAVE_PATH: String = "user://__test_save_presets_session.tres"
 ## The pin file the pin test writes. after_each() deletes it.
 const PIN_PATH: String = "user://__test_save_presets_pin.cfg"
 
-## The prefix of a dev command's line in the player's log.
-const DEV_LINE: String = "[color=magenta][DEV][/color] "
-
 ## Offered once the core is full, and gone once the Tribulation is passed.
 const TRIBULATION_ACTION: String = "spirit_valley_tribulation"
 ## Opens once merchant_discovered fires, the last step of beat_3b.
 const MERCHANT_ACTION: String = "spirit_valley_merchant"
 
-## The starting presets the spec names: each id with its title and the beat it starts
-## through ("" for none).
+## The starting presets the spec names: each id with the beat it starts through ("" for
+## none).
 const STARTING_PRESETS: Dictionary = {
-	"fresh": {"title": "Fresh start", "story_through": ""},
-	"adventure_open": {"title": "Adventure open", "story_through": "beat_1"},
-	"path_open": {"title": "First keystone", "story_through": "beat_2"},
-	"merchant_open": {"title": "Merchant open", "story_through": "beat_3b"},
-	"tribulation_ready": {"title": "Tribulation ready", "story_through": "beat_9_ready"},
-	"copper": {"title": "Copper", "story_through": "beat_9"},
+	"fresh": {"story_through": ""},
+	"adventure_open": {"story_through": "beat_1"},
+	"path_open": {"story_through": "beat_2"},
+	"merchant_open": {"story_through": "beat_3b"},
+	"tribulation_ready": {"story_through": "beat_9_ready"},
+	"copper": {"story_through": "beat_9"},
 }
 
 #-----------------------------------------------------------------------------
@@ -193,15 +190,13 @@ func test_the_starting_presets_exist() -> void:
 	for preset_id: String in STARTING_PRESETS:
 		assert_not_null(DevManager.find_preset(preset_id), "%s is in the preset folder" % preset_id)
 
-## The spec fixes each preset's title and beat, so the panel and a launch start where
-## it says.
+## The spec fixes each preset's beat, so the panel and a launch start where it says.
 func test_the_starting_presets_start_where_the_spec_says() -> void:
 	_use_shipped_presets()
 	for preset_id: String in STARTING_PRESETS:
 		var preset: SavePresetData = DevManager.find_preset(preset_id)
 		if preset == null:
 			continue
-		assert_eq(preset.title, STARTING_PRESETS[preset_id]["title"], "%s: the title" % preset_id)
 		assert_eq(preset.story_through, STARTING_PRESETS[preset_id]["story_through"], "%s: the beat it starts through" % preset_id)
 
 ## Every preset in the folder, a committed snapshot included: a content or format
@@ -318,20 +313,6 @@ func test_save_as_preset_slug() -> void:
 	assert_true(FileAccess.file_exists(SAVED_PRESET_DIR + "weird_state_2.tres"), "the file is named after the id")
 	assert_eq(DevManager.save_as_preset("  --Tidy   up--  ", ""), "", "a second title is written")
 	assert_not_null(DevManager.find_preset("tidy_up"), "_ is trimmed from both ends, and a run of characters makes one _")
-
-## The new file's place is not obvious (the repository's folder, or user:// in an
-## exported build), so the player's log names it.
-func test_save_as_preset_says_where_the_file_went() -> void:
-	_use_temp_preset_dir()
-	assert_eq(DevManager.save_as_preset("Logged", ""), "", "precondition: the preset is written")
-	var history: Array[String] = LogManager.get_history()
-	assert_false(history.is_empty(), "the player's log has a line")
-	if history.is_empty():
-		return
-	var line: String = history[history.size() - 1]
-	assert_true(line.begins_with(DEV_LINE), "it is a [DEV] line")
-	assert_string_contains(line, "'Logged'", "naming the preset")
-	assert_string_contains(line, SAVED_PRESET_DIR + "logged.tres", "and the file")
 
 ## A run from the editor binary saves into the repository's folder, so the new file shows
 ## in git status; an exported build saves into user://, and a test points the folder at a

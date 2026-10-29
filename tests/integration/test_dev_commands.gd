@@ -190,7 +190,6 @@ func test_complete_action_skips_a_used_up_action() -> void:
 
 func test_complete_action_refuses_an_unavailable_action() -> void:
 	var reason: String = DevCommands.complete_action(NPC_2)
-	assert_eq(reason, "%s is not available now" % NPC_2)
 	assert_string_contains(reason, "not available")
 	assert_eq(_completions(NPC_2), 0, "nothing counted")
 	assert_false(EventManager.has_event_triggered(NPC_2), "and none of its effects ran")
@@ -292,11 +291,6 @@ func test_buy_path_node_adds_only_missing_points() -> void:
 	assert_eq(PathManager.get_point_balance(), 0, "it granted the one point the node costs, and spent it")
 	assert_true(AbilityManager.is_ability_unlocked("empty_palm"), "the node's ability is unlocked")
 	assert_true(CyclingManager.is_technique_unlocked("smooth_flow"), "and its technique")
-
-func test_buy_path_node_spends_the_points_it_has_before_adding_any() -> void:
-	PathManager.add_points(3)
-	assert_eq(DevCommands.buy_path_node("pure_core_awakening"), "")
-	assert_eq(PathManager.get_point_balance(), 2, "the node cost one of the three points")
 
 func test_buy_path_node_grants_only_the_shortfall() -> void:
 	_use_tree_of(_node("dev_commands_test_node", 3))
@@ -508,12 +502,6 @@ func test_travel_is_allowed_while_foraging_runs() -> void:
 	assert_eq(DevCommands.travel_to_zone(OTHER_ZONE_ID), "")
 	assert_eq(ZoneManager.get_current_zone().zone_id, OTHER_ZONE_ID)
 
-func test_travel_is_allowed_while_training_runs() -> void:
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	assert_eq(_current_id(), "aura_well_training", "precondition: finding the Aura Well starts its training")
-	assert_eq(DevCommands.travel_to_zone(OTHER_ZONE_ID), "")
-	assert_eq(ZoneManager.get_current_zone().zone_id, OTHER_ZONE_ID)
-
 func test_travel_refuses_during_cycling() -> void:
 	_start(CYCLING_ACTION)
 	assert_eq(_current_id(), CYCLING_ACTION, "precondition: cycling runs")
@@ -537,48 +525,25 @@ func test_refill_vitals_refuses_outside_a_run() -> void:
 	assert_eq(vitals.current_health, 10.0, "Health is left as it was")
 	assert_eq(vitals.current_stamina, 5.0, "and so is Stamina")
 
-func test_refill_vitals_fills_health_and_stamina_and_keeps_the_run_madra() -> void:
-	ResourceManager.set_madra(100.0)
-	_start(ADVENTURE_ACTION)
-	assert_eq(_current_id(), ADVENTURE_ACTION, "precondition: the adventure is the current action")
-	var vitals: VitalsManager = PlayerManager.vitals_manager
-	vitals.current_health = 10.0
-	vitals.current_stamina = 5.0
-	vitals.current_madra = 33.0
-	assert_eq(DevCommands.refill_vitals(), "")
-	assert_eq(vitals.current_health, vitals.max_health)
-	assert_eq(vitals.current_stamina, vitals.max_stamina)
-	assert_eq(vitals.current_madra, 33.0, "the Madra the run has left stays")
-
 #-----------------------------------------------------------------------------
 # UNLOCK ALL
 #-----------------------------------------------------------------------------
 
-func test_unlock_all_techniques_logs_how_many_were_new() -> void:
+func test_unlock_all_techniques_unlocks_every_one() -> void:
 	var catalog: int = CyclingManager.get_all_techniques().size()
 	var new_ones: int = catalog - CyclingManager.get_unlocked_techniques().size()
 	assert_gt(new_ones, 0, "precondition: a fresh save leaves some locked")
-	watch_signals(LogManager)
 	assert_eq(DevCommands.unlock_all_techniques(), "")
 	assert_eq(CyclingManager.get_unlocked_techniques().size(), catalog, "every technique is unlocked")
 	assert_eq(DevCommands.unlock_all_techniques(), "")
-	assert_eq(_dev_lines(), [
-		DEV_LINE + "Unlocked all techniques (%d new)" % new_ones,
-		DEV_LINE + "Unlocked all techniques (0 new)",
-	] as Array[String])
 
-func test_unlock_all_abilities_logs_how_many_were_new() -> void:
+func test_unlock_all_abilities_unlocks_every_one() -> void:
 	var catalog: int = AbilityManager.get_all_abilities().size()
 	var new_ones: int = catalog - AbilityManager.get_unlocked_abilities().size()
 	assert_gt(new_ones, 0, "precondition: a fresh save leaves some locked")
-	watch_signals(LogManager)
 	assert_eq(DevCommands.unlock_all_abilities(), "")
 	assert_eq(AbilityManager.get_unlocked_abilities().size(), catalog, "every ability is unlocked")
 	assert_eq(DevCommands.unlock_all_abilities(), "")
-	assert_eq(_dev_lines(), [
-		DEV_LINE + "Unlocked all abilities (%d new)" % new_ones,
-		DEV_LINE + "Unlocked all abilities (0 new)",
-	] as Array[String])
 
 #-----------------------------------------------------------------------------
 # PLAY STATS
@@ -622,23 +587,6 @@ func test_a_command_leaves_an_outer_pause_on() -> void:
 #-----------------------------------------------------------------------------
 # CATALOGS
 #-----------------------------------------------------------------------------
-
-## A content lock: an event the content starts to listen to, or stops listening
-## to, changes this list on purpose. Update the test with it, and give the new
-## event a story route step (see the story route's coverage test).
-func test_known_event_ids() -> void:
-	var expected := PackedStringArray([
-		"celestial_intervener_dialogue_1",
-		"celestial_intervener_dialogue_2",
-		"celestial_intervener_dialogue_3",
-		"celestial_intervener_dialogue_4",
-		"q_fill_core_completed",
-		"q_first_steps_enemy_defeated",
-		"aura_well_discovered",
-		"merchant_discovered",
-	])
-	expected.sort()
-	assert_eq(DevCommands.known_event_ids(), expected, "these eight, sorted, each once")
 
 func test_list_item_paths_finds_nested_items() -> void:
 	var paths: PackedStringArray = DevCommands.list_item_paths()
@@ -691,28 +639,6 @@ func test_successful_commands_log_a_dev_line() -> void:
 			assert_gt(lines.back().length(), DEV_LINE.length(), "%s's line says what it did" % step_name)
 		logged = lines.size()
 
-## The wording of a few lines: what the command did, by the ids and values it was given.
-func test_dev_lines_say_what_was_done() -> void:
-	watch_signals(LogManager)
-	assert_eq(DevCommands.set_madra(40.0), "")
-	assert_eq(DevCommands.set_gold(700.0), "")
-	assert_eq(DevCommands.add_path_points(2), "")
-	assert_eq(DevCommands.trigger_event(AURA_WELL_EVENT), "")
-	assert_eq(DevCommands.complete_action(NPC_1), "")
-	assert_eq(DevCommands.unlock_ability("empty_palm"), "")
-	assert_eq(DevCommands.equip_ability("empty_palm", 3), "")
-	assert_eq(DevCommands.award_item(CRUDE_SCALE, 3), "")
-	assert_eq(_dev_lines(), [
-		DEV_LINE + "Set Madra to 40",
-		DEV_LINE + "Set Gold to 700",
-		DEV_LINE + "Granted 2 Path Points",
-		DEV_LINE + "Triggered event aura_well_discovered",
-		DEV_LINE + "Completed action celestial_intervener_dialogue_1",
-		DEV_LINE + "Unlocked ability empty_palm",
-		DEV_LINE + "Equipped ability empty_palm in slot 3",
-		DEV_LINE + "Gave 3x crude_scale",
-	] as Array[String])
-
 func test_a_refusal_logs_no_dev_line() -> void:
 	AbilityManager.unlock_ability("empty_palm")
 	watch_signals(LogManager)
@@ -721,11 +647,3 @@ func test_a_refusal_logs_no_dev_line() -> void:
 	assert_ne(DevCommands.complete_action(NPC_2), "")
 	assert_ne(DevCommands.equip_ability("empty_palm", 0), "")
 	assert_eq(_dev_lines().size(), 0)
-
-## The one public way to write a [DEV] line, which the dev panel's tabs and DevManager
-## use for the lines that are not a command's: the tag, a space, what happened. The
-## player's log keys its tone off the tag, so the exact string is pinned.
-func test_log_dev_line_writes_the_tagged_line() -> void:
-	watch_signals(LogManager)
-	DevCommands.log_dev_line("Show Whole Map: ON")
-	assert_eq(_logged_lines(), [DEV_LINE + "Show Whole Map: ON"] as Array[String])

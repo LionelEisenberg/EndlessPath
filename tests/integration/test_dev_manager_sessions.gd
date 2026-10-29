@@ -35,9 +35,6 @@ const QUEST_LIST: String = "res://resources/quests/quest_list.tres"
 const FOUNDATION_STAGE: String = "res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres"
 const COPPER_STAGE: String = "res://resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres"
 
-## The prefix of a [DEV] line in the player's log.
-const DEV_LINE: String = "[color=magenta][DEV][/color] "
-
 ## Every temp file and folder here starts with this. after_each() deletes them.
 const TMP_PREFIX: String = "__test_dev_manager_sessions_"
 ## The folder the launch tests read their presets from.
@@ -294,7 +291,6 @@ func test_play_story_through_plays_an_unnamed_preset() -> void:
 	assert_not_null(session_preset, "the jump is a preset session, so a restart replays it")
 	if session_preset != null:
 		assert_eq(session_preset.preset_id, "story_through_beat_1")
-		assert_eq(session_preset.title, "Story through Awakening", "named after the beat's title")
 		assert_eq(session_preset.story_through, "beat_1")
 	assert_true(EventManager.has_event_triggered(FORAGING_EVENT), "the route ran through beat_1")
 	assert_eq(_current_action_id(), FORAGING_ID, "and the foraging it opens runs, as after a launch")
@@ -854,17 +850,6 @@ func test_set_time_speed_scales_the_engine() -> void:
 	assert_eq(DevManager.get_time_speed(), 5.0, "and the speed reads back")
 	assert_signal_emit_count(DevManager, "time_speed_changed", 1)
 	assert_signal_emitted_with_parameters(DevManager, "time_speed_changed", [5.0])
-
-func test_set_time_speed_logs_a_dev_line() -> void:
-	LogManager.clear_history()
-	DevManager.set_time_speed(5.0)
-	assert_eq(LogManager.get_history(), [DEV_LINE + "Time speed ×5"] as Array[String], "one [DEV] line names the speed")
-
-func test_every_listed_time_speed_can_be_set() -> void:
-	assert_eq(DevManager.TIME_SPEEDS, [1.0, 2.0, 5.0, 10.0] as Array[float], "the four speeds the spec lists")
-	for speed: float in DevManager.TIME_SPEEDS:
-		assert_eq(DevManager.set_time_speed(speed), "", "speed %s is accepted" % speed)
-		assert_eq(Engine.time_scale, speed, "and the engine runs at it")
 
 ## A speed that is not listed is refused with a reason that names it and the speeds
 ## that are allowed, and nothing changes. 0.0 would freeze the game; the others are

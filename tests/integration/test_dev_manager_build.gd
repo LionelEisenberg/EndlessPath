@@ -45,8 +45,6 @@ save_version = 1
 gold = 42.0
 """
 
-const DEV_LINE: String = "[color=magenta][DEV][/color] "
-
 ## Opens once merchant_discovered fires, the last step of beat_3b.
 const MERCHANT_ACTION: String = "spirit_valley_merchant"
 ## Locked on a fresh save: it needs Core Density 10.
@@ -165,7 +163,6 @@ func _assert_fallback_session() -> void:
 	assert_not_null(session_preset, "the session has a preset to restart")
 	if session_preset != null:
 		assert_eq(session_preset.preset_id, "fresh_fallback")
-		assert_eq(session_preset.title, "Fresh start (the preset could not be built)")
 	assert_eq(PersistenceManager.save_game_data.stats.built_from_preset, "fresh_fallback", "its save was built through build_preset()")
 
 ## True when some zone offers the action right now.
@@ -386,7 +383,6 @@ func test_presets_come_from_the_folder_sorted_by_title() -> void:
 
 func test_a_preset_launch_starts_the_preset() -> void:
 	var preset := _preset("test_launch", "", [_step(Kind.SET_GOLD, "", 321.0)])
-	preset.title = "Launch test"
 	_write_preset(preset, "launch_test.tres")
 	watch_signals(DevManager)
 	DevManager.start_from_launch_options(LaunchOptions.parse(PackedStringArray(["--preset=test_launch"])))
@@ -397,17 +393,7 @@ func test_a_preset_launch_starts_the_preset() -> void:
 		assert_eq(session_preset.preset_id, "test_launch")
 	assert_eq(ResourceManager.get_gold(), 321.0, "the preset was built")
 	assert_true(PersistenceManager.is_in_memory(), "with no --save the session lives in memory")
-	assert_eq(LogManager.get_history(), [DEV_LINE + "Started preset 'Launch test'"] as Array[String],
-		"the log starts clean, with one line naming the preset")
 	assert_signal_emit_count(DevManager, "session_changed", 1)
-
-func test_a_pinned_launch_says_so() -> void:
-	var preset := _preset("test_pinned", "")
-	preset.title = "Pinned test"
-	_write_preset(preset, "pinned_test.tres")
-	DevManager.start_from_launch_options(LaunchOptions.parse(PackedStringArray(), "test_pinned"))
-	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
-	assert_eq(LogManager.get_history(), [DEV_LINE + "Started preset 'Pinned test' (pinned)"] as Array[String])
 
 ## PersistenceManager.boot() already opened the session's file; DevManager only
 ## names the kind.

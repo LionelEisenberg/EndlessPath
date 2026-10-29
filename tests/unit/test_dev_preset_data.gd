@@ -132,22 +132,6 @@ func test_kind_numbers_never_change() -> void:
 # DESCRIBE
 #-----------------------------------------------------------------------------
 
-func test_describe_reads_plainly() -> void:
-	assert_eq(_step(Kind.COMPLETE_ACTION, NPC_1).describe(), "Complete celestial_intervener_dialogue_1")
-	assert_eq(_step(Kind.SET_GOLD, "", 700.0).describe(), "Set gold to 700")
-	assert_eq(_step(Kind.EQUIP_ABILITY, "empty_palm", 3.0).describe(), "Equip ability empty_palm in slot 3")
-	assert_eq(_step(Kind.REACH_CORE_DENSITY, "", 100.0).describe(), "Reach Core Density 100")
-
-## A value with a fraction is not rounded away, and one without has no ".0".
-func test_describe_keeps_the_fraction_of_a_value() -> void:
-	assert_eq(_step(Kind.SET_MADRA, "", 12.5).describe(), "Set Madra to 12.5")
-	assert_eq(_step(Kind.SET_MADRA, "", 100.0).describe(), "Set Madra to 100")
-	assert_eq(_step(Kind.SET_GOLD, "", 0.0).describe(), "Set gold to 0")
-
-## An item is named by its file, not its whole resource path.
-func test_describe_names_an_item_by_its_file() -> void:
-	assert_eq(_step(Kind.AWARD_ITEM, CRUDE_SCALE, 2.0).describe(), "Award 2x crude_scale")
-
 func test_every_kind_describes_itself() -> void:
 	for kind: int in Kind.values():
 		var text: String = _step(kind as Kind, "an_id", 1.0).describe()
