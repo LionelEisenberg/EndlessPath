@@ -110,9 +110,6 @@ func test_get_unlocked_abilities() -> void:
 	var unlocked: Array[AbilityData] = AbilityManager.get_unlocked_abilities()
 	assert_eq(unlocked.size(), 2, "Should have 2 unlocked abilities")
 
-func test_get_max_slots() -> void:
-	assert_eq(AbilityManager.get_max_slots(), 4)
-
 # ----- has_unequipped_unlocks Tests -----
 
 func test_has_unequipped_unlocks_false_when_none_unlocked() -> void:

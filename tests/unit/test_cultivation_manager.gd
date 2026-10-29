@@ -107,10 +107,24 @@ func test_new_save_starts_at_foundation_level_zero() -> void:
 # XP AND LEVEL PROGRESSION
 #-----------------------------------------------------------------------------
 
-func test_xp_below_cost_does_not_level() -> void:
-	CultivationManager.add_core_density_xp(5.0)
-	assert_eq(CultivationManager.get_core_density_level(), 0.0, "5 of 10 XP should not level")
-	assert_almost_eq(CultivationManager.get_core_density_xp(), 5.0, 0.001)
+## One award from level 0 on the fixture's curve (10, 15, 22.5): the levels it
+## buys and the XP it leaves, from an award short of level 1, through the exact
+## cost and an overflow, to awards that buy two and three levels.
+func test_one_award_buys_levels_and_keeps_the_remainder() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "5 of 10 XP, short of level 1", "xp": 5.0, "level": 0.0, "left": 5.0},
+		{"name": "the exact cost of level 1", "xp": 10.0, "level": 1.0, "left": 0.0},
+		{"name": "10 spent on level 1, 3 left over", "xp": 13.0, "level": 1.0, "left": 3.0},
+		{"name": "14.9 left, short of level 2's 15", "xp": 24.9, "level": 1.0, "left": 14.9},
+		{"name": "two levels (10 + 15), 5 left over", "xp": 30.0, "level": 2.0, "left": 5.0},
+		{"name": "three levels exactly (10 + 15 + 22.5)", "xp": 47.5, "level": 3.0, "left": 0.0},
+	]
+	for case: Dictionary in cases:
+		_save.core_density_level = 0.0
+		_save.core_density_xp = 0.0
+		CultivationManager.add_core_density_xp(case.xp)
+		assert_eq(CultivationManager.get_core_density_level(), case.level, "%s: level" % case.name)
+		assert_almost_eq(CultivationManager.get_core_density_xp(), case.left, 0.001, "%s: XP left" % case.name)
 
 func test_xp_accumulates_across_calls_until_level_up() -> void:
 	CultivationManager.add_core_density_xp(4.0)
@@ -121,34 +135,6 @@ func test_xp_accumulates_across_calls_until_level_up() -> void:
 	CultivationManager.add_core_density_xp(0.5)
 	assert_eq(CultivationManager.get_core_density_level(), 1.0, "the call that reaches 10 XP should level")
 	assert_almost_eq(CultivationManager.get_core_density_xp(), 0.0, 0.001)
-
-func test_exact_cost_levels_up_with_no_remainder() -> void:
-	CultivationManager.add_core_density_xp(10.0)
-	assert_eq(CultivationManager.get_core_density_level(), 1.0)
-	assert_almost_eq(CultivationManager.get_core_density_xp(), 0.0, 0.001)
-
-func test_overflow_xp_carries_into_next_level() -> void:
-	CultivationManager.add_core_density_xp(13.0)
-	assert_eq(CultivationManager.get_core_density_level(), 1.0)
-	assert_almost_eq(CultivationManager.get_core_density_xp(), 3.0, 0.001, "10 spent on level 1, 3 left over")
-
-func test_one_award_can_gain_several_levels() -> void:
-	# Level 1 costs 10, level 2 costs 15: 30 XP gives 2 levels and 5 left over.
-	CultivationManager.add_core_density_xp(30.0)
-	assert_eq(CultivationManager.get_core_density_level(), 2.0)
-	assert_almost_eq(CultivationManager.get_core_density_xp(), 5.0, 0.001)
-
-func test_one_award_can_gain_three_levels_exactly() -> void:
-	# 10 + 15 + 22.5 = 47.5
-	CultivationManager.add_core_density_xp(47.5)
-	assert_eq(CultivationManager.get_core_density_level(), 3.0)
-	assert_almost_eq(CultivationManager.get_core_density_xp(), 0.0, 0.001)
-
-func test_remainder_short_of_next_cost_stays_as_xp() -> void:
-	# 10 levels to 1, the remaining 14.9 is short of level 2's 15.
-	CultivationManager.add_core_density_xp(24.9)
-	assert_eq(CultivationManager.get_core_density_level(), 1.0)
-	assert_almost_eq(CultivationManager.get_core_density_xp(), 14.9, 0.001)
 
 func test_cost_is_based_on_current_level() -> void:
 	_save.core_density_level = 2.0
@@ -200,26 +186,28 @@ func test_level_updated_emitted_for_each_level_gained() -> void:
 # PATH POINT MILESTONES
 #-----------------------------------------------------------------------------
 
-func test_tenth_level_awards_a_foundation_path_point() -> void:
+## One award on the flat curve, from a level the save stands at, with nothing
+## paid yet: a Foundation point for each multiple of 10 the award reaches,
+## counted by absolute level, not by levels gained. The cases run up to level 9
+## and then to 10, cross 10 from level 5, cross 10 and 20 at once, and reach
+## level 100, the level that fills the core.
+func test_an_award_pays_each_milestone_it_reaches() -> void:
 	_use_flat_curve()
-	CultivationManager.add_core_density_xp(9.0)
-	assert_eq(PathManager.get_point_balance(), 0, "no point before level 10")
-	CultivationManager.add_core_density_xp(1.0)
-	assert_eq(CultivationManager.get_core_density_level(), 10.0)
-	assert_eq(PathManager.get_point_balance(), 1, "level 10 is a milestone")
-
-func test_milestones_count_absolute_level_not_levels_gained() -> void:
-	_use_flat_curve()
-	_save.core_density_level = 5.0
-	CultivationManager.add_core_density_xp(10.0)
-	assert_eq(CultivationManager.get_core_density_level(), 15.0)
-	assert_eq(PathManager.get_point_balance(), 1, "levels 6-15 cross only the level-10 milestone")
-
-func test_one_award_crossing_two_milestones_awards_both() -> void:
-	_use_flat_curve()
-	CultivationManager.add_core_density_xp(25.0)
-	assert_eq(CultivationManager.get_core_density_level(), 25.0)
-	assert_eq(PathManager.get_point_balance(), 2, "levels 10 and 20")
+	var cases: Array[Dictionary] = [
+		{"name": "no point before level 10", "from": 0.0, "xp": 9.0, "level": 9.0, "points": 0},
+		{"name": "level 10 is a milestone", "from": 9.0, "xp": 1.0, "level": 10.0, "points": 1},
+		{"name": "levels 6-15 cross only the level-10 milestone", "from": 5.0, "xp": 10.0, "level": 15.0, "points": 1},
+		{"name": "levels 10 and 20 in one award", "from": 0.0, "xp": 25.0, "level": 25.0, "points": 2},
+		{"name": "level 100 fills the core and is a milestone like any other", "from": 99.0, "xp": 1.0, "level": 100.0, "points": 1},
+	]
+	for case: Dictionary in cases:
+		_save.core_density_level = case.from
+		_save.core_density_xp = 0.0
+		_save.core_density_milestones.clear()
+		_save.path_points = 0
+		CultivationManager.add_core_density_xp(case.xp)
+		assert_eq(CultivationManager.get_core_density_level(), case.level, "%s: level" % case.name)
+		assert_eq(PathManager.get_point_balance(), case.points, "%s: points" % case.name)
 
 func test_milestone_points_scale_with_stage() -> void:
 	var expected_points: Dictionary = {
@@ -350,13 +338,6 @@ func test_the_filling_level_up_announces_an_empty_core() -> void:
 	assert_signal_emit_count(CultivationManager, "core_density_level_updated", 100)
 	assert_signal_emitted_with_parameters(CultivationManager, "core_density_level_updated", [51.0, 99.0], 98)
 	assert_signal_emitted_with_parameters(CultivationManager, "core_density_level_updated", [0.0, 100.0], 99)
-
-func test_the_level_that_fills_the_core_pays_its_milestone() -> void:
-	_use_flat_curve()
-	_save.core_density_level = 99.0
-	CultivationManager.add_core_density_xp(1.0)
-	assert_eq(CultivationManager.get_core_density_level(), 100.0)
-	assert_eq(PathManager.get_point_balance(), 1, "level 100 is a milestone like any other")
 
 func test_losing_levels() -> void:
 	_save.core_density_level = 100.0
@@ -537,47 +518,24 @@ func test_advancement_stage_enum_values() -> void:
 # ADVANCEMENT STAGE RESOURCE: XP CURVE
 #-----------------------------------------------------------------------------
 
-func test_xp_for_level_1() -> void:
-	# 10 * 1.5^(1-1) = 10 * 1 = 10
-	var xp: float = _stage_resource.get_xp_for_level(1)
-	assert_eq(xp, 10.0, "level 1 should cost base XP (10)")
-
-func test_xp_for_level_2() -> void:
-	# 10 * 1.5^(2-1) = 10 * 1.5 = 15
-	var xp: float = _stage_resource.get_xp_for_level(2)
-	assert_eq(xp, 15.0, "level 2 should cost 15")
-
-func test_xp_for_level_3() -> void:
-	# 10 * 1.5^(3-1) = 10 * 2.25 = 22.5
-	var xp: float = _stage_resource.get_xp_for_level(3)
-	assert_eq(xp, 22.5, "level 3 should cost 22.5")
-
-func test_xp_for_level_5() -> void:
-	# 10 * 1.5^4 = 10 * 5.0625 = 50.625
-	var xp: float = _stage_resource.get_xp_for_level(5)
-	assert_almost_eq(xp, 50.625, 0.001, "level 5 XP should scale correctly")
-
-func test_xp_scaling_increases_per_level() -> void:
-	var prev: float = _stage_resource.get_xp_for_level(1)
-	for i: int in range(2, 6):
-		var current: float = _stage_resource.get_xp_for_level(i)
-		assert_gt(current, prev, "XP for level %d should be greater than level %d" % [i, i - 1])
-		prev = current
-
-func test_linear_scaling_factor() -> void:
-	var linear_stage := AdvancementStageResource.new()
-	linear_stage.core_density_base_xp_cost = 20.0
-	linear_stage.core_xp_scaling_factor = 1.0
-	# All levels cost the same: 20
-	assert_eq(linear_stage.get_xp_for_level(1), 20.0)
-	assert_eq(linear_stage.get_xp_for_level(5), 20.0)
-	assert_eq(linear_stage.get_xp_for_level(10), 20.0)
-
-func test_steep_scaling_factor() -> void:
-	var steep_stage := AdvancementStageResource.new()
-	steep_stage.core_density_base_xp_cost = 5.0
-	steep_stage.core_xp_scaling_factor = 2.0
-	# Level 1: 5, Level 2: 10, Level 3: 20
-	assert_eq(steep_stage.get_xp_for_level(1), 5.0)
-	assert_eq(steep_stage.get_xp_for_level(2), 10.0)
-	assert_eq(steep_stage.get_xp_for_level(3), 20.0)
+## get_xp_for_level() is base x scaling^(level - 1): level 1 costs the base.
+## The cases cover the fixture's x1.5 curve at levels 1 to 5 (each costing more
+## than the last), a flat x1.0 curve where every level costs the base, and a
+## steep x2.0 curve.
+func test_xp_for_level_follows_base_times_scaling() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "x1.5 level 1", "base": 10.0, "scaling": 1.5, "level": 1, "xp": 10.0},
+		{"name": "x1.5 level 2", "base": 10.0, "scaling": 1.5, "level": 2, "xp": 15.0},
+		{"name": "x1.5 level 3", "base": 10.0, "scaling": 1.5, "level": 3, "xp": 22.5},
+		{"name": "x1.5 level 4", "base": 10.0, "scaling": 1.5, "level": 4, "xp": 33.75},
+		{"name": "x1.5 level 5", "base": 10.0, "scaling": 1.5, "level": 5, "xp": 50.625},
+		{"name": "x1.0 level 1", "base": 20.0, "scaling": 1.0, "level": 1, "xp": 20.0},
+		{"name": "x1.0 level 5", "base": 20.0, "scaling": 1.0, "level": 5, "xp": 20.0},
+		{"name": "x1.0 level 10", "base": 20.0, "scaling": 1.0, "level": 10, "xp": 20.0},
+		{"name": "x2.0 level 1", "base": 5.0, "scaling": 2.0, "level": 1, "xp": 5.0},
+		{"name": "x2.0 level 2", "base": 5.0, "scaling": 2.0, "level": 2, "xp": 10.0},
+		{"name": "x2.0 level 3", "base": 5.0, "scaling": 2.0, "level": 3, "xp": 20.0},
+	]
+	for case: Dictionary in cases:
+		var stage := _make_stage(Stage.FOUNDATION, case.name, case.base, case.scaling)
+		assert_almost_eq(stage.get_xp_for_level(case.level), case.xp, 0.001, case.name)

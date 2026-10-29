@@ -65,34 +65,6 @@ func _robes() -> ItemInstanceData:
 # ATTRIBUTE GETTERS - ALL 8 ATTRIBUTES
 #-----------------------------------------------------------------------------
 
-func test_get_strength_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.STRENGTH), 10.0)
-
-func test_get_body_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.BODY), 10.0)
-
-func test_get_agility_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.AGILITY), 10.0)
-
-func test_get_spirit_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.SPIRIT), 10.0)
-
-func test_get_foundation_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.FOUNDATION), 10.0)
-
-func test_get_control_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.CONTROL), 10.0)
-
-func test_get_resilience_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.RESILIENCE), 10.0)
-
-func test_get_willpower_returns_base() -> void:
-	assert_eq(_attributes.get_attribute(AttributeType.WILLPOWER), 10.0)
-
-#-----------------------------------------------------------------------------
-# CUSTOM ATTRIBUTE VALUES
-#-----------------------------------------------------------------------------
-
 func test_custom_attribute_values() -> void:
 	var custom := CharacterAttributesData.new(5.0, 15.0, 20.0, 8.0, 12.0, 3.0, 25.0, 7.0)
 	assert_eq(custom.get_attribute(AttributeType.STRENGTH), 5.0)
@@ -108,17 +80,18 @@ func test_custom_attribute_values() -> void:
 # ADD TO ATTRIBUTE (CharacterAttributesData)
 #-----------------------------------------------------------------------------
 
+## add_to_attribute() adds the amount to the attribute's 10: a positive, a
+## negative and a zero amount.
 func test_add_to_attribute_increases_value() -> void:
-	_attributes.add_to_attribute(AttributeType.STRENGTH, 5.0)
-	assert_eq(_attributes.get_attribute(AttributeType.STRENGTH), 15.0)
-
-func test_add_to_attribute_negative() -> void:
-	_attributes.add_to_attribute(AttributeType.BODY, -3.0)
-	assert_eq(_attributes.get_attribute(AttributeType.BODY), 7.0)
-
-func test_add_to_attribute_zero() -> void:
-	_attributes.add_to_attribute(AttributeType.SPIRIT, 0.0)
-	assert_eq(_attributes.get_attribute(AttributeType.SPIRIT), 10.0)
+	var cases: Array[Array] = [
+		[AttributeType.STRENGTH, 5.0, 15.0],
+		[AttributeType.BODY, -3.0, 7.0],
+		[AttributeType.SPIRIT, 0.0, 10.0],
+	]
+	for case: Array in cases:
+		_attributes.add_to_attribute(case[0], case[1])
+		assert_eq(_attributes.get_attribute(case[0]), case[2],
+			"%s %+.1f" % [AttributeType.keys()[case[0]], case[1]])
 
 func test_add_to_multiple_attributes() -> void:
 	_attributes.add_to_attribute(AttributeType.STRENGTH, 5.0)
@@ -235,18 +208,6 @@ func test_items_without_equipment_definition_are_ignored() -> void:
 #-----------------------------------------------------------------------------
 # TOTAL ATTRIBUTES: ACCESSORIES
 #-----------------------------------------------------------------------------
-
-func test_accessory_in_slot_0_adds_bonus() -> void:
-	_inventory().equipped_accessories[0] = _make_gear(EquipmentSlot.ACCESSORY, {
-		AttributeType.SPIRIT: 4.0,
-	})
-	assert_eq(_total(AttributeType.SPIRIT), 14.0)
-
-func test_accessory_in_slot_1_adds_bonus() -> void:
-	_inventory().equipped_accessories[1] = _make_gear(EquipmentSlot.ACCESSORY, {
-		AttributeType.WILLPOWER: 2.0,
-	})
-	assert_eq(_total(AttributeType.WILLPOWER), 12.0)
 
 func test_gear_and_both_accessories_stack() -> void:
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {

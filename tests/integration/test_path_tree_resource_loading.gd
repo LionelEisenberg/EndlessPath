@@ -11,25 +11,24 @@ func test_pure_madra_tree_loads_and_validates() -> void:
 	assert_not_null(tree, "pure_madra_tree.tres should load")
 	assert_true(tree.validate(), "pure_madra_tree should pass validate() — prereq refs resolve to nodes in the tree")
 
+## A node's typed prerequisites load as the PathNodeData its .tres names, none
+## dropped: focused_strike's one and madra_surge's two.
 func test_pure_madra_tree_prerequisites_are_resource_refs() -> void:
 	var tree: PathTreeData = load(PURE_MADRA_TREE_PATH)
-	var focused_strike: PathNodeData = tree.get_node_by_id("focused_strike")
-	assert_not_null(focused_strike, "focused_strike node should exist")
-	assert_eq(focused_strike.prerequisites.size(), 1,
-		"focused_strike should have exactly one prerequisite")
-	var prereq: PathNodeData = focused_strike.prerequisites[0]
-	assert_not_null(prereq, "prerequisite should be a resolved PathNodeData reference")
-	assert_eq(prereq.id, "power_font",
-		"focused_strike's prerequisite should be the power_font node")
-
-func test_pure_madra_tree_multi_prerequisite_wiring() -> void:
-	var tree: PathTreeData = load(PURE_MADRA_TREE_PATH)
-	var madra_surge: PathNodeData = tree.get_node_by_id("madra_surge")
-	assert_not_null(madra_surge, "madra_surge node should exist")
-	assert_eq(madra_surge.prerequisites.size(), 2,
-		"madra_surge should have two prerequisites")
-	var prereq_ids: Array[String] = []
-	for prereq: PathNodeData in madra_surge.prerequisites:
-		prereq_ids.append(prereq.id)
-	assert_has(prereq_ids, "efficient_palm")
-	assert_has(prereq_ids, "lingering_silence")
+	var cases: Array[Dictionary] = [
+		{"node": "focused_strike", "prerequisites": ["power_font"]},
+		{"node": "madra_surge", "prerequisites": ["efficient_palm", "lingering_silence"]},
+	]
+	for case: Dictionary in cases:
+		var node: PathNodeData = tree.get_node_by_id(case.node)
+		assert_not_null(node, "%s node should exist" % case.node)
+		if node == null:
+			continue
+		assert_eq(node.prerequisites.size(), case.prerequisites.size(),
+			"%s should have %d prerequisite(s)" % [case.node, case.prerequisites.size()])
+		var prereq_ids: Array[String] = []
+		for prereq: PathNodeData in node.prerequisites:
+			assert_not_null(prereq, "%s: a prerequisite should be a resolved PathNodeData reference" % case.node)
+			prereq_ids.append(prereq.id if prereq != null else "")
+		for expected_id: String in case.prerequisites:
+			assert_has(prereq_ids, expected_id, "%s should require %s" % [case.node, expected_id])

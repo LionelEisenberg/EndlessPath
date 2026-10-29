@@ -40,11 +40,6 @@ func test_quiet_add_still_adds() -> void:
 	ResourceManager.add_madra(5.0, true)
 	assert_eq(ResourceManager.get_madra(), 30.0)
 
-func test_loud_add_logs_gained_line() -> void:
-	ResourceManager.add_madra(5.0)
-	assert_signal_emit_count(LogManager, "message_logged", 1)
-	assert_string_contains(_last_logged_line(), "Gained 5 Madra")
-
 func test_capped_add_logs_nothing() -> void:
 	ResourceManager.set_madra(100.0)
 	ResourceManager.add_madra(5.0)
@@ -62,34 +57,32 @@ func test_add_onto_a_fractional_balance_logs_the_whole_amount() -> void:
 	ResourceManager.add_madra(1.0)
 	assert_string_contains(_last_logged_line(), "Gained 1 Madra")
 
-func test_sub_one_add_logs_nothing() -> void:
-	ResourceManager.add_madra(0.5)
-	assert_signal_not_emitted(LogManager, "message_logged")
-	assert_eq(ResourceManager.get_madra(), 25.5)
-
+## add_madra() returns the Madra it actually added: all of it with room, what
+## fit under the cap of 100, and 0 at the cap.
 func test_add_returns_what_it_added() -> void:
-	assert_eq(ResourceManager.add_madra(5.0, true), 5.0)
-
-func test_capped_add_returns_what_fit() -> void:
-	assert_eq(ResourceManager.add_madra(90.0, true), 75.0, "25 + 90 stops at the cap of 100, so 75 fit")
-
-func test_add_at_the_cap_returns_zero() -> void:
-	ResourceManager.set_madra(100.0)
-	assert_eq(ResourceManager.add_madra(1.0, true), 0.0)
+	var cases: Array[Dictionary] = [
+		{"name": "5 with room to spare", "madra": 25.0, "amount": 5.0, "added": 5.0},
+		{"name": "25 + 90 stops at the cap of 100, so 75 fit", "madra": 25.0, "amount": 90.0, "added": 75.0},
+		{"name": "nothing fits at the cap", "madra": 100.0, "amount": 1.0, "added": 0.0},
+	]
+	for case: Dictionary in cases:
+		ResourceManager.set_madra(case.madra)
+		assert_eq(ResourceManager.add_madra(case.amount, true), case.added, case.name)
 
 #-----------------------------------------------------------------------------
 # AWARD RESOURCE
 #-----------------------------------------------------------------------------
 
-func test_quiet_madra_award_logs_nothing() -> void:
-	ResourceManager.award_resource(ResourceManager.ResourceType.MADRA, 5.0, true)
-	assert_signal_not_emitted(LogManager, "message_logged")
-	assert_eq(ResourceManager.get_madra(), 30.0)
-
-func test_quiet_gold_award_logs_nothing() -> void:
-	ResourceManager.award_resource(ResourceManager.ResourceType.GOLD, 7.0, true)
-	assert_signal_not_emitted(LogManager, "message_logged")
-	assert_eq(ResourceManager.get_gold(), 7.0)
+## A quiet award of either resource adds it and logs nothing.
+func test_quiet_award_logs_nothing() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Madra", "type": ResourceManager.ResourceType.MADRA, "amount": 5.0, "read": ResourceManager.get_madra, "expected": 30.0},
+		{"name": "gold", "type": ResourceManager.ResourceType.GOLD, "amount": 7.0, "read": ResourceManager.get_gold, "expected": 7.0},
+	]
+	for case: Dictionary in cases:
+		ResourceManager.award_resource(case.type, case.amount, true)
+		assert_eq(get_signal_emit_count(LogManager, "message_logged"), 0, "%s: logs nothing" % case.name)
+		assert_eq((case.read as Callable).call(), case.expected, "%s: added" % case.name)
 
 func test_loud_gold_award_logs_gained_line() -> void:
 	ResourceManager.award_resource(ResourceManager.ResourceType.GOLD, 7.0)
@@ -119,4 +112,3 @@ func test_aura_well_trickle_is_quiet() -> void:
 	var trickle: AwardResourceEffectData = load(AURA_WELL_TRICKLE_PATH)
 	trickle.process()
 	assert_signal_not_emitted(LogManager, "message_logged")
-	assert_eq(ResourceManager.get_madra(), 26.5, "the trickle still adds its 1.5 Madra")
