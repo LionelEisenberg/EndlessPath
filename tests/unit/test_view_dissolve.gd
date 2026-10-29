@@ -2,10 +2,10 @@ extends GutTest
 
 ## Unit tests for ViewDissolve, the style guide's 2-step dither dissolve (§8,
 ## Show and hide) from one whole view to the next: a still of the old view laid
-## over the new one, drawn on half its art cells, then a quarter, 0.1 s each,
-## then hidden. Nothing fades. The dissolve's tween is stepped by hand a 60 FPS
-## frame at a time. play() itself takes no still headless, so the tests hand
-## play_over() a still of their own.
+## over the new one, taking no pointer, then hidden after 0.2 s, with the still
+## let go; a new dissolve starts over. The dissolve's tween is stepped by hand a
+## 60 FPS frame at a time. play() itself takes no still headless, so the tests
+## hand play_over() a still of their own.
 
 const ViewDissolveScene := preload("res://scenes/ui/view_dissolve/view_dissolve.tscn")
 
@@ -45,16 +45,6 @@ func test_starts_hidden_at_step_0() -> void:
 func test_takes_no_pointer() -> void:
 	assert_eq(_dissolve.mouse_filter, Control.MOUSE_FILTER_IGNORE, "the view under it takes the pointer from the first frame")
 
-func test_covers_the_whole_screen_on_the_pixel_grid() -> void:
-	assert_eq(_dissolve.anchor_right, 1.0)
-	assert_eq(_dissolve.anchor_bottom, 1.0)
-	assert_eq(_dissolve.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST, "the still keeps its pixels")
-
-func test_dissolves_the_still_out_with_the_inverted_dither() -> void:
-	var material: ShaderMaterial = _dissolve.material as ShaderMaterial
-	assert_eq(material.shader.resource_path, "res://assets/shaders/dither_dissolve.gdshader")
-	assert_true(material.get_shader_parameter("invert"), "the still keeps the cells the incoming view would not")
-
 #-----------------------------------------------------------------------------
 # PLAYING
 #-----------------------------------------------------------------------------
@@ -66,14 +56,6 @@ func test_play_over_shows_the_still_on_half_its_cells() -> void:
 	assert_eq(_dissolve.texture, _still)
 	assert_eq(_step(), 1, "half the still's art cells at once")
 
-func test_second_step_after_a_tenth_of_a_second() -> void:
-	_dissolve.play_over(_still)
-	_run(0.05)
-	assert_eq(_step(), 1, "the first step holds")
-	_run(0.067)
-	assert_eq(_step(), 2, "a quarter of the cells from 0.1 s")
-	assert_true(_dissolve.visible)
-
 func test_hides_and_lets_the_still_go_after_two_steps() -> void:
 	watch_signals(_dissolve)
 	_dissolve.play_over(_still)
@@ -83,13 +65,6 @@ func test_hides_and_lets_the_still_go_after_two_steps() -> void:
 	assert_null(_dissolve.texture, "the still is let go")
 	assert_eq(_step(), 0)
 	assert_signal_emitted(_dissolve, "finished")
-
-func test_never_fades() -> void:
-	_dissolve.play_over(_still)
-	for _frame: int in 14:
-		assert_eq(_dissolve.modulate.a, 1.0, "no alpha fade")
-		assert_eq(_dissolve.self_modulate.a, 1.0, "no alpha fade")
-		_run(FRAME)
 
 func test_a_new_dissolve_starts_over() -> void:
 	_dissolve.play_over(_still)

@@ -9,20 +9,23 @@ extends GutTest
 # TIME LEFT
 #-----------------------------------------------------------------------------
 
+## How a time left reads, M:SS: the minutes floor and do not wrap at ten, and the
+## seconds are cut, not rounded, as the old timer pill's countdown was: 119.99 s
+## still reads 1:59, and the whole of the last second reads 0:00.
 func test_format_time() -> void:
-	assert_eq(RunClock.format_time(125.9), "2:05", "minutes floor and seconds truncate")
-	assert_eq(RunClock.format_time(59.9), "0:59", "59.9 s has not reached a minute")
-	assert_eq(RunClock.format_time(0.0), "0:00")
-	assert_eq(RunClock.format_time(600.0), "10:00", "minutes do not wrap at ten")
-
-## The seconds are cut, not rounded, as the old timer pill's countdown was: 119.99
-## s still reads 1:59, and the whole of the last second reads 0:00.
-func test_format_time_truncates_to_the_second() -> void:
-	assert_eq(RunClock.format_time(0.99), "0:00")
-	assert_eq(RunClock.format_time(1.0), "0:01")
-	assert_eq(RunClock.format_time(59.99), "0:59")
-	assert_eq(RunClock.format_time(60.0), "1:00")
-	assert_eq(RunClock.format_time(119.99), "1:59")
+	var cases: Array[Dictionary] = [
+		{"seconds": 125.9, "reads": "2:05", "why": "minutes floor and seconds truncate"},
+		{"seconds": 59.9, "reads": "0:59", "why": "59.9 s has not reached a minute"},
+		{"seconds": 0.0, "reads": "0:00", "why": "no time left"},
+		{"seconds": 600.0, "reads": "10:00", "why": "minutes do not wrap at ten"},
+		{"seconds": 0.99, "reads": "0:00", "why": "the whole of the last second"},
+		{"seconds": 1.0, "reads": "0:01", "why": "one second"},
+		{"seconds": 59.99, "reads": "0:59", "why": "just short of a minute"},
+		{"seconds": 60.0, "reads": "1:00", "why": "one minute"},
+		{"seconds": 119.99, "reads": "1:59", "why": "just short of two minutes"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(RunClock.format_time(case.seconds), case.reads, "%s s: %s" % [case.seconds, case.why])
 
 #-----------------------------------------------------------------------------
 # LOW TIME

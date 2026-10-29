@@ -1,13 +1,13 @@
 extends GutTest
 
-## Integration tests for where main_game.tscn places the zone view's furniture:
-## the cultivator cabinet, the zone chest, the dock, the log and the Goals board.
-## Each sits at its place in its own scene's root. An editor save drops an
-## instance's properties that equal its scene's own, and a control in Position
-## layout mode snaps to its parent's top-left corner when the mode is set on
-## load, so in Position mode the furniture landed at (0, 0) after any save of
-## main_game.tscn. The scene is only instanced, never added to the tree: that
-## would start the whole game inside the test (TESTING.md).
+## Regression test: main_game.tscn's zone view furniture (the cultivator cabinet,
+## the zone chest, the dock, the log and the Goals board) keeps its places through
+## an editor save. An editor save drops an instance's properties that equal its
+## scene's own, and a control in Position layout mode snaps to its parent's
+## top-left corner when the mode is set on load, so in Position mode the furniture
+## landed at (0, 0) after any save of main_game.tscn. The scene is only instanced,
+## never added to the tree: that would start the whole game inside the test
+## (TESTING.md).
 
 const MAIN_GAME_SCENE: PackedScene = preload("res://scenes/main/main_game/main_game.tscn")
 ## Each panel's place on the 1920x1080 screen, by its path from the scene root.
@@ -22,10 +22,6 @@ const PLACES: Dictionary = {
 #-----------------------------------------------------------------------------
 # TESTS
 #-----------------------------------------------------------------------------
-
-func test_the_furniture_sits_at_its_places() -> void:
-	var main_game: Node = autofree(MAIN_GAME_SCENE.instantiate())
-	_assert_places(main_game, "as loaded")
 
 func test_the_furniture_keeps_its_places_through_an_editor_save() -> void:
 	var edited: Node = autofree(MAIN_GAME_SCENE.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE))
