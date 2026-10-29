@@ -444,8 +444,8 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `scenes/combat/adventure_combat/adventure_combat.gd` | `q_first_steps_enemy_defeated` producer |
 | `singletons/cultivation_manager/cultivation_manager.gd` | CD cap and milestone path points (paid once per stage); `advance_to_next_stage()` and `lose_core_density_levels()` (Beat 9) |
 | `tests/integration/test_aura_well_discovery_unlock.gd`, `test_beat_3b_merchant_unlock.gd` | Beat 3a and 3b integration tests |
-| `tests/unit/test_merchant_manager.gd`, `test_merchant_data.gd`, `test_merchant_view_state.gd`, `test_spirit_valley_merchant_stock.gd`, `test_spirit_valley_merchant_theme.gd`, `tests/integration/test_merchant_shop_flow.gd` | Beat 4 tests |
-| `tests/unit/test_tribulation_run.gd`, `test_tribulation_stage.gd`, `test_tribulation_art.gd`, `test_tribulation_view_state.gd`, `test_foundation_tribulation_data.gd`, `tests/integration/test_tribulation_view.gd`, `test_tribulation_card.gd`, `test_tribulation_flow.gd` | Beat 9 tests, the flow included end to end |
+| `tests/unit/test_merchant_manager.gd`, `test_merchant_data.gd`, `test_merchant_view_state.gd`, `test_spirit_valley_merchant_stock.gd`, `tests/integration/test_merchant_shop_flow.gd` | Beat 4 tests |
+| `tests/unit/test_tribulation_run.gd`, `test_tribulation_stage.gd`, `test_tribulation_view_state.gd`, `test_foundation_tribulation_data.gd`, `tests/integration/test_tribulation_view.gd`, `test_tribulation_card.gd`, `test_tribulation_flow.gd` | Beat 9 tests, the flow included end to end |
 
 ## Work Remaining
 

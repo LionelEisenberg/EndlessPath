@@ -49,6 +49,8 @@ The project uses **GUT v9.7.1** for unit and integration tests. Test files live 
 
 **Write new tests** when adding logic to: `ResourceManager`, `CultivationManager`, `CharacterManager`, `InventoryManager`, `CombatEffectData`, `EquipmentDefinitionData`, or any new system with testable pure logic.
 
+**Don't test how a screen looks.** Pixel placement, colours, theme variants, exact wording, keyframes and art files are checked by eye, not by tests. Test rules, state changes, saves, flows and what each control does, one behaviour per test, with several inputs to one function in a single table test. Read "What to test" in `docs/testing/TESTING.md` before writing UI tests.
+
 **Test file naming:** `tests/unit/test_<system_name>.gd`, extending `GutTest`.
 
 If the project has never been imported in the current environment, run `--import` first to register GUT class names:
