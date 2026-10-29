@@ -19,17 +19,21 @@ func _make_outgoing_buff(buff_id: String, multiplier: float, duration: float = 1
 	b.damage_multiplier = multiplier
 	return b
 
-func test_outgoing_modifier_single_application_returns_base_multiplier() -> void:
-	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	assert_almost_eq(_manager.consume_outgoing_modifier(), 1.5, 0.0001,
-		"Single stack of 1.5x should return 1.5")
-
+## consume_outgoing_modifier() honours stack_count: one, two and three
+## applications of a 1.5x buff return 1.5x, 2.25x and 3.375x.
 func test_outgoing_modifier_stacks_multiplicatively_on_reapply() -> void:
-	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	assert_almost_eq(_manager.consume_outgoing_modifier(), 1.5 * 1.5 * 1.5, 0.0001,
-		"Three stacks of 1.5x should compound to 3.375x")
+	var cases: Array[Array] = [
+		[1, 1.5],
+		[2, 1.5 * 1.5],
+		[3, 1.5 * 1.5 * 1.5],
+	]
+	for case: Array in cases:
+		var manager := CombatBuffManager.new()
+		add_child_autofree(manager)
+		for _application: int in case[0]:
+			manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
+		assert_almost_eq(manager.consume_outgoing_modifier(), case[1], 0.0001,
+			"%d stacks of 1.5x" % case[0])
 
 func test_outgoing_modifier_reapply_keeps_single_active_buff_entry() -> void:
 	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
@@ -55,12 +59,6 @@ func test_outgoing_modifier_reapply_refreshes_duration() -> void:
 	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5, 10.0))
 	assert_almost_eq(_manager.active_buffs[0].time_remaining, 10.0, 0.0001,
 		"Re-applying should refresh remaining time to full duration")
-
-func test_consume_outgoing_modifier_uses_stacked_multiplier() -> void:
-	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	assert_almost_eq(_manager.consume_outgoing_modifier(), 1.5 * 1.5, 0.0001,
-		"consume_outgoing_modifier should honor stack_count")
 
 func test_dot_stacking_still_works_unchanged() -> void:
 	var dot := BuffEffectData.new()

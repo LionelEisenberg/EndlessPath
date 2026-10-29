@@ -154,25 +154,24 @@ func test_gold_reward_asks_the_first_enemy() -> void:
 	choice.enemy_pool = pool
 	assert_eq(AdventureCombat.gold_reward_for(choice, null), 10)
 
+## A real fight won over a x1.5 choice pays what the rule says, with an action
+## of x2 (15 x 1.5 x 2.0 = 45) and with no action (15 x 1.5 = 22.5, floored).
 func test_fight_pays_the_rule() -> void:
-	var choice: CombatChoice = _choice(AMORPHOUS_SPIRIT, 1.5)
-	var action: AdventureActionData = _action(2.0)
 	assert_eq(AMORPHOUS_SPIRIT.base_gold_drop, 15, "precondition: the shipped spirit's drop")
+	var cases: Array[Dictionary] = [
+		{"name": "an action of x2", "action": _action(2.0), "gold": 45},
+		{"name": "no action", "action": null, "gold": 22},
+	]
+	for case: Dictionary in cases:
+		var choice: CombatChoice = _choice(AMORPHOUS_SPIRIT, 1.5)
+		_combat_ends.clear()
 
-	_win_fight_over(choice, action)
+		_win_fight_over(choice, case.action)
 
-	assert_eq(_combat_ends.size(), 1, "the fight ends once")
-	if _combat_ends.size() == 1:
-		assert_true(_combat_ends[0][0], "as a win")
-		assert_eq(_combat_ends[0][1], AdventureCombat.gold_reward_for(choice, action), "paying what the rule says")
-		assert_eq(_combat_ends[0][1], 45, "15 x 1.5 x 2.0")
-
-func test_fight_pays_the_rule_without_an_action() -> void:
-	var choice: CombatChoice = _choice(AMORPHOUS_SPIRIT, 1.5)
-
-	_win_fight_over(choice, null)
-
-	assert_eq(_combat_ends.size(), 1, "the fight ends once")
-	if _combat_ends.size() == 1:
-		assert_eq(_combat_ends[0][1], AdventureCombat.gold_reward_for(choice, null))
-		assert_eq(_combat_ends[0][1], 22, "15 x 1.5, floored")
+		assert_eq(_combat_ends.size(), 1, "%s: the fight ends once" % case.name)
+		if _combat_ends.size() == 1:
+			assert_true(_combat_ends[0][0], "%s: as a win" % case.name)
+			assert_eq(_combat_ends[0][1], AdventureCombat.gold_reward_for(choice, case.action), "%s: paying what the rule says" % case.name)
+			assert_eq(_combat_ends[0][1], case.gold, case.name)
+		# The next case starts a fight of its own.
+		_combat.free()

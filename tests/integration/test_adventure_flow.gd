@@ -105,15 +105,20 @@ func _equip_foundation_helmet() -> void:
 # THRESHOLD GATE
 #-----------------------------------------------------------------------------
 
-func test_adventure_blocked_with_no_madra() -> void:
-	assert_false(ResourceManager.can_start_adventure())
-	assert_eq(ResourceManager.get_adventure_madra_budget(), 0.0)
-
+## Below the threshold, from an empty pool to one Madra short of it, the
+## adventure is blocked and the budget still reports current Madra.
 func test_madra_below_threshold_blocks_adventure() -> void:
-	ResourceManager.add_madra(_base_capacity() * 0.5 - 1.0)
-	assert_false(ResourceManager.can_start_adventure())
-	assert_eq(ResourceManager.get_adventure_madra_budget(), _save.madra,
-		"the budget still reports current Madra for the badge while blocked")
+	var cases: Array[Array] = [
+		["no Madra", 0.0],
+		["one Madra short", _base_capacity() * 0.5 - 1.0],
+	]
+	for case: Array in cases:
+		_save.madra = 0.0
+		if case[1] > 0.0:
+			ResourceManager.add_madra(case[1])
+		assert_false(ResourceManager.can_start_adventure(), "%s: blocked" % case[0])
+		assert_eq(ResourceManager.get_adventure_madra_budget(), _save.madra,
+			"%s: the budget still reports current Madra for the badge while blocked" % case[0])
 
 func test_cycling_up_to_threshold_allows_adventure_with_partial_budget() -> void:
 	var threshold: float = ResourceManager.get_adventure_madra_threshold()

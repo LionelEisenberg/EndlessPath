@@ -22,174 +22,79 @@ func before_each() -> void:
 	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
 
 #-----------------------------------------------------------------------------
-# BASE DAMAGE CALCULATION
+# BASE DAMAGE AND ATTRIBUTE SCALING
 #-----------------------------------------------------------------------------
-
-func test_base_damage_no_scaling() -> void:
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 50.0, "base damage with no scaling should equal base_value")
 
 func test_base_damage_null_caster() -> void:
 	var value = _effect.calculate_value(null)
 	assert_eq(value, 50.0, "null caster should return base_value")
 
-func test_base_damage_zero() -> void:
-	_effect.base_value = 0.0
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 0.0, "zero base should give zero damage")
+## calculate_value() is base_value plus each attribute times its scaling: no
+## scaling, a zero base, each of the eight attributes on its own (caster at 10
+## in everything), two scalings together, and a high attribute.
+func test_value_adds_each_attribute_times_its_scaling() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no scaling", "base": 50.0, "scaling": {}, "expected": 50.0},
+		{"name": "zero base", "base": 0.0, "scaling": {}, "expected": 0.0},
+		{"name": "strength", "base": 50.0, "scaling": {"strength_scaling": 1.5}, "expected": 65.0},
+		{"name": "body", "base": 50.0, "scaling": {"body_scaling": 2.0}, "expected": 70.0},
+		{"name": "agility", "base": 50.0, "scaling": {"agility_scaling": 0.5}, "expected": 55.0},
+		{"name": "spirit", "base": 50.0, "scaling": {"spirit_scaling": 3.0}, "expected": 80.0},
+		{"name": "foundation", "base": 50.0, "scaling": {"foundation_scaling": 1.0}, "expected": 60.0},
+		{"name": "control", "base": 50.0, "scaling": {"control_scaling": 0.8}, "expected": 58.0},
+		{"name": "resilience", "base": 50.0, "scaling": {"resilience_scaling": 1.2}, "expected": 62.0},
+		{"name": "willpower", "base": 50.0, "scaling": {"willpower_scaling": 0.3}, "expected": 53.0},
+		# 50 + (10*1) + (10*2) = 80: multiple scalings add together
+		{"name": "strength and spirit", "base": 50.0, "scaling": {"strength_scaling": 1.0, "spirit_scaling": 2.0}, "expected": 80.0},
+		# 50 + (50 * 1.0) = 100: high attributes multiply with scaling
+		{"name": "strength at 50", "base": 50.0, "scaling": {"strength_scaling": 1.0}, "expected": 100.0,
+			"caster": CharacterAttributesData.new(50.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)},
+	]
+	for case: Dictionary in cases:
+		var effect := CombatEffectData.new()
+		effect.base_value = case.base
+		for property: String in case.scaling:
+			effect.set(property, case.scaling[property])
+		var caster: CharacterAttributesData = case.get("caster", _caster)
+		assert_eq(effect.calculate_value(caster), case.expected, "%s scaling" % case.name)
 
 #-----------------------------------------------------------------------------
-# ATTRIBUTE SCALING
+# DEFENSE
 #-----------------------------------------------------------------------------
 
-func test_strength_scaling() -> void:
-	_effect.strength_scaling = 1.5
-	# Expected: 50 + (10 * 1.5) = 65
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 65.0, "damage should include strength scaling")
-
-func test_body_scaling() -> void:
-	_effect.body_scaling = 2.0
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 70.0, "damage should include body scaling")
-
-func test_agility_scaling() -> void:
-	_effect.agility_scaling = 0.5
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 55.0, "damage should include agility scaling")
-
-func test_spirit_scaling() -> void:
-	_effect.spirit_scaling = 3.0
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 80.0, "damage should include spirit scaling")
-
-func test_foundation_scaling() -> void:
-	_effect.foundation_scaling = 1.0
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 60.0, "damage should include foundation scaling")
-
-func test_control_scaling() -> void:
-	_effect.control_scaling = 0.8
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 58.0, "damage should include control scaling")
-
-func test_resilience_scaling() -> void:
-	_effect.resilience_scaling = 1.2
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 62.0, "damage should include resilience scaling")
-
-func test_willpower_scaling() -> void:
-	_effect.willpower_scaling = 0.3
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 53.0, "damage should include willpower scaling")
-
-func test_multiple_scaling_attributes() -> void:
-	_effect.strength_scaling = 1.0
-	_effect.spirit_scaling = 2.0
-	# Expected: 50 + (10*1) + (10*2) = 50 + 10 + 20 = 80
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 80.0, "multiple scalings should add together")
-
-func test_scaling_with_high_attributes() -> void:
-	_caster = CharacterAttributesData.new(50.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
-	_effect.strength_scaling = 1.0
-	# Expected: 50 + (50 * 1.0) = 100
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 100.0, "high attributes should multiply with scaling")
-
-func test_zero_scaling_no_contribution() -> void:
-	_effect.strength_scaling = 0.0
-	_effect.spirit_scaling = 0.0
-	var value = _effect.calculate_value(_caster)
-	assert_eq(value, 50.0, "zero scaling should not add damage")
-
-#-----------------------------------------------------------------------------
-# DEFENSE: PHYSICAL (Resilience)
-#-----------------------------------------------------------------------------
-
-func test_physical_damage_applies_resilience() -> void:
-	_effect.damage_type = CombatEffectData.DamageType.PHYSICAL
-	# Target resilience = 10, formula: 50 * (100 / (100 + 10)) = 50 * (100/110)
-	var damage = _effect.calculate_damage(_caster, _target)
-	var expected = 50.0 * (100.0 / 110.0)
-	assert_almost_eq(damage, expected, 0.01, "physical damage should be reduced by resilience")
-
-func test_physical_damage_high_resilience() -> void:
-	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 100.0, 10.0)
-	var damage = _effect.calculate_damage(_caster, _target)
-	var expected = 50.0 * (100.0 / 200.0)  # = 25
-	assert_almost_eq(damage, expected, 0.01, "high resilience should reduce damage significantly")
-
-#-----------------------------------------------------------------------------
-# DEFENSE: SPIRIT (Spirit)
-#-----------------------------------------------------------------------------
-
-func test_spirit_damage_applies_spirit_defense() -> void:
-	_effect.damage_type = CombatEffectData.DamageType.SPIRIT
-	# Target spirit = 10
-	var damage = _effect.calculate_damage(_caster, _target)
-	var expected = 50.0 * (100.0 / 110.0)
-	assert_almost_eq(damage, expected, 0.01, "spirit damage should be reduced by spirit")
-
-func test_spirit_damage_high_spirit_defense() -> void:
-	_effect.damage_type = CombatEffectData.DamageType.SPIRIT
-	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 200.0, 10.0, 10.0, 10.0, 10.0)
-	var damage = _effect.calculate_damage(_caster, _target)
-	var expected = 50.0 * (100.0 / 300.0)
-	assert_almost_eq(damage, expected, 0.01, "high spirit should heavily reduce spirit damage")
-
-#-----------------------------------------------------------------------------
-# DEFENSE: MIXED (Resilience + Willpower) / 2
-#-----------------------------------------------------------------------------
-
-func test_mixed_damage_uses_resilience_willpower_avg() -> void:
-	_effect.damage_type = CombatEffectData.DamageType.MIXED
-	# Target: resilience=10, willpower=10 -> avg=10
-	var damage = _effect.calculate_damage(_caster, _target)
-	var expected = 50.0 * (100.0 / 110.0)
-	assert_almost_eq(damage, expected, 0.01, "mixed damage should use (resilience+willpower)/2")
-
-func test_mixed_damage_asymmetric_stats() -> void:
-	_effect.damage_type = CombatEffectData.DamageType.MIXED
-	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 20.0, 40.0)
-	# (20 + 40) / 2 = 30
-	var damage = _effect.calculate_damage(_caster, _target)
-	var expected = 50.0 * (100.0 / 130.0)
-	assert_almost_eq(damage, expected, 0.01, "mixed defense should average resilience and willpower")
-
-#-----------------------------------------------------------------------------
-# DEFENSE: TRUE (ignores all defense)
-#-----------------------------------------------------------------------------
-
-func test_true_damage_ignores_defense() -> void:
-	_effect.damage_type = CombatEffectData.DamageType.TRUE
-	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 100.0, 100.0)
-	var damage = _effect.calculate_damage(_caster, _target)
-	assert_eq(damage, 50.0, "true damage should ignore all defense")
+## calculate_damage() reduces the value by 100 / (100 + defense), the defense
+## picked by damage type: Physical reads Resilience, Spirit reads Spirit, Mixed
+## averages Resilience and Willpower, True ignores defense. Zero defense is
+## full damage and 100 halves it.
+func test_damage_type_picks_its_defense() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "physical, resilience 10", "type": CombatEffectData.DamageType.PHYSICAL,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0), "expected": 50.0 * (100.0 / 110.0)},
+		{"name": "physical, resilience 100 halves", "type": CombatEffectData.DamageType.PHYSICAL,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 100.0, 10.0), "expected": 25.0},
+		{"name": "physical, resilience 0 is full damage", "type": CombatEffectData.DamageType.PHYSICAL,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0, 10.0), "expected": 50.0},
+		{"name": "spirit, spirit 10", "type": CombatEffectData.DamageType.SPIRIT,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0), "expected": 50.0 * (100.0 / 110.0)},
+		{"name": "spirit, spirit 200", "type": CombatEffectData.DamageType.SPIRIT,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 200.0, 10.0, 10.0, 10.0, 10.0), "expected": 50.0 * (100.0 / 300.0)},
+		{"name": "mixed, resilience 10 and willpower 10", "type": CombatEffectData.DamageType.MIXED,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0), "expected": 50.0 * (100.0 / 110.0)},
+		# (20 + 40) / 2 = 30
+		{"name": "mixed, resilience 20 and willpower 40", "type": CombatEffectData.DamageType.MIXED,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 20.0, 40.0), "expected": 50.0 * (100.0 / 130.0)},
+		{"name": "true, resilience and willpower 100", "type": CombatEffectData.DamageType.TRUE,
+			"target": CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 100.0, 100.0), "expected": 50.0},
+	]
+	for case: Dictionary in cases:
+		_effect.damage_type = case.type
+		assert_almost_eq(_effect.calculate_damage(_caster, case.target), case.expected, 0.01, case.name)
 
 func test_true_damage_with_scaling() -> void:
 	_effect.damage_type = CombatEffectData.DamageType.TRUE
 	_effect.strength_scaling = 1.0
 	var damage = _effect.calculate_damage(_caster, _target)
 	assert_eq(damage, 60.0, "true damage should still apply scaling, just skip defense")
-
-#-----------------------------------------------------------------------------
-# DAMAGE REDUCTION FORMULA
-#-----------------------------------------------------------------------------
-
-func test_zero_defense_full_damage() -> void:
-	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0, 10.0)
-	_effect.damage_type = CombatEffectData.DamageType.PHYSICAL
-	var damage = _effect.calculate_damage(_caster, _target)
-	# 100 / (100 + 0) = 1.0 -> full damage
-	assert_eq(damage, 50.0, "zero defense should mean full damage")
-
-func test_hundred_defense_halves_damage() -> void:
-	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 100.0, 10.0)
-	_effect.damage_type = CombatEffectData.DamageType.PHYSICAL
-	var damage = _effect.calculate_damage(_caster, _target)
-	# 100 / (100 + 100) = 0.5
-	assert_almost_eq(damage, 25.0, 0.01, "100 defense should halve damage")
 
 func test_high_defense_doesnt_go_negative() -> void:
 	_target = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10000.0, 10.0)
@@ -213,6 +118,8 @@ func test_calculate_damage_on_heal_returns_zero() -> void:
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
+# The ability .tres files store effect_type and damage_type as these ints, so
+# renumbering either enum would change what every shipped ability does.
 
 func test_effect_type_enum_values() -> void:
 	assert_eq(CombatEffectData.EffectType.DAMAGE, 0)
