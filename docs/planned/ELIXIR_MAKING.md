@@ -3,6 +3,8 @@
 > **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
 > **Unlocks at Copper, which nothing is gated on yet:** Elixir Making unlocks at the Copper stage. The Foundation → Copper breakthrough is built (the Tribulation) and Copper has a thin `AdvancementStageResource`, but no unlock condition, zone, path node or action checks for the stage. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
+>
+> **Working notes (2026-11-03):** [Elixirs and materials: working notes](../superpowers/specs/2026-11-03-elixirs-and-materials-notes.md) record the design answers and open questions so far, with nothing decided. This page keeps the GDD's intent until a spec is agreed.
 
 ## Design Intent
 

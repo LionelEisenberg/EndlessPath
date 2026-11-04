@@ -393,7 +393,7 @@ Tests: `tests/unit/test_cycling_*.gd` and `tests/integration/test_cycling_*.gd`,
 
 ### Bugs
 
-None known.
+- `[MEDIUM]` Switching technique skips a cycle's tail. A zone's XP is paid the moment it is pressed, and a switch ends the running cycle with no result. So once Smooth Flow's last zone has scored, switching to another technique and back lets a new cycle start at once, skipping the 6 s tail, for 45 to 52% more XP a second. Found by reading the code; not yet reproduced in the game.
 
 ### Missing Functionality
 
