@@ -1,6 +1,6 @@
 # Stats rework, pass 1: design
 
-Draft for Lionel's review, 2026-11-04. Each decision and who made it is recorded in [2026-11-04-stats-rework-decisions.md](2026-11-04-stats-rework-decisions.md). In this document, **(Claude's call)** marks a choice Lionel hasn't confirmed, and **(open)** marks a question still waiting for Lionel. Everything else is Lionel's answer or follows directly from one.
+Draft for Lionel's review, 2026-11-04. Each decision and who made it is recorded in [2026-11-04-stats-rework-decisions.md](2026-11-04-stats-rework-decisions.md). In this document, **(Claude's call)** marks a choice Lionel hasn't confirmed. Everything else is Lionel's answer or follows directly from one.
 
 ## Why
 
@@ -38,7 +38,7 @@ The new loop: **training at home grows your stats and refills your pools; fighti
 
 - Body refining and persistent Health (pass 2).
 - New cycling mini-games or techniques (the cycling rework).
-- Unattended Auto training **(open, Q2)**.
+- Unattended Auto training. It comes with the cycling rework or pass 2, and its rate is settled then.
 - Core Density's star look, the quest reshuffle, elixirs, changes to the Aura Well.
 - Fights paying stat XP, Core Density raising the stat cap, and XP banked while capped. Lionel set each aside for later. Offline progress is also out **(Claude's call)**.
 - New maps or enemies **(Claude's call)**.
@@ -51,7 +51,7 @@ Any of these makes pass 1 a failure even if it works:
 - Two different Madra numbers anywhere on screen.
 - Training that is idle from the start. The Aura Well's idle training stays as it is until pass 2 or 3, by Lionel's choice.
 - A first sword that does nothing, or gear that fades as stats climb.
-- A player locked out of adventures, or with no way to reach the breakthrough.
+- A player locked out of adventures. (The breakthrough can't be reached until pass 2 lands, by Lionel's choice, so pass 1 doesn't go to players on its own.)
 - Text cut off anywhere (style guide rule 14).
 
 ## The six stats
@@ -91,11 +91,11 @@ Any of these makes pass 1 a failure even if it works:
 
 **The Aura Well** training action is unchanged: +1.5 Madra a second and +1 Spirit per training level. In the new model that reward is +1 Spirit level, and it can't pass the cap; at the cap it is lost, like XP **(Claude's call)**. Two of Lionel's rules meet here, the hard cap and "don't change the Aura Well", and this keeps both as far as they can go together. The Well can still carry Spirit toward the cap with no one playing.
 
-**The Physical stats have no source in pass 1,** because body refining moved to pass 2. They stay at their starting level, and gear raises them. That's no worse than today, where Spirit is the only stat that grows.
+**The Physical stats have no source in pass 1,** because body refining moved to pass 2. They stay at their starting level, and gear raises them. That's no worse than today, where Spirit is the only stat that grows, but it does mean the breakthrough waits for pass 2 (see Core Density).
 
 **Fights pay no stat XP** (Lionel: "Yes, I'm gonna do that later"). Stats are fixed during a run.
 
-**Auto** keeps working as it does today: it chains cycles, and nothing is earned without following and pressing **(Claude's call)**. Unattended Auto, unlocked by a perfect cycle or set (an idea from the brother's doc that Lionel said was planned), is **open (Q2)**: whether it comes in pass 1, and how its rate works. Lionel's answer reads two ways: one flat rate for refilling and XP alike (0.2× or 0.4×, leaning 0.4×), or refills at full speed with XP at the reduced rate.
+**Auto** keeps working as it does today: it chains cycles, and nothing is earned without following and pressing. Unattended Auto, unlocked by a perfect cycle or set (an idea from the brother's doc that Lionel said was planned), comes with the cycling rework or pass 2. Its rate is settled then: Lionel's earlier answer reads two ways, one flat rate for refilling and XP alike (0.2× or 0.4×, leaning 0.4×), or refills at full speed with XP at the reduced rate.
 
 ## Gear
 
@@ -122,7 +122,7 @@ Any of these makes pass 1 a failure even if it works:
 - Cycling's timed presses stop paying Core Density and pay stat XP instead.
 - Core Density keeps every other job: 0–100 per stage, a path point every 10 levels, the breakthrough at 100, and the 5-level penalty for a failed Tribulation. It loses only the Madra cap (see above).
 - **Tuning target:** Core Density 0 to 100 in Foundation takes a set number of Shallow Woods runs, starting around 6 to 10, with no new maps. The curve is retuned to fit **(Claude's call)**.
-- **The breakthrough** needs Core Density 100 and, by Lionel's rule, Strength and Spirit at the cap. Strength can't train until pass 2, so how pass 1 handles it is **open (Q1)**. The Tribulation card and the Goals board show every requirement.
+- **The breakthrough** needs Core Density 100 and Strength and Spirit at the cap, in pass 1 too. Nothing trains Strength until pass 2, so in pass 1 the breakthrough can't be reached in normal play; dev tools and save presets set the stats to test it. The Tribulation card and the Goals board show every requirement.
 - **The path tree doesn't change:** Pure Core Awakening still unlocks Empty Palm and Smooth Flow.
 - A lost fight ends the run as today, and loot already won is kept **(Claude's call)**.
 - **Story:** lines that become false get reworded, such as dialogue 3's "strengthen your core while cycling", and the "Harden Your Core" beat that assumes Smooth Flow is how you earn Core Density. The quest structure stays; the reshuffle is on Lionel's side burner **(Claude's call)**.
@@ -139,7 +139,7 @@ This section says what each screen must show. Layouts get mock-ups on a new canv
 - **Gear text** everywhere (inventory, item panels, merchant): "+10% Strength · +1 now", "Armor 6", "Ward 4".
 - **Abilities book and technique tooltips.** The damage breakdown comes from the side's main stat.
 - **Tribulation card and Goals board.** Every breakthrough requirement.
-- **Dev panel.** Set any stat's level and XP.
+- **Dev panel and save presets.** Set any stat's level and XP. The presets at or past the breakthrough (such as `tribulation_ready` and `copper`) set the stats the breakthrough needs.
 
 ## Saves
 
@@ -150,7 +150,7 @@ All of this section is **Claude's call**.
 - Resilience and Willpower are dropped; only dev tools ever raised them.
 - A save holds one Madra value, the overworld pool (a run's pool lives only in memory). The migration keeps it, clamped to the new max.
 - Every stat is written out explicitly, because Godot's text saver skips values equal to the script default, and changed defaults would silently rewrite old saves.
-- No itch build until pass 1 works end to end. Lionel publishes by hand and can overrule this.
+- No itch build until pass 2 lands, because the breakthrough can't be reached before then. Lionel publishes by hand and can overrule this.
 
 ## Code shape
 
@@ -175,6 +175,6 @@ Lionel invited reworking the stats patterns. This is a guide, and the builder de
 
 - **Body refining:** its own board, opened from a zone action as the cycling board is. Its first drill pays Strength XP, at most one minor stat's XP, and Health. Which drill comes first is the pass 2 design's choice; the Body Refining canvas's Stone Lifting (hold to lift, let go in the brass band) is a candidate **(Claude's call)**. Auto unlocks after a perfect set.
 - **Persistent Health:** one saved pool, shown in the zone cabinet. It comes home from a run as it is, and only body refining refills it at home. In runs, rest tiles still heal; no consumable heals Health today, so a Health consumable would be new content. Stamina stays per run and refills at every start, and the adventure card warns below half Health **(Claude's call)**.
-- **Strength joins the breakthrough gate** if pass 1 leaves it out (Q1), and the Physical stats' XP bars and training lines appear.
+- **The breakthrough becomes reachable again,** because Strength can finally train to the cap. The Physical stats' XP bars and training lines appear.
 - **The Aura Well's role** is settled in pass 2 or 3.
 - **Known hazards to fix first:** the fight's Health handler stays connected after the first fight, so Health reaching 0 outside a fight would report a lost fight. `ChangeVitalsEffectData` writes to the in-memory pool. Health is never saved.

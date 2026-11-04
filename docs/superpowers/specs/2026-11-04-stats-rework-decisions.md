@@ -5,7 +5,7 @@ A running record of the design questions for the stats rework, kept so the answe
 The inputs were Lionel's brief, a Figma board with Lionel's brother, the brother's doc "Thoughts on Endless Path" (with Lionel's comments on it), and two mock-up canvases ("Cultivator Stats" and "Body Refining"). The canvases were built on the old eight stats, so their pieces are reused, not their numbers.
 
 Two kinds of line, kept apart:
-- **Lionel** marks Lionel's answers, paraphrased. Only quoted text is Lionel's own wording. R1, R2 and R3 are the question rounds; Lionel's messages are voice-transcribed.
+- **Lionel** marks Lionel's answers, paraphrased. Only quoted text is Lionel's own wording. R1 to R4 are the question rounds; Lionel's messages are voice-transcribed.
 - **Claude's call** marks defaults Claude chose. Lionel hasn't confirmed them and can overrule any.
 
 ## Settled
@@ -17,7 +17,8 @@ Two kinds of line, kept apart:
 | How stats grow | Only by training (cycling, body refining). XP per action stays constant, and level costs climb faster than it. Fights give no stat XP. | Lionel (comment on the brother's doc; brief; R1) | Fights: "Yes, I'm gonna do that later." |
 | What caps stats | One hard cap per cultivation stage, raised only by the breakthrough. | Lionel (R1 Q1) | Test the alternative later: Core Density raising the cap every X levels. It's on hold because it is hard to show the player clearly. |
 | Training at the cap | XP earned while a stat is at the cap is lost. | Lionel (R2 Q4) | "We can update that/iterate on that later." |
-| What ties training to fighting | Fights fill Core Density. Core Density pays path points and opens the breakthrough at 100, and the breakthrough also needs Strength and Spirit at the stage cap. | Lionel (R1) | Pass 1 can't train Strength (open, Q1). |
+| What ties training to fighting | Fights fill Core Density. Core Density pays path points and opens the breakthrough at 100, and the breakthrough also needs Strength and Spirit at the stage cap. | Lionel (R1) | |
+| The breakthrough in pass 1 | Strength and Spirit must still be at the cap. Nothing trains Strength until pass 2, so the breakthrough can't be reached in normal play until pass 2 lands. | Lionel (R4 Q1 b) | |
 | Core Density | Earned from fights, not cycling. Otherwise it keeps its jobs: 0–100 per stage, a path point every 10 levels, the breakthrough at 100. | Lionel (brief, R1 Q1) | Its look, a main ball with 9 or 10 stars that fill: a later session. |
 | Path tree | Still paid by Core Density milestones (now from fights), and still gives passives and actives. | Lionel (R1) | |
 | Health and Madra | One pool each, shared by the overworld and adventures, kept between runs. Only training refills them: cycling refills Madra, body refining refills Health. Until body refining exists, Health keeps refilling at every run start. | Lionel (brief, R1 Q2, R2 Q1 b) | Health lands in pass 2. |
@@ -26,13 +27,14 @@ Two kinds of line, kept apart:
 | Side names | Physical and Spiritual. | Lionel (R1 Q6) | |
 | Pass 1 | The stats, one Madra pool, and the Core Density swap. The other systems they touch get a pass too. | Lionel (R1 Q4, R2 Q1) | |
 | Pass 2 | Body refining and persistent Health, together. | Lionel (R2 Q1) | |
+| Auto | Not in pass 1: Auto keeps chaining cycles while you play, and nothing is earned unattended. Unattended Auto comes with the cycling rework or pass 2. | Lionel (R4 Q2 a) | Its rate, when it's built. Lionel's R1 answer reads two ways: "Only by training, but auto-refills at full speed" (refills at full speed, XP at the reduced rate), then "auto-runs at 0.2 for everything. Or at 0.4, maybe that makes most sense" (one flat rate). "After a perfect cycle or set" comes from the brother's doc, where Lionel replied "Yup this was planned". |
 | The Aura Well | Unchanged in pass 1: its training action keeps its Madra trickle and its +1 Spirit per training level. Lionel's words (read as "Aura Well" and "pass"): "don't change the order whatsoever. We can do that in a second or third class. It's really not first class." | Lionel (R3, answering R2 Q5 again) | Pass 2 or 3. |
 
 ## Claude's calls
 
 **Pass 1, before body refining exists**
 - Nothing trains the Physical stats yet, so they stay at their starting level. Gear still raises them. Their pages say nothing trains them yet.
-- Today's Auto keeps working as it does now: it chains cycles, and nothing is earned unattended.
+- Dev tools and the save presets at or past the breakthrough set the stats the breakthrough needs, so it can be tested before pass 2.
 
 **Stats**
 - Every stat starts at Lv 1, with formulas rebased so a new character keeps today's numbers (100 Health, 100 Madra, 50 Stamina, a Basic Strike of about 25 before defence). Levels carry across stages.
@@ -70,7 +72,7 @@ Two kinds of line, kept apart:
 **Story, saves, release**
 - Quests stay as they are, and only lines that become false get reworded.
 - Saves carry over through one version-2 migration. Aura Well Spirit becomes Spirit levels. The one saved Madra value is clamped to the new max. Every stat is written out explicitly, because Godot's text saver skips values equal to the default.
-- No itch build until pass 1 works end to end.
+- No itch build until pass 2 lands, because the breakthrough can't be reached before then.
 - Offline progress and new maps or enemies are out of pass 1.
 
 **Code**
@@ -81,8 +83,7 @@ Two kinds of line, kept apart:
 
 ## Open
 
-1. **The breakthrough in pass 1.** Lionel's rule needs Strength and Spirit at the cap, but nothing trains Strength until pass 2.
-2. **Auto.** Does unattended Auto come in pass 1, and how does its rate work? Lionel's R1 answer reads two ways: "Only by training, but auto-refills at full speed" (refills at full speed, XP at the reduced rate), then "auto-runs at 0.2 for everything. Or at 0.4, maybe that makes most sense" (one flat rate for both). "After a perfect cycle or set" comes from the brother's doc, where Lionel replied "Yup this was planned".
+None for pass 1. Lionel answered the last two in R4 ("1b2a").
 
 ## Later sessions
 
