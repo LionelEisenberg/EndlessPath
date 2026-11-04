@@ -162,6 +162,8 @@ These names and signatures cross tasks and phases. Every task uses them as writt
 
 **Order:** tasks run in number order. Task 1.0's approval gates Tasks 1.8, 1.10, 1.13, 1.15 and 1.16; Tasks 1.1 to 1.7 need no approval and can start while the canvas is in review.
 
+**Shared notes:** The `-s` test command imports nothing (TESTING.md). After a `class_name` script is added or deleted, `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` refreshes the class cache (Tasks 1.1 and 1.2 run it). It writes a `.gd.uid` beside each new script, committed with it, and `git status --short project.godot` must then print nothing (CLAUDE.md, the Dialogic patch). Tasks 1.1 to 1.5 give their tests as name, setup and assertions with their exact values and messages; the other tasks give them as GDScript. Table tests are `Array[Dictionary]` cases named in the assert message.
+
 ---
 
 ### Task 1.0: Phase 1 mock-ups
@@ -208,8 +210,6 @@ Approved canvas: *(recorded in Step 6)*
   - The next-level preview adds one level's value to today's total and keeps every bonus as it is, so where a floored gear percent would step up at the next level it reads one point low. Recommend accepting that in phase 1: exact figures need a "total at a given level" read in `CharacterManager`.
 - [ ] **Step 5: Show Lionel and iterate until he approves.** Send the link and the questions, read his canvas comments (`ArtifactComments`) and replies, revise and show again. Expected: in chat, Lionel approves the canvas, answers every question and approves board 10's wording. Only his own message counts.
 - [ ] **Step 6: Record the approval and commit.** Replace the `Approved canvas:` line with `Approved canvas: <link> (Lionel, <date>)`, then add a line per question with its answer and a line per board 10 item with its approved wording. `git add docs/superpowers/plans/2026-11-04-stats-rework.md`, then `git commit -m "docs(stats): record the approved phase 1 mock-ups"` (+ Co-Authored-By line).
-
-**Shared notes for Tasks 1.1–1.5.** The `-s` test command imports nothing (TESTING.md). After a `class_name` script is added or deleted, `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` refreshes the class cache (Tasks 1.1 and 1.2 run it). It writes a `.gd.uid` beside each new script, committed with it, and `git status --short project.godot` must then print nothing (CLAUDE.md, the Dialogic patch). Tests below are given as name, setup and assertions with their exact values and messages; table tests are `Array[Dictionary]` cases named in the assert message.
 
 ---
 
