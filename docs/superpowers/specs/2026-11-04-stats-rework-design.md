@@ -1,6 +1,6 @@
 # Stats rework, pass 1: design
 
-Draft for Lionel's review, 2026-11-04. Each decision and who made it is recorded in [2026-11-04-stats-rework-decisions.md](2026-11-04-stats-rework-decisions.md). In this document, **(Claude's call)** marks a choice Lionel hasn't confirmed. Everything else is Lionel's answer or follows directly from one.
+Approved by Lionel on 2026-11-04. Each decision and who made it is recorded in [2026-11-04-stats-rework-decisions.md](2026-11-04-stats-rework-decisions.md). In this document, **(Claude's call)** marks a choice Lionel hasn't confirmed. Everything else is Lionel's answer or follows directly from one.
 
 ## Why
 
@@ -24,6 +24,8 @@ The new loop: **training at home grows your stats and refills your pools; fighti
 - **Pass 2, sketched at the end:** body refining and persistent Health.
 - **Pass 2 or 3:** the Aura Well's role.
 - **Separate projects:** the cycling rework (combination mini-games, one per stat), Core Density's look (a ball with 9 or 10 stars instead of 0–100), the body refining rework beyond its first drill, the quest reshuffle, and elixirs.
+
+Each pass lands as several PRs, and each PR leaves `main` playable. The implementation plan sets pass 1's split.
 
 ## Goals
 
