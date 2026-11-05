@@ -20,6 +20,7 @@ extends GutTest
 
 const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adventure_view.tscn")
 const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixture.gd")
+const StatSources := preload("res://tests/helpers/stat_sources.gd")
 const AMORPHOUS_SPIRIT_ENCOUNTER: AdventureEncounter = preload("res://resources/adventure/encounters/shallow_woods/combat_encounters/regular/amorphous_spirit_encounter.tres")
 const CRUDE_SCALE: ItemDefinitionData = preload("res://resources/items/consumables/crude_scale.tres")
 const ENFORCE_ICON: Texture2D = preload("res://assets/sprites/abilities/enforce.png")
@@ -53,6 +54,9 @@ const VITALS_FIELDS: Array[StringName] = [
 const PAST_THE_BORDER: float = 8.0
 ## One 60 FPS frame, for stepping the walk and the tweens by hand.
 const FRAME: float = 1.0 / 60.0
+## The modifier source a test raises the player's Agility under, removed after
+## each test.
+const TEST_SOURCE: StringName = &"test_agility"
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -95,6 +99,7 @@ func after_each() -> void:
 	# never frees it; free it here so these tests don't leave orphans.
 	if is_instance_valid(_view) and is_instance_valid(_view.adventure_tilemap.adventure_map_generator):
 		_view.adventure_tilemap.adventure_map_generator.free()
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	_restore_vitals(_saved_vitals)
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
@@ -122,8 +127,9 @@ class FixedMapGenerator extends AdventureMapGenerator:
 ## action becomes the current one and the run is confirmed with its budget. The
 ## run plays on `_map` (the fixture map, unless the test set another): the
 ## tilemap is handed a generator that returns it, so no random map is generated
-## and none can fail. A time limit of 0 keeps the action's own.
-func _start_run(time_limit_seconds: int = 0) -> void:
+## and none can fail. A time limit of 0 keeps the action's own. A modifier below
+## 0 keeps the action's own.
+func _start_run(time_limit_seconds: int = 0, stamina_regen_modifier: float = -1.0) -> void:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	var generator := FixedMapGenerator.new()
 	generator.map = _map
@@ -132,6 +138,8 @@ func _start_run(time_limit_seconds: int = 0) -> void:
 	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
 	if time_limit_seconds > 0:
 		action.time_limit_seconds = time_limit_seconds
+	if stamina_regen_modifier >= 0.0:
+		action.stamina_regen_modifier = stamina_regen_modifier
 	ActionManager._set_current_action(action)
 	ActionManager.confirm_adventure_start(action, MADRA_BUDGET)
 
@@ -745,3 +753,20 @@ func test_second_run_after_a_stop_mid_walk_starts_clean() -> void:
 	assert_eq(_view.adventure_tilemap.get_current_tile(), START, "nobody walks on into the new run")
 	assert_eq(_view.adventure_tilemap.get_visited_tile_count(), 1, "the new run has visited only its start")
 	assert_false(_view.adventure_tilemap.character_body.is_moving)
+
+## A run regenerates Stamina at STAMINA_REGEN (Agility x 0.1 a second) times the
+## run's modifier, worked out at every run start. The run's end stops it.
+func test_stamina_regen_follows_agility_at_each_run_start() -> void:
+	assert_eq(ADVENTURE_ACTION.stamina_regen_modifier, 1.0, "precondition: the Shallow Woods adds no modifier of its own")
+	_start_run()
+	assert_almost_eq(PlayerManager.vitals_manager.stamina_regen, 1.0, 0.0001, "Lv 1 Agility: 1 Stamina a second")
+	ActionManager.stop_action(false)
+	_stop_every_action()
+	assert_eq(PlayerManager.vitals_manager.stamina_regen, 0.0, "the run's end stops it")
+
+	CharacterManager.set_modifier_source(TEST_SOURCE, StatSources.flat(StatModifierData.Stat.AGILITY, 20.0))
+	var rate: float = CharacterManager.get_stat(StatModifierData.Stat.STAMINA_REGEN)
+	assert_gt(rate, 1.0, "precondition: Agility 30 regenerates faster")
+	_map = AdventureMapFixture.build_map()
+	_start_run(0, 0.5)
+	assert_almost_eq(PlayerManager.vitals_manager.stamina_regen, rate * 0.5, 0.0001, "the next run starts at the new rate, times its modifier")
