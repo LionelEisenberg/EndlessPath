@@ -17,6 +17,11 @@ checks each texture the boards stand on and draws only the pieces that were not 
   stays centred as the face grows. Stretched to the zone card's 392x72 with the socket put back at
   (8, 12), the pair is pixel for pixel the zone kit's drawer (compose_drawer() proves it), so a
   drawer of 72 px looks as it did.
+* The zone card grows too (stats rework #87), so its running drawer is a 9-slice as well:
+  drawer9_run is the running drawer without its socket, its brass caps in corners of 16 px
+  (margins 16 once drawn, 16 16 20 20 with the 4 px shadow baked in), and it takes the same
+  socket_drawer. Stretched to 392x72 with the socket put back, it is the zone kit's running
+  drawer, pixel for pixel.
 * The Now strip narrows by 16 px so its right edge lines up with the cards' (the cards keep their
   392 for the list's rail), and its rod with it. rod_now_{empty,full,end} are the Aura Well rod
   with 16 px taken out of its flat middle: 308 -> 292 wide, 152 -> 144 steps (2 + 2 k, plus the
@@ -43,7 +48,7 @@ ZONE_KIT = MOCKS / 'zone-view-lacquer'              # the unshadowed zone kit
 UI = REPO / 'assets' / 'ui' / 'lacquer'             # what the game loads
 
 sys.path.insert(0, str(MOCKS / 'zone-view-lacquer' / 'gen'))
-from import_kit import SHADOW_SMALL, bake_shadow  # noqa: E402
+from import_kit import SHADOW_BIG, SHADOW_SMALL, bake_shadow  # noqa: E402
 
 # The zone card's drawer: 392x72 with a 48x48 carved socket at (8, 12).
 DRAWER = (392, 72)
@@ -53,6 +58,8 @@ SOCKET_BOX = (8, 12, 56, 60)
 RIM = 4
 # How much flat middle the 9-slice keeps (any size will do; this one is small).
 KEEP = 12
+# The running drawer's corners: its brass caps reach 14 px in from each corner.
+RUN_CORNER = 16
 # The Aura Well rod and how much of its flat middle the Now strip gives up.
 WELL_ROD = 308
 CUT = 16
@@ -62,6 +69,7 @@ TRAY_MARGINS = (4, 4, 2, 2)
 TRAYS = ('lacquer_now_tray_ai.png', 'lacquer_cast_tray_ai.png')
 # The pieces this script draws.
 DRAWER9 = 'lacquer_drawer9_ai.png'
+DRAWER9_RUN = 'lacquer_drawer9_run_ai.png'
 SOCKET_DRAWER = 'lacquer_socket_drawer_ai.png'
 ROD_NOW = [f'lacquer_rod_now_{part}_ai.png' for part in ('empty', 'full', 'end')]
 
@@ -168,9 +176,39 @@ def draw_drawer9(zone_drawer: Image.Image) -> Image.Image:
     return out
 
 
-def compose_drawer(face9: Image.Image, socket: Image.Image, size: tuple) -> Image.Image:
+def draw_drawer9_run(run_drawer: Image.Image) -> Image.Image:
+    """The zone kit's running drawer without its socket, as a 9-slice: its four corners, each with
+    its brass cap, and its four flat edges copied from the card, the middle one flat colour. The
+    socket is painted out first: it reaches into the left corners and the left edge."""
+    w, h = run_drawer.size
+    assert (w, h) == DRAWER, f'the running drawer is {w}x{h}, not {DRAWER}'
+    face = run_drawer.getpixel((w // 2, h // 2))
+    plain = run_drawer.copy()
+    plain.paste(Image.new('RGBA', (SOCKET_BOX[2] - SOCKET_BOX[0], SOCKET_BOX[3] - SOCKET_BOX[1]), face),
+                SOCKET_BOX[:2])
+    c = RUN_CORNER
+    assert len(colours(plain, (c, c, w - c, h - c))) == 1, 'the running face is not flat'
+    side = c + KEEP + c
+    out = Image.new('RGBA', (side, side))
+    out.paste(plain.crop((0, 0, c, c)), (0, 0))
+    out.paste(plain.crop((w - c, 0, w, c)), (side - c, 0))
+    out.paste(plain.crop((0, h - c, c, h)), (0, side - c))
+    out.paste(plain.crop((w - c, h - c, w, h)), (side - c, side - c))
+    for x in range(c, c + KEEP):
+        out.paste(plain.crop((c, 0, c + 1, c)), (x, 0))
+        out.paste(plain.crop((c, h - c, c + 1, h)), (x, side - c))
+    for y in range(c, c + KEEP):
+        out.paste(plain.crop((0, c, c, c + 1)), (0, y))
+        out.paste(plain.crop((w - c, c, w, c + 1)), (side - c, y))
+    out.paste(Image.new('RGBA', (KEEP, KEEP), face), (c, c))
+    problems = audit_nine_slice(DRAWER9_RUN, out, (c, c, c, c))
+    assert not problems, problems
+    return out
+
+
+def compose_drawer(face9: Image.Image, socket: Image.Image, size: tuple, corner: int = RIM) -> Image.Image:
     """What the game draws for a drawer of size: the 9-slice face with the socket on it."""
-    out = nine_slice(face9, (RIM, RIM, RIM, RIM), size)
+    out = nine_slice(face9, (corner, corner, corner, corner), size)
     out.paste(socket, (SOCKET_BOX[0], (size[1] - socket.height) // 2))
     return out
 
@@ -204,6 +242,12 @@ def build() -> None:
     face9.save(OUT / DRAWER9)
     socket.save(OUT / SOCKET_DRAWER)
     print(f'drew {DRAWER9} {face9.size}, {SOCKET_DRAWER} {socket.size}: at 392x72 they are the zone drawer, pixel for pixel')
+    run_drawer = load(ZONE_KIT / 'lacquer_drawer_run_ai.png')
+    run9 = draw_drawer9_run(run_drawer)
+    again = compose_drawer(run9, socket, DRAWER, RUN_CORNER)
+    assert pixels(again) == pixels(run_drawer), 'the running 9-slice is not the running drawer at 392x72'
+    run9.save(OUT / DRAWER9_RUN)
+    print(f'drew {DRAWER9_RUN} {run9.size}: at 392x72 with {SOCKET_DRAWER} it is the running drawer, pixel for pixel')
     for part, name in zip(('empty', 'full', 'end'), ROD_NOW):
         well = load(ZONE_KIT / f'lacquer_rod_well_{part}_ai.png')
         if part == 'end':
@@ -226,6 +270,13 @@ def import_all() -> None:
     problems = audit_nine_slice(DRAWER9, baked, (RIM, RIM, RIM + offset, RIM + offset))
     assert not problems, problems
     print(f'{DRAWER9} with its shadow: a clean 9-slice, margins (4, 4, 6, 6), {baked.size}')
+    big, big_rgb = SHADOW_BIG
+    bake_shadow(OUT / DRAWER9_RUN, UI / DRAWER9_RUN, big, big_rgb)
+    baked_run = load(UI / DRAWER9_RUN)
+    c = RUN_CORNER
+    problems = audit_nine_slice(DRAWER9_RUN, baked_run, (c, c, c + big, c + big))
+    assert not problems, problems
+    print(f'{DRAWER9_RUN} with its shadow: a clean 9-slice, margins ({c}, {c}, {c + big}, {c + big}), {baked_run.size}')
 
 
 if __name__ == '__main__':

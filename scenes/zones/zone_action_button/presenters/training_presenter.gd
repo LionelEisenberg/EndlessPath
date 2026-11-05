@@ -6,7 +6,7 @@ extends ZoneActionPresenter
 ## in effects_on_level). An action with only one of the two shows it on the
 ## left. Progress toward the next level lives in the Now strip, not on the
 ## card. The decimal point is set in Yatra One, and a part wider than its room
-## ends in an ellipsis (ZoneActionButton.fit_detail_rich_text).
+## wraps (ZoneActionButton.set_detail_right, set_detail_rich_text).
 
 @onready var _detail_text: RichTextLabel = %DetailText
 
@@ -17,7 +17,7 @@ func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	_detail_text.reparent(button.get_detail_slot(), false)
 	var parts: Array[String] = _detail_parts()
 	button.set_detail_right(parts[1] if parts.size() > 1 else "")
-	button.fit_detail_rich_text(_detail_text, parts[0] if not parts.is_empty() else "")
+	button.set_detail_rich_text(_detail_text, parts[0] if not parts.is_empty() else "")
 
 ## Nothing to undo: the detail line never changes.
 func teardown() -> void:

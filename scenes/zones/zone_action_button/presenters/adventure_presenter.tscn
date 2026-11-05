@@ -12,58 +12,53 @@ script = ExtResource("1_adv")
 
 [node name="NeedGroup" type="Control" parent="." unique_id=739958664]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(316, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 392.0
-offset_bottom = 72.0
+offset_right = 316.0
+offset_bottom = 18.0
+size_flags_vertical = 0
 mouse_filter = 2
+offset_transform_enabled = true
 
 [node name="MadraIcon" type="TextureRect" parent="NeedGroup" unique_id=1980333421]
 layout_mode = 0
-offset_left = 64.0
-offset_top = 38.0
-offset_right = 80.0
-offset_bottom = 54.0
+offset_right = 16.0
+offset_bottom = 16.0
 mouse_filter = 2
 texture = ExtResource("2_mini_madra")
 
 [node name="MadraRod" parent="NeedGroup" unique_id=1045174270 instance=ExtResource("3_rod")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 86.0
-offset_top = 40.0
-offset_right = 238.0
-offset_bottom = 50.0
+offset_left = 22.0
+offset_top = 2.0
+offset_right = 174.0
+offset_bottom = 12.0
 empty_texture = ExtResource("4_rod_empty")
 full_texture = ExtResource("5_rod_full")
 end_texture = ExtResource("6_rod_end")
 steps = 74
 
-[node name="FigureRow" type="HBoxContainer" parent="NeedGroup" unique_id=1302566141]
-layout_mode = 0
-offset_left = 248.0
-offset_top = 38.0
-offset_right = 380.0
-offset_bottom = 56.0
-mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="MadraFigure" type="Label" parent="NeedGroup/FigureRow" unique_id=349180391]
+[node name="MadraFigure" type="Label" parent="NeedGroup" unique_id=349180391]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 0
+offset_left = 184.0
+offset_right = 238.0
+offset_bottom = 17.0
 theme_type_variation = &"LabelLacquerDetail"
 text = "25 / 50"
 
-[node name="HintLabel" type="Label" parent="NeedGroup/FigureRow" unique_id=2136324076]
+[node name="HintLabel" type="Label" parent="NeedGroup" unique_id=2136324076]
 unique_name_in_owner = true
 visible = false
-layout_mode = 2
-size_flags_horizontal = 3
+layout_mode = 0
+offset_left = 279.0
+offset_right = 316.0
+offset_bottom = 17.0
 theme_type_variation = &"LabelLacquerDetail"
 theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 text = "~17 s"
-horizontal_alignment = 2
-text_overrun_behavior = 3
 
 [node name="ReadyText" type="RichTextLabel" parent="." unique_id=1776932643]
 unique_name_in_owner = true
