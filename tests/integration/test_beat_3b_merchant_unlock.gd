@@ -1,7 +1,8 @@
 extends GutTest
 
 ## Integration test: full Beat 3b flow.
-## 1. Quest starts. CD < 10 → NPC 4 hidden, Merchant hidden, quest step 1 not complete.
+## 1. NPCs 1 to 3 are talked to; NPC 3 starts the quest. CD < 10 → NPC 4 hidden,
+##    Merchant hidden, quest step 1 not complete.
 ## 2. CD reaches 10 → step 1 complete, NPC 4 visible.
 ## 3. Fire celestial_intervener_dialogue_4 event → step 2 completes → quest
 ##    completes → map in inventory.
@@ -15,6 +16,10 @@ const QUEST_ID: String = "q_reach_core_density_10"
 const NPC4_ACTION_ID: String = "celestial_intervener_dialogue_4"
 const MERCHANT_ACTION_ID: String = "spirit_valley_merchant"
 const MAP_ITEM_ID: String = "refugee_camp_map"
+const NPC1_ACTION_ID: String = "celestial_intervener_dialogue_1"
+const NPC2_ACTION_ID: String = "celestial_intervener_dialogue_2"
+const NPC3_ACTION_ID: String = "celestial_intervener_dialogue_3"
+const ENEMY_DEFEATED_EVENT: String = "q_first_steps_enemy_defeated"
 
 func before_each() -> void:
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -24,6 +29,11 @@ func before_each() -> void:
 	# integration tests operate on live data.
 	QuestManager._quest_catalog = load("res://resources/quests/quest_list.tres")
 	QuestManager._build_catalog_index()
+
+func after_each() -> void:
+	# Talking to NPC 1 opens Wilderness Cycling, which starts on its own, so stop
+	# it or its tick timer runs into the next test.
+	ActionManager.cancel_current_action()
 
 func _has_action(action_id: String) -> bool:
 	for a in ZoneManager.get_available_actions(ZONE_ID):
@@ -46,9 +56,17 @@ func _push_cd_to_10() -> void:
 	save.core_density_level = 10.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 
+## Talks to NPCs 1 to 3 with each one's own gate met first. NPC 3 starts the quest.
+func _play_through_npc_3() -> void:
+	assert_eq(DevCommands.complete_action(NPC1_ACTION_ID), "", "precondition: NPC 1 is talked to")
+	assert_eq(DevCommands.set_madra(100.0), "", "precondition: Madra reaches 100")
+	assert_eq(DevCommands.complete_action(NPC2_ACTION_ID), "", "precondition: NPC 2 is talked to")
+	assert_eq(DevCommands.trigger_event(ENEMY_DEFEATED_EVENT), "", "precondition: the first fight is won")
+	assert_eq(DevCommands.complete_action(NPC3_ACTION_ID), "", "precondition: NPC 3 is talked to")
+
 func test_full_beat_3b_flow() -> void:
-	# --- Start the quest. ---
-	QuestManager.start_quest(QUEST_ID)
+	# --- NPC 3 starts the quest. ---
+	_play_through_npc_3()
 	assert_true(QuestManager.has_active_quest(QUEST_ID), "quest should be active")
 	assert_false(_has_action(NPC4_ACTION_ID), "NPC 4 must be hidden before CD 10")
 	assert_false(InventoryManager.has_item(MAP_ITEM_ID), "map must not be owned yet")
