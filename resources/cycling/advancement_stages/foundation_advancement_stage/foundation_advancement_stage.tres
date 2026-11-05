@@ -8,6 +8,7 @@
 script = ExtResource("1_u1vlc")
 stage_name = "Foundation"
 core_xp_scaling_factor = 1.02
+stat_level_cap = 10
 max_madra_base = 100.0
 max_madra_per_core_density_level = 5.0
 next_stage = ExtResource("2_k4cpr")

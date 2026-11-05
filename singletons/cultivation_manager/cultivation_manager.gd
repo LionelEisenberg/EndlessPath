@@ -210,6 +210,13 @@ func get_core_density_cap() -> int:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.max_core_density_level if res else 0
 
+## The highest level the six stats can be trained to in the current stage. It is
+## read from the stage each time, so the breakthrough raises it. 0 when there is
+## no save or no stage resource.
+func get_stat_level_cap() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.stat_level_cap if res else 0
+
 ## True when Core Density has reached the current stage's cap.
 func is_core_full() -> bool:
 	var cap: int = get_core_density_cap()

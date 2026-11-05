@@ -7,6 +7,9 @@ class_name AdvancementStageResource
 @export var core_xp_scaling_factor: float = 1.0
 ## The highest Core Density level of the stage. XP earned there is lost.
 @export var max_core_density_level: int = 100
+## The highest level each of the six stats can be trained to in this stage.
+## Training past it is lost; gear can still lift a total above it.
+@export var stat_level_cap: int = 10
 @export var unlocking_mechanics: Array[String] = []
 @export var max_madra_base: float = 0.0
 @export var max_madra_per_core_density_level: float = 0.0

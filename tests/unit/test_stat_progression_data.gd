@@ -1,0 +1,57 @@
+extends GutTest
+
+## Unit tests for StatProgressionData: the XP each stat level costs and the
+## value each level gives, on curves built here and on the shipped one.
+
+const SHIPPED_PATH: String = "res://resources/character/stat_progression.tres"
+
+## A curve with the given numbers.
+func _curve(xp_to_level_two: float, growth: float, value_per_level: float) -> StatProgressionData:
+	var curve := StatProgressionData.new()
+	curve.xp_to_level_two = xp_to_level_two
+	curve.xp_growth = growth
+	curve.value_per_level = value_per_level
+	return curve
+
+#-----------------------------------------------------------------------------
+# XP COST
+#-----------------------------------------------------------------------------
+
+func test_each_level_costs_more_than_the_last() -> void:
+	var curve := _curve(100.0, 1.25, 1.0)
+	var cases: Array[Dictionary] = [
+		{"level": 1, "xp": 100.0},
+		{"level": 2, "xp": 125.0},
+		{"level": 3, "xp": 156.25},
+	]
+	for case: Dictionary in cases:
+		assert_almost_eq(curve.get_xp_to_next(case.level), case.xp, 0.0001,
+			"Lv %d to %d" % [case.level, case.level + 1])
+
+#-----------------------------------------------------------------------------
+# VALUE
+#-----------------------------------------------------------------------------
+
+func test_value_for_level() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Lv 1 is the baseline", "per_level": 1.0, "level": 1,
+			"value": CharacterAttributesData.STAT_BASELINE},
+		{"name": "Lv 6 at 1 a level", "per_level": 1.0, "level": 6,
+			"value": CharacterAttributesData.STAT_BASELINE + 5.0},
+		{"name": "Lv 3 at 2 a level", "per_level": 2.0, "level": 3,
+			"value": CharacterAttributesData.STAT_BASELINE + 4.0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(_curve(100.0, 1.25, case.per_level).get_value_for_level(case.level), case.value, case.name)
+
+#-----------------------------------------------------------------------------
+# THE SHIPPED CURVE
+#-----------------------------------------------------------------------------
+
+func test_the_shipped_curve_starts_at_the_baseline_and_grows() -> void:
+	var shipped: StatProgressionData = load(SHIPPED_PATH) as StatProgressionData
+	assert_not_null(shipped, "%s loads as a StatProgressionData" % SHIPPED_PATH)
+	if shipped == null:
+		return
+	assert_eq(shipped.get_value_for_level(1), CharacterAttributesData.STAT_BASELINE, "Lv 1 is the baseline")
+	assert_gt(shipped.get_xp_to_next(2), shipped.get_xp_to_next(1), "each level costs more")
