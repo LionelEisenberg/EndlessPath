@@ -15,7 +15,7 @@ Both values live on the shared `SaveGameData` (`madra`, `gold`) and persist with
 - **Filling Madra:**
   - While cycling, Madra ticks up as long as the cursor stays inside the Madra ball, a quiet step every 0.08 s with a pellet flying into the cabinet's orb.
   - The Aura Well training action adds 1.5 Madra per tick, quietly: no log line, but a "+1.5 Madra" floater on the map.
-- **Spending Madra:** Below the threshold the adventure card shows a Madra rod and `<madra> / <threshold>`; at it, a brass frame, "<minutes> min run · carries <capacity> Madra" and an ENTER tag. Clicking below the threshold shakes the Madra row and logs `Not enough Madra!`. Starting an adventure pours the budget from the cabinet's orb to the player as stepped Madra pellets.
+- **Spending Madra:** Below the threshold the adventure card shows a Madra rod and `<madra> / <threshold>`; at it, a brass frame, "<minutes> min run" with "carries <capacity> Madra" in its right column, and an ENTER tag. Clicking below the threshold shakes the Madra row and logs `Not enough Madra!`. Starting an adventure pours the budget from the cabinet's orb to the player as stepped Madra pellets.
 - **Gold:** The cultivator cabinet's gold row, at the right of its bottom row, shows the total. Each combat victory adds gold and logs `Gained N Gold`. The Merchant's shop and its activity card show the same total; a purchase spends the price and logs `Spent N Gold`.
 - **Log lines:** `Gained N Madra` (cyan) for each Madra award that actually adds at least 1 (none for a quiet award or one the cap swallows; cycling's steps are quiet, and a finished cycle writes one cyan `Cycle · +186 Madra · …` line instead), and `Gained/Spent N Gold` (gold) for every gold change made through `add_gold` / `spend_gold`.
 
@@ -59,11 +59,11 @@ Two separate limits apply to Madra.
 | Cap | Formula | Source | Value at start |
 |-----|---------|--------|----------------|
 | **Pool cap** (zone Madra) | `max_madra_base + max_madra_per_core_density_level × core_density_level` | `CultivationManager.get_max_madra()`: `AdvancementStageResource.get_max_madra(level)` for the current stage | Foundation: `100 + 5 × level`, which is 100 at level 0 and 150 at level 10 |
-| **Adventure capacity** (and combat Madra max) | `FOUNDATION × 10`, using the total Foundation including equipment | `CharacterAttributesData.get_max_madra()` | 100 (Foundation 10) |
+| **Adventure capacity** (and combat Madra max) | `Mind × 10`, using total Mind: the trained value plus gear | The player's Max Madra stat, `CharacterManager.get_stat(MAX_MADRA)`: `CharacterAttributesData.get_max_madra()` over the total attributes, then any modifier on Max Madra itself (gear adds none) | 100 (Mind 10 at Lv 1) |
 
 Two stage resources exist, both preloaded by `CultivationManager.advancement_stage_resources`: `foundation_advancement_stage.tres` (`max_madra_base = 100.0`, `max_madra_per_core_density_level = 5.0`) and `copper_advancement_stage.tres` (`600.0` and `10.0`). Copper starts at the 600 that Foundation ends on, so the breakthrough never drops the cap. A failed Tribulation does lower it, by 5 levels' worth (25 Madra in Foundation), which can leave a full pool above the cap.
 
-The two caps are independent. The adventure threshold is half the capacity (`FOUNDATION × 5`), so it can be higher than the pool cap. In the Foundation stage, once the total FOUNDATION attribute is above `20 + level`, even a full pool cannot start an adventure (see Work Remaining).
+The two caps are independent. The adventure threshold is half the capacity (`Mind × 5`), so it can be higher than the pool cap. In the Foundation stage, once total Mind is above `20 + level`, even a full pool cannot start an adventure (see Work Remaining).
 
 ### Public API
 
@@ -73,7 +73,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 | `spend_madra(amount) -> bool` | All or nothing: deducts and emits only if `madra >= amount` |
 | `set_madra(amount)` | `madra = max(0, amount)`, with no cap. Used by the dev tools only (the dev panel and `DevCommands`) |
 | `get_madra() -> float` | Read helper |
-| `get_adventure_madra_capacity() -> float` | `CharacterManager.get_total_attributes_data().get_max_madra()` |
+| `get_adventure_madra_capacity() -> float` | `CharacterManager.get_stat(MAX_MADRA)`: total Mind × 10 (see [Madra caps](#madra-caps)) |
 | `get_adventure_madra_budget() -> float` | `min(capacity, madra)` |
 | `get_adventure_madra_threshold() -> float` | `capacity × 0.5` |
 | `can_start_adventure() -> bool` | `madra >= threshold` |
@@ -157,10 +157,10 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | System | Connection |
 |--------|------------|
 | CultivationManager | `add_madra()`, the cultivator cabinet and the cycling technique (its cap check) read the pool cap from `get_max_madra()` |
-| CharacterManager | `get_adventure_madra_capacity()` reads the total Foundation. `get_gold_multiplier()` feeds the gold formula |
+| CharacterManager | `get_adventure_madra_capacity()` reads its Max Madra stat (`get_stat(MAX_MADRA)`), from total Mind, gear included. `get_gold_multiplier()` feeds the gold formula |
 | ZoneTransition | Spends the adventure budget one pellet at a time |
 | ActionManager | Gates adventure start on `can_start_adventure()` in `select_action()`, before the running action stops, then passes the budget through `confirm_adventure_start` → `start_adventure`. `get_current_madra_per_second()` reports a running training action's trickle, or the running cycle's measured rate while the cycling action runs |
-| AdventurePresenter | Draws the Madra line, rod and hint (or the ready line), sets affordability, and plays the shake-reject. Listens to `madra_changed`, and to `base_attribute_changed` and `inventory_changed` for the capacity |
+| AdventurePresenter | Draws the Madra line, rod and hint (or the ready line), sets affordability, and plays the shake-reject. Listens to `madra_changed`, and to `CharacterManager.stats_changed`, which an equip also fires, for the capacity |
 | CultivatorPlate | Draws the orb and the `current / max` label. Listens to `madra_changed`. The cabinet also shows the gold row (`gold_changed`) and the Madra rate (also while cycling, on `CyclingManager.madra_rate_changed`) |
 | GoalsPanel | Shows a RESOURCE_AMOUNT quest step's `current / target` (`madra_changed`, `gold_changed`) |
 | MerchantManager / MerchantView | `MerchantManager` checks `can_afford_gold()` and calls `spend_gold()` on a purchase. `MerchantView` shows the gold total and refreshes every row on `gold_changed` |
@@ -191,7 +191,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 |------|---------|
 | `singletons/resource_manager/resource_manager.gd` | Madra and Gold state, caps, adventure budget helpers |
 | `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd` | `get_max_madra(level)` (pool cap) |
-| `scripts/resource_definitions/character/character_attributes_data.gd` | `get_max_madra()` (`FOUNDATION × 10`) |
+| `scripts/resource_definitions/character/character_attributes_data.gd` | `get_max_madra()` (`Mind × 10`, the adventure capacity's formula) |
 | `scripts/resource_definitions/effects/award_resource_effect_data.gd` | Data-driven resource award |
 | `scenes/cycling/cycling_technique/cycling_technique.gd` | Madra steps while the cursor follows the ball |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure-start drain |
@@ -208,7 +208,7 @@ Tests: `tests/unit/test_resource_manager.gd` and `tests/unit/test_quiet_madra.gd
 
 - `[LOW]` `set_madra()` ignores the pool cap. This is dev-tools only, and the next `add_madra()` keeps the value: a gain above the cap is lost, and the pool stays where the dev tools put it until it is spent.
 - `[LOW]` When the current stage has no `AdvancementStageResource` the cap falls back to `0.0`, so `add_madra()` adds nothing (the pool is kept). Foundation and Copper have resources and nothing reaches another stage, but a later stage needs its resource before its Tribulation.
-- `[LOW]` The adventure threshold can exceed the pool cap. The threshold is `FOUNDATION × 5` and the Foundation-stage pool cap is `100 + 5 × level`, so once the total FOUNDATION attribute is above `20 + level` the pool can never reach the threshold and no adventure can start. Shipped content stays well below that: base FOUNDATION is 10, and only the Leeching Ring adds to it (+2). Raise the pool cap with Foundation, or base the threshold on the pool.
+- `[LOW]` The adventure threshold can exceed the pool cap. The threshold is `Mind × 5` and the Foundation-stage pool cap is `100 + 5 × level`, so once total Mind is above `20 + level` the pool can never reach the threshold and no adventure can start. Shipped content stays well below that: Mind is 10 at Lv 1 and only gear raises it ([CHARACTER.md](CHARACTER.md#work-remaining) has the training gap, [ITEMS.md](../inventory/ITEMS.md#spirit-valley) each item's percent). Raise the pool cap with Mind, or base the threshold on the pool.
 
 ### Missing Functionality
 
@@ -220,3 +220,4 @@ Tests: `tests/unit/test_resource_manager.gd` and `tests/unit/test_quiet_madra.gd
 
 - `[LOW]` UnlockManager re-evaluates every unlock condition on each `madra_changed`, which is high-frequency during cycling and the drain.
 - `[LOW]` `award_resource()` and the Madra and gold functions have no `##` doc comments, and the locals in `add_madra()` are untyped.
+- `[LOW]` `ResourceManager.get_adventure_madra_capacity()`'s doc comment calls the capacity Foundation × 10, and `AdventurePresenter`'s class comment says gear that adds Foundation moves it: the stat is Mind.
