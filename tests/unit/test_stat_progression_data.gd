@@ -3,7 +3,15 @@ extends GutTest
 ## Unit tests for StatProgressionData: the XP each stat level costs and the
 ## value each level gives, on curves built here and on the shipped one.
 
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
 const SHIPPED_PATH: String = "res://resources/character/stat_progression.tres"
+
+#-----------------------------------------------------------------------------
+# HELPERS
+#-----------------------------------------------------------------------------
 
 ## A curve with the given numbers.
 func _curve(xp_to_level_two: float, growth: float, value_per_level: float) -> StatProgressionData:
