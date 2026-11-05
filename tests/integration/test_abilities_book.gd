@@ -6,9 +6,13 @@ extends GutTest
 ## swapped in and restored around each test.
 
 const AbilitiesViewScene := preload("res://scenes/abilities/abilities_view.tscn")
+const StatSources := preload("res://tests/helpers/stat_sources.gd")
 const EXTRA_ID: String = "test_extra_ability"
 const STRENGTH_ICON: Texture2D = preload("res://assets/sprites/ui/attribute_icons/strength_icon.png")
 const AGILITY_ICON: Texture2D = preload("res://assets/sprites/ui/attribute_icons/agility_icon.png")
+## The modifier source a test raises the player's Control under, removed after
+## each test.
+const TEST_SOURCE: StringName = &"test_control"
 
 ## A damage effect that counts its previews, so tests can tell when the book
 ## recomputes one.
@@ -36,6 +40,7 @@ func before_each() -> void:
 	_view.refresh()
 
 func after_each() -> void:
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	AbilityManager._live_save_data = _previous_save
 	AbilityManager._abilities_by_id.erase(EXTRA_ID)
 
@@ -169,6 +174,21 @@ func test_details_show_timing_and_cost() -> void:
 	assert_eq(_label("CooldownValue").text, "15 s")
 	assert_eq(_label("CastValue").text, "1 s")
 	assert_eq(_label("CostValue").text, "10 Madra")
+
+## With Control raised, the details and the row show the cut cost and cooldown.
+func test_details_and_rows_show_the_control_cut_values() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, StatSources.flat(StatModifierData.Stat.CONTROL, 20.0))
+	var cost_cut: float = CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)
+	var cooldown_cut: float = CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)
+	assert_gt(cooldown_cut, 0.0, "precondition: 20 more Control shortens cooldowns")
+	var enforce: AbilityData = load("res://resources/abilities/enforce.tres")
+	_view.refresh()
+	_view.select_ability("enforce")
+	assert_eq(_label("CooldownValue").text, AbilityRow.format_seconds(enforce.get_cooldown(cooldown_cut)), "the cut cooldown")
+	assert_eq(_label("CostValue").text, AbilityRow.format_cost(enforce, cost_cut), "the cut Madra cost")
+	assert_eq(_label("CastValue").text, "1 s", "Control leaves the cast time alone")
+	var row_cost: Label = _row_for("enforce").find_child("CostLabel", true, false) as Label
+	assert_eq(row_cost.text, AbilityRow.format_costs(enforce, cost_cut, cooldown_cut), "the row's line too")
 
 func test_hovering_back_and_forth_previews_damage_once() -> void:
 	var effect: CountingEffect = _add_counting_ability()

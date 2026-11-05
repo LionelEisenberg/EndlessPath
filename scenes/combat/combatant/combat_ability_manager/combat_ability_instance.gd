@@ -19,7 +19,7 @@ extends Node
 ## EXECUTION:
 ## - Applies effects to target
 ## - The target may dodge: its effects are skipped, the caster's own still apply
-## - Starts cooldown timer
+## - Starts cooldown timer, the player's shortened by Control (get_cooldown_cut())
 ## - Consumes outgoing modifiers
 
 #-----------------------------------------------------------------------------
@@ -32,6 +32,8 @@ const INITIAL_COOLDOWN: float = 1.5
 # SIGNALS
 #-----------------------------------------------------------------------------
 
+## Emitted when a cooldown starts, with the duration actually started: the
+## opening INITIAL_COOLDOWN, or the cooldown after the player's Control cut.
 signal cooldown_started(duration: float)
 signal cooldown_updated(time_left: float)
 signal cooldown_ready()
@@ -99,6 +101,22 @@ func _process(_delta: float) -> void:
 func is_ready() -> bool:
 	return cooldown_timer.is_stopped() and not is_casting
 
+## The player's Madra cost cut, from the Control of its fight snapshot
+## (CharacterAttributesData.get_madra_cost_cut()): the cast gate and the payment
+## take it off the technique's Madra cost. 0.0 for an enemy or an instance with
+## no owner, whose costs are never cut.
+func get_cost_cut() -> float:
+	var attributes: CharacterAttributesData = _player_attributes()
+	return attributes.get_madra_cost_cut() if attributes != null else 0.0
+
+## The player's cooldown cut, from the Control of its fight snapshot
+## (CharacterAttributesData.get_cooldown_cut()): a cast and a cancelled cast take
+## it off the technique's cooldown, the opening one never. 0.0 for an enemy or an
+## instance with no owner, whose cooldowns are never cut.
+func get_cooldown_cut() -> float:
+	var attributes: CharacterAttributesData = _player_attributes()
+	return attributes.get_cooldown_cut() if attributes != null else 0.0
+
 ## Starts the casting process for the ability.
 ## If cast_time is 0, executes immediately.
 func start_cast(target: CombatantNode) -> void:
@@ -122,11 +140,10 @@ func start_cast(target: CombatantNode) -> void:
 func execute_ability(target: CombatantNode) -> void:
 	use_count += 1
 	executed.emit(self)
-	
-	# Start Cooldown
-	var cooldown = ability_data.base_cooldown
-	_start_cooldown(cooldown)
-	
+
+	# Start the cooldown, the player's cut by Control
+	_start_cooldown(ability_data.get_cooldown(get_cooldown_cut()))
+
 	# Get modified attributes (with buff multipliers applied)
 	var modified_attributes = _get_modified_attributes()
 	
@@ -155,7 +172,8 @@ func execute_ability(target: CombatantNode) -> void:
 	Log.info("CombatAbilityInstance: Executed ability %s" % ability_data.ability_name)
 
 ## Cancels an in-progress cast. Stops the cast timer, resets casting state,
-## starts the ability's cooldown, and emits cast_cancelled.
+## starts the ability's cooldown (the player's cut by Control), and emits
+## cast_cancelled.
 ## No-op if not currently casting.
 func cancel_cast() -> void:
 	if not is_casting:
@@ -164,7 +182,7 @@ func cancel_cast() -> void:
 	is_casting = false
 	cast_timer.stop()
 	_current_target = null
-	_start_cooldown(ability_data.base_cooldown)
+	_start_cooldown(ability_data.get_cooldown(get_cooldown_cut()))
 	cast_cancelled.emit(self)
 	Log.info("CombatAbilityInstance: Cancelled cast of %s" % ability_data.ability_name)
 
@@ -172,10 +190,12 @@ func cancel_cast() -> void:
 # INTERNAL LOGIC
 #-----------------------------------------------------------------------------
 
+## Starts a cooldown of `cooldown` seconds and reports it on cooldown_started.
+## A technique with no cooldown of its own starts none, not even the opening one.
 func _start_cooldown(cooldown: float) -> void:
 	if ability_data.base_cooldown > 0:
 		cooldown_timer.start(cooldown)
-		cooldown_started.emit(ability_data.base_cooldown)
+		cooldown_started.emit(cooldown)
 
 func _on_cooldown_timeout() -> void:
 	cooldown_ready.emit()
@@ -196,6 +216,13 @@ func _dodged_by(target: CombatantNode) -> bool:
 		target.visual.play_dodge()
 	LogManager.log_message("[b]%s[/b] dodged %s" % [target.combatant_data.character_name, ability_data.ability_name])
 	return true
+
+## The player's fight snapshot, whose Control gives the cuts, or null for an
+## enemy, for an instance with no owner and for an owner with no data.
+func _player_attributes() -> CharacterAttributesData:
+	if owner_combatant == null or not owner_combatant.is_player or owner_combatant.combatant_data == null:
+		return null
+	return owner_combatant.combatant_data.attributes
 
 ## Creates a modified copy of source_attributes with buff multipliers applied.
 func _get_modified_attributes() -> CharacterAttributesData:

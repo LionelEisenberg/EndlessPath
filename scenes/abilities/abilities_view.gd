@@ -209,9 +209,11 @@ func _show_details(ability: AbilityData) -> void:
 	_detail_tags.text = " · ".join(_describe_tags(ability, kind))
 	_type_icon.texture = _KIND_ICONS.get(kind)
 	_show_primary_stat(ability, kind)
-	_cooldown_value.text = AbilityRow.format_seconds(ability.base_cooldown)
+	# The cooldown and the Madra cost after the player's Control cuts; the cast
+	# time is never cut
+	_cooldown_value.text = AbilityRow.format_seconds(ability.get_cooldown(CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)))
 	_cast_value.text = AbilityRow.format_seconds(ability.cast_time) if ability.cast_time > 0.0 else "Instant"
-	var cost: String = AbilityRow.format_cost(ability)
+	var cost: String = AbilityRow.format_cost(ability, CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT))
 	_cost_value.text = cost if not cost.is_empty() else "Free"
 	_detail_description.text = ability.description
 

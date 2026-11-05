@@ -7,8 +7,8 @@ extends PanelContainer
 ## 2 s", or "Instant · Cooldown 3 s"), its cost after the resource's mini icon,
 ## roughly what it hits for when it deals damage (AbilityRow.format_damage()
 ## for the character's attributes), a divider and what it does. Numbers and
-## costs go through AbilityRow's formatters, so the dock reads like the
-## Abilities book.
+## costs go through AbilityRow's formatters, the cooldown and the Madra cost
+## after the player's Control cuts, so the dock reads like the Abilities book.
 ## A hovered consumable socket opens it too (show_for_consumable(), spec
 ## 2026-10-25-combat-consumables-lacquer-design.md): the consumable's name,
 ## "Instant · Cooldown 10 s" (or "Instant"), one line per effect in place of the
@@ -87,7 +87,7 @@ func show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool, c
 	_name_label.text = data.ability_name
 	_timing_text.text = LacquerText.decimal_bbcode(_timing_line(data))
 	_effects_label.hide()
-	var cost: String = AbilityRow.format_cost(data)
+	var cost: String = AbilityRow.format_cost(data, CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT))
 	_cost_label.text = cost
 	_cost_icon.texture = TechniqueSlot.cost_icon(data)
 	_cost_row.visible = cost != ""
@@ -135,9 +135,10 @@ static func effect_lines(data: ConsumableDefinitionData) -> String:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## "Cast <t> s · Cooldown <c> s", or "Instant · Cooldown <c> s".
+## "Cast <t> s · Cooldown <c> s", or "Instant · Cooldown <c> s", the cooldown
+## after the player's Control cut.
 func _timing_line(data: AbilityData) -> String:
-	var cooldown: String = AbilityRow.format_seconds(data.base_cooldown)
+	var cooldown: String = AbilityRow.format_seconds(data.get_cooldown(CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)))
 	if data.cast_time > 0.0:
 		return CAST_TIMING_FORMAT % [AbilityRow.format_seconds(data.cast_time), cooldown]
 	return INSTANT_TIMING_FORMAT % cooldown

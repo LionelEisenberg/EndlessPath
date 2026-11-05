@@ -134,15 +134,28 @@ func _has_self_effect(t: CombatEffectData.EffectType) -> bool:
 # COST CHECKING
 #-----------------------------------------------------------------------------
 
-## Check if a character can afford this ability's costs
-func can_afford(vitals_manager: VitalsManager) -> bool:
+## The Madra a cast costs after Control's cut (0.25 takes a quarter off),
+## rounded to whole Madra: a half rounds up. Health and Stamina costs are never
+## cut.
+func get_madra_cost(cost_cut: float = 0.0) -> float:
+	return roundf(madra_cost * (1.0 - cost_cut))
+
+## The cooldown after Control's cut (0.2 takes a fifth off), not rounded. A
+## technique with no cooldown keeps none.
+func get_cooldown(cooldown_cut: float = 0.0) -> float:
+	return base_cooldown * (1.0 - cooldown_cut)
+
+## Check if a character can afford this ability's costs, its Madra cost cut by
+## cost_cut (get_madra_cost())
+func can_afford(vitals_manager: VitalsManager, cost_cut: float = 0.0) -> bool:
 	if vitals_manager == null:
 		return false
 
 	if health_cost > 0 and vitals_manager.current_health < health_cost:
 		return false
 
-	if madra_cost > 0 and vitals_manager.current_madra < madra_cost:
+	var madra: float = get_madra_cost(cost_cut)
+	if madra > 0 and vitals_manager.current_madra < madra:
 		return false
 
 	if stamina_cost > 0 and vitals_manager.current_stamina < stamina_cost:
@@ -150,17 +163,19 @@ func can_afford(vitals_manager: VitalsManager) -> bool:
 
 	return true
 
-## Consume the resources required for this ability
-func consume_costs(vitals_manager: VitalsManager) -> bool:
-	if not can_afford(vitals_manager):
+## Consume the resources required for this ability, its Madra cost cut by
+## cost_cut (get_madra_cost())
+func consume_costs(vitals_manager: VitalsManager, cost_cut: float = 0.0) -> bool:
+	if not can_afford(vitals_manager, cost_cut):
 		return false
 
 	if not is_equal_approx(health_cost, 0.0):
 		vitals_manager.apply_vitals_change(-health_cost, 0, 0)
 	if not is_equal_approx(stamina_cost, 0.0):
 		vitals_manager.apply_vitals_change(0, -stamina_cost, 0)
-	if not is_equal_approx(madra_cost, 0.0):
-		vitals_manager.apply_vitals_change(0, 0, -madra_cost)
+	var madra: float = get_madra_cost(cost_cut)
+	if not is_equal_approx(madra, 0.0):
+		vitals_manager.apply_vitals_change(0, 0, -madra)
 
 	return true
 
