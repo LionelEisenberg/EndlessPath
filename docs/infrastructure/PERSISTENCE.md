@@ -17,8 +17,9 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 | `ZoneManager` failed to load, so the save cannot be checked | The save is migrated but kept unchecked, and saving is blocked for the session (`Log.critical`). Nothing is repaired |
 | A newer build wrote the save | It is played as loaded, unmigrated, with saving blocked (`Log.critical`): writing it back would drop what this build does not know |
 | The save names a zone the game no longer has | `repair()` puts `current_selected_zone_id` back to `""` (the first zone), after the file is copied to `save.invalid.<unix time>.tres`. The rest of the save stays. A zone listed in `ZONE_ID_MIGRATIONS` (Test Zone) moves to its listed zone (Spirit Valley) instead |
-| The save was written before saves had versions | `migrate()` brings it up to the current version when it loads. See [Versioning](#versioning) |
-| The save predates the 2026-05-23 attributes change | Its attributes come back as defaults: no migration step converts them. See [Versioning](#versioning) |
+| The save has no training record, or one that lacks a stat's level or XP | `repair()` makes the record and fills each missing entry, a level at Lv 1 and XP at 0, keeping the levels and XP the record holds, after the file is copied to `save.invalid.<unix time>.tres`. A save a newer build wrote is repaired in memory only |
+| The save is older than version 2, an unversioned one included | `migrate()` brings it up to the current version when it loads, which turns its stats into trained levels. See [Versioning](#versioning) |
+| The save is from before 2026-05-23, and holds its stats as one dictionary | Its stats come back at Lv 1, through the version 2 step. See [Versioning](#versioning) |
 
 ## Player Experience
 
@@ -160,7 +161,8 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `madra` | `float` | `25.0` | ResourceManager | [RESOURCES.md](RESOURCES.md) |
 | `gold` | `float` | `0.0` | ResourceManager | [RESOURCES.md](RESOURCES.md) |
 | `inventory` | `InventoryData` | `new()` | InventoryManager | [INVENTORY.md](../inventory/INVENTORY.md) |
-| `character_attributes` | `CharacterAttributesData` | `new()` (all 10.0) | CharacterManager | [CHARACTER.md](CHARACTER.md) |
+| `stat_training` | `StatTrainingData` | `new()`, an empty record, in which every stat reads as Lv 1. `new_current()` and `reset()` write every stat out at Lv 1 | CharacterManager | [CHARACTER.md](CHARACTER.md) |
+| `character_attributes` | `CharacterAttributesData` | `null` | `migrate()`: the legacy field, where a save older than version 2 keeps its stats as values. The version 2 step reads it and clears it; nothing else reads it | [Versioning](#versioning) |
 | `core_density_xp` | `float` | `0.0` | CultivationManager | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
 | `core_density_level` | `float` | `0.0` | CultivationManager | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
 | `current_advancement_stage` | `CultivationManager.AdvancementStage` | `FOUNDATION` | CultivationManager | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
@@ -190,12 +192,12 @@ Apart from tests, each field is read and written only by its owning singleton, e
 
 | Method | Behaviour |
 |--------|-----------|
-| `new_current() -> SaveGameData` (static) | A new save stamped with `CURRENT_VERSION`, for a game that starts fresh. A plain `SaveGameData.new()` is version 0, the number an old file loads with |
+| `new_current() -> SaveGameData` (static) | A new save stamped with `CURRENT_VERSION`, with every stat written out at Lv 1, for a game that starts fresh. A plain `SaveGameData.new()` is version 0, the number an old file loads with, and its training record is empty |
 | `is_from_newer_build() -> bool` | True when `save_version` is above `CURRENT_VERSION`: this build must neither migrate nor write such a save |
 | `migrate()` | Brings a save written by an older build up to `CURRENT_VERSION` and stamps it. Does nothing to a newer one. See [Versioning](#versioning) |
-| `verify() -> bool` | True if `current_selected_zone_id` is `""` or `ZoneManager.has_zone(id)`. This is the only validation performed. `PersistenceManager` calls `repair()`, which makes the same check, so nothing in the game calls `verify()` |
-| `repair() -> PackedStringArray` | Fixes what `verify()` would reject, in place, and returns the names of the fields it changed (empty when there was nothing to fix). An unknown current zone goes back to `""`, which means the first zone in the list |
-| `reset()` | Sets every stored field back to the default a fresh `SaveGameData.new()` declares, in place, so the managers holding the object keep a valid reference, then stamps `CURRENT_VERSION`. Defaults are declared once, on the fields, so a new field resets without being added here, and every sub-resource is a new object. Nothing in the game calls it today |
+| `verify() -> bool` | True if `current_selected_zone_id` is `""` or `ZoneManager.has_zone(id)`, and the training record holds a level and XP for every stat. `PersistenceManager` calls `repair()`, which makes the same checks, so nothing in the game calls `verify()` |
+| `repair() -> PackedStringArray` | Fixes what `verify()` would reject, in place, and returns the names of the fields it changed (empty when there was nothing to fix). An unknown current zone goes back to `""`, which means the first zone in the list. A missing training record is made, and each entry it lacks is filled, a level at Lv 1 and XP at 0; the levels and XP it holds are kept. Each check runs on its own, so one save can be repaired in both |
+| `reset()` | Sets every stored field back to the default a fresh `SaveGameData.new()` declares, in place, so the managers holding the object keep a valid reference, then writes every stat out at Lv 1, as `new_current()` does, and stamps `CURRENT_VERSION`. Defaults are declared once, on the fields, so a new field resets without being added here, and every sub-resource is a new object. Nothing in the game calls it |
 | `get_zone_progression_data(zone_id) -> ZoneProgressionData` | Returns the zone's entry, creating and storing one on first access |
 | `get_merchant_ledger(merchant_id) -> MerchantLedgerData` | Returns the merchant's ledger, creating and storing an empty one on first access |
 | `increment_zone_progression_for_action(action_id, zone_id, quantity) -> int` | Adds `quantity` to `action_completion_count[action_id]` (creating the zone entry if needed) and returns the new total |
@@ -208,7 +210,7 @@ Each of these is embedded in `save.tres` as a `sub_resource`.
 | Class | File | Fields | Owner |
 |-------|------|--------|-------|
 | `InventoryData` | `singletons/persistence_manager/inventory_data.gd` | `materials: Dictionary[MaterialDefinitionData, int]`; `equipment: Dictionary` (slot index → `ItemInstanceData`); `equipped_gear: Dictionary` (`EquipmentSlot` → `ItemInstanceData`, for MAIN_HAND/OFF_HAND/HEAD/ARMOR); `equipped_accessories: Dictionary` (0/1 → `ItemInstanceData`); `quest_items: Dictionary[ItemDefinitionData, int]`; `consumables: Dictionary[ConsumableDefinitionData, int]`; `equipped_consumables: Dictionary[int, ConsumableDefinitionData]` (hotbar 0–3); `unlocked_equipment_pages: int = 2`. Constants: `PAGE_ROWS = 6`, `PAGE_COLUMNS = 6`, `SLOTS_PER_PAGE = 36`; `equipment_capacity()`, `free_equipment_slots()`, `has_free_equipment_slot()` | InventoryManager |
-| `CharacterAttributesData` | `scripts/resource_definitions/character/character_attributes_data.gd` | 8 `float` fields: `strength` … `willpower` | CharacterManager |
+| `StatTrainingData` | `scripts/resource_definitions/character/stat_training_data.gd` | `levels: Dictionary[StringName, int]` and `xp: Dictionary[StringName, float]`, a level and the XP toward the next one by stat key (`CharacterAttributesData.stat_key()`). A stat with no entry is at Lv 1 with no XP | CharacterManager |
 | `UnlockProgressionData` | `singletons/persistence_manager/unlock_progression_data.gd` | `unlocked_condition_ids: Array[String]` | UnlockManager |
 | `EventProgressionData` | `singletons/persistence_manager/event_progression_data.gd` | `triggered_events: Array[String]` | EventManager |
 | `QuestProgressionData` | `singletons/persistence_manager/quest_progression_data.gd` | `active_quests: Dictionary[String, int]` (quest_id → 0-based step index); `completed_quest_ids: Array[String]` | QuestManager |
@@ -258,13 +260,14 @@ The order inside `open_save_file()`:
 - **First the backup, for the main save.** When `path` is the main save, the save is copied to `user://backups/` as it is on disk, before anything can write it. That is the boot backup of a launch on the save, and the backup a switch takes when it opens the save again (Back to my save, or a failed switch coming back to it), so with a preset pinned, which makes every launch a preset session, the save is still backed up before the session writes it. `open_save_file(path, false)` skips it, for a restore, which backs up the save it replaces before it writes over it. When only the temp file a cut-short write left is there, that file may be the only copy of the save, so it is the one backed up, under its own stem (`save.tmp.<stamp>.tres`), which `list_backups()` does not list. All of this is `backup_main_save()`, the one way the main save is backed up; the dev switches that write over it call it too ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#switching-sessions)).
 - **No save and no temp file there:** a new save (`SaveGameData.new_current()`), written at once, with an `INFO` line. `opened_new_save()` is then true, until another save becomes the session's.
 - **The file that `load_save()` reads fails to load as a `SaveGameData`.** That is the save, or its temp file when the save is missing. It is copied aside as `<name>.unreadable.<unix time>.<extension>` and left as it was, and the session runs on `SaveGameData.new_current()` in memory with saving blocked. `Log.critical` names the copy.
-- **A save from a newer build** (`is_from_newer_build()`): saving blocked, never migrated and never written, so nothing is copied aside. When `ZoneManager` is there, `repair()` still runs on the object in memory, so the session never stands in a zone this build does not know. The file stays as the newer build wrote it.
-- **Any other save:** `migrate()` first, then the check. When `ZoneManager` did not load (a stale import cache can do that) the save cannot be checked, and saving is blocked. Otherwise `repair()` fixes an unknown zone id and, when it changed something, the file as it was is copied aside as `<name>.invalid.<unix time>.<extension>` and a `Log.warn` names it. The repaired save is written at the next autosave.
+- **A save from a newer build** (`is_from_newer_build()`): saving blocked, never migrated and never written, so nothing is copied aside. When `ZoneManager` is there, `repair()` still runs on the object in memory, so the session never stands in a zone this build does not know, and has a training record with a level and XP for every stat. The file stays as the newer build wrote it.
+- **Any other save:** `migrate()` first, then the check. When `ZoneManager` did not load (a stale import cache can do that) the save cannot be checked, and saving is blocked. Otherwise `repair()` fixes an unknown zone id and a missing or incomplete training record and, when it changed something, the file as it was is copied aside as `<name>.invalid.<unix time>.<extension>` and a `Log.warn` names it. The repaired save is written at the next autosave.
 - **Every block is logged with `Log.critical`** and keeps its reason, which `get_block_reason()` returns. Only a new session (`open_save_file()` or `use_save()`) clears a block. Each change fires `save_block_changed`, and the dev panel shows `Not saving: <reason>` on screen, open or closed, for as long as the block lasts ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#opening-it)).
 
 Also at boot:
 
 - The zone check (`repair()`'s, the same as `verify()`'s) runs before `ZoneManager._ready()`. It works only because `ZoneManager._all_zone_data` is a preloaded member default, which is set when the autoload is instantiated.
+- The version 2 step ([Versioning](#versioning)) reads the stat cap of the save's stage from `CultivationManager.advancement_stage_resources`, also a preloaded member default, before the managers bind the save. It reads the list untyped, on purpose: a typed read, of the property or through `AdvancementStageResource`, makes the save script depend on the stage script, which then compiles at boot before `CultivationManager`, and `CultivationManager`'s preloaded stage files then fail to load.
 - `open_save_file()` ends with `save_data_reset`, which reaches no listeners at boot, because the other managers have not connected yet. They read the loaded save in their own `_ready()`.
 - Some managers write first-run defaults into the save:
   - `ZoneManager.get_current_zone()` sets `current_selected_zone_id` to the first zone in `zone_data_list.tres` when it is empty.
@@ -311,7 +314,7 @@ A save becomes the session's through `open_save_file()` (boot, and any later swi
 |---------|-----------------------|
 | ResourceManager | `madra_changed`, `gold_changed` |
 | CultivationManager | `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed`. Before them it sets a level past the stage's cap to the cap with no XP (`Log.info`), then seeds a stage with no ledger entry from `floor(level / 10) × 10` |
-| CharacterManager | `base_attribute_changed` for all 8 attributes |
+| CharacterManager | `stats_changed` |
 | ZoneManager | `zone_changed(get_current_zone())` |
 | UnlockManager | `condition_unlocked("")` |
 | PathManager | Clears the tree and effects, then restores the current path, which emits `path_set`, `effects_changed` and `points_changed` |
@@ -337,21 +340,23 @@ A save becomes the session's through `open_save_file()` (boot, and any later swi
 
 ## Versioning
 
-`SaveGameData.CURRENT_VERSION` is 1, the save format this build writes. `save_version` is the version a save was written at. Every write stamps it (`save_data()`), and so do a new save (`new_current()`), `reset()` and `migrate()`.
+The save format is version 2: `SaveGameData.CURRENT_VERSION` is the version this build writes. `save_version` is the version a save was written at. Every write stamps it (`save_data()`), and so do a new save (`new_current()`), `reset()` and `migrate()`.
 
 **The default trap.** `save_version` defaults to 0, which means "written before saves had versions", and must never default to `CURRENT_VERSION`. Godot builds a loaded resource with `new()` and then sets only the keys the file holds, so a default of `CURRENT_VERSION` would make every old file look current and skip its migration. A fresh game gets the current version from `SaveGameData.new_current()`, not from `new()`.
 
 `PersistenceManager` calls `migrate()` on every save it loads (a `--save` file included) except one from a newer build, after the load and before the check. `migrate()` itself does the following:
 
 1. A save from a newer build (`save_version` above `CURRENT_VERSION`) is left alone: no step runs and the version is not stamped. `PersistenceManager` never gets that far with one: it plays the save with saving blocked.
-2. The version steps, each run once for a save older than its version. Version 1 moves the accessories an old save keeps in `inventory.equipped_gear` under keys 4 and 5 (the old `ACCESSORY_1` and `ACCESSORY_2`) into slots 0 and 1 of `equipped_accessories`, in that order. A slot that is already taken keeps its item, and the old accessory stays in `equipped_gear`, named in a `Log.warn`.
+2. The version steps, each run once for a save older than its version:
+   - Version 1 moves the accessories an old save keeps in `inventory.equipped_gear` under keys 4 and 5 (the old `ACCESSORY_1` and `ACCESSORY_2`) into slots 0 and 1 of `equipped_accessories`, in that order. A slot that is already taken keeps its item, and the old accessory stays in `equipped_gear`, named in a `Log.warn`.
+   - Version 2 turns the stat values of a save older than version 2, an unversioned one included, into trained levels: from Lv 1, one level per point above 10 (a stat's Lv 1 value), rounded down, up to the stat cap of the save's own stage (no cap when no stage resource has it), with no XP. The values come from `character_attributes`, which the step then clears; a save that holds none gets every stat at Lv 1. Its Foundation, Resilience and Willpower are dropped as it loads, because the stat block has no such fields, so Mind, in Foundation's place, comes back at Lv 1. Spirit earned at the Aura Well comes back as Spirit levels. Every stat is written out, Lv 1 included: Godot's text saver leaves out a value equal to its default, so a save that leaned on one would read whatever a later default says.
 3. The hidden-zone move: `current_selected_zone_id` goes through `ZONE_ID_MIGRATIONS` (`{"TestZone": "SpiritValley"}`), so a save standing in the now hidden Test Zone moves to Spirit Valley. It is not a version step: it runs on every load, whatever the save's version, because the dev panel can walk a save into Test Zone and its toggle resets on the next launch.
 4. It stamps `CURRENT_VERSION`.
 
 A schema change bumps `CURRENT_VERSION`, adds a version step, and adds an `if save_version < N` line to `migrate()`. When a schema changes without a step:
 
 - An added field loads with its declared default. `CultivationManager` then repairs, when it reads the save, what the default cannot know: a save from before `core_density_milestones` gets the ledger seeded from its level (so no milestone pays twice), and a level past the stage's cap (Core Density was uncapped) loads at the cap with no XP. Path points already earned stay.
-- A field whose stored shape changes is not converted. Commit `1ce7ecd` (2026-05-23) replaced `CharacterAttributesData.attributes` (a dictionary) with 8 float fields, and no step converts it: such a save loads with its attributes at their defaults. Its message says old saves "are incompatible and must be reset (no migration shim)".
+- A field whose stored shape changes is not converted. A save from before 2026-05-23 holds its stats as one dictionary, which no step reads, so it comes back with every stat at Lv 1, through the version 2 step.
 - Enum values are stored as integers. Commit `0652b49` (2026-05-24) collapsed `EquipmentSlot.ACCESSORY_1`/`ACCESSORY_2` (4/5) into a single `ACCESSORY` (4) and moved equipped accessories into the new `equipped_accessories` dictionary. Version step 1 moves the accessories a save still holds in `equipped_gear`.
 
 A build that has `save_version` plays a newer save with saving blocked instead of writing over it. A build from before saves had versions cannot tell: a save that has reached Copper, opened in a build from before the Tribulation, still hits the endless level-up loop (no Copper stage resource, so each level costs 0 XP). The loop guard only protects builds that have it.
@@ -390,6 +395,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 |--------|------------|
 | All save-owning singletons | Hold the live `SaveGameData` reference and connect `save_data_reset` |
 | `ZoneManager` | `has_zone()` backs the zone check of `SaveGameData.verify()` and `repair()`; it uses the `SaveGameData` zone helpers |
+| `CultivationManager` | Its stage list (`advancement_stage_resources`) gives the version 2 step the stat cap of the save's stage (see [Versioning](#versioning)) |
 | `ActionManager` | Remembers the save its current action started under (see [Switching the save](#switching-the-save)); counts an adventure start in the play stats |
 | `MainGame` / `SaveTimer` | `SaveTimer` calls `PersistenceManager.autosave()` every 5 s; `MainGame._process()` adds each frame to the playtime |
 | `TitleMenu` | Offers Continue from `opened_new_save()` and `is_save_blocked()`, starts New Game through `DevManager.new_game()`, and quits through the close request `PersistenceManager` saves on (see [The title menu](#the-title-menu)) |
@@ -412,7 +418,8 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `singletons/persistence_manager/quest_progression_data.gd` | Quest sub-resource |
 | `singletons/persistence_manager/unlock_progression_data.gd` | Unlock sub-resource |
 | `singletons/persistence_manager/event_progression_data.gd` | Event sub-resource |
-| `scripts/resource_definitions/character/character_attributes_data.gd` | Attribute sub-resource |
+| `scripts/resource_definitions/character/stat_training_data.gd` | Training-record sub-resource (`StatTrainingData`) |
+| `scripts/resource_definitions/character/character_attributes_data.gd` | The class of the legacy `character_attributes` field, which the version 2 step reads |
 | `scenes/main/main_game/save_timer.gd` | The 5 s tick (node in `main_game.tscn`) |
 | `scenes/ui/title_menu/title_menu.gd` | The title menu: when it opens, Continue, New Game and Quit |
 
@@ -428,7 +435,7 @@ Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migrat
 ### Tech Debt
 
 - `[LOW]` `ZoneProgressionData.forage_active` and `forage_start_time` are saved but the game never reads or writes them.
-- `[LOW]` The zone check depends on autoload timing. `repair()` makes it before `ZoneManager._ready()` and relies on `_all_zone_data` being a preloaded member default. Moving that load into `_ready()` would make every save with a selected zone fail the check, and `repair()` would send each one back to the first zone.
+- `[LOW]` The zone check depends on autoload timing. `repair()` makes it before `ZoneManager._ready()` and relies on `_all_zone_data` being a preloaded member default. Moving that load into `_ready()` would make every save with a selected zone fail the check, and `repair()` would send each one back to the first zone. The version 2 step's read of the stage cap leans on the same timing: at boot it reads `CultivationManager.advancement_stage_resources`, a preloaded member default, before `CultivationManager._ready()`. A public read of a stage's stat cap on `CultivationManager` would let the step drop its untyped read.
 - `[LOW]` `boot()` recognises the main save by comparing path strings, so a `--save` that names the same file another way (`user://./save.tres`, or its absolute path) is a plain file session, with no boot backup.
 - `[LOW]` The save is a `.tres` resource. Godot resource files can embed scripts, so a shared or edited save file could run code when loaded. Consider a data-only format before saves are exchanged between players.
 - `[LOW]` The title menu's New Game is a dev switch (`DevManager.new_game()`), so the player's log after it reads `[DEV] Started a new game on your save`.
