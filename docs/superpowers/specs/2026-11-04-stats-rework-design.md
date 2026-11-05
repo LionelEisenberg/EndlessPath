@@ -91,7 +91,7 @@ Any of these makes the rework a failure even if it works:
 Builds the six stats, their levels, XP and cap, everything they do in a fight, gear's new bonuses, and the screens that show them.
 
 - **Sources in phase 1:** only the Aura Well and dev tools raise stats. The Aura Well training action keeps its +1.5 Madra a second and +1 Spirit per training level until phase 3. In the new model that reward is +1 Spirit level, and it can't pass the cap; at the cap it is lost, like XP **(Claude's call)**. Two of Lionel's rules meet here, the hard cap and "don't change the Aura Well", and this keeps both as far as they can go together.
-- **The Physical stats** have no source until phase 5. They stay at their starting level, and gear raises them. Their pages say nothing trains them yet.
+- **The Physical stats** have no source until phase 5. They stay at their starting level, and gear raises them.
 - **Gear:**
   - **Armor** cuts physical damage and **Ward** cuts Spirit damage, with today's shape of formula, damage × 100 / (100 + armor) **(Claude's call)**. MIXED damage uses the average of the two, and TRUE ignores both. Gear is the only source.
   - **Gear raises stats by a percentage with a floor,** for example +10% Strength, at least +1. The floor is never spelled out **(Claude's call, following Lionel's lean that the floor shouldn't be explicit)**: item cards and stat breakdowns show the percent, then what it gives right now in parentheses, "+10% Strength (+1)".
