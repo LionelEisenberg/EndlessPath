@@ -1,13 +1,17 @@
 extends GutTest
 
 ## Integration tests for the Tribulation's activity card (the TribulationPresenter
-## on a ZoneActionButton). Below the cap the card shows "Core 95 / 100" on a
-## rod, tagged TRIAL, and refuses a click with a log line. At the cap it is
-## ready: the ready frame, the ENTER tag and the trial's length and penalty on
-## its detail line, which wraps in a taller card when it runs long. It follows
-## the core's level and the stage, and lets both go when it leaves the tree. Cards
-## are built with setup_action on a fresh save with the card's unlock condition
-## forced, as the zone panel builds them; the trial itself is test_tribulation_flow.gd's.
+## on a ZoneActionButton). Not ready, the card shows "Core 95 / 100" on a rod and,
+## on a line under it, the main stats still short, tagged TRIAL, and refuses a
+## click with a log line per missing requirement. Ready (a full core, Strength and
+## Spirit at the cap), it shows the ready frame, the ENTER tag and the trial's
+## length and penalty on its detail line, which wraps in a taller card when it
+## runs long. It follows the core's level, the stage and the stat levels, and lets
+## them go when it leaves the tree. Cards are built with setup_action, as the zone
+## panel builds them, on a fresh save with the card's unlock condition forced and
+## Strength and Spirit at the cap; the trial itself is test_tribulation_flow.gd's.
+
+const Attribute := CharacterAttributesData.AttributeType
 
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
 
@@ -50,6 +54,7 @@ func before_each() -> void:
 	UnlockManager.force_unlock_condition(FULL_CORE_CONDITION)
 	_logged.clear()
 	LogManager.message_logged.connect(_on_message_logged)
+	_cap_main_stats()
 
 func after_each() -> void:
 	LogManager.message_logged.disconnect(_on_message_logged)
@@ -76,6 +81,12 @@ func _stop_everything() -> void:
 ## Puts the core at this level. A card reads the level as it is built.
 func _set_core_level(level: float) -> void:
 	PersistenceManager.save_game_data.core_density_level = level
+
+## Strength and Spirit trained to the stage's cap, as the trial needs them.
+func _cap_main_stats() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap)
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
 
 func _card_for(action: ZoneActionData) -> ZoneActionButton:
 	var card: ZoneActionButton = CARD_SCENE.instantiate() as ZoneActionButton
@@ -200,6 +211,33 @@ func test_filling_the_core_readies_the_card() -> void:
 	assert_true(_has_text_containing(card, "About 38 s"))
 
 #-----------------------------------------------------------------------------
+# THE MAIN STATS
+#-----------------------------------------------------------------------------
+
+## A full core is not enough: Strength a level short keeps the card on TRIAL, and
+## the card names it.
+func test_a_full_core_with_strength_short_is_not_ready() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_set_core_level(FULL_CORE)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap - 1)
+	var card: ZoneActionButton = _card()
+	assert_eq(_tag_text(card), "TRIAL", "a stat short keeps the card on trial")
+	assert_false(_ready_frame(card).visible, "no ready frame while a stat is short")
+	assert_true(_has_text_containing(card, "Strength Lv %d / %d" % [cap - 1, cap]), "the card names the stat still short")
+
+## The level-up that brings the last main stat to the cap readies the card the
+## player is looking at.
+func test_a_stat_level_up_readies_the_card() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_set_core_level(FULL_CORE)
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap - 1)
+	var card: ZoneActionButton = _card()
+	assert_eq(_tag_text(card), "TRIAL", "precondition: Spirit a level short")
+	CharacterManager.add_stat_levels(Attribute.SPIRIT, 1)
+	assert_eq(_tag_text(card), "ENTER", "the level-up readies the card")
+	assert_true(_ready_frame(card).visible, "and its ready frame shows")
+
+#-----------------------------------------------------------------------------
 # CLICKS
 #-----------------------------------------------------------------------------
 
@@ -212,7 +250,7 @@ func test_rejected_click_below_the_cap_logs_why() -> void:
 	assert_eq(_current_id(), AURA_WELL_ID, "the idle action runs on")
 	assert_eq(_logged.size(), 1, "the reject writes one log line")
 	if _logged.size() == 1:
-		assert_string_contains(_logged[0], "Your core must be full to face the Tribulation (95 / 100).")
+		assert_string_contains(_logged[0], "Core Density 95 / 100")
 
 func test_click_at_the_cap_starts_the_trial() -> void:
 	_set_core_level(FULL_CORE)
@@ -223,7 +261,24 @@ func test_click_at_the_cap_starts_the_trial() -> void:
 	assert_eq(_current_id(), TRIBULATION_ID, "the trial is the current action")
 	assert_signal_emitted(ActionManager, "start_tribulation")
 	for line: String in _logged:
-		assert_false(line.contains("must be full"), "a ready click writes no refusal")
+		assert_false(line.contains("The Tribulation needs"), "a ready click writes no refusal")
+
+## A refused click logs a line for each requirement still short, in order: the
+## whole list on one line would run past the Log board.
+func test_rejected_click_names_every_missing_requirement() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_run_aura_well()
+	_set_core_level(SHORT_CORE)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 1)
+	var card: ZoneActionButton = _card()
+	_logged.clear()
+	_click(card)
+	assert_eq(_logged.size(), 2, "one log line per missing requirement")
+	if _logged.size() == 2:
+		for line: String in _logged:
+			assert_string_contains(line, "The Tribulation needs")
+		assert_string_contains(_logged[0], "Core Density 95 / 100")
+		assert_string_contains(_logged[1], "Strength Lv 1 / %d" % cap)
 
 #-----------------------------------------------------------------------------
 # FOLLOWING THE CORE
@@ -296,4 +351,14 @@ func test_leaving_the_tree_disconnects_from_the_cultivation_manager() -> void:
 	remove_child(card)
 	assert_eq(CultivationManager.core_density_level_updated.get_connections().size(), levels, "the level is let go")
 	assert_eq(CultivationManager.advancement_stage_changed.get_connections().size(), stages, "and the stage")
+	card.free()
+
+func test_leaving_the_tree_disconnects_from_the_stat_levels() -> void:
+	var stat_levels: int = CharacterManager.stat_level_changed.get_connections().size()
+	var card: ZoneActionButton = CARD_SCENE.instantiate() as ZoneActionButton
+	card.setup_action(ZoneManager.get_action_by_id(TRIBULATION_ID))
+	add_child(card)
+	assert_eq(CharacterManager.stat_level_changed.get_connections().size(), stat_levels + 1, "precondition: the card follows the stat levels")
+	remove_child(card)
+	assert_eq(CharacterManager.stat_level_changed.get_connections().size(), stat_levels, "the stat levels are let go")
 	card.free()

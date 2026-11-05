@@ -2,12 +2,15 @@ extends GutTest
 
 ## Integration tests for the lacquer Goals board (GoalsPanel, lacquer kit
 ## §5.2): the first active quest's current step with a progress figure only for
-## measurable steps, the Breakthrough milestone in its three states (Core
-## Density towards the stage's cap, a full core that faces the Tribulation, a
-## stage with no next stage), the milestone alone when no quest is active, the
-## milestone waiting for NPC 4 (the end of Beat 3b's chain) in Foundation, and
-## the board hiding while it has no goal at all. No text is cut off (the
-## developer's rule): a long step wraps and the board grows to hold it.
+## measurable steps, the Breakthrough milestone in its three states (each
+## requirement still short, a line each, with Core Density towards the stage's
+## cap on the rod; everything met, which faces the Tribulation; a stage with no
+## next stage), the milestone alone when no quest is active, the milestone
+## waiting for NPC 4 (the end of Beat 3b's chain) in Foundation, and the board
+## hiding while it has no goal at all. No text is cut off (the developer's rule):
+## a long step wraps and the board grows to hold it.
+
+const Attribute := CharacterAttributesData.AttributeType
 
 const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
@@ -60,6 +63,12 @@ func _use_fresh_save(save: SaveGameData = SaveGameData.new(), npc_4_talked: bool
 		save.unlock_progression.unlocked_condition_ids.append(NPC_4_EVENT)
 	PersistenceManager.save_game_data = save
 	PersistenceManager.save_data_reset.emit()
+
+## Strength and Spirit trained to the stage's cap, as the Tribulation needs them.
+func _cap_main_stats() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap)
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
 
 ## Swaps in a Foundation that fills at `cap`, with a Copper after it. Call it
 ## before the save loads; after_each() restores the real stages.
@@ -217,22 +226,61 @@ func test_refreshes_on_save_reset() -> void:
 func test_milestone_text() -> void:
 	_add_goals()
 	assert_eq(_text("MilestoneNameLabel"), "Breakthrough")
-	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
 	assert_eq(_text("MilestoneFigureLabel"), "0 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), 0)
 
+## Each requirement still short gets a line of its own: the core's, then each
+## main stat below the cap.
+func test_milestone_lists_every_missing_requirement() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_add_goals()
+	var text: String = _text("MilestoneTextLabel")
+	assert_string_contains(text, "Raise Core Density to 100")
+	assert_string_contains(text, "Strength Lv 1 / %d" % cap)
+	assert_string_contains(text, "Spirit Lv 1 / %d" % cap)
+
 ## Core Density has a cap: a save past it loads at it, and the full core asks to
-## face the Tribulation.
+## face the Tribulation once Strength and Spirit stand at the cap too.
 func test_milestone_at_the_cap_asks_for_the_tribulation() -> void:
 	var save := SaveGameData.new()
 	save.core_density_level = 120.0
 	_use_fresh_save(save)
+	_cap_main_stats()
 	assert_eq(CultivationManager.get_core_density_level(), 100.0, "precondition: the save loaded at the cap")
 	_add_goals()
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
 	assert_true(_is_shown("MilestoneFigureLabel"))
 	assert_eq(_text("MilestoneFigureLabel"), "100 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+
+## A full core with the main stats short drops the core's line but still waits:
+## the stats' lines stand alone over the full rod.
+func test_a_full_core_waits_for_the_main_stats() -> void:
+	var save := SaveGameData.new()
+	save.core_density_level = 100.0
+	_use_fresh_save(save)
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_add_goals()
+	var text: String = _text("MilestoneTextLabel")
+	assert_false(text.contains("Face the Tribulation"), "the trial waits for the stats")
+	assert_false(text.contains("Raise Core Density"), "the full core asks for nothing more")
+	assert_string_contains(text, "Strength Lv 1 / %d" % cap)
+	assert_eq(_text("MilestoneFigureLabel"), "100 / 100", "the figure reads the full core")
+
+## The level-up that brings the last main stat to the cap turns a board that is
+## already up to the Tribulation.
+func test_milestone_follows_a_stat_level_up() -> void:
+	var save := SaveGameData.new()
+	save.core_density_level = 100.0
+	_use_fresh_save(save)
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap - 1)
+	_add_goals()
+	assert_string_contains(_text("MilestoneTextLabel"), "Strength Lv")
+	CharacterManager.add_stat_levels(Attribute.STRENGTH, 1)
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation", "nothing is missing once Strength reaches the cap")
 
 ## A stage with no next stage has no Tribulation to face, even with its core full.
 func test_a_full_copper_core_still_reads_reached() -> void:
@@ -257,7 +305,7 @@ func test_milestone_follows_level_up() -> void:
 ## advancement_stage_changed says so.
 func test_milestone_follows_the_stage_change() -> void:
 	_add_goals()
-	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100", "precondition: Foundation")
+	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
 	var save: SaveGameData = PersistenceManager.save_game_data
 	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
 	CultivationManager.advancement_stage_changed.emit(save.current_advancement_stage)
@@ -271,7 +319,7 @@ func test_the_figure_returns_with_a_new_save() -> void:
 	_add_goals()
 	assert_false(_is_shown("MilestoneFigureLabel"), "precondition: no figure on Copper")
 	_use_fresh_save()
-	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
 	assert_true(_is_shown("MilestoneFigureLabel"))
 	assert_eq(_text("MilestoneFigureLabel"), "0 / 100")
 
@@ -283,9 +331,10 @@ func test_milestone_reads_the_stages_cap() -> void:
 	save.core_density_level = 20.0
 	_use_fresh_save(save)
 	_add_goals()
-	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 40")
+	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 40")
 	assert_eq(_text("MilestoneFigureLabel"), "20 / 40")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.5 * MILESTONE_ROD_STEPS))
+	_cap_main_stats()
 	save.core_density_level = 40.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
@@ -337,7 +386,7 @@ func test_npc_4_hands_the_board_to_the_breakthrough() -> void:
 	assert_true(QuestManager.has_completed_quest(CORE_DENSITY_QUEST_ID), "precondition: the quest completed")
 	assert_false(_is_shown("QuestRow"))
 	assert_true(_is_shown("MilestoneRow"))
-	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
 
 ## The wait is Foundation's: Copper has no condition, so its line shows on a save
 ## that never talked to NPC 4.
@@ -354,6 +403,8 @@ func test_copper_shows_its_milestone_without_npc_4() -> void:
 #-----------------------------------------------------------------------------
 
 func test_long_step_text_wraps_and_does_not_widen_board() -> void:
+	# Two stat lines under the milestone would grow the board on their own.
+	_cap_main_stats()
 	var long_text: String = "Walk the long road ".repeat(16).substr(0, 300)
 	assert_eq(long_text.length(), 300, "precondition: a 300-character step")
 	var quest_id: String = _use_single_quest("A Quest Whose Name Runs Far Past The Board's Edge", long_text)

@@ -115,7 +115,7 @@ func _on_condition_unlocked(condition_id: String) -> void:
 
 ## Select an action to execute, replacing the current one, and mark it seen.
 ## An idle action becomes its zone's last idle action. An adventure the player
-## can't afford and a Tribulation the core isn't ready for are refused before
+## can't afford and a Tribulation the player isn't ready for are refused before
 ## anything stops, so the current action runs on.
 func select_action(action_data: ZoneActionData) -> void:
 	if not action_data:
@@ -129,8 +129,8 @@ func select_action(action_data: ZoneActionData) -> void:
 		return
 	var tribulation := action_data as TribulationActionData
 	if tribulation != null and not tribulation.can_attempt():
-		Log.info("ActionManager: Cannot start the Tribulation - Core Density %d / %d (%s)" % [
-			int(CultivationManager.get_core_density_level()), CultivationManager.get_core_density_cap(),
+		Log.info("ActionManager: Cannot start the Tribulation - %s (%s)" % [
+			", ".join(TribulationActionData.get_missing_requirements()),
 			CultivationManager.get_current_advancement_stage_name()])
 		return
 

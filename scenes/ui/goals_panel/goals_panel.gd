@@ -6,24 +6,26 @@ extends Control
 ## place in adventures.
 ## Row 1 shows the first active quest's name and current step, with a
 ## current / target figure on the name row when the step can be measured.
-## Row 2 is the Breakthrough milestone on a jade rod, in three states: Core
-## Density towards the stage's cap (level / cap), "Face the Tribulation" once the
-## core is full, and "<Stage> reached" on a full rod, with no figure, once the
-## stage has no next stage. The milestone waits for the stage's
-## breakthrough_goal_condition to latch (Foundation's: NPC 4 talked, the end of
-## Beat 3b's chain). With one row hidden the divider hides too and the other row
-## takes its place (the Rows container does the move). With neither row, on a
-## fresh save before its first quest, the board hides all of itself, its cords
-## too, and lets clicks through to the map; its root stays visible, since MainView
-## hides and restores the root under the overlays.
+## Row 2 is the Breakthrough milestone on a jade rod, in three states: each
+## requirement of the Tribulation still short, a line each ("Raise Core Density
+## to <cap>" while the core is not full, then each main stat below the cap,
+## "Strength Lv 3 / 10"), with Core Density on the rod (level / cap); "Face the
+## Tribulation" once nothing is missing; and "<Stage> reached" on a full rod,
+## with no figure, once the stage has no next stage. The milestone waits for the
+## stage's breakthrough_goal_condition to latch (Foundation's: NPC 4 talked, the
+## end of Beat 3b's chain). With one row hidden the divider hides too and the
+## other row takes its place (the Rows container does the move). With neither
+## row, on a fresh save before its first quest, the board hides all of itself,
+## its cords too, and lets clicks through to the map; its root stays visible,
+## since MainView hides and restores the root under the overlays.
 ## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into a
 ## top, a tiled middle and a bottom slice, so the board is 220 px tall with both
-## rows, 150 px with the milestone alone and 146 px with the quest alone (the
-## least the top and bottom slices take). The cords are their own node and
-## texture, which set_cords_visible() can hide; their two brass hooks are drawn
-## on the top slice, which then swaps for a hookless copy.
+## rows on one line each, 150 px with the milestone alone and 146 px with the
+## quest alone (the least the top and bottom slices take). The cords are their
+## own node and texture, which set_cords_visible() can hide; their two brass
+## hooks are drawn on the top slice, which then swaps for a hookless copy.
 ## No text is cut off: the quest's name and step and the milestone's name and
-## line wrap in their 358 px, and the rows grow to hold them (the rows are
+## lines wrap in their 358 px, and the rows grow to hold them (the rows are
 ## containers, each text stacking under the one before it) and the board with
 ## them. A name that shares its line with the figure wraps before the figure,
 ## which stays at the right of the first line. Every row is an even number of px
@@ -94,6 +96,7 @@ func _ready() -> void:
 	PersistenceManager.save_data_reset.connect(_on_save_data_reset)
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
+	CharacterManager.stat_level_changed.connect(_on_stat_level_changed)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	ResourceManager.madra_changed.connect(_on_resource_changed)
 	ResourceManager.gold_changed.connect(_on_resource_changed)
@@ -150,9 +153,11 @@ func _update_quest() -> void:
 
 ## The milestone row, hidden until the stage's breakthrough_goal_condition has
 ## latched, then in one of three states. A stage with no next stage reads
-## "<Stage> reached" on a full rod, with no figure. A full core reads "Face the
-## Tribulation" on a full rod, with the figure at cap / cap. Otherwise it asks to
-## "Raise Core Density to <cap>", with the rod and the figure at level / cap.
+## "<Stage> reached" on a full rod, with no figure. With nothing missing it reads
+## "Face the Tribulation" on a full rod, with the figure at cap / cap. Otherwise
+## it lists what is still missing, a line each: "Raise Core Density to <cap>"
+## while the core is not full, then each main stat below the cap, with the rod
+## and the figure at level / cap.
 func _update_milestone() -> void:
 	var condition: UnlockConditionData = CultivationManager.get_breakthrough_goal_condition()
 	_milestone_row.visible = condition == null or UnlockManager.is_condition_unlocked(condition.condition_id)
@@ -161,13 +166,17 @@ func _update_milestone() -> void:
 	if reached:
 		_milestone_text_label.text = "%s reached" % CultivationManager.get_current_advancement_stage_name()
 		_milestone_rod.set_fraction(1.0)
-	elif CultivationManager.is_core_full():
+	elif TribulationActionData.get_missing_requirements().is_empty():
 		_milestone_text_label.text = "Face the Tribulation"
 		_milestone_rod.set_fraction(1.0)
 		_milestone_figure_label.text = "%d / %d" % [cap, cap]
 	else:
 		var level: int = floori(CultivationManager.get_core_density_level())
-		_milestone_text_label.text = "Raise Core Density to %d" % cap
+		var lines: Array[String] = []
+		if not CultivationManager.is_core_full():
+			lines.append("Raise Core Density to %d" % cap)
+		lines.append_array(TribulationActionData.get_missing_requirements(false))
+		_milestone_text_label.text = "\n".join(lines)
 		_milestone_rod.set_fraction(float(level) / cap)
 		_milestone_figure_label.text = "%d / %d" % [level, cap]
 	_milestone_figure_label.visible = not reached
@@ -229,6 +238,10 @@ func _on_core_density_level_updated(_xp: float, _level: float) -> void:
 ## or that it has been reached.
 func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
 	refresh()
+
+## A main stat's new level changes what the milestone still asks for.
+func _on_stat_level_changed(_stat: CharacterAttributesData.AttributeType, _level: int) -> void:
+	_update_milestone()
 
 ## The stage's breakthrough_goal_condition latching puts the milestone on the
 ## board.

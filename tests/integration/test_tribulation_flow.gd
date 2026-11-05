@@ -1,10 +1,12 @@
 extends GutTest
 
 ## Integration tests for the Tribulation as a Spirit Valley action. The card
-## appears when Core Density reaches 100. ActionManager refuses the action below
-## that and starts it at 100, stopping it hands the zone back to its idle action,
-## a pass (the breakthrough) hides the card for good, and a failure (five levels
-## lost) keeps the card but leaves it refused until the core is full again.
+## appears when Core Density reaches 100. ActionManager refuses the action until
+## the core is full and Strength and Spirit are trained to the stage's cap (a
+## bonus never counts) and starts it then, stopping it hands the zone back to its
+## idle action, a pass (the breakthrough) hides the card for good, and a failure
+## (five levels lost) keeps the card but leaves it refused until the core is full
+## again.
 ##
 ## The first tests drive the flow through ActionManager and CultivationManager
 ## alone. The last ones open the real board: the real TribulationView on a test
@@ -18,6 +20,8 @@ extends GutTest
 
 const Stage := CultivationManager.AdvancementStage
 const Mode := TribulationView.Mode
+const Attribute := CharacterAttributesData.AttributeType
+const StatSources := preload("res://tests/helpers/stat_sources.gd")
 
 const VIEW_SCENE_PATH: String = "res://scenes/tribulation/tribulation_view.tscn"
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
@@ -32,6 +36,9 @@ const MERCHANT_ID: String = "spirit_valley_merchant"
 const FULL_CORE_CONDITION: String = "core_density_full"
 ## The event whose unlock condition opens Spring Forest Foraging.
 const FORAGING_EVENT: String = "q_fill_core_completed"
+
+## The modifier source a test lifts a stat's total with, removed in after_each().
+const TEST_SOURCE: StringName = &"test_tribulation_flow"
 
 ## The board's clock when a run begins: _at(seconds) sets it to this plus `seconds`.
 const START_USEC: int = 1_000_000
@@ -64,6 +71,7 @@ func before_each() -> void:
 	PersistenceManager.save_data_reset.emit()
 
 func after_each() -> void:
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	_stop_everything()
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
@@ -88,11 +96,19 @@ func _stop_everything() -> void:
 func _tribulation() -> TribulationActionData:
 	return ZoneManager.get_action_by_id(TRIBULATION_ID) as TribulationActionData
 
-## Fills the core the way play does: the last level is earned with XP, so the
-## level-up reaches the cap, announces the full core and runs the unlock check.
+## Readies the whole trial: Strength and Spirit at the cap, then the core filled
+## the way play does. The last level is earned with XP, so the level-up reaches
+## the cap, announces the full core and runs the unlock check.
 func _fill_core() -> void:
+	_cap_main_stats()
 	PersistenceManager.save_game_data.core_density_level = 99.0
 	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
+
+## Strength and Spirit trained to the stage's cap, as the trial needs them.
+func _cap_main_stats() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap)
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
 
 ## Unlocks Spring Forest Foraging. It is the zone's first idle action, so it
 ## starts at once.
@@ -211,6 +227,17 @@ func test_select_refuses_below_one_hundred() -> void:
 	assert_signal_not_emitted(ActionManager, "start_tribulation")
 	assert_signal_not_emitted(ActionManager, "stop_foraging", "and nothing was stopped")
 
+## A full core is not enough: with Strength below the cap the click is refused too,
+## and what runs runs on.
+func test_select_refuses_with_a_main_stat_below_the_cap() -> void:
+	_run_foraging()
+	_fill_core()
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 1)
+	watch_signals(ActionManager)
+	ActionManager.select_action(_tribulation())
+	assert_eq(_current_id(), FORAGING_ID, "the refused click leaves foraging running")
+	assert_signal_not_emitted(ActionManager, "start_tribulation")
+
 func test_select_at_one_hundred_starts_the_trial() -> void:
 	_fill_core()
 	var action: TribulationActionData = _tribulation()
@@ -230,8 +257,51 @@ func test_stopping_resumes_the_idle_action() -> void:
 	assert_eq(_current_id(), FORAGING_ID, "leaving the trial resumes foraging, like closing the shop")
 
 #-----------------------------------------------------------------------------
-# THE ACTION'S TWO QUESTIONS
+# THE ACTION'S QUESTIONS
 #-----------------------------------------------------------------------------
+
+## The trial needs a full core and both main stats at the stage's cap. Each
+## requirement still short is named, in the order Core Density, Strength, Spirit,
+## and the trial can be attempted exactly when none is.
+func test_the_trial_needs_a_full_core_and_both_main_stats_at_the_cap() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	var core_cap: int = CultivationManager.get_core_density_cap()
+	var cases: Array[Dictionary] = [
+		{"name": "everything met", "core": core_cap, "strength": cap, "spirit": cap, "missing": []},
+		{"name": "the core short", "core": core_cap - 5, "strength": cap, "spirit": cap,
+			"missing": ["Core Density %d / %d" % [core_cap - 5, core_cap]]},
+		{"name": "Strength short", "core": core_cap, "strength": cap - 1, "spirit": cap,
+			"missing": ["Strength Lv %d / %d" % [cap - 1, cap]]},
+		{"name": "Spirit short", "core": core_cap, "strength": cap, "spirit": 1,
+			"missing": ["Spirit Lv 1 / %d" % cap]},
+		{"name": "nothing met", "core": 0, "strength": 1, "spirit": 1,
+			"missing": ["Core Density 0 / %d" % core_cap, "Strength Lv 1 / %d" % cap, "Spirit Lv 1 / %d" % cap]},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data.core_density_level = float(case["core"])
+		CharacterManager.set_stat_level(Attribute.STRENGTH, case["strength"])
+		CharacterManager.set_stat_level(Attribute.SPIRIT, case["spirit"])
+		var missing: Array[String] = []
+		missing.assign(case["missing"])
+		assert_eq(TribulationActionData.get_missing_requirements(), missing, "%s: what is missing" % case["name"])
+		assert_eq(_tribulation().can_attempt(), missing.is_empty(), "%s: whether the trial can be attempted" % case["name"])
+
+## A screen whose rod already shows the core asks for the stats alone.
+func test_the_requirements_can_leave_the_core_out() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	PersistenceManager.save_game_data.core_density_level = 50.0
+	var expected: Array[String] = ["Strength Lv 1 / %d" % cap, "Spirit Lv 1 / %d" % cap]
+	assert_eq(TribulationActionData.get_missing_requirements(false), expected, "the stats short, without the core's line")
+
+## Review Focus 2: the trial counts trained levels, never totals. A bonus that
+## lifts Strength's total far past its trained value leaves a Lv 1 Strength short.
+func test_bonuses_never_count_toward_the_cap() -> void:
+	_fill_core()
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 1)
+	CharacterManager.set_modifier_source(TEST_SOURCE, StatSources.flat(StatModifierData.Stat.STRENGTH, 100.0))
+	assert_gt(CharacterManager.get_stat(StatModifierData.Stat.STRENGTH), CharacterManager.get_trained_value(Attribute.STRENGTH) + 50.0,
+		"precondition: the bonus lifts Strength's total far past its trained value")
+	assert_false(_tribulation().can_attempt(), "a Lv 1 Strength is short of the cap whatever its total")
 
 ## Copper's core fills at 100 as well, but this trial leads out of Foundation.
 func test_a_full_copper_core_cannot_face_the_foundation_trial() -> void:
