@@ -31,13 +31,16 @@ Two kinds of line, kept apart:
 | Gear | Armor (against physical damage) and magic resist (against Spirit damage) live on gear. Gear raises stats by a percentage with a floor (for example +10%, at least +1), so a sword neither feels weak early nor fades later. Lionel leaned toward not spelling the floor out. | Lionel (brief, R1 Q3, R2 Q3) | |
 | Gear text | A stat line shows the item's percent and the stat, then what it gives right now in parentheses: "+50% Strength (+5)" ("instead of +X now, just do +50% and then between parentheses, the actual number"). Armor and Ward lines stay "Armor 6" and "Ward 4". The item description panel (the item tooltip) is Lionel's to rework later, so phase 1 leaves its code alone ("ignore updating item description panel because I'm going to update that anyways later on"). | Lionel (R6) | Lionel's rework of the item description panel. |
 | Side names | Physical and Spiritual. | Lionel (R1 Q6) | |
+| Stats on the zone view | Phase 1 shows the six stats on the cultivator cabinet, as two triangles side by side, Physical left and Spiritual right, each cell 80% of the canvas's first draw: "add stats to the zone view, make them 20% smaller and in side by side triangular positions". | Lionel (phase 1 canvas) | |
+| The Character book's look | Pressed paper, the Inventory's look ("Pressed paper inventory look"). Its XP bars are pressed into the page with an ink fill: "Why not keep using the circles? but yes pressed is fine for now". | Lionel (phase 1 canvas) | The bars: Lionel asked why they aren't the cabinet's bead rings. |
+| What trains a stat | The book doesn't say: no "What trains it" section and no list of trainers ("remove its too much logic nuke it entirely"). | Lionel (phase 1 canvas) | |
 | Auto | Not in phase 1: Auto keeps chaining cycles while you play, and nothing is earned unattended. Unattended Auto comes with the cycling phase (and with body refining in phase 5). | Lionel (R4 Q2 a) | Its rate, in phase 3's mock-up step. Lionel's R1 answer reads two ways: "Only by training, but auto-refills at full speed" (refills at full speed, XP at the reduced rate), then "auto-runs at 0.2 for everything. Or at 0.4, maybe that makes most sense" (one flat rate). "After a perfect cycle or set" comes from the brother's doc, where Lionel replied "Yup this was planned". |
 | The Aura Well | Unchanged until phase 3: its training action keeps its Madra trickle and its +1 Spirit per training level. Its new role is settled in phase 3. Lionel's words (read as "Aura Well" and "pass"): "don't change the order whatsoever. We can do that in a second or third class. It's really not first class." | Lionel (R3, answering R2 Q5 again; R5) | Phase 3 mock-ups. |
 
 ## Claude's calls
 
 **Before body refining exists (phases 1–4)**
-- Nothing trains the Physical stats, so they stay at their starting level. Gear still raises them. Their pages say nothing trains them yet.
+- Nothing trains the Physical stats, so they stay at their starting level. Gear still raises them.
 - Dev tools and the save presets at or past the breakthrough set the stats the breakthrough needs, so it can be tested before phase 5.
 
 **Stats**

@@ -39,7 +39,7 @@ What breaks between phases: stats have no source but the Aura Well until phase 3
 2. Stats grow only by training, with XP, up to a hard cap per cultivation stage.
 3. One Madra pool and one Health pool, shared by home and runs.
 4. Core Density comes from fights; cycling and body refining pay stat XP and refill the pools.
-5. The player can always see what a stat does now, what its next level gives, and what trains it.
+5. The player can always see what a stat does now and what its next level gives.
 6. Existing saves carry over **(Claude's call)**.
 
 ## Non-goals
@@ -101,8 +101,8 @@ Builds the six stats, their levels, XP and cap, everything they do in a fight, g
 - **The breakthrough** needs Core Density 100 and Strength and Spirit at the cap from phase 1 on (Lionel). Strength can't train until phase 5, so dev tools and the save presets at or past the breakthrough set the stats to test it.
 - **Saves** (all **Claude's call**): one version-2 migration keeps stage, Core Density, path points, items, quests and zone progress. Spirit earned at the Aura Well becomes the same number of Spirit levels above the start, up to the cap. Resilience and Willpower are dropped; only dev tools ever raised them. Every stat is written out explicitly, because Godot's text saver skips values equal to the script default, and changed defaults would silently rewrite old saves.
 - **Screens:**
-  - **Character book.** The Physical and Spiritual sides, each stat with its level, XP bar and cap state. A stat's detail page shows what it does at this level and the next, where its value comes from (trained level plus gear), and what trains it: the Aura Well in phase 1; from phase 3 each cycling technique, with roughly how many cycles the next level takes **(Claude's call)**. An "In a fight" block totals Health, Madra, Stamina, dodge chance, the technique cost and cooldown cuts, armor and Ward.
-  - **Zone view.** The mock-ups settle whether the stats show on the zone view (the Cultivator Stats canvas grew the cabinet to hold them).
+  - **Character book.** Pressed paper, the Inventory's look (Lionel). The Physical and Spiritual sides, each stat with its level, XP bar and cap state. A stat's detail page shows what it does at this level and the next and where its value comes from (trained level plus gear); from phase 3 it also gives roughly how many cycles the next level takes **(Claude's call)**. It doesn't name what trains the stat (Lionel). An "In a fight" block totals Health, Madra, Stamina, dodge chance, the technique cost and cooldown cuts, armor and Ward.
+  - **Zone view.** The cultivator cabinet shows the six stats as two triangles side by side, Physical left and Spiritual right, each with its level and a ring of XP beads, full at the cap (Lionel). The cabinet grows to hold them, and the Goals board hangs lower.
   - **Gear text** everywhere (inventory, item panels, merchant): "+10% Strength (+1)", "Armor 6", "Ward 4". Lionel reworks the item description panel (the item tooltip) later, so phase 1 leaves its code alone; it prints the same lines, read from the item **(Claude's call)**.
   - **Abilities book and technique tooltips:** the damage breakdown comes from the side's main stat.
   - **Tribulation card and Goals board:** every breakthrough requirement.
