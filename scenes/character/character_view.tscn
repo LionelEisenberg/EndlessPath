@@ -3,15 +3,13 @@
 [ext_resource type="Script" uid="uid://mprbbiaybrln" path="res://scenes/character/character_view.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://m26avynuswy" path="res://scenes/character/attribute_tile/attribute_tile.tscn" id="2_attribute_tile"]
 [ext_resource type="Theme" path="res://assets/themes/book_theme.tres" id="3_book_theme"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/strength_icon.png" id="4_str"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/body_icon.png" id="5_bod"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/agility_icon.png" id="6_agi"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/spirit_icon.png" id="8_spi"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/foundation_icon.png" id="9_fnd"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/control_icon_ai.png" id="10_ctl"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/pressed/page_title/page_title.tscn" id="4_page_title"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="5_slot"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="6_rod"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_page_empty_ai.png" id="7_xp_empty"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_page_full_ai.png" id="8_xp_full"]
 [ext_resource type="PackedScene" path="res://scenes/ui/book_frame/book_frame.tscn" id="12_book_frame"]
 [ext_resource type="Resource" path="res://resources/ui/book_styles/character_book_style.tres" id="13_style"]
-[ext_resource type="PackedScene" uid="uid://76prc2etr5vo" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="14_banner"]
 
 [node name="CharacterView" type="Control" unique_id=1384627830 node_paths=PackedStringArray("page_content")]
 visible = false
@@ -70,14 +68,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="TitleBanner" parent="BookLayer/BookContent" instance=ExtResource("14_banner")]
-layout_mode = 0
-offset_left = 115.0
-offset_top = 62.0
-offset_right = 311.0
-offset_bottom = 128.0
-title = "Character"
-
 [node name="PageLayer" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 8
@@ -89,197 +79,341 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="LeftTitle" parent="PageLayer" instance=ExtResource("4_page_title")]
+layout_mode = 0
+offset_left = -508.0
+offset_top = -316.0
+offset_right = -56.0
+offset_bottom = -254.0
+title = "Character"
+
 [node name="LeftPage" type="VBoxContainer" parent="PageLayer"]
 layout_mode = 0
-offset_left = -520.0
-offset_top = -186.0
-offset_right = -44.0
-offset_bottom = 342.0
+offset_left = -508.0
+offset_top = -240.0
+offset_right = -56.0
+offset_bottom = 323.0
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
-[node name="PhysicalPlaque" type="Label" parent="PageLayer/LeftPage"]
-custom_minimum_size = Vector2(248, 52)
+[node name="PhysicalSide" type="VBoxContainer" parent="PageLayer/LeftPage"]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_type_variation = &"LabelBookPlaque"
-text = "Physical"
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 0
 
-[node name="PhysicalTiles" type="GridContainer" parent="PageLayer/LeftPage"]
+[node name="PhysicalCaptionBox" type="MarginContainer" parent="PageLayer/LeftPage/PhysicalSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_bottom = 4
+
+[node name="PhysicalCaption" type="Label" parent="PageLayer/LeftPage/PhysicalSide/PhysicalCaptionBox"]
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+text = "PHYSICAL"
+
+[node name="PhysicalRule" type="HSeparator" parent="PageLayer/LeftPage/PhysicalSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HSeparatorPressed"
+
+[node name="PhysicalTilesBox" type="MarginContainer" parent="PageLayer/LeftPage/PhysicalSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 8
+
+[node name="PhysicalTiles" type="GridContainer" parent="PageLayer/LeftPage/PhysicalSide/PhysicalTilesBox"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 12
-columns = 4
+theme_override_constants/h_separation = 16
+columns = 3
 
-[node name="StrengthTile" parent="PageLayer/LeftPage/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
+[node name="StrengthTile" parent="PageLayer/LeftPage/PhysicalSide/PhysicalTilesBox/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Strength"
-icon_texture = ExtResource("4_str")
 
-[node name="BodyTile" parent="PageLayer/LeftPage/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
+[node name="BodyTile" parent="PageLayer/LeftPage/PhysicalSide/PhysicalTilesBox/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Body"
 attribute_type = 1
-icon_texture = ExtResource("5_bod")
 
-[node name="AgilityTile" parent="PageLayer/LeftPage/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
+[node name="AgilityTile" parent="PageLayer/LeftPage/PhysicalSide/PhysicalTilesBox/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Agility"
 attribute_type = 2
-icon_texture = ExtResource("6_agi")
 
-[node name="GroupGap" type="Control" parent="PageLayer/LeftPage"]
-custom_minimum_size = Vector2(0, 12)
+[node name="SpiritualSide" type="VBoxContainer" parent="PageLayer/LeftPage"]
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 0
 
-[node name="SpiritualPlaque" type="Label" parent="PageLayer/LeftPage"]
-custom_minimum_size = Vector2(248, 52)
+[node name="SpiritualCaptionBox" type="MarginContainer" parent="PageLayer/LeftPage/SpiritualSide"]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_type_variation = &"LabelBookPlaque"
-text = "Spiritual"
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_bottom = 4
 
-[node name="SpiritualTiles" type="GridContainer" parent="PageLayer/LeftPage"]
+[node name="SpiritualCaption" type="Label" parent="PageLayer/LeftPage/SpiritualSide/SpiritualCaptionBox"]
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+text = "SPIRITUAL"
+
+[node name="SpiritualRule" type="HSeparator" parent="PageLayer/LeftPage/SpiritualSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HSeparatorPressed"
+
+[node name="SpiritualTilesBox" type="MarginContainer" parent="PageLayer/LeftPage/SpiritualSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 8
+
+[node name="SpiritualTiles" type="GridContainer" parent="PageLayer/LeftPage/SpiritualSide/SpiritualTilesBox"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 12
-columns = 4
+theme_override_constants/h_separation = 16
+columns = 3
 
-[node name="SpiritTile" parent="PageLayer/LeftPage/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
+[node name="SpiritTile" parent="PageLayer/LeftPage/SpiritualSide/SpiritualTilesBox/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Spirit"
 attribute_type = 3
-icon_texture = ExtResource("8_spi")
 
-[node name="MindTile" parent="PageLayer/LeftPage/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
+[node name="MindTile" parent="PageLayer/LeftPage/SpiritualSide/SpiritualTilesBox/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Mind"
 attribute_type = 4
-icon_texture = ExtResource("9_fnd")
 
-[node name="ControlTile" parent="PageLayer/LeftPage/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
+[node name="ControlTile" parent="PageLayer/LeftPage/SpiritualSide/SpiritualTilesBox/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Control"
 attribute_type = 5
-icon_texture = ExtResource("10_ctl")
+
+[node name="FightSide" type="VBoxContainer" parent="PageLayer/LeftPage"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="FightCaptionBox" type="MarginContainer" parent="PageLayer/LeftPage/FightSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_bottom = 4
+
+[node name="InAFightCaption" type="Label" parent="PageLayer/LeftPage/FightSide/FightCaptionBox"]
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+text = "IN A FIGHT"
+
+[node name="FightRule" type="HSeparator" parent="PageLayer/LeftPage/FightSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HSeparatorPressed"
+
+[node name="FightRowsBox" type="MarginContainer" parent="PageLayer/LeftPage/FightSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 8
+
+[node name="FightRows" type="GridContainer" parent="PageLayer/LeftPage/FightSide/FightRowsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="DetailPlaque" parent="PageLayer" instance=ExtResource("4_page_title")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 48.0
+offset_top = -316.0
+offset_right = 516.0
+offset_bottom = -254.0
+title = "Strength"
+
+[node name="DetailGroup" type="Label" parent="PageLayer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 48.0
+offset_top = -234.0
+offset_right = 516.0
+offset_bottom = -218.0
+theme_type_variation = &"LabelBookCaps"
+text = "PHYSICAL"
+horizontal_alignment = 1
 
 [node name="RightPage" type="VBoxContainer" parent="PageLayer"]
 layout_mode = 0
-offset_left = 44.0
-offset_top = -314.0
-offset_right = 520.0
-offset_bottom = 342.0
+offset_left = 48.0
+offset_top = -206.0
+offset_right = 516.0
+offset_bottom = 101.0
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 0
 
-[node name="DetailPlaque" type="Label" parent="PageLayer/RightPage"]
+[node name="DetailPanel" type="PanelContainer" parent="PageLayer/RightPage"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PanelPressed"
+
+[node name="Header" type="HBoxContainer" parent="PageLayer/RightPage/DetailPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="IconWell" type="TextureRect" parent="PageLayer/RightPage/DetailPanel/Header"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("5_slot")
+
+[node name="DetailIcon" type="TextureRect" parent="PageLayer/RightPage/DetailPanel/Header/IconWell"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(248, 52)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_type_variation = &"LabelBookPlaque"
-text = "Strength"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="DetailCard" type="PanelContainer" parent="PageLayer/RightPage"]
-layout_mode = 2
-size_flags_vertical = 3
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 68.0
+offset_bottom = 68.0
 mouse_filter = 2
-theme_type_variation = &"PanelBookCard"
-
-[node name="DetailVBox" type="VBoxContainer" parent="PageLayer/RightPage/DetailCard"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="HeaderRow" type="HBoxContainer" parent="PageLayer/RightPage/DetailCard/DetailVBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 14
-
-[node name="IconSlot" type="PanelContainer" parent="PageLayer/RightPage/DetailCard/DetailVBox/HeaderRow"]
-custom_minimum_size = Vector2(80, 80)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_type_variation = &"PanelBookSlot"
-
-[node name="DetailIcon" type="TextureRect" parent="PageLayer/RightPage/DetailCard/DetailVBox/HeaderRow/IconSlot"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("4_str")
 expand_mode = 1
-stretch_mode = 5
 
-[node name="NameBox" type="VBoxContainer" parent="PageLayer/RightPage/DetailCard/DetailVBox/HeaderRow"]
+[node name="DetailValue" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/IconWell"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"LabelBookTag"
+text = "10"
+horizontal_alignment = 2
+
+[node name="Info" type="Control" parent="PageLayer/RightPage/DetailPanel/Header"]
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 0
-alignment = 1
 
-[node name="DetailName" type="Label" parent="PageLayer/RightPage/DetailCard/DetailVBox/HeaderRow/NameBox"]
+[node name="DetailLevel" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelBookTitle"
-text = "Strength"
+layout_mode = 0
+offset_top = -2.0
+offset_right = 348.0
+offset_bottom = 43.0
+theme_type_variation = &"LabelBookItemName"
+text = "Lv 1 / 10"
 
-[node name="DetailGroup" type="Label" parent="PageLayer/RightPage/DetailCard/DetailVBox/HeaderRow/NameBox"]
+[node name="DetailXpBar" parent="PageLayer/RightPage/DetailPanel/Header/Info" instance=ExtResource("6_rod")]
 unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelBookMuted"
-text = "Physical attribute"
+layout_mode = 0
+offset_top = 51.0
+offset_right = 200.0
+offset_bottom = 61.0
+empty_texture = ExtResource("7_xp_empty")
+full_texture = ExtResource("8_xp_full")
+steps = 98
 
-[node name="DetailValue" type="Label" parent="PageLayer/RightPage/DetailCard/DetailVBox/HeaderRow"]
+[node name="DetailXpLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBookValueLarge"
-text = "10"
-horizontal_alignment = 2
+layout_mode = 0
+offset_left = 212.0
+offset_top = 48.0
+offset_right = 348.0
+offset_bottom = 65.0
+theme_type_variation = &"LabelBookDetail"
+text = "0 / 100 XP"
+
+[node name="DetailCapSeal" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(66, 26)
+layout_mode = 0
+offset_left = 67.0
+offset_top = 43.0
+offset_right = 133.0
+offset_bottom = 69.0
+theme_type_variation = &"LabelBookSeal"
+text = "CAPPED"
+horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="DetailSep" type="HSeparator" parent="PageLayer/RightPage/DetailCard/DetailVBox"]
+[node name="DescriptionBox" type="MarginContainer" parent="PageLayer/RightPage"]
 layout_mode = 2
-theme_type_variation = &"HSeparatorItemDesc"
+mouse_filter = 2
+theme_override_constants/margin_top = 16
 
-[node name="DetailDescription" type="Label" parent="PageLayer/RightPage/DetailCard/DetailVBox"]
+[node name="DetailDescription" type="Label" parent="PageLayer/RightPage/DescriptionBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(468, 0)
 layout_mode = 2
-theme_type_variation = &"LabelBookBody"
-text = "Raw physical power. Scales melee damage and physical ability effects."
+theme_type_variation = &"LabelBookInk"
+text = "Raw physical power. Your physical techniques hit harder."
 autowrap_mode = 3
-max_lines_visible = 3
 
-[node name="EffectsSep" type="HSeparator" parent="PageLayer/RightPage/DetailCard/DetailVBox"]
+[node name="EffectsBox" type="MarginContainer" parent="PageLayer/RightPage"]
 layout_mode = 2
-theme_type_variation = &"HSeparatorItemDesc"
+mouse_filter = 2
+theme_override_constants/margin_top = 21
 
-[node name="EffectsCaption" type="Label" parent="PageLayer/RightPage/DetailCard/DetailVBox"]
+[node name="EffectsColumn" type="VBoxContainer" parent="PageLayer/RightPage/EffectsBox"]
 layout_mode = 2
-theme_type_variation = &"LabelBookMuted"
-text = "Effects"
+mouse_filter = 2
+theme_override_constants/separation = 4
 
-[node name="EffectsLabel" type="Label" parent="PageLayer/RightPage/DetailCard/DetailVBox"]
+[node name="EffectsHeader" type="HBoxContainer" parent="PageLayer/RightPage/EffectsBox/EffectsColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="WhatItDoesCaption" type="Label" parent="PageLayer/RightPage/EffectsBox/EffectsColumn/EffectsHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBookCaps"
+text = "WHAT IT DOES"
+
+[node name="NextLevelCaption" type="Label" parent="PageLayer/RightPage/EffectsBox/EffectsColumn/EffectsHeader"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelBookBody"
+theme_type_variation = &"LabelBookCaps"
+text = "NOW → LV 2"
+horizontal_alignment = 2
+
+[node name="EffectRows" type="VBoxContainer" parent="PageLayer/RightPage/EffectsBox/EffectsColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="NoEffectsLabel" type="Label" parent="PageLayer/RightPage/EffectsBox/EffectsColumn"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(468, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInk"
 text = "Not yet active"
 autowrap_mode = 3
+
+[node name="SourcesBox" type="MarginContainer" parent="PageLayer/RightPage"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 21
+
+[node name="SourcesColumn" type="VBoxContainer" parent="PageLayer/RightPage/SourcesBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="WhereItComesFromCaption" type="Label" parent="PageLayer/RightPage/SourcesBox/SourcesColumn"]
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+text = "WHERE IT COMES FROM"
+
+[node name="SourceRows" type="VBoxContainer" parent="PageLayer/RightPage/SourcesBox/SourcesColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3

@@ -1,42 +1,114 @@
 [gd_scene format=3 uid="uid://m26avynuswy"]
 
 [ext_resource type="Script" uid="uid://rp23jtqjpgx" path="res://scenes/character/attribute_tile/attribute_tile.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="3_icon"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_slot"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="3_rod"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_tile_empty_ai.png" id="4_xp_empty"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_tile_full_ai.png" id="5_xp_full"]
 
 [node name="AttributeTile" type="PanelContainer"]
-custom_minimum_size = Vector2(110, 150)
+custom_minimum_size = Vector2(140, 156)
 mouse_filter = 0
-theme_type_variation = &"PanelBookTile"
+theme_type_variation = &"PanelBookBare"
 script = ExtResource("1_script")
 
-[node name="TileVBox" type="VBoxContainer" parent="."]
+[node name="Face" type="Control" parent="."]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 0
-alignment = 1
 
-[node name="Icon" type="TextureRect" parent="TileVBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
-layout_mode = 2
-size_flags_horizontal = 4
+[node name="Slot" type="TextureRect" parent="Face"]
+layout_mode = 0
+offset_left = 34.0
+offset_right = 106.0
+offset_bottom = 72.0
 mouse_filter = 2
-texture = ExtResource("3_icon")
+texture = ExtResource("2_slot")
+
+[node name="Icon" type="TextureRect" parent="Face/Slot"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 68.0
+offset_bottom = 68.0
+mouse_filter = 2
 expand_mode = 1
-stretch_mode = 5
 
-[node name="ValueLabel" type="Label" parent="TileVBox"]
+[node name="ValueLabel" type="Label" parent="Face/Slot"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelBookValueLarge"
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"LabelBookTag"
 text = "10"
+horizontal_alignment = 2
+
+[node name="NameLabel" type="Label" parent="Face"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 79.0
+offset_right = 140.0
+offset_bottom = 100.0
+theme_type_variation = &"LabelBookInkDark"
+text = "Strength"
+horizontal_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="Face"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 96.0
+offset_right = 140.0
+offset_bottom = 135.0
+theme_type_variation = &"LabelBookQuestName"
+text = "Lv 1"
+horizontal_alignment = 1
+
+[node name="XpBar" parent="Face" instance=ExtResource("3_rod")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 10.0
+offset_top = 138.0
+offset_right = 130.0
+offset_bottom = 148.0
+empty_texture = ExtResource("4_xp_empty")
+full_texture = ExtResource("5_xp_full")
+steps = 58
+
+[node name="CapSeal" type="Label" parent="Face"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(66, 26)
+layout_mode = 0
+offset_left = 37.0
+offset_top = 130.0
+offset_right = 103.0
+offset_bottom = 156.0
+theme_type_variation = &"LabelBookSeal"
+text = "CAPPED"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="NameLabel" type="Label" parent="TileVBox"]
+[node name="Marks" type="Panel" parent="Face"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelBookMuted"
-text = "ATTRIBUTE"
-horizontal_alignment = 1
-vertical_alignment = 1
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -6.0
+offset_top = -6.0
+offset_right = 6.0
+offset_bottom = 6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"PanelPrinterMarks"

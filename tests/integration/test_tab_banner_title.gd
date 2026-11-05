@@ -13,6 +13,6 @@ func _banner_title(scene_path: String, banner_path: String) -> String:
 	var title: Label = banner.get_node("Title")
 	return title.text
 
-func test_character_banner_title_at_runtime() -> void:
-	var text := _banner_title("res://scenes/character/character_view.tscn", "BookLayer/BookContent/TitleBanner")
-	assert_eq(text, "Character", "the Character book's banner shows its own title at runtime")
+func test_abilities_banner_title_at_runtime() -> void:
+	var text := _banner_title("res://scenes/abilities/abilities_view.tscn", "BookLayer/BookContent/TitleBanner")
+	assert_eq(text, "Abilities", "the Abilities book's banner shows its own title at runtime")

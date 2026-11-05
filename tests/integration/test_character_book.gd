@@ -1,29 +1,53 @@
 extends GutTest
 
-## Integration tests for the Character book: the attribute tiles on the left
-## page, the one pointed at described on the right page with effects worked
-## out from the unlocked abilities, and the pages waiting for the book to open.
-## AbilityManager runs on a test save, swapped in and restored around each test.
+## Integration tests for the Character book: what it shows and what it follows
+## while it is open. The left page holds the six stats as tiles on their sides,
+## each with its level, its XP toward the next level, its total and, at the
+## cap, a full bar under a CAPPED seal; under them, "In a fight" lists the
+## totals a fight reads. The right page describes the stat pointed at: its
+## level against the cap, what it does now and at the next level (worked out
+## from the stat block's own functions and the techniques the player knows),
+## and where its total comes from. While shown, the book follows the stats,
+## their levels and XP, and the gear. Its pages wait for the book to open.
+## Every test runs on a fresh save, swapped in and restored around it.
 
 const CharacterViewScene := preload("res://scenes/character/character_view.tscn")
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
 const ANIMATION_TIMEOUT: float = 2.0
+const Attribute := CharacterAttributesData.AttributeType
+const Stat := StatModifierData.Stat
+## The modifier source a test sets; after_each() removes it.
+const TEST_SOURCE: StringName = &"test_character_book"
+const BASIC_STRIKE: String = "res://resources/abilities/basic_strike.tres"
+const EMPTY_PALM: String = "res://resources/abilities/empty_palm.tres"
 
 var _view: CharacterView
-var _save_data: SaveGameData
 var _previous_save: SaveGameData
 
+#-----------------------------------------------------------------------------
+# SETUP
+#-----------------------------------------------------------------------------
+
 func before_each() -> void:
-	_previous_save = AbilityManager._live_save_data
-	_save_data = SaveGameData.new()
-	_save_data.unlocked_ability_ids = ["basic_strike", "empty_palm"]
-	AbilityManager._live_save_data = _save_data
+	_previous_save = PersistenceManager.save_game_data
+	PersistenceManager.save_game_data = SaveGameData.new_current()
+	PersistenceManager.save_data_reset.emit()
+	PersistenceManager.save_game_data.unlocked_ability_ids = ["basic_strike", "empty_palm"]
 	# Other suites replace the catalog index with fakes; start from the real one.
 	AbilityManager._build_catalog_index()
 	_view = CharacterViewScene.instantiate() as CharacterView
 	add_child_autofree(_view)
 
 func after_each() -> void:
-	AbilityManager._live_save_data = _previous_save
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	while ActionManager.get_current_action() != null:
+		ActionManager.stop_action()
+	PersistenceManager.save_game_data = _previous_save
+	PersistenceManager.save_data_reset.emit()
+
+#-----------------------------------------------------------------------------
+# HELPERS
+#-----------------------------------------------------------------------------
 
 func _tile(tile_name: String) -> AttributeTile:
 	return _view.find_child(tile_name, true, false) as AttributeTile
@@ -31,71 +55,205 @@ func _tile(tile_name: String) -> AttributeTile:
 func _label(label_name: String) -> Label:
 	return _view.find_child(label_name, true, false) as Label
 
-## The effect line for an ability's damage scaling with the attribute.
-func _scaling_line(ability_path: String, attribute: CharacterAttributesData.AttributeType) -> String:
-	var ability: AbilityData = load(ability_path) as AbilityData
-	var scaling: float = ability.effects_on_target[0].get_scaling(attribute)
-	return "%s: +%s damage per point" % [ability.ability_name, AbilityRow.format_number(scaling)]
+func _page_title(title_name: String) -> PageTitle:
+	return _view.find_child(title_name, true, false) as PageTitle
+
+## A main-hand sword giving +10% Strength, at least +2.
+func _sword() -> ItemInstanceData:
+	var sword: EquipmentDefinitionData = GearFixture.item({&"strength": 0.1}, 2)
+	sword.item_id = "test_character_book_sword"
+	sword.slot_type = EquipmentDefinitionData.EquipmentSlot.MAIN_HAND
+	var instance := ItemInstanceData.new()
+	instance.item_definition = sword
+	return instance
 
 #-----------------------------------------------------------------------------
-# LEFT PAGE
+# THE TILES
 #-----------------------------------------------------------------------------
 
-func test_values_come_from_character_manager() -> void:
+func test_the_tiles_are_the_six_stats_on_their_sides() -> void:
+	var sides: Dictionary[String, Array] = {
+		"PhysicalTiles": StatDisplay.PHYSICAL,
+		"SpiritualTiles": StatDisplay.SPIRITUAL,
+	}
+	for grid_name: String in sides:
+		var stats: Array[CharacterAttributesData.AttributeType] = []
+		for tile: AttributeTile in _view.find_child(grid_name, true, false).get_children():
+			stats.append(tile.attribute_type)
+		assert_eq(stats, sides[grid_name], "%s holds its side's stats, in StatDisplay's order" % grid_name)
+
+func test_a_tile_shows_its_level_xp_and_total() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 4, 30.0)
 	_view.refresh()
-	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	var value_label: Label = _tile("MindTile").find_child("ValueLabel", true, false) as Label
-	assert_eq(value_label.text, "%.0f" % attrs.get_attribute(CharacterAttributesData.AttributeType.MIND))
+	var tile: AttributeTile = _tile("SpiritTile")
+	var bar := tile.get_node("%XpBar") as LacquerRod
+	assert_eq((tile.get_node("%LevelLabel") as Label).text, "Lv 4", "the tile shows Spirit's level")
+	assert_eq((tile.get_node("%ValueLabel") as Label).text, "%.0f" % CharacterManager.get_stat(Stat.SPIRIT),
+		"the tag shows Spirit's total")
+	assert_eq(bar.get_step(), roundi(30.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
+		"the bar holds Spirit's XP toward its next level")
+	assert_false((tile.get_node("%CapSeal") as Label).visible, "a stat under the cap shows no seal")
+
+func test_a_capped_tile_shows_the_cap() -> void:
+	CharacterManager.set_stat_level(Attribute.STRENGTH, CharacterManager.get_stat_level_cap())
+	_view.refresh()
+	var strength_tile: AttributeTile = _tile("StrengthTile")
+	var bar := strength_tile.get_node("%XpBar") as LacquerRod
+	assert_true((strength_tile.get_node("%CapSeal") as Label).visible, "Strength at the cap shows the seal")
+	assert_eq(bar.get_step(), bar.steps, "the bar of a capped stat is full, though it holds 0 XP")
+	assert_false((_tile("BodyTile").get_node("%CapSeal") as Label).visible, "Body, under the cap, shows no seal")
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 1)
+	_view.refresh()
+	assert_false((strength_tile.get_node("%CapSeal") as Label).visible, "the seal goes once Strength is under the cap again")
+
+func test_the_book_follows_stats_while_open() -> void:
+	_view.show()
+	_view.refresh()
+	var tile: AttributeTile = _tile("SpiritTile")
+	CharacterManager.add_stat_levels(Attribute.SPIRIT, 1)
+	assert_eq((tile.get_node("%LevelLabel") as Label).text, "Lv 2", "a level gained shows on the open book")
+	CharacterManager.add_stat_xp(Attribute.SPIRIT, 10.0)
+	var bar := tile.get_node("%XpBar") as LacquerRod
+	assert_eq(bar.get_step(), roundi(10.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
+		"XP gained moves the open book's bar")
+
+func test_the_book_follows_gear_while_open() -> void:
+	_view.show()
+	_view.select_attribute(Attribute.STRENGTH)
+	_view.refresh()
+	InventoryManager.equip_item(_sword(), EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
+	assert_gt(CharacterManager.get_gear_bonus(Attribute.STRENGTH), 0.0, "precondition: the sword raises Strength")
+	assert_eq(_label("DetailValue").text, "%.0f" % CharacterManager.get_stat(Stat.STRENGTH),
+		"the open page's total counts the sword just put on")
 
 #-----------------------------------------------------------------------------
-# RIGHT PAGE
+# THE DETAIL PAGE
 #-----------------------------------------------------------------------------
 
 func test_opening_shows_strength() -> void:
-	_view.select_attribute(CharacterAttributesData.AttributeType.MIND)
+	_view.select_attribute(Attribute.CONTROL)
 	_view.animate_open()
-	assert_eq(_view.get_selected_attribute(), CharacterAttributesData.AttributeType.STRENGTH)
-	assert_eq(_label("DetailPlaque").text, "Strength")
-	assert_true(_tile("StrengthTile").is_selected())
+	assert_eq(_view.get_selected_attribute(), Attribute.STRENGTH, "the book opens on Strength")
+	assert_eq(_page_title("DetailPlaque").title, "Strength", "the right page is headed Strength")
+	assert_true(_tile("StrengthTile").is_selected(), "Strength's tile wears the printer's marks")
 
-func test_hovering_a_tile_describes_it() -> void:
+func test_pointing_at_a_tile_describes_it() -> void:
 	_view.animate_open()
 	var body_tile: AttributeTile = _tile("BodyTile")
 	body_tile.hovered.emit(body_tile)
-	var details: Dictionary = CharacterView.ATTRIBUTE_DETAILS[CharacterAttributesData.AttributeType.BODY]
-	assert_eq(_label("DetailPlaque").text, "Body")
-	assert_eq(_label("DetailName").text, "Body")
-	assert_eq(_label("DetailDescription").text, details["description"])
-	assert_true(body_tile.is_selected())
-	assert_false(_tile("StrengthTile").is_selected(), "only one tile looks selected")
+	assert_eq(_page_title("DetailPlaque").title, "Body", "the right page is headed with the stat pointed at")
+	assert_eq(_label("DetailGroup").text, StatDisplay.side_name(Attribute.BODY).to_upper(), "the page names Body's side")
+	assert_eq(_label("DetailDescription").text, CharacterView.STAT_DESCRIPTIONS[Attribute.BODY], "the page describes Body")
+	for tile_name: String in ["StrengthTile", "BodyTile", "AgilityTile", "SpiritTile", "MindTile", "ControlTile"]:
+		assert_eq(_tile(tile_name).is_selected(), tile_name == "BodyTile", "only BodyTile is selected: %s" % tile_name)
 
-func test_every_attribute_has_details() -> void:
-	for attr_type: int in CharacterAttributesData.AttributeType.values():
-		assert_has(CharacterView.ATTRIBUTE_DETAILS, attr_type)
+func test_every_stat_has_a_description() -> void:
+	for stat: int in Attribute.values():
+		assert_ne(CharacterView.STAT_DESCRIPTIONS.get(stat, ""), "", "%s has a description" % CharacterAttributesData.stat_key(stat))
+
+func test_each_stat_names_what_it_does() -> void:
+	var abilities: Array[AbilityData] = [load(BASIC_STRIKE) as AbilityData, load(EMPTY_PALM) as AbilityData]
+	var cases: Array[Dictionary] = [
+		{"stat": Attribute.STRENGTH, "labels": ["Basic Strike damage"]},
+		{"stat": Attribute.BODY, "labels": ["Max Health"]},
+		{"stat": Attribute.AGILITY, "labels": ["Max Stamina", "Stamina regen", "Dodge chance"]},
+		{"stat": Attribute.SPIRIT, "labels": ["Empty Palm damage"]},
+		{"stat": Attribute.MIND, "labels": ["Max Madra"]},
+		{"stat": Attribute.CONTROL, "labels": ["Technique cost cut", "Cooldown cut"]},
+	]
+	for case: Dictionary in cases:
+		var labels: Array[String] = []
+		var lines: Array[Dictionary] = CharacterView.effect_lines(case.stat, CharacterAttributesData.make(), CharacterAttributesData.make(), abilities)
+		for line: Dictionary in lines:
+			labels.append(line.label)
+		assert_eq(labels, case.labels, "%s names what it does" % StatDisplay.name_of(case.stat))
+
+func test_now_and_next_come_from_the_blocks_functions() -> void:
+	var now := CharacterAttributesData.make()
+	var next := CharacterAttributesData.make({&"body": 11.0, &"spirit": 11.0})
+	var empty_palm := load(EMPTY_PALM) as AbilityData
+	var abilities: Array[AbilityData] = [empty_palm]
+	var health: Dictionary = CharacterView.effect_lines(Attribute.BODY, now, next, abilities)[0]
+	assert_eq(health.now, AbilityRow.format_number(now.get_max_health()), "Max Health now is the now block's get_max_health()")
+	assert_eq(health.next, AbilityRow.format_number(next.get_max_health()), "Max Health next is the next block's get_max_health()")
+	var palm_effect: CombatEffectData = empty_palm.effects_on_target[0]
+	var palm: Dictionary = CharacterView.effect_lines(Attribute.SPIRIT, now, next, abilities)[0]
+	assert_eq(palm.now, AbilityRow.format_number(palm_effect.calculate_value(now)), "Empty Palm's damage now is calculate_value() on the now block")
+	assert_eq(palm.next, AbilityRow.format_number(palm_effect.calculate_value(next)), "Empty Palm's damage next is calculate_value() on the next block")
+
+func test_the_page_shows_a_row_per_effect() -> void:
+	_view.select_attribute(Attribute.SPIRIT)
+	var block: CharacterAttributesData = CharacterManager.get_total_attributes_data()
+	var known: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, block, block, AbilityManager.get_unlocked_abilities())
+	var every: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, block, block, AbilityManager.get_all_abilities())
+	assert_lt(known.size(), every.size(), "precondition: the locked Power Font stays off the page")
+	assert_eq(_view.get_node("%EffectRows").get_child_count(), known.size(), "a row per line Spirit's known techniques give")
+
+func test_a_stat_with_no_known_technique_says_so() -> void:
+	PersistenceManager.save_game_data.unlocked_ability_ids = ["enforce"]
+	_view.select_attribute(Attribute.SPIRIT)
+	assert_true(_label("NoEffectsLabel").visible, "Spirit with no Spirit technique known says so")
+	assert_eq(_view.get_node("%EffectRows").get_child_count(), 0, "and lists no row")
+	_view.select_attribute(Attribute.BODY)
+	assert_false(_label("NoEffectsLabel").visible, "Body always has its Max Health line")
+
+func test_a_capped_stats_page_has_no_next_level() -> void:
+	CharacterManager.set_stat_level(Attribute.BODY, CharacterManager.get_stat_level_cap())
+	_view.select_attribute(Attribute.BODY)
+	_view.refresh()
+	var bar := _view.find_child("DetailXpBar", true, false) as LacquerRod
+	assert_true(_label("DetailCapSeal").visible, "Body at the cap shows the seal")
+	assert_eq(bar.get_step(), bar.steps, "the page's bar of a capped stat is full")
+	assert_false(_label("DetailXpLabel").visible, "a capped stat shows no XP figure")
+	assert_false(_label("NextLevelCaption").visible, "a capped stat names no next level")
+	var first_row := _view.get_node("%EffectRows").get_child(0) as TableRow
+	assert_eq((first_row.get_node("%Value") as RichTextLabel).get_parsed_text(),
+		AbilityRow.format_number(CharacterManager.get_total_attributes_data().get_max_health()),
+		"Max Health shows its figure now alone, with no next figure")
+	CharacterManager.set_stat_level(Attribute.BODY, 1)
+	_view.refresh()
+	assert_true(_label("NextLevelCaption").visible, "under the cap, the page names the next level")
+	assert_true(_label("DetailXpLabel").visible, "under the cap, the page shows the XP figure")
+	assert_string_contains(_label("NextLevelCaption").text, "2")
+	assert_false(_label("DetailCapSeal").visible, "the seal goes under the cap")
+
+func test_the_page_shows_trained_plus_gear() -> void:
+	InventoryManager.equip_item(_sword(), EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
+	assert_gt(CharacterManager.get_gear_bonus(Attribute.STRENGTH), 0.0, "precondition: the sword raises Strength")
+	var lines: Array[Dictionary] = CharacterView.source_lines(Attribute.STRENGTH)
+	assert_eq(lines.size(), 2, "Strength's total comes from its training and its gear")
+	if lines.size() == 2:
+		assert_eq(lines[0].value, AbilityRow.format_number(CharacterManager.get_trained_value(Attribute.STRENGTH)),
+			"the first line is the trained value")
+		assert_eq(lines[1].value, "+%s" % AbilityRow.format_number(CharacterManager.get_gear_bonus(Attribute.STRENGTH)),
+			"the second line is the gear's bonus")
 
 #-----------------------------------------------------------------------------
-# EFFECTS
+# IN A FIGHT
 #-----------------------------------------------------------------------------
 
-## A technique scales from its side's main stat only.
-func test_effects_list_unlocked_abilities_that_scale_with_it() -> void:
-	_view.select_attribute(CharacterAttributesData.AttributeType.STRENGTH)
-	assert_string_contains(_label("EffectsLabel").text,
-		_scaling_line("res://resources/abilities/basic_strike.tres", CharacterAttributesData.AttributeType.STRENGTH))
-	_view.select_attribute(CharacterAttributesData.AttributeType.SPIRIT)
-	assert_string_contains(_label("EffectsLabel").text,
-		_scaling_line("res://resources/abilities/empty_palm.tres", CharacterAttributesData.AttributeType.SPIRIT))
-	_view.select_attribute(CharacterAttributesData.AttributeType.AGILITY)
-	assert_false(_label("EffectsLabel").text.contains("Basic Strike"), "Agility scales no technique")
+func test_in_a_fight_lists_every_total() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [
+			StatModifierData.new(Stat.ARMOR, StatModifierData.Kind.FLAT, 6.0),
+			StatModifierData.new(Stat.WARD, StatModifierData.Kind.FLAT, 4.0),
+		]
+		return modifiers)
+	var lines: Array[Dictionary] = CharacterView.fight_lines()
+	var labels: Array[String] = []
+	var values: Dictionary[String, String] = {}
+	for line: Dictionary in lines:
+		labels.append(line.label)
+		values[line.label] = line.value
+	assert_eq(labels, ["Health", "Madra", "Stamina", "Dodge chance", "Technique cost cut", "Cooldown cut", "Armor", "Ward"],
+		"In a fight lists every total a fight reads, in order")
+	assert_eq(values.get("Health"), AbilityRow.format_number(CharacterManager.get_stat(Stat.MAX_HEALTH)), "Health is the Max Health total")
+	assert_eq(values.get("Armor"), "6", "Armor is the armor total")
+	assert_eq(values.get("Ward"), "4", "Ward is the Ward total")
 
-func test_locked_abilities_stay_off_the_page() -> void:
-	# Power Font scales with Spirit, but this save hasn't unlocked it.
-	_view.select_attribute(CharacterAttributesData.AttributeType.SPIRIT)
-	assert_false(_label("EffectsLabel").text.contains("Power Font"))
-
-func test_an_attribute_with_no_effects_says_so() -> void:
-	_view.select_attribute(CharacterAttributesData.AttributeType.CONTROL)
-	assert_eq(_label("EffectsLabel").text, CharacterView.NO_EFFECTS_TEXT)
+func test_the_fight_block_shows_a_row_per_total() -> void:
+	_view.refresh()
+	assert_eq(_view.get_node("%FightRows").get_child_count(), CharacterView.fight_lines().size(), "a row per fight total")
 
 #-----------------------------------------------------------------------------
 # OPENING
