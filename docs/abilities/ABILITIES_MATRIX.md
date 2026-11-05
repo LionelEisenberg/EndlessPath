@@ -7,9 +7,10 @@ Every `AbilityData` resource in the project, player and enemy, with values read 
 - **Source / Madra**: `AbilitySource` (`INNATE` = unlocked on a new save, `PATH` = unlocked by a path node) and `MadraType` (`NONE`, `PURE`). Both are display-only. Enemy abilities leave them at the defaults `INNATE` / `NONE`.
 - **Cost**: `H` Health, `M` Madra, `S` Stamina. Paid when the cast starts; not refunded if interrupted.
 - **CD / Cast**: `base_cooldown` / `cast_time` in seconds. The cooldown starts when the cast resolves. A 0 s cooldown also means no 1.5 s opening cooldown and no cooldown after an interrupt.
-- **Damage type** (defense used): `PHYSICAL` (target RESILIENCE), `SPIRIT` (target SPIRIT), `MIXED` (average of RESILIENCE and WILLPOWER), `TRUE` (none).
-- **Scaling**: `value = base + Σ(caster attribute × coefficient)`; then `× 100 / (100 + defense)` for damage. `—` = 0.
-- **Default math** assumes caster and target attributes of 10 (new save, no gear). Health 100, Stamina 50, Madra up to 100 per adventure.
+- **Control's cuts**: Cost and CD are the data's, before the player's Control cuts to the Madra cost and the cooldown ([CHARACTER.md](../infrastructure/CHARACTER.md#derived-stats)). A Lv 1 player has none, and an enemy's are never cut.
+- **Damage type**: `PHYSICAL` is cut by the target's armor, `SPIRIT` by its Ward, `MIXED` by the average of the two, and `TRUE` by nothing.
+- **Scaling**: `value = base + caster Strength × its coefficient + caster Spirit × its coefficient`; Strength and Spirit are the only two stats that scale anything. Then `× 100 / (100 + defense)` for damage ([COMBAT.md](../combat/COMBAT.md#damage-formula)). `—` = 0.
+- **Default math**: a Lv 1 player (new save, no gear) has every stat at 10 and no armor or Ward: Health 100, Stamina 50, Madra up to 100 per adventure. Every enemy has armor 10 and Ward 10, but the Coalescing Spirit has Ward 25 (each enemy's stats are in [COMBAT.md](../combat/COMBAT.md#enemies)).
 - **Type / Tags**: what the Abilities book's details card would show. The type is its icon (`AbilitiesView._get_kind()`). The tags are the target shape plus any side effects (`AbilitiesView._describe_tags()`). Enemy abilities never appear in the book; their entries show what it would print.
 - Unset fields in a `.tres` take the class default (effect type `DAMAGE`, damage type `PHYSICAL`, base 0, buff duration 5.0, `consume_on_use` false) and are listed here at that value.
 
@@ -38,16 +39,18 @@ Every `AbilityData` resource in the project, player and enemy, with values read 
 
 ## Damage at Default Attributes
 
-| Ability | Raw value | vs target defense 10 | Other cases |
-|---------|-----------|----------------------|-------------|
-| `basic_strike` | 10 + 10×1.0 + 10×0.5 = 25 | 22.7 | With Enforce: 34.1 |
-| `empty_palm` | 15 + 10×0.3 + 10×1.0 = 28 | 25.5 | vs Coalescing Spirit (SPIRIT 25): 22.4; with Enforce: 38.2 |
-| `power_font` | 30 + 10×1.5 + 10×0.5 = 50 | 45.5 | vs Coalescing Spirit: 40.0; with Enforce: 68.2 |
-| `madra_lash` (Amorphous Spirit, SPIRIT 10) | 10 | 9.1 | Coalescing Spirit (SPIRIT 25): raw 25 → 22.7 |
-| `famishing_bite` (Starving Dreadbeast, STR 10) | 10 | 9.1, then ×1.5 per Hunger stack | Ravenous Dreadbeast (STR 15): raw 15 → 13.6; 5th consecutive bite ×5.06 |
-| `coalesce` (Coalescing Spirit, SPIRIT 25) | heal 25×3.0 = 75 | — | Only cast when missing ≥ 75 Health |
+Player abilities hit an enemy with armor 10 and Ward 10; the Coalescing Spirit's Ward 25 is under Other cases. Enemy abilities hit a Lv 1 player, who has no armor or Ward, so they land at their raw value.
 
-Resource pacing for the player: Basic Strike can repeat every 2.5 s for 3 Stamina (Stamina regenerates 1/s in adventures). Empty Palm every 3 s for 8 Madra, Enforce every 16 s for 10 Madra, Power Font every 28 s for 30 Madra. Madra does not regenerate during an adventure, so a 100 Madra budget covers twelve Empty Palms or three Power Fonts across all fights in a run.
+| Ability | Raw value | vs the target's defense | Other cases |
+|---------|-----------|-------------------------|-------------|
+| `basic_strike` | 10 + 10×1.5 = 25 | 22.7 | With Enforce: 34.1 |
+| `empty_palm` | 15 + 10×1.3 = 28 | 25.5 | vs Coalescing Spirit (Ward 25): 22.4; with Enforce: 38.2 |
+| `power_font` | 30 + 10×2.0 = 50 | 45.5 | vs Coalescing Spirit (Ward 25): 40.0; with Enforce: 68.2 |
+| `madra_lash` (Amorphous Spirit, Spirit 10) | 10×0.91 = 9.1 | 9.1 | Coalescing Spirit (Spirit 25): 25×0.91 = 22.75 |
+| `famishing_bite` (Starving Dreadbeast, Strength 10) | 10×0.91 = 9.1 | 9.1, then ×1.5 per Hunger stack | Ravenous Dreadbeast (Strength 15): 15×0.91 = 13.65; 5th consecutive bite ×5.06 |
+| `coalesce` (Coalescing Spirit, Spirit 25) | heal 25×3.0 = 75 | — | Only cast when missing ≥ 75 Health |
+
+Resource pacing for a Lv 1 player: Basic Strike can repeat every 2.5 s for 3 Stamina (in adventures Stamina regenerates from Agility, 1/s at Lv 1; see [CHARACTER.md](../infrastructure/CHARACTER.md#derived-stats)). Empty Palm every 3 s for 8 Madra, Enforce every 16 s for 10 Madra, Power Font every 28 s for 30 Madra. Madra does not regenerate during an adventure, so a 100 Madra budget covers twelve Empty Palms or three Power Fonts across all fights in a run.
 
 ---
 
@@ -71,9 +74,9 @@ On a new save both are in `unlocked_ability_ids` and `equipped_ability_ids` (slo
 
 **Target effect 1 — DAMAGE, PHYSICAL** (`effect_name` unset)
 
-| Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|------|-----|------|-----|-----|-----|------|-----|-----|
-| 10.0 | 1.0 | — | 0.5 | — | — | — | — | — |
+| Base | Strength | Spirit |
+|------|----------|--------|
+| 10.0 | 1.5 | — |
 
 ### enforce — "Enforce"
 
@@ -139,9 +142,9 @@ Nodes that describe ability changes but have no effects (purchasing them changes
 
 **Target effect 1 — DAMAGE, SPIRIT** (`"Empty Palm Strike"`)
 
-| Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|------|-----|------|-----|-----|-----|------|-----|-----|
-| 15.0 | — | — | 0.3 | 1.0 | — | — | — | — |
+| Base | Strength | Spirit |
+|------|----------|--------|
+| 15.0 | — | 1.3 |
 
 **Target effect 2 — CANCEL_CAST** (`"Disrupting Palm"`): calls `CombatAbilityManager.cancel_current_cast()` on the target. If the target is casting, the cast stops, the target's ability goes on its full cooldown, and `cast_cancelled` hides the enemy's casting indicator. No value or scaling. Against 0 s-cooldown enemy abilities (Madra Lash, Famishing Bite) the enemy simply starts the cast again.
 
@@ -161,9 +164,9 @@ Nodes that describe ability changes but have no effects (purchasing them changes
 
 **Target effect 1 — DAMAGE, SPIRIT** (`"Sundering Font"`)
 
-| Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|------|-----|------|-----|-----|-----|------|-----|-----|
-| 30.0 | — | — | — | 1.5 | 0.5 | — | — | — |
+| Base | Strength | Spirit |
+|------|----------|--------|
+| 30.0 | — | 2.0 |
 
 **Target effect 2 — STRIP_BUFFS** (`"Sunder All Buffs"`): calls `CombatBuffManager.strip_all_buffs()` on the target, removing every active buff regardless of stacks (e.g. a dreadbeast's Hunger). No value or scaling. Damage resolves before the strip, so the strip does not affect this hit.
 
@@ -189,9 +192,9 @@ Referenced by enemy `CombatantData`; not in the player catalog. All are free (no
 
 **Target effect 1 — DAMAGE, SPIRIT** (`effect_name` unset)
 
-| Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|------|-----|------|-----|-----|-----|------|-----|-----|
-| 0.0 | — | — | — | 1.0 | — | — | — | — |
+| Base | Strength | Spirit |
+|------|----------|--------|
+| 0.0 | — | 0.91 |
 
 ### famishing_bite — "Famishing Bite"
 
@@ -209,9 +212,9 @@ Referenced by enemy `CombatantData`; not in the player catalog. All are free (no
 
 **Target effect 1 — DAMAGE, PHYSICAL** (`effect_name` unset)
 
-| Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|------|-----|------|-----|-----|-----|------|-----|-----|
-| 0.0 | 1.0 | — | — | — | — | — | — | — |
+| Base | Strength | Spirit |
+|------|----------|--------|
+| 0.0 | 0.91 | — |
 
 **Self effect 1 — BUFF "Hunger"**
 
@@ -243,11 +246,11 @@ Order matters: the bite's damage uses the Hunger stacks present before the cast,
 
 **Self effect 1 — HEAL** (`"Heal"`)
 
-| Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|------|-----|------|-----|-----|-----|------|-----|-----|
-| 0.0 | — | — | — | 3.0 | — | — | — | — |
+| Base | Strength | Spirit |
+|------|----------|--------|
+| 0.0 | — | 3.0 |
 
-The AI casts it only when the spirit is missing at least the full heal amount (75 Health at SPIRIT 25). Its 5 s cast is the longest interrupt window in the game, and because Coalesce has a non-zero cooldown, an Empty Palm interrupt puts it on its full 30 s cooldown.
+The AI casts it only when the spirit is missing at least the full heal amount (75 Health at Spirit 25). Its 5 s cast is the longest interrupt window in the game, and because Coalesce has a non-zero cooldown, an Empty Palm interrupt puts it on its full 30 s cooldown.
 
 ---
 
@@ -255,20 +258,20 @@ The AI casts it only when the spirit is missing at least the full heal amount (7
 
 One row per effect. `T` = `effects_on_target`, `S` = `effects_on_self`.
 
-| Ability | Effect | Kind | Base | Damage type | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
-|---------|--------|------|------|-------------|-----|------|-----|-----|-----|------|-----|-----|
-| `basic_strike` | T1 | DAMAGE | 10 | PHYSICAL | 1.0 | — | 0.5 | — | — | — | — | — |
-| `enforce` | S1 | BUFF `enforce_buff_effect` (outgoing ×1.5, 5 s, consumed) | — | — | — | — | — | — | — | — | — | — |
-| `empty_palm` | T1 | DAMAGE | 15 | SPIRIT | — | — | 0.3 | 1.0 | — | — | — | — |
-| `empty_palm` | T2 | CANCEL_CAST | — | — | — | — | — | — | — | — | — | — |
-| `power_font` | T1 | DAMAGE | 30 | SPIRIT | — | — | — | 1.5 | 0.5 | — | — | — |
-| `power_font` | T2 | STRIP_BUFFS | — | — | — | — | — | — | — | — | — | — |
-| `madra_lash` | T1 | DAMAGE | 0 | SPIRIT | — | — | — | 1.0 | — | — | — | — |
-| `famishing_bite` | T1 | DAMAGE | 0 | PHYSICAL | 1.0 | — | — | — | — | — | — | — |
-| `famishing_bite` | S1 | BUFF `hunger` (outgoing ×1.5 per stack, 10 s, stacking) | — | — | — | — | — | — | — | — | — | — |
-| `coalesce` | S1 | HEAL | 0 | — | — | — | — | 3.0 | — | — | — | — |
+| Ability | Effect | Kind | Base | Damage type | Strength | Spirit |
+|---------|--------|------|------|-------------|----------|--------|
+| `basic_strike` | T1 | DAMAGE | 10 | PHYSICAL | 1.5 | — |
+| `enforce` | S1 | BUFF `enforce_buff_effect` (outgoing ×1.5, 5 s, consumed) | — | — | — | — |
+| `empty_palm` | T1 | DAMAGE | 15 | SPIRIT | — | 1.3 |
+| `empty_palm` | T2 | CANCEL_CAST | — | — | — | — |
+| `power_font` | T1 | DAMAGE | 30 | SPIRIT | — | 2.0 |
+| `power_font` | T2 | STRIP_BUFFS | — | — | — | — |
+| `madra_lash` | T1 | DAMAGE | 0 | SPIRIT | — | 0.91 |
+| `famishing_bite` | T1 | DAMAGE | 0 | PHYSICAL | 0.91 | — |
+| `famishing_bite` | S1 | BUFF `hunger` (outgoing ×1.5 per stack, 10 s, stacking) | — | — | — | — |
+| `coalesce` | S1 | HEAL | 0 | — | — | 3.0 |
 
-No ability scales with BODY, CONTROL, RESILIENCE or WILLPOWER, and none deals `MIXED` or `TRUE` damage.
+No other stat scales anything: `CombatEffectData` has a coefficient for Strength and Spirit only, so Body, Agility, Mind and Control add nothing to a value. No ability deals `MIXED` or `TRUE` damage.
 
 ## Planned Paths
 
@@ -279,4 +282,4 @@ Blackflame and Earth have theme resources only (`resources/path_progression/them
 - When an ability `.tres` changes, update its section, the Summary, the default-math row and the Scaling Reference in the same commit.
 - New player abilities must also go into `resources/abilities/ability_list.tres`; enemy abilities go in `resources/combat/combatant_data/enemy_abilities/` and stay out of the catalog.
 - List effective values: if a field is unset in the `.tres`, write the class default.
-- Sanity-check numbers in a real fight: `CombatEffectData.calculate_value()` and `calculate_damage()` log every term to the `Log` output.
+- Sanity-check numbers in a real fight: `CombatEffectData.calculate_value()` logs only the base and the total to the `Log` output, not each stat's term, and `calculate_damage()` adds the defense it applies and the final damage.
