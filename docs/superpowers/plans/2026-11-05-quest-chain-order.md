@@ -85,4 +85,6 @@
 
 ## Built differently
 
-(Filled in as the build goes.)
+- **The old-save test passed with no new code**, so the chunk adds no load-time sweep. The test landed in Task 1's commit, beside the chain test in the same file.
+- **"Harden Your Core" has its own test**, `test_harden_your_core_started_at_core_density_10_waits_on_npc_4`, instead of a case in the table: it tries to talk to NPC 4 before NPC 3 (refused), then checks the quest NPC 3 starts waits on step 1. Without the try it passed on the old data too, since nothing talked to NPC 4.
+- **The Beat 3b flow test** plays NPCs 1 to 3 before Core Density 10 and drops nothing else. It does not re-check that NPC 4 waits for NPC 3's talk, which the chain test owns.
