@@ -216,6 +216,26 @@ func test_a_name_that_wraps_beside_the_seal_fits_once_it_clears() -> void:
 	assert_signal_emitted(drawer, "height_changed", "which the list hears")
 	_assert_the_list_reads_its_height(drawer)
 
+## The drawer in use grows on the cards' running face, a 9-slice that keeps its
+## brass caps in its corners: the face is the drawer's size plus its 4 px shadow
+## at any height. (A face that stretched a band under the socket would drag the
+## caps along.)
+func test_the_drawer_in_use_grows_on_the_running_face() -> void:
+	var foundation: CyclingTechniqueData = _technique(FOUNDATION_ID)
+	var name_before: String = foundation.technique_name
+	foundation.technique_name = LONG_NAME
+	var drawer: TechniqueDrawer = _drawer_for(foundation)
+	foundation.technique_name = name_before
+	assert_true(drawer.is_in_use(), "precondition: foundation is equipped")
+	assert_gt(drawer.size.y, DRAWER_SIZE.y, "precondition: its long name grew the drawer")
+	var face := _node(drawer, "Face") as NinePatchRect
+	assert_eq(face.texture, ZoneActionButton.RUNNING_FACE_TEXTURE, "the running 9-slice")
+	assert_eq(face.size, drawer.size + Vector2(4, 4), "as tall as the drawer, with its shadow")
+	CyclingManager.equip_technique(SMOOTH_ID)
+	drawer.refresh()
+	assert_eq(face.texture, ZoneActionButton.FACE_TEXTURE, "out of use, the resting face")
+	assert_eq(face.size, drawer.size + Vector2(2, 2))
+
 #-----------------------------------------------------------------------------
 # THE MOUSE
 #-----------------------------------------------------------------------------
