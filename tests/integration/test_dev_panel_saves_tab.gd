@@ -301,7 +301,7 @@ func test_the_session_line_names_your_save_and_what_it_holds() -> void:
 	assert_eq(DevCommands.set_gold(120.0), "", "precondition: 120 gold")
 	PersistenceManager.save_game_data.stats.add_play_time(754.0)
 	var tab: Control = _open_saves_tab()
-	assert_eq(_label(tab, "SessionLabel").text, "Your save · %s\nVersion 1 · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold" % MAIN_SAVE_PATH)
+	assert_eq(_label(tab, "SessionLabel").text, "Your save · %s\nVersion %d · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold" % [MAIN_SAVE_PATH, SaveGameData.CURRENT_VERSION])
 
 ## In real play a beat's event fires, or its condition latches, and the stats keep
 ## the playtime it happened at: the line shows that time.
