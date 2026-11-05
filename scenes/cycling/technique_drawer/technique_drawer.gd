@@ -17,9 +17,12 @@ extends Control
 ## turns to the drawers under the cursor that has just clicked the Wilderness
 ## Cycling card, so its first move could land on a seal the player never saw.
 ##
-## The drawer does not listen to CyclingManager: the list that holds the
-## drawers calls refresh() on every one of them when the equipped technique
-## changes.
+## The detail line's Madra figure is Madra a cycle at the player's Spirit now,
+## gear included.
+##
+## The drawer does not listen to CyclingManager or CharacterManager: the list
+## that holds the drawers calls refresh() on every one of them when the equipped
+## technique changes, and refresh_detail() when the player's stats change.
 
 ## Emitted when the drawer's height changes: its name or its detail line took
 ## more lines or fewer.
@@ -92,9 +95,10 @@ func setup(data: CyclingTechniqueData) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns a technique's detail line: "200 Madra · 15 s cycle · 4 zones", with
-## "no zones" or "1 zone" where the count is 0 or 1.
-static func detail_text(data: CyclingTechniqueData) -> String:
+## Returns a technique's detail line: "80 Madra · 15 s cycle · 4 zones", with
+## "no zones" or "1 zone" where the count is 0 or 1. The figure is Madra a cycle
+## at `madra_multiplier` (Spirit's), rounded to a whole number.
+static func detail_text(data: CyclingTechniqueData, madra_multiplier: float = 1.0) -> String:
 	var zones: String
 	match data.cycling_zones.size():
 		0:
@@ -103,7 +107,7 @@ static func detail_text(data: CyclingTechniqueData) -> String:
 			zones = "1 zone"
 		var count:
 			zones = "%d zones" % count
-	return "%d Madra · %d s cycle · %s" % [roundi(data.base_madra_per_cycle), roundi(data.cycle_duration), zones]
+	return "%d Madra · %d s cycle · %s" % [roundi(data.get_madra_per_cycle(madra_multiplier)), roundi(data.cycle_duration), zones]
 
 ## Re-applies what depends on state: the face and its offset, the IN USE tag and
 ## its colour, and the NEW seal with the text laid out around it. The list
@@ -121,6 +125,15 @@ func refresh() -> void:
 	else:
 		_tag_label.remove_theme_color_override(&"font_color")
 	_refresh_new_seal()
+
+## Re-reads the detail line at the player's Spirit now and lays the text out
+## again, since the line can take more lines or fewer. The list calls it on
+## every drawer when the player's stats change.
+func refresh_detail() -> void:
+	if not is_node_ready() or technique == null:
+		return
+	_detail.text = detail_text(technique, CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier())
+	_layout_text()
 
 ## Returns true when the drawer's technique is the equipped one.
 func is_in_use() -> bool:
@@ -141,7 +154,7 @@ func flash() -> void:
 func _apply_technique() -> void:
 	_icon.texture = technique.icon
 	_title.text = technique.technique_name
-	_detail.text = detail_text(technique)
+	_detail.text = detail_text(technique, CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier())
 	refresh()
 
 ## Shows the NEW seal while the technique is unseen, then lays the text out

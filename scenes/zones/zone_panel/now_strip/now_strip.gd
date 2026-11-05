@@ -16,8 +16,9 @@ extends Control
 ## none is drawn), the equipped technique with "9 / 15 s" (its length, "15 s
 ## cycle", until a cycle runs) and the rod filling. The rate stands flush right,
 ## ending where the figure under it does, in a slot as wide as its widest reading
-## up to the technique's top rate, so as it climbs the name beside it never
-## moves. The cycling card is not in the list while the player cycles, so the
+## up to the technique's top rate at the player's Spirit, so as it climbs the
+## name beside it never moves; a stats change (a Spirit level, Spirit gear)
+## sizes the slot again. The cycling card is not in the list while the player cycles, so the
 ## cycling tray takes no clicks.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
@@ -114,6 +115,7 @@ func _ready() -> void:
 	ActionManager.training_level_gained.connect(_on_training_level_gained)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_hover_frame.show)
 	mouse_exited.connect(_hover_frame.hide)
@@ -228,11 +230,12 @@ func _show_cycling() -> void:
 	_fit_training_labels()
 
 ## The equipped technique's name, where the Aura Well shows its level line, and
-## the rate's slot sized for the technique's top rate.
+## the rate's slot sized for the technique's top rate at the player's Spirit.
 func _update_technique() -> void:
 	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
 	_level_label.text = technique.technique_name if technique != null else ""
-	_fit_rate_slot(technique.get_madra_per_second() if technique != null else 0.0)
+	var multiplier: float = CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier()
+	_fit_rate_slot(technique.get_madra_per_second(multiplier) if technique != null else 0.0)
 
 ## Gives the rate's slot the width of its widest reading up to `top_rate`, so the
 ## name wrapping beside it has the same room at +0 as at the top. The font's
@@ -418,6 +421,14 @@ func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 	if _is_cycling(_action):
 		_update_technique()
 		_update_cycle_figure()
+		_fit_training_labels()
+		_fit()
+
+## Spirit raises the technique's top rate, so the rate's slot is sized again
+## and the rows beside it get their room.
+func _on_stats_changed() -> void:
+	if _is_cycling(_action):
+		_update_technique()
 		_fit_training_labels()
 		_fit()
 
