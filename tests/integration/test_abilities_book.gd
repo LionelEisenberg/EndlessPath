@@ -152,13 +152,11 @@ func test_damage_shows_the_total_and_each_attributes_part() -> void:
 	assert_eq(_label("PrimaryValue").text, AbilityRow.format_number(effect.calculate_value(attrs)))
 	assert_eq(_label("ExplainText").text, "%s base" % AbilityRow.format_number(effect.base_value))
 	var strength_part: ScalingPart = _view.find_child("ScalingPart1", true, false) as ScalingPart
-	var agility_part: ScalingPart = _view.find_child("ScalingPart2", true, false) as ScalingPart
-	assert_true(strength_part.visible and agility_part.visible)
-	assert_false((_view.find_child("ScalingPart3", true, false) as Control).visible, "basic strike scales with two attributes")
+	assert_true(strength_part.visible)
+	assert_false((_view.find_child("ScalingPart2", true, false) as Control).visible, "Basic Strike scales with Strength alone")
 	assert_eq(strength_part.get_icon(), STRENGTH_ICON)
 	assert_eq(strength_part.get_value_text(),
 		"+%s" % AbilityRow.format_number(effect.get_scaling_contribution(CharacterAttributesData.AttributeType.STRENGTH, attrs)))
-	assert_eq(agility_part.get_icon(), AGILITY_ICON)
 
 func test_buffs_say_what_they_do() -> void:
 	# Enforce: the next attack deals 1.5x damage.

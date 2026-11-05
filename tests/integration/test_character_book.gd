@@ -77,11 +77,16 @@ func test_every_attribute_has_details() -> void:
 # EFFECTS
 #-----------------------------------------------------------------------------
 
+## A technique scales from its side's main stat only.
 func test_effects_list_unlocked_abilities_that_scale_with_it() -> void:
+	_view.select_attribute(CharacterAttributesData.AttributeType.STRENGTH)
+	assert_string_contains(_label("EffectsLabel").text,
+		_scaling_line("res://resources/abilities/basic_strike.tres", CharacterAttributesData.AttributeType.STRENGTH))
+	_view.select_attribute(CharacterAttributesData.AttributeType.SPIRIT)
+	assert_string_contains(_label("EffectsLabel").text,
+		_scaling_line("res://resources/abilities/empty_palm.tres", CharacterAttributesData.AttributeType.SPIRIT))
 	_view.select_attribute(CharacterAttributesData.AttributeType.AGILITY)
-	var effects: String = _label("EffectsLabel").text
-	assert_string_contains(effects, _scaling_line("res://resources/abilities/basic_strike.tres", CharacterAttributesData.AttributeType.AGILITY))
-	assert_string_contains(effects, _scaling_line("res://resources/abilities/empty_palm.tres", CharacterAttributesData.AttributeType.AGILITY))
+	assert_false(_label("EffectsLabel").text.contains("Basic Strike"), "Agility scales no technique")
 
 func test_locked_abilities_stay_off_the_page() -> void:
 	# Power Font scales with Spirit, but this save hasn't unlocked it.

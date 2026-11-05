@@ -250,7 +250,7 @@ func _show_primary_stat(ability: AbilityData, kind: AbilityKind) -> void:
 			_primary_value.text = "—"
 
 ## The value with the player's attributes now, then its base and what each
-## attribute adds, for example "10 base" then Strength "+17" and Agility "+7".
+## attribute adds, for example "10 base" then Strength "+15".
 func _show_value_breakdown(ability_id: String, effect: CombatEffectData) -> void:
 	_primary_value.text = AbilityRow.format_number(_get_value_preview(ability_id, effect))
 	if effect.base_value != 0.0:

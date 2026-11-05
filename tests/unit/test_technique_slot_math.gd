@@ -105,7 +105,7 @@ func test_format_damage() -> void:
 	var strong := CharacterAttributesData.make({&"strength": 13.0, &"agility": 7.0})
 	var plain := CharacterAttributesData.new()
 	var amount: int = roundi((BASIC_STRIKE.effects_on_target[0] as CombatEffectData).calculate_value(strong))
-	assert_eq(amount, 27, "precondition: 10 + 13 x 1 + 7 x 0.5 = 26.5, rounded")
+	assert_eq(amount, 30, "precondition: 10 + 13 x 1.5 = 29.5, rounded")
 	var palm_amount: int = roundi((EMPTY_PALM.effects_on_target[0] as CombatEffectData).calculate_value(plain))
 	var cases: Array[Dictionary] = [
 		{"name": "Basic Strike: Physical", "ability": BASIC_STRIKE, "attributes": strong, "line": "about %d Physical damage" % amount},

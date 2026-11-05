@@ -8,8 +8,7 @@
 script = ExtResource("1_lurdt")
 effect_name = "Empty Palm Strike"
 base_value = 15.0
-agility_scaling = 0.3
-spirit_scaling = 1.0
+spirit_scaling = 1.3
 damage_type = 1
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 

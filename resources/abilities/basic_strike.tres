@@ -7,8 +7,7 @@
 [sub_resource type="Resource" id="Resource_dx6op"]
 script = ExtResource("1_a2brc")
 base_value = 10.0
-strength_scaling = 1.0
-agility_scaling = 0.5
+strength_scaling = 1.5
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 
 [resource]

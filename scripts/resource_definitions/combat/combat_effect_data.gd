@@ -48,23 +48,11 @@ enum DamageType {
 #-----------------------------------------------------------------------------
 
 @export_group("Attribute Scaling")
-## Scales with caster's Strength
+## Scales with the caster's Strength: Physical techniques.
 @export var strength_scaling: float = 0.0
 
-## Scales with caster's Body
-@export var body_scaling: float = 0.0
-
-## Scales with caster's Agility
-@export var agility_scaling: float = 0.0
-
-## Scales with caster's Spirit
+## Scales with the caster's Spirit: Spirit techniques and heals.
 @export var spirit_scaling: float = 0.0
-
-## Scales with caster's Mind
-@export var mind_scaling: float = 0.0
-
-## Scales with caster's Control
-@export var control_scaling: float = 0.0
 
 #-----------------------------------------------------------------------------
 # DAMAGE-SPECIFIC
@@ -77,43 +65,29 @@ enum DamageType {
 # CALCULATION
 #-----------------------------------------------------------------------------
 
-## How much of the caster's given attribute this effect adds per point.
+## How much of the caster's given attribute this effect adds per point: 0 for
+## any stat but Strength and Spirit.
 func get_scaling(attribute: CharacterAttributesData.AttributeType) -> float:
 	match attribute:
 		CharacterAttributesData.AttributeType.STRENGTH: return strength_scaling
-		CharacterAttributesData.AttributeType.BODY: return body_scaling
-		CharacterAttributesData.AttributeType.AGILITY: return agility_scaling
 		CharacterAttributesData.AttributeType.SPIRIT: return spirit_scaling
-		CharacterAttributesData.AttributeType.MIND: return mind_scaling
-		CharacterAttributesData.AttributeType.CONTROL: return control_scaling
-	Log.error("CombatEffectData: Unknown attribute type %s" % attribute)
 	return 0.0
 
 ## What the caster's given attribute adds to this effect's value: the
-## attribute times its scaling, as calculate_value() counts it. Doesn't log.
+## attribute times its scaling, as calculate_value() counts it, so 0 for any
+## stat but Strength and Spirit. Doesn't log.
 func get_scaling_contribution(attribute: CharacterAttributesData.AttributeType, caster_attributes: CharacterAttributesData) -> float:
 	return caster_attributes.get_attribute(attribute) * get_scaling(attribute)
 
-## Calculate the total effect value based on caster's attributes
+## The effect's value for the caster: base_value plus the caster's Strength and
+## Spirit times their scalings. A null caster gives base_value.
 func calculate_value(caster_attributes: CharacterAttributesData) -> float:
 	if caster_attributes == null:
 		return base_value
-	
-	var scaled_value: float = base_value
+
 	Log.info("CombatEffectData: Calculating value for '%s'." % effect_name)
 	Log.info("	Base: %.1f" % base_value)
-	
-	# Add attribute scaling
-	for attribute: int in CharacterAttributesData.AttributeType.values():
-		var attr_type: CharacterAttributesData.AttributeType = attribute as CharacterAttributesData.AttributeType
-		var scaling: float = get_scaling(attr_type)
-		if scaling != 0.0:
-			var attr_val: float = caster_attributes.get_attribute(attr_type)
-			var added_val: float = attr_val * scaling
-			scaled_value += added_val
-			var attr_name: String = CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
-			Log.info("  + %s Scaling: %.1f (Attr: %.1f * Scale: %.2f)" % [attr_name, added_val, attr_val, scaling])
-	
+	var scaled_value: float = base_value + strength_scaling * caster_attributes.strength + spirit_scaling * caster_attributes.spirit
 	Log.info("  = Total Scaled Value: %.1f" % scaled_value)
 	return scaled_value
 

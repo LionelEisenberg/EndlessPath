@@ -31,19 +31,15 @@ func test_base_damage_null_caster() -> void:
 	var value = _effect.calculate_value(null)
 	assert_eq(value, 50.0, "null caster should return base_value")
 
-## calculate_value() is base_value plus each attribute times its scaling: no
-## scaling, a zero base, each of the six attributes on its own (caster at 10
-## in everything), two scalings together, and a high attribute.
+## calculate_value() is base_value plus Strength and Spirit times their
+## scalings: no scaling, a zero base, each main stat on its own (caster at 10
+## in everything), both together, and a high Strength.
 func test_value_adds_each_attribute_times_its_scaling() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "no scaling", "base": 50.0, "scaling": {}, "expected": 50.0},
 		{"name": "zero base", "base": 0.0, "scaling": {}, "expected": 0.0},
 		{"name": "strength", "base": 50.0, "scaling": {"strength_scaling": 1.5}, "expected": 65.0},
-		{"name": "body", "base": 50.0, "scaling": {"body_scaling": 2.0}, "expected": 70.0},
-		{"name": "agility", "base": 50.0, "scaling": {"agility_scaling": 0.5}, "expected": 55.0},
 		{"name": "spirit", "base": 50.0, "scaling": {"spirit_scaling": 3.0}, "expected": 80.0},
-		{"name": "mind", "base": 50.0, "scaling": {"mind_scaling": 1.0}, "expected": 60.0},
-		{"name": "control", "base": 50.0, "scaling": {"control_scaling": 0.8}, "expected": 58.0},
 		# 50 + (10*1) + (10*2) = 80: multiple scalings add together
 		{"name": "strength and spirit", "base": 50.0, "scaling": {"strength_scaling": 1.0, "spirit_scaling": 2.0}, "expected": 80.0},
 		# 50 + (50 * 1.0) = 100: high attributes multiply with scaling
