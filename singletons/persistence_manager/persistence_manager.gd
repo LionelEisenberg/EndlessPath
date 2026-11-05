@@ -163,9 +163,9 @@ func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 ##   blocked. It is still repaired in memory when the check can run, so the
 ##   session never stands in a zone this build does not know; the file is never
 ##   written, so nothing is copied aside;
-## - any other save: migrated, then checked. Saving is blocked when the check
-##   cannot run, and a save that fails it is repaired after the file is copied
-##   aside.
+## - any other save: migrated, then checked. Saving is blocked when a version
+##   step could not run or the check cannot run, and a save that fails it is
+##   repaired after the file is copied aside.
 ## Every path ends with save_data_reset, which re-binds the managers (at boot it
 ## reaches no one).
 func open_save_file(path: String, back_up: bool = true) -> void:
@@ -322,6 +322,11 @@ func _load_session_save(path: String) -> void:
 				Log.warn("PersistenceManager: Repaired %s in memory only; %s stays as the newer build wrote it" % [", ".join(repaired_in_memory), read_path])
 		return
 	loaded.migrate()
+	# save_data() stamps the current version on every write, so a save a version
+	# step could not convert is never written.
+	if loaded.save_version < SaveGameData.CURRENT_VERSION:
+		_block_saving("%s could not be brought up to version %d (it stays at version %d)" % [read_path, SaveGameData.CURRENT_VERSION, loaded.save_version])
+		return
 
 	if not can_verify():
 		_block_saving("the managers verify() needs did not load, so the save cannot be checked")
