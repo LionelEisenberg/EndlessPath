@@ -99,7 +99,9 @@ func test_max_health_is_body_times_ten() -> void:
 	assert_eq(vitals.max_health, attributes.get_max_health(), "is the rule's answer")
 
 func test_max_health_reads_only_body() -> void:
-	var attributes := CharacterAttributesData.new(99.0, 7.5, 99.0, 99.0, 99.0, 99.0, 99.0, 99.0)
+	var attributes := CharacterAttributesData.make({
+		&"strength": 99.0, &"body": 7.5, &"agility": 99.0, &"spirit": 99.0, &"mind": 99.0, &"control": 99.0,
+	})
 	assert_eq(attributes.get_max_health(), 75.0, "Body 7.5 is 75 Health, whatever the rest is")
 
 func test_a_manager_follows_the_rule_when_its_attributes_change() -> void:

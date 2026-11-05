@@ -26,7 +26,7 @@ func before_each() -> void:
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
-	PersistenceManager.save_game_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	PersistenceManager.save_game_data.character_attributes = CharacterAttributesData.make()
 
 	_vitals = VitalsManager.new()
 	_vitals.is_player = true
@@ -56,11 +56,15 @@ func _equip(instance: ItemInstanceData, slot: EquipmentSlot, accessory_index: in
 # GEAR
 #-----------------------------------------------------------------------------
 
-func test_equipping_body_gear_raises_max_health_and_stamina() -> void:
+func test_equipping_body_gear_raises_max_health() -> void:
 	assert_eq(_vitals.max_health, 100.0, "10 Body before the armor")
 	_equip(_make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0}), EquipmentSlot.ARMOR)
 	assert_eq(_vitals.max_health, 140.0, "14 Body x 10")
-	assert_eq(_vitals.max_stamina, 70.0, "14 Body x 5")
+
+func test_equipping_agility_gear_raises_max_stamina() -> void:
+	assert_eq(_vitals.max_stamina, 50.0, "10 Agility before the gear")
+	_equip(_make_gear(EquipmentSlot.MAIN_HAND, {AttributeType.AGILITY: 4.0}), EquipmentSlot.MAIN_HAND)
+	assert_eq(_vitals.max_stamina, 70.0, "14 Agility x 5")
 
 func test_unequipping_body_gear_lowers_max_health_again() -> void:
 	_equip(_make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0}), EquipmentSlot.ARMOR)
@@ -68,9 +72,9 @@ func test_unequipping_body_gear_lowers_max_health_again() -> void:
 	assert_eq(_vitals.max_health, 100.0)
 	assert_eq(_vitals.max_stamina, 50.0)
 
-func test_equipping_a_foundation_accessory_raises_max_madra() -> void:
-	_equip(_make_gear(EquipmentSlot.ACCESSORY, {AttributeType.FOUNDATION: 2.0}), EquipmentSlot.ACCESSORY, 1)
-	assert_eq(_vitals.max_madra, 120.0, "12 Foundation x 10")
+func test_equipping_a_mind_accessory_raises_max_madra() -> void:
+	_equip(_make_gear(EquipmentSlot.ACCESSORY, {AttributeType.MIND: 2.0}), EquipmentSlot.ACCESSORY, 1)
+	assert_eq(_vitals.max_madra, 120.0, "12 Mind x 10")
 
 func test_new_max_health_fills_the_next_run() -> void:
 	_equip(_make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0}), EquipmentSlot.ARMOR)

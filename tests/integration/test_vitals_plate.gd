@@ -385,7 +385,7 @@ func test_tooltip_grows_with_a_long_effect_line() -> void:
 		CharacterAttributesData.AttributeType.BODY: 1.5,
 		CharacterAttributesData.AttributeType.AGILITY: 1.5,
 		CharacterAttributesData.AttributeType.SPIRIT: 1.5,
-		CharacterAttributesData.AttributeType.FOUNDATION: 1.5,
+		CharacterAttributesData.AttributeType.MIND: 1.5,
 		CharacterAttributesData.AttributeType.CONTROL: 1.5,
 	}
 	tooltip.show_for_buff(ActiveBuff.new(short_buff), Vector2(100.0, 50.0))

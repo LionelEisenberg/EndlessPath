@@ -8,7 +8,7 @@ func test_parse_stats_reads_each_pair() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "one pair", "text": "STRENGTH+3", "expected": {AT.STRENGTH: 3.0}},
 		{"name": "two pairs", "text": "STRENGTH+3, AGILITY+1", "expected": {AT.STRENGTH: 3.0, AT.AGILITY: 1.0}},
-		{"name": "negative value", "text": "WILLPOWER-2", "expected": {AT.WILLPOWER: -2.0}},
+		{"name": "negative value", "text": "CONTROL-2", "expected": {AT.CONTROL: -2.0}},
 		{"name": "empty", "text": "", "expected": {}},
 		{"name": "spaces only", "text": "   ", "expected": {}},
 	]
@@ -96,7 +96,7 @@ func test_parse_equipment_sections_groups_by_zone() -> void:
 
 | # | id | name | slot | stats | tier | cost | identity | source | description |
 |---|---|---|---|---|---|---|---|---|---|
-| E1 | other_item | Other Item | HEAD | WILLPOWER+1 | Copper | 5 | Hat | Drop | A hat. |
+| E1 | other_item | Other Item | HEAD | MIND+1 | Copper | 5 | Hat | Drop | A hat. |
 
 ## Materials
 """

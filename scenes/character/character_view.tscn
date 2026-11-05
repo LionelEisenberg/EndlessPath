@@ -6,11 +6,9 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/strength_icon.png" id="4_str"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/body_icon.png" id="5_bod"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/agility_icon.png" id="6_agi"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/resilience_icon.png" id="7_res"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/spirit_icon.png" id="8_spi"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/foundation_icon.png" id="9_fnd"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/control_icon_ai.png" id="10_ctl"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/willpower_icon.png" id="11_wil"]
 [ext_resource type="PackedScene" path="res://scenes/ui/book_frame/book_frame.tscn" id="12_book_frame"]
 [ext_resource type="Resource" path="res://resources/ui/book_styles/character_book_style.tres" id="13_style"]
 [ext_resource type="PackedScene" uid="uid://76prc2etr5vo" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="14_banner"]
@@ -136,13 +134,6 @@ attribute_name = "Agility"
 attribute_type = 2
 icon_texture = ExtResource("6_agi")
 
-[node name="ResilienceTile" parent="PageLayer/LeftPage/PhysicalTiles" instance=ExtResource("2_attribute_tile")]
-layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Resilience"
-attribute_type = 6
-icon_texture = ExtResource("7_res")
-
 [node name="GroupGap" type="Control" parent="PageLayer/LeftPage"]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
@@ -171,10 +162,10 @@ attribute_name = "Spirit"
 attribute_type = 3
 icon_texture = ExtResource("8_spi")
 
-[node name="FoundationTile" parent="PageLayer/LeftPage/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
+[node name="MindTile" parent="PageLayer/LeftPage/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
 layout_mode = 2
 size_flags_horizontal = 3
-attribute_name = "Foundation"
+attribute_name = "Mind"
 attribute_type = 4
 icon_texture = ExtResource("9_fnd")
 
@@ -184,13 +175,6 @@ size_flags_horizontal = 3
 attribute_name = "Control"
 attribute_type = 5
 icon_texture = ExtResource("10_ctl")
-
-[node name="WillpowerTile" parent="PageLayer/LeftPage/SpiritualTiles" instance=ExtResource("2_attribute_tile")]
-layout_mode = 2
-size_flags_horizontal = 3
-attribute_name = "Willpower"
-attribute_type = 7
-icon_texture = ExtResource("11_wil")
 
 [node name="RightPage" type="VBoxContainer" parent="PageLayer"]
 layout_mode = 0

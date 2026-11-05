@@ -18,10 +18,10 @@ enum EffectType {
 }
 
 enum DamageType {
-	PHYSICAL, ## Affected by physical defense/resilience
-	SPIRIT, ## Affected by spiritual defense (Madra-type damage)
+	PHYSICAL, ## Cut by the target's armor
+	SPIRIT, ## Cut by the target's Ward
 	TRUE, ## Ignores defenses
-	MIXED ## Combination of physical and spirit
+	MIXED ## Cut by the average of armor and Ward
 }
 
 #-----------------------------------------------------------------------------
@@ -60,17 +60,11 @@ enum DamageType {
 ## Scales with caster's Spirit
 @export var spirit_scaling: float = 0.0
 
-## Scales with caster's Foundation
-@export var foundation_scaling: float = 0.0
+## Scales with caster's Mind
+@export var mind_scaling: float = 0.0
 
 ## Scales with caster's Control
 @export var control_scaling: float = 0.0
-
-## Scales with caster's Resilience
-@export var resilience_scaling: float = 0.0
-
-## Scales with caster's Willpower
-@export var willpower_scaling: float = 0.0
 
 #-----------------------------------------------------------------------------
 # DAMAGE-SPECIFIC
@@ -90,10 +84,8 @@ func get_scaling(attribute: CharacterAttributesData.AttributeType) -> float:
 		CharacterAttributesData.AttributeType.BODY: return body_scaling
 		CharacterAttributesData.AttributeType.AGILITY: return agility_scaling
 		CharacterAttributesData.AttributeType.SPIRIT: return spirit_scaling
-		CharacterAttributesData.AttributeType.FOUNDATION: return foundation_scaling
+		CharacterAttributesData.AttributeType.MIND: return mind_scaling
 		CharacterAttributesData.AttributeType.CONTROL: return control_scaling
-		CharacterAttributesData.AttributeType.RESILIENCE: return resilience_scaling
-		CharacterAttributesData.AttributeType.WILLPOWER: return willpower_scaling
 	Log.error("CombatEffectData: Unknown attribute type %s" % attribute)
 	return 0.0
 
@@ -125,7 +117,10 @@ func calculate_value(caster_attributes: CharacterAttributesData) -> float:
 	Log.info("  = Total Scaled Value: %.1f" % scaled_value)
 	return scaled_value
 
-## Calculate damage with defense, armor penetration, and crit
+## The damage this effect deals: calculate_value(), cut by 100 / (100 + the
+## target's defence). The damage type picks the defence: Physical the target's
+## armor, Spirit its Ward, Mixed their average, and True none. A null target
+## takes the whole value.
 func calculate_damage(caster_attributes: CharacterAttributesData, target_attributes: CharacterAttributesData) -> float:
 	if effect_type != EffectType.DAMAGE:
 		Log.error("CombatEffectData: calculate_damage called on non-damage effect")
@@ -141,16 +136,14 @@ func calculate_damage(caster_attributes: CharacterAttributesData, target_attribu
 		
 		match damage_type:
 			DamageType.PHYSICAL:
-				defense_value = target_attributes.get_attribute(CharacterAttributesData.AttributeType.RESILIENCE)
-				defense_name = "Resilience"
+				defense_value = target_attributes.armor
+				defense_name = "Armor"
 			DamageType.SPIRIT:
-				defense_value = target_attributes.get_attribute(CharacterAttributesData.AttributeType.SPIRIT)
-				defense_name = "Spirit"
+				defense_value = target_attributes.ward
+				defense_name = "Ward"
 			DamageType.MIXED:
-				var resilience = target_attributes.get_attribute(CharacterAttributesData.AttributeType.RESILIENCE)
-				var willpower = target_attributes.get_attribute(CharacterAttributesData.AttributeType.WILLPOWER)
-				defense_value = (resilience + willpower) / 2.0
-				defense_name = "Mixed (Resilience+Willpower)/2"
+				defense_value = (target_attributes.armor + target_attributes.ward) / 2.0
+				defense_name = "Mixed (Armor+Ward)/2"
 			DamageType.TRUE:
 				Log.info("  TRUE damage — bypassing defenses.")
 

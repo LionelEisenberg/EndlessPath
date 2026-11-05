@@ -44,15 +44,15 @@ func _scaling_line(ability_path: String, attribute: CharacterAttributesData.Attr
 func test_values_come_from_character_manager() -> void:
 	_view.refresh()
 	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	var value_label: Label = _tile("WillpowerTile").find_child("ValueLabel", true, false) as Label
-	assert_eq(value_label.text, "%.0f" % attrs.get_attribute(CharacterAttributesData.AttributeType.WILLPOWER))
+	var value_label: Label = _tile("MindTile").find_child("ValueLabel", true, false) as Label
+	assert_eq(value_label.text, "%.0f" % attrs.get_attribute(CharacterAttributesData.AttributeType.MIND))
 
 #-----------------------------------------------------------------------------
 # RIGHT PAGE
 #-----------------------------------------------------------------------------
 
 func test_opening_shows_strength() -> void:
-	_view.select_attribute(CharacterAttributesData.AttributeType.WILLPOWER)
+	_view.select_attribute(CharacterAttributesData.AttributeType.MIND)
 	_view.animate_open()
 	assert_eq(_view.get_selected_attribute(), CharacterAttributesData.AttributeType.STRENGTH)
 	assert_eq(_label("DetailPlaque").text, "Strength")

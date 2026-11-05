@@ -102,7 +102,7 @@ func test_seconds_round_up() -> void:
 ## The line gives the damage of the first effect on the target for the
 ## attributes, rounded (a half rounds up), and names its damage type.
 func test_format_damage() -> void:
-	var strong := CharacterAttributesData.new(13.0, 10.0, 7.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	var strong := CharacterAttributesData.make({&"strength": 13.0, &"agility": 7.0})
 	var plain := CharacterAttributesData.new()
 	var amount: int = roundi((BASIC_STRIKE.effects_on_target[0] as CombatEffectData).calculate_value(strong))
 	assert_eq(amount, 27, "precondition: 10 + 13 x 1 + 7 x 0.5 = 26.5, rounded")

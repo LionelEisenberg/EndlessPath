@@ -20,7 +20,7 @@ var _level_signal_levels: Array[int] = []
 
 func before_each() -> void:
 	_save_data = SaveGameData.new()
-	_save_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	_save_data.character_attributes = CharacterAttributesData.make()
 	_save_data.madra = 0.0
 	_save_data.current_selected_zone_id = "SpiritValley"
 

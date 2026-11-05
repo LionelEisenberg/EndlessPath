@@ -64,7 +64,7 @@ func test_attribute_bonuses_supports_all_types() -> void:
 	var equip = EquipmentDefinitionData.new()
 	for attr_type in CharacterAttributesData.AttributeType.values():
 		equip.attribute_bonuses[attr_type] = float(attr_type) + 1.0
-	assert_eq(equip.attribute_bonuses.size(), 8, "should support all 8 attribute types")
+	assert_eq(equip.attribute_bonuses.size(), 6, "all six stats")
 
 #-----------------------------------------------------------------------------
 # _get_item_effects() BBCode FORMATTING
@@ -102,7 +102,7 @@ func test_get_item_effects_formats_each_bonus() -> void:
 			"shows": ["-3", "Agility"], "hides": ["+"]},
 		{"name": "fractional", "attr": CharacterAttributesData.AttributeType.SPIRIT, "value": 2.5,
 			"shows": ["2.5"], "hides": []},
-		{"name": "whole number", "attr": CharacterAttributesData.AttributeType.FOUNDATION, "value": 10.0,
+		{"name": "whole number", "attr": CharacterAttributesData.AttributeType.MIND, "value": 10.0,
 			"shows": ["+10"], "hides": []},
 	]
 	for case: Dictionary in cases:
@@ -143,7 +143,7 @@ func test_get_stat_modifiers_turns_bonuses_into_flat_modifiers() -> void:
 	var equip := EquipmentDefinitionData.new()
 	equip.attribute_bonuses = {
 		CharacterAttributesData.AttributeType.BODY: 4.0,
-		CharacterAttributesData.AttributeType.RESILIENCE: 2.0,
+		CharacterAttributesData.AttributeType.SPIRIT: 2.0,
 	}
 	var values: Dictionary = {}
 	for modifier: StatModifierData in equip.get_stat_modifiers():
@@ -151,7 +151,7 @@ func test_get_stat_modifiers_turns_bonuses_into_flat_modifiers() -> void:
 		values[modifier.stat] = modifier.value
 	assert_eq(values.size(), 2)
 	assert_eq(values.get(StatModifierData.Stat.BODY), 4.0)
-	assert_eq(values.get(StatModifierData.Stat.RESILIENCE), 2.0)
+	assert_eq(values.get(StatModifierData.Stat.SPIRIT), 2.0)
 
 func test_get_stat_modifiers_without_bonuses_is_empty() -> void:
 	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers().size(), 0)

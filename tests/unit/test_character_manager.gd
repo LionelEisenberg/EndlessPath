@@ -26,13 +26,13 @@ var _original_save: SaveGameData
 var _save: SaveGameData
 
 func before_each() -> void:
-	_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	_attributes = CharacterAttributesData.make()
 
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 	_save = PersistenceManager.save_game_data
-	_save.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	_save.character_attributes = CharacterAttributesData.make()
 
 func after_each() -> void:
 	CharacterManager.remove_modifier_source(TEST_SOURCE)
@@ -60,21 +60,6 @@ func _source(modifiers: Array[StatModifierData]) -> Callable:
 
 func _robes() -> ItemInstanceData:
 	return _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
-
-#-----------------------------------------------------------------------------
-# ATTRIBUTE GETTERS - ALL 8 ATTRIBUTES
-#-----------------------------------------------------------------------------
-
-func test_custom_attribute_values() -> void:
-	var custom := CharacterAttributesData.new(5.0, 15.0, 20.0, 8.0, 12.0, 3.0, 25.0, 7.0)
-	assert_eq(custom.get_attribute(AttributeType.STRENGTH), 5.0)
-	assert_eq(custom.get_attribute(AttributeType.BODY), 15.0)
-	assert_eq(custom.get_attribute(AttributeType.AGILITY), 20.0)
-	assert_eq(custom.get_attribute(AttributeType.SPIRIT), 8.0)
-	assert_eq(custom.get_attribute(AttributeType.FOUNDATION), 12.0)
-	assert_eq(custom.get_attribute(AttributeType.CONTROL), 3.0)
-	assert_eq(custom.get_attribute(AttributeType.RESILIENCE), 25.0)
-	assert_eq(custom.get_attribute(AttributeType.WILLPOWER), 7.0)
 
 #-----------------------------------------------------------------------------
 # ADD TO ATTRIBUTE (CharacterAttributesData)
@@ -110,24 +95,21 @@ func test_default_init_all_ten() -> void:
 	for attr_type: AttributeType in AttributeType.values():
 		assert_eq(attrs.get_attribute(attr_type), 10.0, "default attribute should be 10.0")
 
-func test_attribute_count() -> void:
-	assert_eq(AttributeType.size(), 8, "should have exactly 8 attribute types")
-
 #-----------------------------------------------------------------------------
 # TOTAL ATTRIBUTES: NO EQUIPMENT
 #-----------------------------------------------------------------------------
 
 func test_totals_equal_base_with_nothing_equipped() -> void:
-	_save.character_attributes = CharacterAttributesData.new(5.0, 15.0, 20.0, 8.0, 12.0, 3.0, 25.0, 7.0)
+	_save.character_attributes = CharacterAttributesData.make({
+		&"strength": 5.0, &"body": 15.0, &"agility": 20.0, &"spirit": 8.0, &"mind": 12.0, &"control": 3.0,
+	})
 	var expected: Dictionary = {
 		AttributeType.STRENGTH: 5.0,
 		AttributeType.BODY: 15.0,
 		AttributeType.AGILITY: 20.0,
 		AttributeType.SPIRIT: 8.0,
-		AttributeType.FOUNDATION: 12.0,
+		AttributeType.MIND: 12.0,
 		AttributeType.CONTROL: 3.0,
-		AttributeType.RESILIENCE: 25.0,
-		AttributeType.WILLPOWER: 7.0,
 	}
 	var totals: CharacterAttributesData = CharacterManager.get_total_attributes_data()
 	for attr_type: AttributeType in expected:
@@ -172,20 +154,16 @@ func test_each_attribute_receives_its_own_bonus() -> void:
 		AttributeType.BODY: 2.0,
 		AttributeType.AGILITY: 3.0,
 		AttributeType.SPIRIT: 4.0,
-		AttributeType.FOUNDATION: 5.0,
+		AttributeType.MIND: 5.0,
 		AttributeType.CONTROL: 6.0,
-		AttributeType.RESILIENCE: 7.0,
-		AttributeType.WILLPOWER: 8.0,
 	})
 	var expected: Dictionary = {
 		AttributeType.STRENGTH: 11.0,
 		AttributeType.BODY: 12.0,
 		AttributeType.AGILITY: 13.0,
 		AttributeType.SPIRIT: 14.0,
-		AttributeType.FOUNDATION: 15.0,
+		AttributeType.MIND: 15.0,
 		AttributeType.CONTROL: 16.0,
-		AttributeType.RESILIENCE: 17.0,
-		AttributeType.WILLPOWER: 18.0,
 	}
 	var totals: CharacterAttributesData = CharacterManager.get_total_attributes_data()
 	for attr_type: AttributeType in expected:
@@ -239,14 +217,14 @@ func test_equip_and_unequip_gear_updates_totals() -> void:
 	assert_eq(_total(AttributeType.BODY), 10.0, "the bonus goes away with the armor")
 
 func test_equip_and_unequip_accessory_updates_totals() -> void:
-	var ring := _make_gear(EquipmentSlot.ACCESSORY, {AttributeType.FOUNDATION: 3.0})
+	var ring := _make_gear(EquipmentSlot.ACCESSORY, {AttributeType.MIND: 3.0})
 	_inventory().equipment[0] = ring
 
 	InventoryManager.equip_item(ring, EquipmentSlot.ACCESSORY, 0, 1)
-	assert_eq(_total(AttributeType.FOUNDATION), 13.0, "an accessory in the second slot adds its bonus")
+	assert_eq(_total(AttributeType.MIND), 13.0, "an accessory in the second slot adds its bonus")
 
 	InventoryManager.unequip_item(EquipmentSlot.ACCESSORY, 1)
-	assert_eq(_total(AttributeType.FOUNDATION), 10.0)
+	assert_eq(_total(AttributeType.MIND), 10.0)
 
 #-----------------------------------------------------------------------------
 # ADD BASE ATTRIBUTE (CharacterManager)

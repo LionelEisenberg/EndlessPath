@@ -7,8 +7,7 @@
 script = ExtResource("2_bl2yh")
 slot_type = 2
 attribute_bonuses = {
-3: 1.0,
-7: 3.0
+3: 1.0
 }
 item_id = "cultivators_cowl"
 item_name = "Cultivator's Cowl"

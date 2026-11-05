@@ -9,7 +9,7 @@ script = ExtResource("1_ys7rd")
 effect_name = "Sundering Font"
 base_value = 30.0
 spirit_scaling = 1.5
-foundation_scaling = 0.5
+mind_scaling = 0.5
 damage_type = 1
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 

@@ -1,15 +1,14 @@
 class_name CharacterView
 extends MenuBookView
 
-## Character book: the eight cultivation attributes as tiles on the left page,
-## a Physical and a Spiritual row of four, and the attribute you point at
+## Character book: the six cultivation attributes as tiles on the left page,
+## a Physical and a Spiritual row of three, and the attribute you point at
 ## described on the right page with what it affects. The right page keeps the
 ## last attribute pointed at; Strength is shown when the book opens.
 
 ## What the right page says about each attribute: a description and the
 ## formulas it feeds. The vitals formulas are built from
-## CharacterAttributesData's constants, the rules every VitalsManager runs; the
-## defense ones are written to match CombatEffectData.calculate_damage.
+## CharacterAttributesData's constants, the rules every VitalsManager runs.
 ## Abilities that scale with the attribute are added from their data.
 const ATTRIBUTE_DETAILS: Dictionary = {
 	CharacterAttributesData.AttributeType.STRENGTH: {
@@ -17,35 +16,24 @@ const ATTRIBUTE_DETAILS: Dictionary = {
 		"formulas": [],
 	},
 	CharacterAttributesData.AttributeType.BODY: {
-		"description": "Physical constitution. Determines your health and stamina pools.",
-		"formulas": [
-			"Max Health = Body × %d" % CharacterAttributesData.HEALTH_PER_BODY,
-			"Max Stamina = Body × %d" % CharacterAttributesData.STAMINA_PER_BODY,
-		],
+		"description": "Physical constitution. Determines your Health.",
+		"formulas": ["Max Health = Body × %d" % CharacterAttributesData.HEALTH_PER_BODY],
 	},
 	CharacterAttributesData.AttributeType.AGILITY: {
-		"description": "Speed and precision. Scales technique-based damage.",
-		"formulas": [],
-	},
-	CharacterAttributesData.AttributeType.RESILIENCE: {
-		"description": "Physical toughness. Reduces incoming physical damage.",
-		"formulas": ["Physical damage taken × 100 / (100 + Resilience)"],
+		"description": "Speed and footwork. Determines your Stamina.",
+		"formulas": ["Max Stamina = Agility × %d" % CharacterAttributesData.STAMINA_PER_AGILITY],
 	},
 	CharacterAttributesData.AttributeType.SPIRIT: {
-		"description": "Spiritual awareness and power. Scales Madra-based abilities and provides spiritual defense.",
-		"formulas": ["Spirit damage taken × 100 / (100 + Spirit)"],
+		"description": "Spiritual awareness and power. Scales Madra-based abilities.",
+		"formulas": [],
 	},
-	CharacterAttributesData.AttributeType.FOUNDATION: {
+	CharacterAttributesData.AttributeType.MIND: {
 		"description": "Depth of your Madra channels. Determines your Madra capacity.",
-		"formulas": ["Max Madra = Foundation × %d" % CharacterAttributesData.MADRA_PER_FOUNDATION],
+		"formulas": ["Max Madra = Mind × %d" % CharacterAttributesData.MADRA_PER_MIND],
 	},
 	CharacterAttributesData.AttributeType.CONTROL: {
 		"description": "Mastery over your techniques. Will reduce ability cooldowns.",
 		"formulas": [],
-	},
-	CharacterAttributesData.AttributeType.WILLPOWER: {
-		"description": "Mental fortitude. Reduces incoming mixed damage.",
-		"formulas": ["Mixed damage is defended by (Resilience + Willpower) / 2"],
 	},
 }
 

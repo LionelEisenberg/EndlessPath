@@ -34,7 +34,7 @@ func before_each() -> void:
 	add_child_autofree(_effect_manager)
 	_effect_manager.setup(_target_node)
 
-	_source_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	_source_attributes = CharacterAttributesData.make()
 
 func test_cancel_cast_effect_calls_cancel_current_cast() -> void:
 	# Fake a casting ability on the target

@@ -32,7 +32,7 @@ func before_each() -> void:
 	_save.gold = 0.0
 	_save.core_density_level = 0.0
 	_save.current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
-	_save.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	_save.character_attributes = CharacterAttributesData.make()
 
 	_stage = AdvancementStageResource.new()
 	_stage.stage_name = "Test Foundation"
@@ -320,8 +320,8 @@ func test_award_resource_adds_to_its_type() -> void:
 # ADVENTURE MADRA
 #-----------------------------------------------------------------------------
 
-func test_adventure_capacity_follows_foundation_not_stage_cap() -> void:
-	_save.character_attributes.foundation = 12.0
+func test_adventure_capacity_follows_mind_not_stage_cap() -> void:
+	_save.character_attributes.mind = 12.0
 	assert_ne(_adventure_capacity(), _pool_cap(), "precondition: the two caps differ")
 	assert_eq(ResourceManager.get_adventure_madra_capacity(), _adventure_capacity())
 

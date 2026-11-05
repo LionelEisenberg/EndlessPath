@@ -40,13 +40,13 @@ func before_each() -> void:
 	# Attach minimal combatant_data so log strings work
 	var combatant_data := CombatantData.new()
 	combatant_data.character_name = "Enemy"
-	combatant_data.attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	combatant_data.attributes = CharacterAttributesData.make()
 	_target.combatant_data = combatant_data
 	vitals_manager.character_attributes_data = combatant_data.attributes
 	vitals_manager.initialize_current_values()
 	effect_manager.setup(_target)
 
-	_source_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 15.0, 10.0, 10.0, 10.0)
+	_source_attributes = CharacterAttributesData.make({&"mind": 15.0})
 
 func test_empty_palm_applied_to_casting_target_cancels_cast() -> void:
 	var ability: AbilityData = load(EMPTY_PALM_PATH)

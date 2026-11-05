@@ -49,7 +49,10 @@ func _full_save() -> SaveGameData:
 	save.madra = 61.5
 	save.gold = 130.0
 	_fill_inventory(save.inventory)
-	save.character_attributes = CharacterAttributesData.new(12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0)
+	save.character_attributes = CharacterAttributesData.make({
+		&"strength": 12.0, &"body": 13.0, &"agility": 14.0, &"spirit": 15.0, &"mind": 16.0, &"control": 17.0,
+		&"armor": 18.0, &"ward": 19.0,
+	})
 
 	# Cultivation: stage Copper, and a milestone paid in each stage.
 	save.core_density_xp = 340.0

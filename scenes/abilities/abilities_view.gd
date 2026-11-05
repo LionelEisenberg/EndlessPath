@@ -31,10 +31,8 @@ const _ATTRIBUTE_ICONS: Dictionary = {
 	CharacterAttributesData.AttributeType.BODY: preload("res://assets/sprites/ui/attribute_icons/body_icon.png"),
 	CharacterAttributesData.AttributeType.AGILITY: preload("res://assets/sprites/ui/attribute_icons/agility_icon.png"),
 	CharacterAttributesData.AttributeType.SPIRIT: preload("res://assets/sprites/ui/attribute_icons/spirit_icon.png"),
-	CharacterAttributesData.AttributeType.FOUNDATION: preload("res://assets/sprites/ui/attribute_icons/foundation_icon.png"),
+	CharacterAttributesData.AttributeType.MIND: preload("res://assets/sprites/ui/attribute_icons/foundation_icon.png"),
 	CharacterAttributesData.AttributeType.CONTROL: preload("res://assets/sprites/ui/attribute_icons/control_icon_ai.png"),
-	CharacterAttributesData.AttributeType.RESILIENCE: preload("res://assets/sprites/ui/attribute_icons/resilience_icon.png"),
-	CharacterAttributesData.AttributeType.WILLPOWER: preload("res://assets/sprites/ui/attribute_icons/willpower_icon.png"),
 }
 
 var _filter_mode: FilterMode = FilterMode.ALL
