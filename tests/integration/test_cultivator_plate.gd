@@ -3,7 +3,9 @@ extends GutTest
 ## Integration tests for the lacquer cultivator cabinet (CultivatorPlate,
 ## lacquer kit §5.1): what it reads from the managers on _ready, how it follows
 ## their signals, the fills it hands the two orb shaders, the beads it lights,
-## and the Madra and XP it leaves out of its figures while pellets fly.
+## the Madra and XP it leaves out of its figures while pellets fly, and its six
+## stat cells: each stat's level and its XP ring, full at the cap, following
+## CharacterManager.
 
 const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
 
@@ -11,8 +13,14 @@ const AURA_WELL_ID: String = "aura_well_training"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 
+const Attribute := CharacterAttributesData.AttributeType
+
+## The six stat cells' unique names, Physical then Spiritual, apex first.
+const CELL_NAMES: Array[String] = ["StrengthCell", "BodyCell", "AgilityCell", "SpiritCell", "MindCell", "ControlCell"]
+
 var _plate: CultivatorPlate = null
 var _original_stage_resources: Array[AdvancementStageResource] = []
+var _original_save: SaveGameData = null
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -20,6 +28,7 @@ var _original_stage_resources: Array[AdvancementStageResource] = []
 
 func before_each() -> void:
 	_original_stage_resources = CultivationManager.advancement_stage_resources
+	_original_save = PersistenceManager.save_game_data
 	_use_fresh_save()
 	_plate = _add_plate()
 
@@ -28,7 +37,10 @@ func after_each() -> void:
 		ActionManager.stop_action()
 	# A cycle session left running would leak into later files.
 	CyclingManager.end_cycle_session()
+	# The stages first: the restored save is read against the real ones.
 	CultivationManager.advancement_stage_resources = _original_stage_resources
+	PersistenceManager.save_game_data = _original_save
+	PersistenceManager.save_data_reset.emit()
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -70,6 +82,33 @@ func _use_a_short_stage(cap: int) -> void:
 	short_stage.stage_name = "Short Foundation"
 	short_stage.max_core_density_level = cap
 	var stages: Array[AdvancementStageResource] = [short_stage]
+	CultivationManager.advancement_stage_resources = stages
+
+## A stat cell, by its unique name in the cabinet.
+func _cell(unique_name: String) -> StatCell:
+	return _node(unique_name) as StatCell
+
+## The text of a stat cell's Label, by the Label's unique name in the cell.
+func _cell_text(cell_name: String, label_name: String) -> String:
+	return (_cell(cell_name).get_node("%" + label_name) as Label).text.strip_edges()
+
+## The frame a stat cell's XP ring shows: column n lights n beads.
+func _ring(cell_name: String) -> Vector2i:
+	return (_cell(cell_name).get_node("%XpRing") as LacquerStripRect).get_frame()
+
+## Swaps in a Foundation whose stats cap at `foundation_cap`, leading to a Copper
+## whose stats cap at `copper_cap`. after_each() restores the real stages.
+func _use_stat_caps(foundation_cap: int, copper_cap: int) -> void:
+	var copper := AdvancementStageResource.new()
+	copper.stage_id = CultivationManager.AdvancementStage.COPPER
+	copper.stage_name = "Test Copper"
+	copper.stat_level_cap = copper_cap
+	var foundation := AdvancementStageResource.new()
+	foundation.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	foundation.stage_name = "Test Foundation"
+	foundation.stat_level_cap = foundation_cap
+	foundation.next_stage = copper
+	var stages: Array[AdvancementStageResource] = [foundation, copper]
 	CultivationManager.advancement_stage_resources = stages
 
 #-----------------------------------------------------------------------------
@@ -243,6 +282,102 @@ func test_gold_text() -> void:
 	assert_eq(_text("GoldValueLabel"), "0")
 	ResourceManager.set_gold(120.0)
 	assert_eq(_text("GoldValueLabel"), "120")
+
+#-----------------------------------------------------------------------------
+# STATS
+#-----------------------------------------------------------------------------
+# A ring lights floor(xp × 24 / the next level's cost) of its 24 beads. On the
+# shipped curve, Lv L to L + 1 costs 100 × 1.25^(L − 1) XP: a retune of
+# stat_progression.tres moves the frames pinned below.
+
+## The StatCells under each side, in child order (apex, below left, below
+## right), are that side's stats in the book's order.
+func test_the_cells_are_the_six_stats_in_two_triangles() -> void:
+	var cases: Array[Dictionary] = [
+		{"side": "PhysicalCells", "stats": StatDisplay.PHYSICAL},
+		{"side": "SpiritualCells", "stats": StatDisplay.SPIRITUAL},
+	]
+	for case: Dictionary in cases:
+		var stats: Array[CharacterAttributesData.AttributeType] = []
+		for child: Node in _node(case["side"]).get_children():
+			if child is StatCell:
+				stats.append((child as StatCell).attribute_type)
+		assert_eq(stats, case["stats"], "%s holds its side's stats, apex first" % case["side"])
+
+func test_each_cell_names_its_stat() -> void:
+	var cases: Array[Dictionary] = [
+		{"cell": "StrengthCell", "stat": Attribute.STRENGTH},
+		{"cell": "BodyCell", "stat": Attribute.BODY},
+		{"cell": "AgilityCell", "stat": Attribute.AGILITY},
+		{"cell": "SpiritCell", "stat": Attribute.SPIRIT},
+		{"cell": "MindCell", "stat": Attribute.MIND},
+		{"cell": "ControlCell", "stat": Attribute.CONTROL},
+	]
+	for case: Dictionary in cases:
+		var cell_name: String = case["cell"]
+		var stat: CharacterAttributesData.AttributeType = case["stat"]
+		assert_eq(_cell_text(cell_name, "NameLabel"), StatDisplay.name_of(stat), "%s names its stat" % cell_name)
+		var icon: TextureRect = _cell(cell_name).get_node("%Icon") as TextureRect
+		assert_eq(icon.texture, StatDisplay.icon_of(stat), "%s shows its stat's icon" % cell_name)
+
+func test_a_new_save_shows_every_stat_at_level_one() -> void:
+	for cell_name: String in CELL_NAMES:
+		assert_eq(_cell_text(cell_name, "LevelLabel"), "Lv 1", "%s reads Lv 1" % cell_name)
+		assert_eq(_ring(cell_name), Vector2i(0, 0), "%s's ring is empty" % cell_name)
+
+func test_a_cell_shows_its_level_and_xp() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 4, 120.0)
+	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 4", "Spirit's cell reads its level")
+	assert_eq(_ring("SpiritCell"), Vector2i(14, 0), "120 of Lv 4's 195.3125 XP: 120 × 24 / 195.3125 = 14.75, floored to 14; a bead lights once its share is earned")
+	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv 1", "only Spirit's cell moved")
+
+## XP that buys no level comes through stat_xp_changed alone.
+func test_a_cell_follows_xp() -> void:
+	CharacterManager.add_stat_xp(Attribute.BODY, 50.0)
+	assert_eq(CharacterManager.get_stat_level(Attribute.BODY), 1, "precondition: 50 of Lv 2's 100 buys no level")
+	assert_eq(_ring("BodyCell"), Vector2i(12, 0), "50 of 100 XP: 50 × 24 / 100 = 12")
+	assert_eq(_cell_text("BodyCell", "LevelLabel"), "Lv 1", "Body's cell keeps its level")
+
+func test_a_cell_follows_levels() -> void:
+	CharacterManager.add_stat_levels(Attribute.BODY, 2)
+	assert_eq(_cell_text("BodyCell", "LevelLabel"), "Lv 3", "whole levels, the Aura Well's way")
+	CharacterManager.add_stat_xp(Attribute.BODY, CharacterManager.get_stat_xp_to_next(Attribute.BODY) + 100.0)
+	assert_eq(_cell_text("BodyCell", "LevelLabel"), "Lv 4", "XP that pays for a level raises it")
+	assert_eq(_ring("BodyCell"), Vector2i(12, 0), "the 100 over, into Lv 4's 195.3125: 100 × 24 / 195.3125 = 12.29, floored to 12")
+
+func test_a_capped_cell_shows_the_cap() -> void:
+	CharacterManager.set_stat_level(Attribute.STRENGTH, CharacterManager.get_stat_level_cap())
+	assert_eq(_cell_text("StrengthCell", "LevelLabel"), "Lv %d" % CharacterManager.get_stat_level_cap(), "Strength's cell reads the cap")
+	assert_eq(_ring("StrengthCell"), Vector2i(24, 0), "all 24 beads lit at the cap")
+	assert_eq(_ring("BodyCell"), Vector2i(0, 0), "only the capped stat's ring fills")
+
+func test_xp_at_the_cap_keeps_the_cap() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	CharacterManager.add_stat_xp(Attribute.SPIRIT, 50.0)
+	assert_eq(CharacterManager.get_stat_xp(Attribute.SPIRIT), 0.0, "precondition: the 50 is lost at the cap")
+	assert_eq(_ring("SpiritCell"), Vector2i(24, 0), "the 0 XP that arrives at the cap leaves the ring full")
+
+func test_the_breakthrough_lifts_the_cap() -> void:
+	_use_stat_caps(3, 6)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 3)
+	assert_eq(_ring("StrengthCell"), Vector2i(24, 0), "precondition: capped at Foundation's 3")
+	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough lands")
+	assert_eq(_ring("StrengthCell"), Vector2i(0, 0), "Copper's cap of 6 leaves room, and the set Lv 3 holds no XP")
+	assert_eq(_cell_text("StrengthCell", "LevelLabel"), "Lv 3", "Copper's cap of 6 leaves room, and the set Lv 3 holds no XP")
+
+## The one test of the read on _ready: the first cabinet takes the load through
+## stats_changed, and the second, made after the save loaded, as at boot, reads
+## it in _ready().
+func test_a_loaded_save_shows_its_levels() -> void:
+	var save := SaveGameData.new()
+	save.stat_training.set_level(Attribute.MIND, 6)
+	save.stat_training.set_xp(Attribute.MIND, 200.0)
+	_use_fresh_save(save)
+	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv 6", "the loaded level")
+	assert_eq(_ring("MindCell"), Vector2i(15, 0), "200 of Lv 6's 305.18 XP: 200 × 24 / 305.18 = 15.73, floored to 15")
+	_plate = _add_plate()
+	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv 6", "read on _ready")
+	assert_eq(_ring("MindCell"), Vector2i(15, 0), "read on _ready")
 
 #-----------------------------------------------------------------------------
 # ROOT

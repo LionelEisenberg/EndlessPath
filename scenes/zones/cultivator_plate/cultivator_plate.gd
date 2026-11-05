@@ -2,15 +2,20 @@ class_name CultivatorPlate
 extends Control
 
 ## The cultivator cabinet at the zone view's top left (lacquer kit §5.1).
-## Three rows on the lacquer board: the Madra orb with Madra / max and, while
+## Four rows on the lacquer board: the Madra orb with Madra / max and, while
 ## the running action earns Madra, its rate; the Core Density orb with the
 ## stage, level and XP beads (all lit, with "Core full" for the XP figure, at the
-## stage's Core Density cap); gold, at the right of the bottom row.
+## stage's Core Density cap); the six stats in two triangles, Physical on the
+## left and Spiritual on the right, each a StatCell showing the stat's trained
+## level and a ring of its XP toward the next level, full at the stage's cap;
+## gold, at the right of the bottom row.
 ## The orbs are frames of the kit's strips under two pixel-art shaders that
 ## animate the fill on their own (lacquer_madra_orb: flowing liquid,
 ## lacquer_core_orb: a turning spiral); this script only hands them the fill.
 ## The beads are rows of their strip. It reads everything once on _ready, then
-## follows the managers' signals.
+## follows the managers' signals: the stats follow CharacterManager's
+## stats_changed and stat_xp_changed, and the stage's change too, since a
+## breakthrough raises their cap.
 ## Madra and XP the cycling view's pellets are still carrying to the orbs are
 ## held out of the readout (hold_madra, hold_core_xp) until each pellet lands
 ## (release_madra, release_core_xp), so the orbs fill as the pellets arrive, not
@@ -49,6 +54,8 @@ const HELD_EPSILON: float = 0.0001
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_beads: LacquerStripRect = %XpBeads
 @onready var _xp_label: Label = %XpLabel
+## The six stat cells, Physical then Spiritual, apex first.
+@onready var _stat_cells: Array[StatCell] = [%StrengthCell, %BodyCell, %AgilityCell, %SpiritCell, %MindCell, %ControlCell]
 @onready var _gold_value_label: Label = %GoldValueLabel
 
 #-----------------------------------------------------------------------------
@@ -71,6 +78,8 @@ func _ready() -> void:
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
 	CyclingManager.madra_rate_changed.connect(_on_madra_rate_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
+	CharacterManager.stat_xp_changed.connect(_on_stat_xp_changed)
 	_update_all()
 
 #-----------------------------------------------------------------------------
@@ -129,6 +138,7 @@ func _update_all() -> void:
 	_update_madra()
 	_update_rate()
 	_update_core_density()
+	_update_stats()
 	_update_gold()
 
 ## Madra / max and the orb's liquid at Madra / max. The max follows the Core
@@ -176,6 +186,18 @@ func _update_core_density() -> void:
 		_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
 		_xp_label.text = "%d / %d XP" % [floori(xp), floori(need)]
 
+## Each stat cell's trained level, its XP toward the next level and whether it
+## stands at the cap. Trained levels, never totals, so gear moves no cell.
+func _update_stats() -> void:
+	for cell: StatCell in _stat_cells:
+		var stat: CharacterAttributesData.AttributeType = cell.attribute_type
+		cell.set_stat(
+			CharacterManager.get_stat_level(stat),
+			CharacterManager.get_stat_xp(stat),
+			CharacterManager.get_stat_xp_to_next(stat),
+			CharacterManager.is_stat_capped(stat),
+		)
+
 func _update_gold() -> void:
 	_gold_value_label.text = "%d " % floori(ResourceManager.get_gold())
 
@@ -210,9 +232,11 @@ func _on_core_density_level_updated(_xp: float, _level: float) -> void:
 	_update_core_density()
 	_update_madra()
 
+## A breakthrough raises the stats' cap too, so the cells re-read.
 func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
 	_update_core_density()
 	_update_madra()
+	_update_stats()
 
 func _on_current_action_changed(_action_data: ZoneActionData) -> void:
 	_update_rate()
@@ -221,3 +245,11 @@ func _on_current_action_changed(_action_data: ZoneActionData) -> void:
 ## end and the idle action's resume cannot leave a stale rate.
 func _on_madra_rate_changed(_rate: float) -> void:
 	_update_rate()
+
+func _on_stats_changed() -> void:
+	_update_stats()
+
+## Ignores the payload and re-reads CharacterManager, as _on_madra_rate_changed()
+## does: XP at the cap arrives as 0 XP, and the capped cell keeps its full ring.
+func _on_stat_xp_changed(_stat: CharacterAttributesData.AttributeType, _xp: float, _xp_to_next: float) -> void:
+	_update_stats()

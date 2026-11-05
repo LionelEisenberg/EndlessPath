@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d0chi1hfchank" path="res://scenes/zones/cultivator_plate/cultivator_plate.gd" id="1_plate"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" uid="uid://dvs8vy5oej1sb" path="res://assets/ui/lacquer/lacquer_cult_ai.png" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://doqwaphnwn1c5" path="res://assets/ui/lacquer/lacquer_cult_stats_ai.png" id="3_board"]
 [ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="4_strip"]
 [ext_resource type="Texture2D" uid="uid://buchwvpdtb5iw" path="res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png" id="5_madra"]
 [ext_resource type="Texture2D" uid="uid://c33tlokmqisik" path="res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png" id="6_core"]
@@ -11,6 +11,9 @@
 [ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="9_gold"]
 [ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="10_madra_orb"]
 [ext_resource type="Shader" uid="uid://csri7yobignr4" path="res://assets/shaders/lacquer_core_orb.gdshader" id="11_core_orb"]
+[ext_resource type="PackedScene" uid="uid://cc2ndo21eq3ia" path="res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn" id="12_stat_cell"]
+[ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="13_groove"]
+[ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="14_groove_end"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_madra_socket"]
 atlas = ExtResource("5_madra")
@@ -30,14 +33,14 @@ anchors_preset = 0
 offset_left = 24.0
 offset_top = 24.0
 offset_right = 464.0
-offset_bottom = 276.0
+offset_bottom = 524.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_plate")
 
 [node name="Board" type="TextureRect" parent="." unique_id=459867142]
 layout_mode = 0
 offset_right = 444.0
-offset_bottom = 256.0
+offset_bottom = 504.0
 mouse_filter = 2
 texture = ExtResource("3_board")
 
@@ -167,21 +170,182 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "0 / 10 XP"
 horizontal_alignment = 2
 
-[node name="Divider" type="TextureRect" parent="." unique_id=556889845]
+[node name="PhysicalCells" type="Control" parent="."]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
 offset_top = 198.0
+offset_right = 212.0
+offset_bottom = 426.0
+mouse_filter = 2
+
+[node name="SideRow" type="HBoxContainer" parent="PhysicalCells"]
+custom_minimum_size = Vector2(196, 20)
+layout_mode = 0
+offset_right = 196.0
+offset_bottom = 20.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="SideLabel" type="Label" parent="PhysicalCells/SideRow"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Physical"
+
+[node name="GrooveMargin" type="MarginContainer" parent="PhysicalCells/SideRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="GrooveRow" type="HBoxContainer" parent="PhysicalCells/SideRow/GrooveMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Groove" type="TextureRect" parent="PhysicalCells/SideRow/GrooveMargin/GrooveRow"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("13_groove")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="GrooveEnd" type="TextureRect" parent="PhysicalCells/SideRow/GrooveMargin/GrooveRow"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("14_groove_end")
+
+[node name="StrengthCell" parent="PhysicalCells" instance=ExtResource("12_stat_cell")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 58.0
+offset_top = 24.0
+offset_right = 138.0
+offset_bottom = 124.0
+
+[node name="BodyCell" parent="PhysicalCells" instance=ExtResource("12_stat_cell")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 8.0
+offset_top = 128.0
+offset_right = 88.0
+offset_bottom = 228.0
+attribute_type = 1
+
+[node name="AgilityCell" parent="PhysicalCells" instance=ExtResource("12_stat_cell")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 108.0
+offset_top = 128.0
+offset_right = 188.0
+offset_bottom = 228.0
+attribute_type = 2
+
+[node name="SpiritualCells" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 228.0
+offset_top = 198.0
 offset_right = 424.0
-offset_bottom = 204.0
+offset_bottom = 426.0
+mouse_filter = 2
+
+[node name="SideRow" type="HBoxContainer" parent="SpiritualCells"]
+custom_minimum_size = Vector2(196, 20)
+layout_mode = 0
+offset_right = 196.0
+offset_bottom = 20.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="SideLabel" type="Label" parent="SpiritualCells/SideRow"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Spiritual"
+
+[node name="GrooveMargin" type="MarginContainer" parent="SpiritualCells/SideRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="GrooveRow" type="HBoxContainer" parent="SpiritualCells/SideRow/GrooveMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Groove" type="TextureRect" parent="SpiritualCells/SideRow/GrooveMargin/GrooveRow"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("13_groove")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="GrooveEnd" type="TextureRect" parent="SpiritualCells/SideRow/GrooveMargin/GrooveRow"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("14_groove_end")
+
+[node name="SpiritCell" parent="SpiritualCells" instance=ExtResource("12_stat_cell")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 58.0
+offset_top = 24.0
+offset_right = 138.0
+offset_bottom = 124.0
+attribute_type = 3
+
+[node name="MindCell" parent="SpiritualCells" instance=ExtResource("12_stat_cell")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 8.0
+offset_top = 128.0
+offset_right = 88.0
+offset_bottom = 228.0
+attribute_type = 4
+
+[node name="ControlCell" parent="SpiritualCells" instance=ExtResource("12_stat_cell")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 108.0
+offset_top = 128.0
+offset_right = 188.0
+offset_bottom = 228.0
+attribute_type = 5
+
+[node name="Divider" type="TextureRect" parent="." unique_id=556889845]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 446.0
+offset_right = 424.0
+offset_bottom = 452.0
 mouse_filter = 2
 texture = ExtResource("8_line")
 
 [node name="GoldRow" type="HBoxContainer" parent="." unique_id=1308453468]
 layout_mode = 0
 offset_left = 114.0
-offset_top = 208.0
+offset_top = 456.0
 offset_right = 422.0
-offset_bottom = 240.0
+offset_bottom = 488.0
 grow_horizontal = 0
 mouse_filter = 2
 theme_override_constants/separation = 0

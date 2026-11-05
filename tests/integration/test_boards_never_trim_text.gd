@@ -20,7 +20,8 @@ extends GutTest
 
 ## The adventure's chest (its title, its expedition page with its Here tray, hint
 ## row and choice drawers), the technique dock's cast tray and tooltip, the Goals
-## board, the zone chest's Now strip, and the Character book with its stat tile.
+## board, the zone chest's Now strip, the Character book with its stat tile, and
+## the cultivator cabinet with its stat cells.
 const BOARD_SCENES: Array[String] = [
 	"res://scenes/adventure/adventure_chest/adventure_chest.tscn",
 	"res://scenes/adventure/adventure_chest/expedition_page/expedition_page.tscn",
@@ -32,6 +33,8 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/zones/zone_panel/now_strip/now_strip.tscn",
 	"res://scenes/character/character_view.tscn",
 	"res://scenes/character/attribute_tile/attribute_tile.tscn",
+	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
+	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
 ]
 
 ## Where the whole-scene walk reads.
