@@ -84,6 +84,16 @@ static func set_madra(value: float) -> String:
 	_while_paused(ResourceManager.set_madra.bind(value))
 	return _succeed("Set Madra to %d" % int(value))
 
+## Sets the saved Health pool to exactly the value. Refuses a negative value or
+## one above the max.
+static func set_health(value: float) -> String:
+	if value < 0.0:
+		return "Health can't be negative"
+	if value > ResourceManager.get_max_health():
+		return "Health can't pass its max of %d" % int(ResourceManager.get_max_health())
+	_while_paused(ResourceManager.set_health.bind(value))
+	return _succeed("Set Health to %d" % int(value))
+
 ## Sets gold to exactly the value. Refuses a negative value.
 static func set_gold(value: float) -> String:
 	if value < 0.0:
