@@ -46,13 +46,13 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `LabelEndCardStatValue` 22px dark brown `#33261A`
   - `LabelEndCardStatName` 18px brown `#735926`
   - `LabelEndCardMuted` 12px muted brown `#806B54` at 80% alpha
-- **Ability tooltip and stat pill text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (the stat pills, which no screen shows now, and the enemy plate's buff tooltip) / `LabelAbilityMuted` 16px tan (that tooltip). `LabelAbilityTitle` 34px beige is unused since the ability cards were replaced by the Abilities book's rows
+- **Ability tooltip text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (the enemy plate's buff tooltip) / `LabelAbilityMuted` 16px tan (that tooltip). `LabelAbilityTitle` 34px beige is unused
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray `#606060`
-- **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`, which no screen shows now)
+- **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators. Unused in the game
 - **Book chrome.** These labels stand on a menu book's `BookLayer`, which draws at 2x, and set `scale = Vector2(0.5, 0.5)` to cancel it. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
   - `LabelInventoryCount` 24px dark ink `#33261A` — unused since the pressed Materials page dropped `GridToolbar`, whose count text it set
   - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All" etc.) on the dark pill background
-  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Character" etc.)
+  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Abilities" etc.)
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the book chrome on a `BookLayer`.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
   - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and the Goals board sit under the shop's place (the shop hides them while it is open), and their text would read through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
@@ -70,18 +70,18 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 
 | Variant | Base type | Style | Use |
 |---------|-----------|-------|-----|
-| `LabelBookTitle` | Label | 28px dark ink `#33261A` | Card titles (the ability, attribute or node shown) |
+| `LabelBookTitle` | Label | 28px dark ink `#33261A` | Card titles (the ability or node shown) |
 | `LabelBookBody` | Label | 20px dark brown `#3B2A20` | Body text, row names |
 | `LabelBookValue` | Label | 20px dark gold `#8B6914` | Values, equipped state |
-| `LabelBookValueLarge` | Label | 28px dark gold `#8B6914` | The big number on an attribute tile and the Character details header |
+| `LabelBookValueLarge` | Label | 28px dark gold `#8B6914` | Unused |
 | `LabelBookMuted` | Label | 16px muted brown `#7D5F47` | Secondary lines, hints, captions |
 | `LabelBookPositive` | Label | 18px dark green `#3E7A3A` | Path node effect lines and the Active Benefits lines |
 | `LabelBookPill` | Label | 18px cream `#F4DCBF` | Text on a dark pill |
 | `LabelBookKey` | Label | 14px cream on a dark rounded chip | Loadout key chips (Q/W/E/R) |
-| `LabelBookPlaque` | Label | 20px dark ink on the header plaque art (`normal` stylebox) | Section headers ("Loadout", "Physical", "Active Benefits", the pointed-at name). Set `custom_minimum_size = (248, 52)` and centre the text; the stylebox's 11px top and 7px bottom content margins centre it on the plaque's face |
+| `LabelBookPlaque` | Label | 20px dark ink on the header plaque art (`normal` stylebox) | Section headers ("Loadout", "Active Benefits", the pointed-at name). Set `custom_minimum_size = (248, 52)` and centre the text; the stylebox's 11px top and 7px bottom content margins centre it on the plaque's face |
 | `PanelBookCard` | PanelContainer | The inventory's item-details card art | Details blocks, the loadout, the tree card |
 | `PanelBookRow` / `PanelBookRowSelected` | PanelContainer | The consumables row-bar art; the selected one is tinted warm | List rows (abilities) |
-| `PanelBookTile` / `PanelBookTileSelected` | PanelContainer | The card art with tight 6px side margins; the selected one is tinted warm like rows | Attribute tiles in the Character book |
+| `PanelBookTile` / `PanelBookTileSelected` | PanelContainer | The card art with tight 6px side margins; the selected one is tinted warm like rows | Unused |
 | `PanelBookSlot` | PanelContainer | The inventory's slot art | Icon slots and loadout slots |
 | `PanelBookPill` | PanelContainer | The inventory's dark category pill | Small status pills (the path points badge) |
 | `PanelBookInset` | PanelContainer | The dark pill art, darkened | The path tree's map window |
@@ -113,7 +113,7 @@ Each book's own colours are not theme items: a `BookStyleData` resource per book
 
 ### Pressed pages
 
-The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the Inventory's four tabs ([design](superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)). They follow the rules above (their own size, no drop shadow) and add these:
+The rows from `LabelBookPageTitle` down are the "pressed paper" pieces ([design](superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)). They follow the rules above (their own size, no drop shadow) and add these:
 
 - **One muted ink.** Every new muted variant is `#584230`: 7.66:1 on the paper and 6.99:1 on a panel's floor (`#EFDCBB`). The pages first used `#765A43` (4.72:1 on a panel), which the user's review of 2026-10-28 found too faint. Capitals print at 15px on the line 13px gave them: their font, Eul+1 with `spacing_top` -1, keeps the line 16px and the baseline 11px down it (BM Euljiro's ascent is 12 at 15px and 11 at 13px), so no layout moved. `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is BM Euljiro with 1px letter spacing (`spacing_glyph = 1`): one `FontVariation` shared by `LabelBookCaps` and `LabelBookSeal`, and another, set low (below), shared by `LabelBookFilter` and `LabelBookFilterOn`.
@@ -165,7 +165,7 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 | `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige. Unused |
 | `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border). Unused |
 | `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) |
-| `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill). No screen shows it |
+| `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill). Unused |
 | `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) |
 
 Base types without a variant:
@@ -226,7 +226,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 - **No `text_overrun_behavior`.** A `RichTextLabel` cannot ellipsize, and on a reworked board it wraps instead (`fit_content`, `autowrap_mode` word, a width). An activity card's detail line, one of the surfaces that still trims (STYLE_GUIDE §5, Where text still trims), goes through `ZoneActionButton.fit_detail_rich_text()`, which drops whole words until the line fits its width (316 px, kit §5.5), ends it in `…` with no separator left before it, and then applies `decimal_bbcode()`.
 - **Not `[font=path]` with a `FontVariation` file.** In Godot 4.7.2 a `[font=…]` tag that loads a `FontVariation` `.tres` drops its `spacing_top` / `spacing_bottom` (measured: the line still grows to 24 px), while `push_font()` with the same object keeps them. Put the spacing in the tag's options, as `decimal_bbcode()` does.
 
-`RichTextLacquerLog` (base `RichTextLacquer`): the same 15 px tan text with `line_separation` 9, so lines are 26 px apart, the first included: the log's line pitch (kit §0). The full log's `FullLogText` uses it; give such a text area a height that is a whole number of 26 px lines (it is 468, 18 lines), or a sliver of an older line shows at its top when it sits scrolled to the bottom.
+`RichTextLacquerLog` (base `RichTextLacquer`): the same 15 px tan text with `line_separation` 9, so lines are 26 px apart, the first included: the log's line pitch (kit §0). The full log's `FullLogText` uses it; give such a text area a height that is a whole number of 26 px lines (it is 442, 17 lines), or a sliver of an older line shows at its top when it sits scrolled to the bottom.
 
 Per-label colour overrides on top of these variants are expected where the kit colours by state: log lines by tone and age, plate names on hover, RUNNING and ENTER tags, Madra-blue text.
 
@@ -253,7 +253,7 @@ Six `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 ### Lacquer pieces (`scenes/common/lacquer/`)
 
 - **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip. It is `@tool`, so a placed rect shows frame 0 in the editor. Its `texture` is derived and read-only, and is never saved into the scene: `strip` and `frame_size` are.
-- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Now strip 144 (`lacquer_rod_now_*`, 292 px), milestone 138, adventure 74, Stamina and cast 119. The Aura Well's 152-step, 308 px `lacquer_rod_well_*` has no scene now. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
+- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Now strip 144 (`lacquer_rod_now_*`, 292 px), milestone 138, adventure 74, Stamina and cast 119, and the Character book's pressed XP bars, which set no end texture: a stat tile's 58 (`pressed_xp_tile_empty_ai.png` and `pressed_xp_tile_full_ai.png`, 120 px) and the right page's 98 (`pressed_xp_page_empty_ai.png` and `pressed_xp_page_full_ai.png`, 200 px). The Aura Well's 152-step, 308 px `lacquer_rod_well_*` has no scene. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
 - **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden. The ready adventure card shows one steadily (`ZoneActionButton.set_ready_frame()`); never animate a steady frame.
 - **`LacquerCountSeal`** (`lacquer_count_seal.tscn`): the kit's cinnabar count seal (`lacquer_seal_count_ai.png`) as a `NinePatchRect` with margins 6 and 6 (its worn bites stay in the outer 6 px, so its middle stretches), with the number in `LabelLacquerSeal` at 15 px. Place it at the seal's 24x24, set `grows_left` (true keeps its right edge, false its left), then call `show_count(n)`: it widens to `width_for()` the number (the number's width plus 8, rounded up to even, 24 at least), so no count is cut off. It never takes the pointer.
 - **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
@@ -264,7 +264,7 @@ Six `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 - **Tribulation pieces.** The Tribulation board sets `lacquer_theme.tres` on its root ([breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)). Its zone name, the rules line, the buttons' words, the stats line and the phase tip are `LabelLacquerDetail`, its title and the panels' titles `LabelLacquerPanelTitle`, the panels' lore lines `LabelLacquerLore`, and the grade and the phase name `LabelLacquerName`; a wrapping 15/18 label takes `wrap_pad.tres`. The board's frame is `trib_board9.tres`, and the panels over the stage are a `PanelContainer` with an empty style stacking a `NinePatchRect` face on `lacquer_drawer9_ai.png` (patch margins 4, 4, 6, 6). The ring, the core and the crack pips are `LacquerStripRect` strips (`assets/ui/lacquer/tribulation/`), the board's progress rod is a `LacquerRod` on the goal rod's art (138 steps), the zone card's Core rod a `LacquerRod` on `lacquer_rod_core_*_ai.png` (74 steps), the buttons `TextureButton`s on the About button's art, and the word floaters `LacquerFloater`s. The spheres and the hold arc have no art: `TribulationStage` draws them per 2 px cell from the same band rule the ring art follows.
 - **`LacquerRail`** (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`): the brass scroll rail (kit §4.4) that stands in for a `ScrollContainer`'s hidden scrollbar. `bind(host)` follows the host's scroll; it shows only while the content overflows, lights each end cap only when the list can scroll that way, sizes its thumb (`rail_thumb.tres`) from the visible share, and `step_to(target)` scrolls in six even-px steps over 200 ms. The zone chest's activity list uses it; the full log styles its own scrollbar's caps with the same textures.
 
-Tests: `tests/integration/test_boards_never_trim_text.gd` walks the Labels of the adventure chest, cast tray, tooltip, Goals board and Now strip for an ellipsis or clipping, and reads every scene and script under `res://scenes` for either, against its `KNOWN_TRIMMERS` list. `tests/unit/test_lacquer_pieces.gd` checks what the pieces do: the strip frame each value picks and its clamping, the rod's steps, the flash ending hidden, the floater's counts and icons, and `LacquerText`'s rates and decimal escaping. The variants, styleboxes, margins and line pitch above have no tests: check them on screen ([What to test](testing/TESTING.md#what-to-test)).
+Tests: `tests/integration/test_boards_never_trim_text.gd` walks the Labels of the reworked boards for an ellipsis or clipping, and reads every scene and script under `res://scenes` for either, against its list of the files not yet swept. `tests/unit/test_lacquer_pieces.gd` checks what the pieces do: the strip frame each value picks and its clamping, the rod's steps, the flash ending hidden, the floater's counts and icons, and `LacquerText`'s rates and decimal escaping. The variants, styleboxes, margins and line pitch above have no tests: check them on screen ([What to test](testing/TESTING.md#what-to-test)).
 
 ## Pattern examples
 
@@ -328,7 +328,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
 | `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
 | `BOOK_MADRA_INK` | `#1C2F60` | — | Madra amounts in the text of the book's paper pages. A Label variant colours a whole label, so the amount takes this colour in BBCode. The lacquer Madra tints read on dark lacquer, not on cream |
-| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps, kept for the fight's floaters. Nothing reads them yet |
+| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps: Health and Stamina text |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with its theme.
 
