@@ -7,7 +7,7 @@ extends Node
 ## Trained levels live in the save; every bonus (gear today, path perks and
 ## elixirs later) is a source in a StatModifierStack, asked when a stat is
 ## read. get_stat() is the one read: an attribute is its trained value with its
-## modifiers; a derived vital is CharacterAttributesData's formula over the
+## modifiers; a derived stat is CharacterAttributesData's formula over the
 ## total attributes, then its own modifiers.
 
 #-----------------------------------------------------------------------------
@@ -95,17 +95,20 @@ func _on_inventory_changed(_inventory: InventoryData) -> void:
 #-----------------------------------------------------------------------------
 
 ## Returns the stat's total. An attribute is its trained value (its level's
-## value on the level curve) with its modifiers. A derived vital is its formula
+## value on the level curve) with its modifiers. A derived stat is its formula
 ## on CharacterAttributesData over the total attributes, then its own modifiers.
+## Armor and Ward start at 0 and come from their modifiers alone.
 func get_stat(stat: Stat) -> float:
 	return _modifiers.apply(stat, _get_base_stat(stat))
 
-## Returns the eight total attributes (base + modifiers) as one data object,
-## a snapshot that does not follow later changes.
+## Returns the six stats, armor and Ward (base + modifiers) as one block, a
+## snapshot that does not follow later changes.
 func get_total_attributes_data() -> CharacterAttributesData:
 	var totals := CharacterAttributesData.new()
 	for attr_type: AttributeType in AttributeType.values():
 		totals.set_attribute(attr_type, get_stat(StatModifierData.for_attribute(attr_type)))
+	totals.armor = get_stat(Stat.ARMOR)
+	totals.ward = get_stat(Stat.WARD)
 	return totals
 
 ## Adds a modifier source, or replaces the one under that name. The provider
@@ -266,7 +269,7 @@ func get_gold_multiplier() -> float:
 #-----------------------------------------------------------------------------
 
 ## The stat before its modifiers: an attribute's trained value, or a derived
-## vital's formula over the total attributes.
+## stat's formula over the total attributes; armor and Ward start at 0.
 func _get_base_stat(stat: Stat) -> float:
 	match stat:
 		Stat.MAX_HEALTH:
@@ -275,6 +278,16 @@ func _get_base_stat(stat: Stat) -> float:
 			return get_total_attributes_data().get_max_stamina()
 		Stat.MAX_MADRA:
 			return get_total_attributes_data().get_max_madra()
+		Stat.STAMINA_REGEN:
+			return get_total_attributes_data().get_stamina_regen()
+		Stat.DODGE_CHANCE:
+			return get_total_attributes_data().get_dodge_chance()
+		Stat.MADRA_COST_CUT:
+			return get_total_attributes_data().get_madra_cost_cut()
+		Stat.COOLDOWN_CUT:
+			return get_total_attributes_data().get_cooldown_cut()
+		Stat.ARMOR, Stat.WARD:
+			return 0.0
 	return get_trained_value(StatModifierData.attribute_of(stat))
 
 ## Writes the stat's new level, then announces it: stat_level_changed and the

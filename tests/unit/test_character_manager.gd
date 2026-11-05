@@ -3,9 +3,10 @@ extends GutTest
 ## Unit tests for CharacterManager and CharacterAttributesData: the default stat
 ## block, total attributes (trained values + equipment bonuses from equipped
 ## gear and both accessory slots) through the real CharacterManager, get_stat()
-## and the modifier sources, the training API (levels and XP up to the stage's
-## cap: add_stat_xp(), add_stat_levels(), set_stat_level() and their signals),
-## and stats_changed.
+## and the modifier sources, the derived stats (regen, dodge, the cuts, armor
+## and Ward), the training API (levels and XP up to the stage's cap:
+## add_stat_xp(), add_stat_levels(), set_stat_level() and their signals), and
+## stats_changed.
 ##
 ## Manager tests run on a fresh SaveGameData that every manager is re-bound
 ## to, so CharacterManager and InventoryManager share it, with a test stage
@@ -458,3 +459,62 @@ func test_removing_a_source_restores_the_value() -> void:
 	assert_eq(CharacterManager.get_stat(Stat.SPIRIT), 15.0, "precondition: the source counts")
 	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	assert_eq(CharacterManager.get_stat(Stat.SPIRIT), 10.0)
+
+#-----------------------------------------------------------------------------
+# DERIVED STATS
+#-----------------------------------------------------------------------------
+
+## At Lv 1: today's regen, no dodge, no cuts, no armor or Ward.
+func test_derived_stats_at_level_one() -> void:
+	var cases: Array[Dictionary] = [
+		{"stat": Stat.STAMINA_REGEN, "value": 1.0},
+		{"stat": Stat.DODGE_CHANCE, "value": 0.0},
+		{"stat": Stat.MADRA_COST_CUT, "value": 0.0},
+		{"stat": Stat.COOLDOWN_CUT, "value": 0.0},
+		{"stat": Stat.ARMOR, "value": 0.0},
+		{"stat": Stat.WARD, "value": 0.0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CharacterManager.get_stat(case.stat), case.value, "%s at Lv 1" % Stat.keys()[case.stat])
+
+## Each derived stat is its CharacterAttributesData formula over the trained totals.
+func test_derived_stats_follow_the_trained_totals() -> void:
+	CharacterManager.set_stat_level(AttributeType.AGILITY, 6)
+	CharacterManager.set_stat_level(AttributeType.CONTROL, 11)
+	var trained := CharacterAttributesData.make({&"agility": 15.0, &"control": 20.0})
+	var untrained := CharacterAttributesData.make()
+	var cases: Array[Dictionary] = [
+		{"stat": Stat.MAX_STAMINA, "formula": &"get_max_stamina"},
+		{"stat": Stat.STAMINA_REGEN, "formula": &"get_stamina_regen"},
+		{"stat": Stat.DODGE_CHANCE, "formula": &"get_dodge_chance"},
+		{"stat": Stat.MADRA_COST_CUT, "formula": &"get_madra_cost_cut"},
+		{"stat": Stat.COOLDOWN_CUT, "formula": &"get_cooldown_cut"},
+	]
+	for case: Dictionary in cases:
+		var stat_name: String = Stat.keys()[case.stat]
+		var value: float = CharacterManager.get_stat(case.stat)
+		var expected: float = trained.call(case.formula)
+		assert_almost_eq(value, expected, 0.000001, "%s is its formula over Agility 15 and Control 20" % stat_name)
+		assert_gt(value, untrained.call(case.formula), "%s moved with its stat" % stat_name)
+
+## The formulas read the total stats, so a stat modifier moves them too.
+func test_derived_stats_count_stat_modifiers() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.AGILITY, Kind.FLAT, 5.0)]))
+	assert_almost_eq(CharacterManager.get_stat(Stat.DODGE_CHANCE),
+		CharacterAttributesData.make({&"agility": 15.0}).get_dodge_chance(), 0.000001,
+		"dodge reads the trained Agility 10 plus the modifier's 5")
+
+func test_armor_and_ward_come_from_modifiers_into_the_snapshot() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([
+		StatModifierData.new(Stat.ARMOR, Kind.FLAT, 6.0),
+		StatModifierData.new(Stat.WARD, Kind.FLAT, 4.0),
+	]))
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 6.0, "armor is its modifier on a base of 0")
+	assert_eq(CharacterManager.get_stat(Stat.WARD), 4.0, "Ward is its modifier on a base of 0")
+	var snapshot: CharacterAttributesData = CharacterManager.get_total_attributes_data()
+	assert_eq(snapshot.armor, 6.0, "the snapshot a fight starts with holds the armor")
+	assert_eq(snapshot.ward, 4.0, "the snapshot a fight starts with holds the Ward")
+
+func test_a_derived_stat_takes_its_own_modifiers() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.STAMINA_REGEN, Kind.FLAT, 0.5)]))
+	assert_eq(CharacterManager.get_stat(Stat.STAMINA_REGEN), 1.5, "Agility 10's 1.0 a second plus the modifier's 0.5")
