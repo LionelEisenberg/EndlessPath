@@ -1,11 +1,9 @@
 extends GutTest
 
 ## Unit tests for CultivationManager's public getters on the real Foundation
-## stage: max Madra now and at a given level, which the cultivator plate, the
-## cycling panel and ResourceManager.add_madra() read instead of the private
-## stage-resource lookup (Foundation's curve is 100 base + 5 per Core Density
-## level), the XP a level costs, and the condition that puts each stage's
-## Breakthrough on the Goals board.
+## stage, which callers read instead of the private stage-resource lookup: the
+## XP a level costs, and the condition that puts each stage's Breakthrough on
+## the Goals board.
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -18,14 +16,6 @@ func before_each() -> void:
 func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
-
-#-----------------------------------------------------------------------------
-# MAX MADRA
-#-----------------------------------------------------------------------------
-
-func test_max_madra_follows_level() -> void:
-	PersistenceManager.save_game_data.core_density_level = 32.0
-	assert_eq(CultivationManager.get_max_madra(), 260.0, "100 + 5 x 32")
 
 #-----------------------------------------------------------------------------
 # BREAKTHROUGH GOAL
@@ -56,7 +46,3 @@ func test_xp_for_level_follows_the_stages_curve() -> void:
 	assert_almost_eq(CultivationManager.get_xp_for_level(1), 10.0, 0.0001)
 	assert_almost_eq(CultivationManager.get_xp_for_level(2), 10.2, 0.0001)
 	assert_almost_eq(CultivationManager.get_xp_for_level(11), 10.0 * pow(1.02, 10), 0.0001)
-
-func test_max_madra_at_a_level_follows_the_stages_curve() -> void:
-	assert_eq(CultivationManager.get_max_madra_at(0), 100.0)
-	assert_eq(CultivationManager.get_max_madra_at(12), 160.0, "100 + 5 x 12")

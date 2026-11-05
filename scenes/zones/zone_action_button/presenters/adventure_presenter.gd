@@ -76,7 +76,7 @@ func _update_state() -> void:
 	button.set_ready_frame(_is_affordable)
 	if _is_affordable:
 		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
-		button.set_detail_right("carries %d Madra" % floori(ResourceManager.get_adventure_madra_capacity()), ThemeConstants.LACQUER_BRASS)
+		button.set_detail_right("carries %d Madra" % floori(ResourceManager.get_max_madra()), ThemeConstants.LACQUER_BRASS)
 		button.set_detail_rich_text(_ready_text, _run_length_text())
 	else:
 		button.set_mode_tag(ZoneActionGroups.mode_tag(action_data), ZoneActionButton.TagStyle.CARVED)

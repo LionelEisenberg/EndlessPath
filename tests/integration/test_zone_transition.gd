@@ -93,9 +93,9 @@ func _step_frame(delta: float = FRAME) -> void:
 		if tween.is_valid() and tween.is_running():
 			tween.custom_step(delta)
 
-## Starts the drain on a full adventure budget.
+## Starts the drain on a full pool.
 func _start_drain() -> void:
-	ResourceManager.set_madra(ResourceManager.get_adventure_madra_capacity())
+	ResourceManager.set_madra(ResourceManager.get_max_madra())
 	var adventure: AdventureActionData = ZoneManager.get_action_by_id(ADVENTURE_ID) as AdventureActionData
 	ActionManager.adventure_start_requested.emit(adventure)
 

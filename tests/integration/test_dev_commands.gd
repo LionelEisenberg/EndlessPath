@@ -277,6 +277,13 @@ func test_set_madra_and_set_gold_refuse_a_negative_value() -> void:
 	assert_eq(ResourceManager.get_madra(), 30.0, "Madra is left as it was")
 	assert_eq(ResourceManager.get_gold(), 5.0, "and so is gold")
 
+func test_set_madra_refuses_more_than_the_max() -> void:
+	ResourceManager.set_madra(30.0)
+	assert_ne(DevCommands.set_madra(101.0), "", "101 is past a new character's max of 100")
+	assert_eq(ResourceManager.get_madra(), 30.0, "Madra is left as it was")
+	assert_eq(DevCommands.set_madra(100.0), "", "the max itself is fine")
+	assert_eq(ResourceManager.get_madra(), 100.0)
+
 func test_add_path_points_adds_to_the_balance() -> void:
 	assert_eq(DevCommands.add_path_points(3), "")
 	assert_eq(DevCommands.add_path_points(2), "")

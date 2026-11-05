@@ -152,9 +152,8 @@ func get_max_stamina() -> float:
 func get_stamina_regen() -> float:
 	return agility * STAMINA_REGEN_PER_AGILITY
 
-## Maximum Madra in an adventure (the Madra a run can carry): Mind x
-## MADRA_PER_MIND. Not the core's Madra pool cap, which
-## CultivationManager.get_max_madra() gives.
+## Max Madra: Mind x MADRA_PER_MIND, before modifiers.
+## ResourceManager.get_max_madra() is the one pool's max.
 func get_max_madra() -> float:
 	return mind * MADRA_PER_MIND
 

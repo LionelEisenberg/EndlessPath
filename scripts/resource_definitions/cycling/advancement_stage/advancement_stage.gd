@@ -11,8 +11,6 @@ class_name AdvancementStageResource
 ## Training past it is lost; gear can still lift a total above it.
 @export var stat_level_cap: int = 10
 @export var unlocking_mechanics: Array[String] = []
-@export var max_madra_base: float = 0.0
-@export var max_madra_per_core_density_level: float = 0.0
 @export var icon: Texture2D = null
 @export var next_stage: AdvancementStageResource = null
 ## The latched condition (registered in unlock_condition_list.tres) that puts the
@@ -21,6 +19,3 @@ class_name AdvancementStageResource
 
 func get_xp_for_level(level: int) -> float:
 	return core_density_base_xp_cost * pow(core_xp_scaling_factor, level - 1)
-
-func get_max_madra(level: int) -> float:
-	return max_madra_base + max_madra_per_core_density_level * level

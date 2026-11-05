@@ -131,6 +131,7 @@ UnlockManager does **not** listen to `InventoryManager.inventory_changed`, `Char
 - `_ready()` binds the save. If `unlock_progression` is null it creates one and logs `Log.critical`. It then rebinds and emits `condition_unlocked("")`, and connects the sweep signals.
 - The first sweep at boot happens when ResourceManager (autoload #6) emits its initial `madra_changed` and `gold_changed`. QuestManager connects later (#17), so it misses `condition_unlocked` emissions from that boot sweep.
 - On `save_data_reset`, UnlockManager rebinds and emits `condition_unlocked("")`. ResourceManager then re-emits Madra and Gold, which triggers a sweep.
+- So a condition registered after a save was written latches as that save loads, when it holds: the sweep after every binding (at boot, or on a switch) runs once EventManager and UnlockManager hold the new save. An old save past NPC 3's talk latches `celestial_intervener_dialogue_3` this way, and NPC 4 shows at once.
 
 ### Example gate flow (first NPC talk)
 
@@ -173,7 +174,7 @@ The dev panel opens with Ctrl+Shift+D. Its Story tab fires any event the content
 
 | # | condition_id | Type | Target / params | Op | Consumed by |
 |---|---|---|---|---|---|
-| 1 | `celestial_intervener_dialogue_1` | EVENT_TRIGGERED | `"celestial_intervener_dialogue_1"` | `""` (ignored) | `wilderness_cycling_action.unlock_conditions`; `test_zone.zone_unlock_conditions` |
+| 1 | `celestial_intervener_dialogue_1` | EVENT_TRIGGERED | `"celestial_intervener_dialogue_1"` | `""` (ignored) | `wilderness_cycling_action.unlock_conditions`; `test_zone.zone_unlock_conditions`; `celestial_intervener_dialogue_2.unlock_conditions` |
 | 2 | `test_attribute_requirement_unlock_data` | ATTRIBUTE_VALUE | 20.0, `attribute_type` 1 (BODY) | `>=` (default) | `test_trap_encounter.tres` choice `requirements`. That encounter is not placed by any adventure, so the condition is effectively unused. |
 | 3 | `q_fill_core_madra_full` | RESOURCE_AMOUNT | 100.0, `resource_type` `"madra"` | `>=` (default) | `q_fill_core` step `reach_max_madra`; `celestial_intervener_dialogue_2.unlock_conditions` |
 | 4 | `q_fill_core_completed` | EVENT_TRIGGERED | `"q_fill_core_completed"` | `""` | `spirit_valley_adventure_action` (action id `shallow_woods_adventure_action`); `spring_forest_foraging_action` (action id `sprint_forest_foraging_action`) |
@@ -182,6 +183,9 @@ The dev panel opens with Ctrl+Shift+D. Its Story tab fires any event the content
 | 7 | `aura_well_discovered` | EVENT_TRIGGERED | `"aura_well_discovered"` | `"=="` (ignored) | `aura_well_training.unlock_conditions`; `aura_well_encounter` "Mark down the location" `requirements` (`false`) and `completion_condition` |
 | 8 | `merchant_discovered` | EVENT_TRIGGERED | `"merchant_discovered"` | `"=="` (ignored) | `spirit_valley_merchant.unlock_conditions` |
 | 9 | `core_density_full` | CULTIVATION_LEVEL | 100 | `>=` | `tribulation_action.unlock_conditions` (`spirit_valley_tribulation`) |
+| 10 | `celestial_intervener_dialogue_4` | EVENT_TRIGGERED | `"celestial_intervener_dialogue_4"` | `""` (ignored) | Foundation's `breakthrough_goal_condition` (the Goals board's Breakthrough milestone) |
+| 11 | `celestial_intervener_dialogue_2` | EVENT_TRIGGERED | `"celestial_intervener_dialogue_2"` | `""` (ignored) | `celestial_intervener_dialogue_3.unlock_conditions` |
+| 12 | `celestial_intervener_dialogue_3` | EVENT_TRIGGERED | `"celestial_intervener_dialogue_3"` | `""` (ignored) | `celestial_intervener_dialogue_4.unlock_conditions` |
 
 ### Unregistered (inline) conditions
 
@@ -201,11 +205,11 @@ These are evaluated live only.
 | Dev demo zones (`AdvancementZoneDemo` locked, `UnchartedZoneDemo` uncharted; dev toggle only) | `dev_demo_never_unlocked` (`resources/zones/dev/dev_never_unlocked_condition.tres`), deliberately **not** registered, so it never latches |
 | Talk to the [INTERVENER] (`celestial_intervener_dialogue_1`, max 1) | None |
 | Wilderness Cycling (`wilderness_cycling_action`) | `celestial_intervener_dialogue_1` |
-| Return to the [INTERVENER] (`celestial_intervener_dialogue_2`, max 1) | `q_fill_core_madra_full` |
+| Return to the [INTERVENER] (`celestial_intervener_dialogue_2`, max 1) | `q_fill_core_madra_full` AND `celestial_intervener_dialogue_1` (NPC 1's talk) |
 | The Shallow Woods (`shallow_woods_adventure_action`) | `q_fill_core_completed` |
 | Spring Forest Foraging (`sprint_forest_foraging_action`) | `q_fill_core_completed` |
-| Return to the [INTERVENER] (`celestial_intervener_dialogue_3`, max 1) | `q_first_steps_enemy_defeated` |
-| Return to the [INTERVENER] (`celestial_intervener_dialogue_4`, max 1) | `q_reach_cd_10` |
+| Return to the [INTERVENER] (`celestial_intervener_dialogue_3`, max 1) | `q_first_steps_enemy_defeated` AND `celestial_intervener_dialogue_2` (NPC 2's talk) |
+| Return to the [INTERVENER] (`celestial_intervener_dialogue_4`, max 1) | `q_reach_cd_10` AND `celestial_intervener_dialogue_3` (NPC 3's talk) |
 | Aura Well (`aura_well_training`) | `aura_well_discovered` |
 | Traveling Merchant (`spirit_valley_merchant`) | `merchant_discovered` |
 | The Tribulation (`spirit_valley_tribulation`) | `core_density_full`. The card then shows until the stage reaches its target (`is_passed()`), and starts only while `can_attempt()` holds ([ZONES.md](../zones/ZONES.md#subclasses) has what it checks) |
@@ -221,7 +225,7 @@ These are evaluated live only.
 | `scripts/resource_definitions/unlocks/unlock_condition_list.gd` | Registry class |
 | `singletons/persistence_manager/unlock_progression_data.gd` | Saved latched ids |
 | `resources/unlocks/unlock_condition_list.tres` | The registry |
-| `resources/unlocks/*.tres` | Registered conditions (9) |
+| `resources/unlocks/*.tres` | Registered conditions |
 | `singletons/zone_manager/zone_manager.gd` | `get_available_actions()` latched gating |
 | `scenes/zones/zone_tilemap/zone_tilemap.gd` | Map rebuild on unlock: veils, fog tiers and routes |
 | `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | `unlock_conditions` / `is_eligible()` |
@@ -246,7 +250,7 @@ Tests: `tests/unit/test_unlock_*.gd` and `tests/integration/test_*_unlock.gd`, a
 
 ### Performance
 
-- `[LOW]` The sweep evaluates every registered condition on every listened signal. `madra_changed` fires on every Aura Well tick (1 s), during cycling, and on adventure spending. With 9 conditions this is cheap, but at scale the sweep should be filtered by the signal's relevant condition types.
+- `[LOW]` The sweep evaluates every registered condition on every listened signal. `madra_changed` fires on every Aura Well tick (1 s), during cycling, and on adventure spending. With today's few conditions this is cheap, but at scale the sweep should be filtered by the signal's relevant condition types.
 
 ### Tech Debt
 
