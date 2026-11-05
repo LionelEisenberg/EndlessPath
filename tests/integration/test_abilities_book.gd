@@ -8,8 +8,6 @@ extends GutTest
 const AbilitiesViewScene := preload("res://scenes/abilities/abilities_view.tscn")
 const StatSources := preload("res://tests/helpers/stat_sources.gd")
 const EXTRA_ID: String = "test_extra_ability"
-const STRENGTH_ICON: Texture2D = preload("res://assets/sprites/ui/attribute_icons/strength_icon.png")
-const AGILITY_ICON: Texture2D = preload("res://assets/sprites/ui/attribute_icons/agility_icon.png")
 ## The modifier source a test raises the player's Control under, removed after
 ## each test.
 const TEST_SOURCE: StringName = &"test_control"
@@ -150,18 +148,30 @@ func test_opening_selects_the_first_row() -> void:
 	_view.animate_open()
 	assert_eq(_view.get_selected_ability_id(), _view.get_rows()[0].get_ability_data().ability_id)
 
+## Each damage ability shows its total and its base, then what its one scaling
+## stat adds, under that stat's icon.
 func test_damage_shows_the_total_and_each_attributes_part() -> void:
-	_view.select_ability("basic_strike")
-	var effect: CombatEffectData = (load("res://resources/abilities/basic_strike.tres") as AbilityData).effects_on_target[0]
+	var cases: Array[Dictionary] = [
+		{"name": "Basic Strike", "id": "basic_strike", "path": "res://resources/abilities/basic_strike.tres",
+			"stat": CharacterAttributesData.AttributeType.STRENGTH},
+		{"name": "Empty Palm", "id": "empty_palm", "path": "res://resources/abilities/empty_palm.tres",
+			"stat": CharacterAttributesData.AttributeType.SPIRIT},
+	]
 	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	assert_eq(_label("PrimaryValue").text, AbilityRow.format_number(effect.calculate_value(attrs)))
-	assert_eq(_label("ExplainText").text, "%s base" % AbilityRow.format_number(effect.base_value))
-	var strength_part: ScalingPart = _view.find_child("ScalingPart1", true, false) as ScalingPart
-	assert_true(strength_part.visible)
-	assert_false((_view.find_child("ScalingPart2", true, false) as Control).visible, "Basic Strike scales with Strength alone")
-	assert_eq(strength_part.get_icon(), STRENGTH_ICON)
-	assert_eq(strength_part.get_value_text(),
-		"+%s" % AbilityRow.format_number(effect.get_scaling_contribution(CharacterAttributesData.AttributeType.STRENGTH, attrs)))
+	for case: Dictionary in cases:
+		_view.select_ability(case.id)
+		var effect: CombatEffectData = (load(case.path) as AbilityData).effects_on_target[0]
+		assert_eq(_label("PrimaryValue").text, AbilityRow.format_number(effect.calculate_value(attrs)),
+			"%s's damage" % case.name)
+		assert_eq(_label("ExplainText").text, "%s base" % AbilityRow.format_number(effect.base_value),
+			"%s's base" % case.name)
+		var part: ScalingPart = _view.find_child("ScalingPart1", true, false) as ScalingPart
+		assert_true(part.visible, "%s shows its stat's part" % case.name)
+		assert_eq(part.get_icon(), StatDisplay.icon_of(case.stat), "%s's part shows its stat's icon" % case.name)
+		assert_eq(part.get_value_text(), "+%s" % AbilityRow.format_number(effect.get_scaling_contribution(case.stat, attrs)),
+			"%s's part shows what its stat adds" % case.name)
+		assert_false((_view.find_child("ScalingPart2", true, false) as Control).visible,
+			"%s scales with one stat alone" % case.name)
 
 func test_buffs_say_what_they_do() -> void:
 	# Enforce: the next attack deals 1.5x damage.

@@ -25,16 +25,6 @@ const _KIND_ICONS: Dictionary = {
 	AbilityKind.DEBUFF: preload("res://assets/sprites/ui/book/type_debuff_ai.png"),
 }
 
-## The Character book's attribute icons, for the damage breakdown.
-const _ATTRIBUTE_ICONS: Dictionary = {
-	CharacterAttributesData.AttributeType.STRENGTH: preload("res://assets/sprites/ui/attribute_icons/strength_icon.png"),
-	CharacterAttributesData.AttributeType.BODY: preload("res://assets/sprites/ui/attribute_icons/body_icon.png"),
-	CharacterAttributesData.AttributeType.AGILITY: preload("res://assets/sprites/ui/attribute_icons/agility_icon.png"),
-	CharacterAttributesData.AttributeType.SPIRIT: preload("res://assets/sprites/ui/attribute_icons/spirit_icon.png"),
-	CharacterAttributesData.AttributeType.MIND: preload("res://assets/sprites/ui/attribute_icons/foundation_icon.png"),
-	CharacterAttributesData.AttributeType.CONTROL: preload("res://assets/sprites/ui/attribute_icons/control_icon_ai.png"),
-}
-
 var _filter_mode: FilterMode = FilterMode.ALL
 var _rows: Array[AbilityRow] = []
 ## The ability the right page describes.
@@ -264,7 +254,7 @@ func _show_value_breakdown(ability_id: String, effect: CombatEffectData) -> void
 		if effect.get_scaling(attribute_type) == 0.0 or part_index >= _scaling_parts.size():
 			continue
 		var part: ScalingPart = _scaling_parts[part_index]
-		part.setup(_ATTRIBUTE_ICONS[attribute_type], effect.get_scaling_contribution(attribute_type, attrs))
+		part.setup(StatDisplay.icon_of(attribute_type), effect.get_scaling_contribution(attribute_type, attrs))
 		part.visible = true
 		part_index += 1
 
