@@ -66,6 +66,12 @@ The master plan's Global Constraints hold: explicit types, `##` docs on public f
 
 ### Task 5: Wrap
 
-- [ ] **Step 1:** The full suite: PASS (a parallel-run failure is confirmed in one process first).
-- [ ] **Step 2:** The issue's Done-when checks on `-- --save=user://dev/runs/health-pool.tres`, and a copy of a save from before this chunk.
-- [ ] **Step 3:** Open the PR that closes #93, ending with `## Docs to update`.
+- [x] **Step 1:** The full suite: PASS.
+- [x] **Step 2:** The issue's Done-when checks on `user://dev/runs/health-pool.tres`, and a copy of a save from before this chunk. They ran headless through a throwaway scene (deleted) that opened the save with `PersistenceManager.open_save_file()`, drove the Player tab and wrote with `save_data()`, one process per step so the reload is a fresh launch. The run check called the run's own start (`VitalsManager.initialize_current_values()`, as `AdventureView` does) rather than playing a run.
+- [x] **Step 3:** Open the PR that closes #93, ending with `## Docs to update`.
+
+## Built differently
+
+- DM-03 also touches `PersistenceManager`, outside the issue's Touches: `save_data()` stamps the current version on every write, so `migrate()` leaving a save unstamped is not enough. A loaded save still below the current version after `migrate()` blocks saving.
+- The version steps now stamp their own numbers (`_run_version_steps()`), and a new step joins that function instead of `migrate()`.
+- The Health clamp at a falling max writes a `Log.info` line; Madra's at a falling max writes none. Neither writes to the player's log.
