@@ -1,186 +1,75 @@
 extends GutTest
 
-## Integration tests for the Madra side of starting an adventure: the stage
-## pool cap (CultivationManager), the adventure capacity from total Mind
-## (CharacterManager, including equipment from InventoryManager), and
-## ResourceManager's threshold gate, budget and spend. Every test calls the real
-## singletons, bound to a fresh save and a stub Foundation stage.
+## Integration tests for the Madra side of starting an adventure with one pool:
+## the threshold is half the pool's max, and Mind gear moves both through the
+## real InventoryManager and CharacterManager. Taking the gear off brings a
+## pool above the new max down to it (plan Review Focus 5).
 
 #-----------------------------------------------------------------------------
 # FIXTURES
 #-----------------------------------------------------------------------------
 
-## Stub stage: the pool cap is 100 at Core Density level 0, +10 per level.
-const STAGE_MAX_MADRA_BASE: float = 100.0
-const STAGE_MAX_MADRA_PER_LEVEL: float = 10.0
-## Mind granted by the test helmet at Mind Lv 1: its percent is MIND_BONUS / 10
-## of the trained Mind.
-const MIND_BONUS: float = 5.0
+const ACCESSORY := EquipmentDefinitionData.EquipmentSlot.ACCESSORY
 
-var _save: SaveGameData
-var _stage: AdvancementStageResource
-
-var _original_resource_save: SaveGameData
-var _original_cultivation_save: SaveGameData
-var _original_stage_resources: Array[AdvancementStageResource]
-var _original_character_save: SaveGameData
-var _original_inventory_save: SaveGameData
-var _original_unlock_save: SaveGameData
-var _original_event_save: SaveGameData
-var _original_quest_save: SaveGameData
+var _original_save: SaveGameData
 
 func before_each() -> void:
-	_save = SaveGameData.new()
-	_save.madra = 0.0
-	_save.core_density_level = 0.0
-	_save.current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
-
-	_stage = AdvancementStageResource.new()
-	_stage.stage_name = "Test Foundation"
-	_stage.stage_id = CultivationManager.AdvancementStage.FOUNDATION
-	_stage.max_madra_base = STAGE_MAX_MADRA_BASE
-	_stage.max_madra_per_core_density_level = STAGE_MAX_MADRA_PER_LEVEL
-
-	# ResourceManager reads the pool cap from CultivationManager and the
-	# adventure capacity from CharacterManager, whose equipment bonuses come
-	# from InventoryManager. Every madra_changed also makes UnlockManager
-	# evaluate all conditions (reading EventManager) and QuestManager react to
-	# new unlocks, so those use the test save too.
-	_original_resource_save = ResourceManager.live_save_data
-	_original_cultivation_save = CultivationManager.live_save_data
-	_original_stage_resources = CultivationManager.advancement_stage_resources
-	_original_character_save = CharacterManager.live_save_data
-	_original_inventory_save = InventoryManager.live_save_data
-	_original_unlock_save = UnlockManager.live_save_data
-	_original_event_save = EventManager.live_save_data
-	_original_quest_save = QuestManager._live_save_data
-
-	var stages: Array[AdvancementStageResource] = [_stage]
-	ResourceManager.live_save_data = _save
-	CultivationManager.live_save_data = _save
-	CultivationManager.advancement_stage_resources = stages
-	CharacterManager.live_save_data = _save
-	InventoryManager.live_save_data = _save
-	UnlockManager.live_save_data = _save
-	EventManager.live_save_data = _save
-	QuestManager._live_save_data = _save
+	_original_save = PersistenceManager.save_game_data
+	PersistenceManager.save_game_data = SaveGameData.new_current()
+	PersistenceManager.save_data_reset.emit()
 
 func after_each() -> void:
-	ResourceManager.live_save_data = _original_resource_save
-	CultivationManager.live_save_data = _original_cultivation_save
-	CultivationManager.advancement_stage_resources = _original_stage_resources
-	CharacterManager.live_save_data = _original_character_save
-	InventoryManager.live_save_data = _original_inventory_save
-	UnlockManager.live_save_data = _original_unlock_save
-	EventManager.live_save_data = _original_event_save
-	QuestManager._live_save_data = _original_quest_save
+	PersistenceManager.save_game_data = _original_save
+	PersistenceManager.save_data_reset.emit()
+	while ActionManager.get_current_action() != null:
+		ActionManager.stop_action()
 
 #-----------------------------------------------------------------------------
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## The Madra pool cap for the save's current Core Density level, from the stub stage.
-func _pool_cap() -> float:
-	return _stage.get_max_madra(int(_save.core_density_level))
-
-## The adventure capacity for the trained Mind alone, with no equipment.
-func _base_capacity() -> float:
-	return CharacterAttributesData.make({&"mind": CharacterManager.get_trained_value(CharacterAttributesData.AttributeType.MIND)}).get_max_madra()
-
-func _set_mind_level(level: int) -> void:
-	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, level)
-
-## Equips a helmet that grants MIND_BONUS Mind at Mind Lv 1.
-func _equip_mind_helmet() -> void:
-	var helmet := EquipmentDefinitionData.new()
-	helmet.item_id = "test_mind_helmet"
-	helmet.item_name = "Test Mind Helmet"
-	helmet.slot_type = EquipmentDefinitionData.EquipmentSlot.HEAD
-	helmet.stat_percent_bonuses[&"mind"] = MIND_BONUS / 10.0
+## Wears a ring of +50% Mind: +5 at Lv 1, so 150 max Madra and a threshold of 75.
+func _wear_mind_ring() -> void:
+	var percents: Dictionary[StringName, float] = {&"mind": 0.5}
+	var ring := EquipmentDefinitionData.new()
+	ring.item_id = "test_adventure_flow_ring"
+	ring.item_name = "Test Mind Ring"
+	ring.slot_type = ACCESSORY
+	ring.stat_percent_bonuses = percents
 	var instance := ItemInstanceData.new()
-	instance.item_definition = helmet
-	_save.inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.HEAD] = instance
+	instance.item_definition = ring
+	InventoryManager.equip_item(instance, ACCESSORY, -1, 0)
 
 #-----------------------------------------------------------------------------
-# THRESHOLD GATE
+# THE THRESHOLD
 #-----------------------------------------------------------------------------
 
-## Below the threshold, from an empty pool to one Madra short of it, the
-## adventure is blocked and the budget still reports current Madra.
-func test_madra_below_threshold_blocks_adventure() -> void:
-	var cases: Array[Array] = [
-		["no Madra", 0.0],
-		["one Madra short", _base_capacity() * 0.5 - 1.0],
+func test_mind_gear_raises_the_threshold() -> void:
+	ResourceManager.set_madra(60.0)
+	assert_true(ResourceManager.can_start_adventure(), "precondition: 60 clears a threshold of 50")
+	_wear_mind_ring()
+	assert_eq(ResourceManager.get_adventure_madra_threshold(), 75.0, "half of the ring's 150")
+	assert_false(ResourceManager.can_start_adventure(), "60 falls short of 75")
+
+## The lock-out the old cap hid: a full pool always clears the threshold.
+func test_a_full_pool_clears_the_threshold_at_any_mind() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a new character", "mind_level": 1},
+		{"name": "Mind Lv 15, past the old cap's reach", "mind_level": 15},
 	]
-	for case: Array in cases:
-		_save.madra = 0.0
-		if case[1] > 0.0:
-			ResourceManager.add_madra(case[1])
-		assert_false(ResourceManager.can_start_adventure(), "%s: blocked" % case[0])
-		assert_eq(ResourceManager.get_adventure_madra_budget(), _save.madra,
-			"%s: the budget still reports current Madra for the badge while blocked" % case[0])
-
-func test_cycling_up_to_threshold_allows_adventure_with_partial_budget() -> void:
-	var threshold: float = ResourceManager.get_adventure_madra_threshold()
-	ResourceManager.add_madra(threshold - 10.0)
-	assert_false(ResourceManager.can_start_adventure())
-	ResourceManager.add_madra(10.0)
-	assert_true(ResourceManager.can_start_adventure())
-	assert_eq(ResourceManager.get_adventure_madra_budget(), threshold,
-		"below capacity the whole pool is the budget")
-
-func test_full_stage_pool_allows_adventure() -> void:
-	ResourceManager.add_madra(1000.0)
-	assert_eq(_save.madra, _pool_cap(), "cycling stops at the stage pool cap")
-	assert_true(ResourceManager.can_start_adventure())
-	assert_eq(ResourceManager.get_adventure_madra_budget(), _pool_cap(),
-		"at level 0 the stub pool cap fits within the Mind-10 capacity, so the whole pool is the budget")
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, case.mind_level)
+		ResourceManager.set_madra(ResourceManager.get_max_madra())
+		assert_true(ResourceManager.can_start_adventure(), case.name)
 
 #-----------------------------------------------------------------------------
-# BUDGET AND SPEND
+# THE OVER-MAX RULE
 #-----------------------------------------------------------------------------
 
-func test_budget_capped_at_capacity_when_pool_exceeds_it() -> void:
-	_save.core_density_level = 10.0
-	ResourceManager.add_madra(1000.0)
-	assert_gt(_save.madra, _base_capacity(), "precondition: the level-10 pool holds more than one adventure")
-	assert_eq(ResourceManager.get_adventure_madra_budget(), _base_capacity())
-
-func test_spending_budget_keeps_excess_madra_in_pool() -> void:
-	_save.core_density_level = 10.0
-	ResourceManager.add_madra(1000.0)
-	var pool_before: float = _save.madra
-	var budget: float = ResourceManager.get_adventure_madra_budget()
-	assert_true(ResourceManager.spend_madra(budget))
-	assert_eq(_save.madra, pool_before - budget)
-
-func test_spending_full_budget_below_capacity_empties_pool() -> void:
-	ResourceManager.add_madra(_base_capacity() * 0.75)
-	assert_true(ResourceManager.spend_madra(ResourceManager.get_adventure_madra_budget()))
-	assert_eq(_save.madra, 0.0)
-	assert_false(ResourceManager.can_start_adventure(), "an empty pool must be refilled before the next adventure")
-
-#-----------------------------------------------------------------------------
-# CAPACITY SCALES WITH MIND
-#-----------------------------------------------------------------------------
-
-func test_higher_mind_raises_threshold() -> void:
-	_save.madra = _base_capacity() * 0.5
-	assert_true(ResourceManager.can_start_adventure(), "precondition: enough at Mind 10")
-	_set_mind_level(11)
-	assert_false(ResourceManager.can_start_adventure(), "the same Madra falls short at Mind 20")
-
-func test_higher_mind_raises_budget_ceiling() -> void:
-	_save.core_density_level = 10.0
-	ResourceManager.add_madra(1000.0)
-	var budget_at_mind_10: float = ResourceManager.get_adventure_madra_budget()
-	_set_mind_level(11)
-	assert_eq(ResourceManager.get_adventure_madra_budget(), _base_capacity())
-	assert_gt(ResourceManager.get_adventure_madra_budget(), budget_at_mind_10,
-		"the same full pool carries more Madra into an adventure at Mind 20")
-
-func test_equipment_mind_bonus_raises_capacity() -> void:
-	_equip_mind_helmet()
-	var total := CharacterAttributesData.make({&"mind": CharacterManager.get_trained_value(CharacterAttributesData.AttributeType.MIND) + MIND_BONUS})
-	assert_eq(ResourceManager.get_adventure_madra_capacity(), total.get_max_madra())
-	assert_gt(ResourceManager.get_adventure_madra_capacity(), _base_capacity())
+func test_taking_mind_gear_off_brings_the_pool_down() -> void:
+	_wear_mind_ring()
+	ResourceManager.set_madra(140.0)
+	assert_eq(ResourceManager.get_madra(), 140.0, "precondition: the ring makes room past 100")
+	InventoryManager.unequip_item(ACCESSORY, 0)
+	assert_eq(ResourceManager.get_madra(), 100.0, "the pool comes down to the max without the ring")
+	assert_true(ResourceManager.can_start_adventure(), "100 still clears a threshold of 50")
