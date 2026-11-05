@@ -227,7 +227,7 @@ func _show_details(tile: AttributeTile) -> void:
 	else:
 		var xp: float = CharacterManager.get_stat_xp(stat)
 		var xp_to_next: float = CharacterManager.get_stat_xp_to_next(stat)
-		_detail_xp_label.text = "%d / %d XP" % [xp, xp_to_next]
+		_detail_xp_label.text = "%d / %d XP" % [floori(xp), ceili(xp_to_next)]
 		_detail_xp_bar.set_fraction(xp / xp_to_next if xp_to_next > 0.0 else 0.0)
 		_next_level_caption.text = "NOW → LV %d" % (level + 1)
 

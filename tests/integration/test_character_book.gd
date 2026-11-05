@@ -217,6 +217,16 @@ func test_a_capped_stats_page_has_no_next_level() -> void:
 	assert_string_contains(_label("NextLevelCaption").text, "2")
 	assert_false(_label("DetailCapSeal").visible, "the seal goes under the cap")
 
+func test_the_xp_figure_never_shows_an_unmet_threshold_as_met() -> void:
+	CharacterManager.set_stat_level(Attribute.BODY, 3, 156.0)
+	_view.select_attribute(Attribute.BODY)
+	_view.refresh()
+	var xp_to_next: float = CharacterManager.get_stat_xp_to_next(Attribute.BODY)
+	assert_ne(xp_to_next, floorf(xp_to_next), "precondition: Lv 3's threshold, 156.25, is not a whole number")
+	var text: String = _label("DetailXpLabel").text
+	assert_string_contains(text, "157")
+	assert_false(text.contains("/ 156 "), "the threshold is rounded up, never down")
+
 func test_the_page_shows_trained_plus_gear() -> void:
 	InventoryManager.equip_item(_sword(), EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
 	assert_gt(CharacterManager.get_gear_bonus(Attribute.STRENGTH), 0.0, "precondition: the sword raises Strength")
