@@ -426,6 +426,7 @@ func test_gear_equipped_before_the_run_raises_the_cabinets_max_health() -> void:
 	InventoryManager.equip_item(robes, REINFORCED_ROBES.slot_type, 0)
 
 	_start_run()
+	assert_gt(CharacterManager.get_gear_bonus(CharacterAttributesData.AttributeType.BODY), 0.0, "precondition: the robes raise Body")
 	await wait_process_frames(1)
 
 	var max_health: int = floori(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))

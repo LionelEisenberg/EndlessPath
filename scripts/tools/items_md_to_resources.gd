@@ -44,6 +44,17 @@ func run() -> int:
 				push_error("ItemsMdGenerator: missing icon for id '%s' at %s" % [row["id"], icon_path])
 				return 1
 
+	# Pre-flight: build every row before writing anything, so one bad row
+	# leaves every file as it was.
+	var built: Dictionary = {}
+	for zone in sections:
+		for row in sections[zone]:
+			var eq := ItemsMdParser.build_equipment(row)
+			if eq == null:
+				push_error("ItemsMdGenerator: row '%s' is invalid; nothing written" % row.get("id", "?"))
+				return 1
+			built[row["id"]] = eq
+
 	var created := 0
 	var updated := 0
 	var skipped := 0
@@ -54,7 +65,7 @@ func run() -> int:
 		_ensure_dir(zone_folder)
 		for row in sections[zone]:
 			var target_path := "%s/%s.tres" % [zone_folder, row["id"]]
-			var status := _write_one(row, target_path)
+			var status := _write_one(built[row["id"]], target_path)
 			match status:
 				"created": created += 1
 				"updated": updated += 1
@@ -82,30 +93,22 @@ func _ensure_dir(path: String) -> void:
 	if not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path)):
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path))
 
-func _write_one(row: Dictionary, target_path: String) -> String:
-	# Load existing resource (if any) so ResourceSaver preserves its UID.
+func _write_one(eq: EquipmentDefinitionData, target_path: String) -> String:
+	# Load existing resource (if any): an update re-saves it, keeping its other fields.
 	var existing := ResourceLoader.load(target_path) if ResourceLoader.exists(target_path) else null
-	var eq: EquipmentDefinitionData = ItemsMdParser.build_equipment(row)
-	if eq == null:
-		return "error"
-	var icon := load(_icon_path_for(row["id"])) as Texture2D
+	var icon := load(_icon_path_for(eq.item_id)) as Texture2D
 	if icon == null:
-		push_error("ItemsMdGenerator: failed to load icon %s" % _icon_path_for(row["id"]))
+		push_error("ItemsMdGenerator: failed to load icon %s" % _icon_path_for(eq.item_id))
 		return "error"
 	eq.icon = icon
 
 	var status := "created"
 	if existing is EquipmentDefinitionData:
-		if _resources_equal(existing, eq):
+		if ItemsMdParser.generated_fields_equal(existing as EquipmentDefinitionData, eq):
 			return "skipped"
-		# Re-use the existing resource instance so its UID and resource_path stay intact.
-		existing.item_id = eq.item_id
-		existing.item_name = eq.item_name
-		existing.description = eq.description
-		existing.slot_type = eq.slot_type
-		existing.attribute_bonuses = eq.attribute_bonuses
-		existing.base_value = eq.base_value
-		existing.icon = eq.icon
+		# Re-use the existing resource instance so its resource_path and other fields stay intact.
+		for field: StringName in ItemsMdParser.GENERATED_FIELDS:
+			existing.set(field, eq.get(field))
 		eq = existing
 		status = "updated"
 	var uid_str := ""
@@ -113,15 +116,21 @@ func _write_one(row: Dictionary, target_path: String) -> String:
 		# Generating a fresh UID string for the new resource.
 		var uid_int := ResourceUID.create_id()
 		uid_str = ResourceUID.id_to_text(uid_int)
+	else:
+		# An update keeps the file's own UID, which other resources may reference.
+		# Read it now: the save rewrites the header.
+		var kept_uid := ResourceLoader.get_resource_uid(target_path)
+		if kept_uid != ResourceUID.INVALID_ID:
+			uid_str = ResourceUID.id_to_text(kept_uid)
 
 	var err := ResourceSaver.save(eq, target_path)
 	if err != OK:
 		push_error("ItemsMdGenerator: ResourceSaver.save returned %s for %s" % [err, target_path])
 		return "error"
 
-	# ResourceSaver does not embed a uid= in the header for newly-created resources.
-	# Inject it manually into the [gd_resource ...] header line now.
-	if status == "created" and not uid_str.is_empty():
+	# A headless ResourceSaver.save() writes no uid= in the header, for a new
+	# file or an updated one. Inject it manually into the [gd_resource ...] header line now.
+	if not uid_str.is_empty():
 		_inject_uid_into_tres(target_path, uid_str)
 
 	return status
@@ -151,17 +160,6 @@ func _inject_uid_into_tres(path: String, uid_str: String) -> void:
 		return
 	fw.store_string(new_content)
 	fw.close()
-
-func _resources_equal(a: EquipmentDefinitionData, b: EquipmentDefinitionData) -> bool:
-	return (
-		a.item_id == b.item_id
-		and a.item_name == b.item_name
-		and a.description == b.description
-		and a.slot_type == b.slot_type
-		and a.attribute_bonuses == b.attribute_bonuses
-		and is_equal_approx(a.base_value, b.base_value)
-		and a.icon == b.icon
-	)
 
 func _find_orphans(written_paths: Array[String]) -> Array[String]:
 	var orphans: Array[String] = []

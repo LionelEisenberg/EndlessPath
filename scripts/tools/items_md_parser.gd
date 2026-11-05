@@ -4,33 +4,39 @@ extends RefCounted
 ## Static parser primitives for docs/inventory/ITEMS.md.
 ## See the doc itself for the canonical schema.
 
-## Parses inline stats DSL like "STRENGTH+3, AGILITY+1" into a Dictionary
-## keyed by CharacterAttributesData.AttributeType (int enum values).
-## Empty input -> empty dict. Unknown attribute name -> push_error + empty dict.
-static func parse_stats(s: String) -> Dictionary:
-	var result: Dictionary = {}
-	var trimmed := s.strip_edges()
-	if trimmed.is_empty():
-		return result
-	var tokens := trimmed.split(",")
-	for token in tokens:
+## The fields a roster row writes into its .tres. The generator copies exactly
+## these, and rewrites a file only when one of them differs.
+const GENERATED_FIELDS: Array[StringName] = [
+	&"item_id", &"item_name", &"description", &"slot_type", &"stat_percent_bonuses",
+	&"stat_bonus_floor", &"armor", &"ward", &"base_value", &"icon",
+]
+
+## Parses a stats cell like "STRENGTH+30%, AGILITY+10%, FLOOR+2" into an
+## EquipmentDefinitionData with only its four stat fields set: a stat word's
+## N% stores N / 100 under the stat's key, ARMOR+N and WARD+N store N, and
+## FLOOR+N stores the floor (1 when absent). Blank text gives no bonuses. The
+## first bad token pushes an error naming it, and the result is null.
+static func parse_stats(s: String) -> EquipmentDefinitionData:
+	var stats := EquipmentDefinitionData.new()
+	# Set here rather than left to the class defaults, so the shipped-gear test
+	# notices a default changing under a value the saver left out of a file.
+	stats.stat_bonus_floor = 1
+	stats.armor = 0.0
+	stats.ward = 0.0
+	var seen_words: Dictionary = {}
+	for token: String in s.split(","):
 		var t := token.strip_edges()
 		if t.is_empty():
 			continue
-		var sign_idx := _find_sign_index(t)
-		if sign_idx <= 0:
-			push_error("ItemsMdParser.parse_stats: missing +/- in token '%s'" % t)
-			return {}
-		var attr_name := t.substr(0, sign_idx).strip_edges()
-		var num_str := t.substr(sign_idx).strip_edges()
-		if not CharacterAttributesData.AttributeType.has(attr_name):
-			push_error("ItemsMdParser.parse_stats: unknown attribute '%s'" % attr_name)
-			return {}
-		result[CharacterAttributesData.AttributeType[attr_name]] = float(num_str)
-	return result
+		var refusal := _read_stats_token(t, stats, seen_words)
+		if not refusal.is_empty():
+			push_error("ItemsMdParser.parse_stats: " + refusal)
+			return null
+	return stats
 
 ## Builds an EquipmentDefinitionData (no icon resolution — caller assigns icon).
-## Returns null if any required field is missing or invalid.
+## Returns null if a required field is missing, the slot is unknown, or the
+## stats cell holds a bad token.
 static func build_equipment(row: Dictionary) -> EquipmentDefinitionData:
 	var required := ["id", "name", "slot", "stats", "description"]
 	for key in required:
@@ -42,17 +48,71 @@ static func build_equipment(row: Dictionary) -> EquipmentDefinitionData:
 	if slot < 0:
 		return null
 
-	var bonuses := parse_stats(row["stats"])
-
-	var eq := EquipmentDefinitionData.new()
+	# parse_stats() has already named the bad token.
+	var eq := parse_stats(row["stats"])
+	if eq == null:
+		return null
 	eq.item_id = row["id"]
 	eq.item_name = row["name"]
 	eq.description = row["description"]
 	eq.slot_type = slot
-	eq.attribute_bonuses = bonuses
 	eq.base_value = float(row.get("cost", "0"))
 	# item_type is set to EQUIPMENT by EquipmentDefinitionData._init().
 	return eq
+
+## True when a and b hold the same value in every GENERATED_FIELDS field.
+static func generated_fields_equal(a: EquipmentDefinitionData, b: EquipmentDefinitionData) -> bool:
+	for field: StringName in GENERATED_FIELDS:
+		if a.get(field) != b.get(field):
+			return false
+	return true
+
+## Writes one stats token into stats, or returns why the token is refused
+## ("" when it was read). seen_words collects the words read so far.
+static func _read_stats_token(t: String, stats: EquipmentDefinitionData, seen_words: Dictionary) -> String:
+	var sign_idx := _find_sign_index(t)
+	if sign_idx < 0:
+		return "missing + in '%s'" % t
+	if t[sign_idx] == "-":
+		return "no negative bonuses: '%s'" % t
+	var word := t.substr(0, sign_idx).strip_edges()
+	# Upper-cased because a stat word matches in any case (stat_from_key() below):
+	# two spellings of one word would write the same field.
+	if seen_words.has(word.to_upper()):
+		return "'%s' appears twice" % word
+	seen_words[word.to_upper()] = true
+	var number_text := t.substr(sign_idx + 1).strip_edges()
+	var has_percent := number_text.contains("%")
+	if word == "FLOOR":
+		if has_percent or not number_text.is_valid_int() or number_text.to_int() < 1:
+			return "'%s' must be a whole number of at least 1" % t
+		stats.stat_bonus_floor = number_text.to_int()
+		return ""
+	var stat: int = -1
+	if word == "ARMOR" or word == "WARD":
+		if has_percent:
+			return "'%s' is flat: drop the %%" % t
+	else:
+		stat = CharacterAttributesData.stat_from_key(StringName(word.to_lower()))
+		if stat == -1:
+			return "unknown stat word '%s'" % word
+		if not has_percent:
+			return "'%s' needs a %%: stat bonuses are percents" % t
+	var number := number_text.trim_suffix("%").strip_edges()
+	if not number.is_valid_float():
+		return "'%s' has no number" % t
+	var value := number.to_float()
+	if value <= 0.0:
+		return "'%s' must be above 0" % t
+	match word:
+		"ARMOR":
+			stats.armor = value
+		"WARD":
+			stats.ward = value
+		_:
+			var key := CharacterAttributesData.stat_key(stat as CharacterAttributesData.AttributeType)
+			stats.stat_percent_bonuses[key] = value / 100.0
+	return ""
 
 static func _find_sign_index(token: String) -> int:
 	# Locate the first + or - sign (skip index 0 — attribute names don't begin with signs).

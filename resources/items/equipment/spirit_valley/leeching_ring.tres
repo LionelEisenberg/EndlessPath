@@ -6,6 +6,10 @@
 [resource]
 script = ExtResource("2_6m2ib")
 slot_type = 4
+stat_percent_bonuses = Dictionary[StringName, float]({
+&"control": 0.2,
+&"mind": 0.2
+})
 attribute_bonuses = {
 4: 2.0,
 5: 2.0

@@ -2,7 +2,7 @@
 
 > **Source-of-truth catalog for equipment content in EndlessPath.**
 >
-> The generator `scripts/tools/items_md_to_resources.gd` reads the **Equipment** tables below, using `scripts/tools/items_md_parser.gd`. It writes one `.tres` per row under `resources/items/equipment/<zone>/`. Re-running it overwrites the generated fields in those files (`item_id`, `item_name`, `description`, `slot_type`, `attribute_bonuses`, `base_value`, `icon`). **Edit equipment here, not in the `.tres`.**
+> The generator `scripts/tools/items_md_to_resources.gd` reads the **Equipment** tables below, using `scripts/tools/items_md_parser.gd`. It writes one `.tres` per row under `resources/items/equipment/<zone>/`. Re-running it overwrites the generated fields in those files (`item_id`, `item_name`, `description`, `slot_type`, `stat_percent_bonuses`, `stat_bonus_floor`, `armor`, `ward`, `base_value`, `icon`). **Edit equipment here, not in the `.tres`.**
 >
 > Materials, consumables and quest items are not generated yet. They are hand-authored `.tres` files; see their sections below.
 >
@@ -36,7 +36,7 @@
 | `id` | `item_id` | snake_case; becomes filename `<id>.tres` |
 | `name` | `item_name` | Player-facing display name |
 | `slot` | `slot_type` (EquipmentSlot enum) | One of `MAIN_HAND` / `OFF_HAND` / `HEAD` / `ARMOR` / `ACCESSORY` |
-| `stats` | `attribute_bonuses` (Dictionary[AttributeType, float]) | Inline DSL, see below |
+| `stats` | `stat_percent_bonuses` (Dictionary[StringName, float]), `stat_bonus_floor`, `armor`, `ward` | Inline DSL, see below |
 | `tier` | — (doc-only) | `Foundation` / `Copper` / `Iron` / … — used by designer for balance grouping |
 | `cost` | `base_value` | Gold value, and the merchant's buy price (`MerchantStockEntry.get_price()` rounds it). A future sell-back will derive from it. Prices are starting values; see [Merchant v1](../superpowers/specs/2026-10-19-merchant-v1-design.md#starting-values-and-test-plan) |
 | `identity` | — (doc-only) | One short phrase capturing design intent |
@@ -46,29 +46,34 @@
 
 ### Stats DSL
 
-Format: `<ATTR>[+-]<N>, ...`
+Format: `<WORD>+<N>[%], ...`, comma-separated, each word at most once.
 
-- Attribute literals match the `AttributeType` enum exactly: `STRENGTH`, `BODY`, `AGILITY`, `SPIRIT`, `FOUNDATION`, `CONTROL`, `RESILIENCE`, `WILLPOWER`.
-- Values are integers (stored as float in the resource).
-- Empty stats cell = empty `attribute_bonuses` dictionary.
-- An unknown attribute, or a token with no `+`/`-`, logs an error, and the item is written with **empty** `attribute_bonuses`. The run does not abort, so check the generator output for errors.
+| Word | Gives | Field |
+|---|---|---|
+| `STRENGTH`, `BODY`, `AGILITY`, `SPIRIT`, `MIND`, `CONTROL` | A percent of the player's trained value of that stat, always with `%` (`STRENGTH+30%`), rounded down and never below the item's floor | `stat_percent_bonuses`, a fraction under the stat's key (`&"strength": 0.3`) |
+| `ARMOR` | Flat armor, which cuts physical damage. No `%` | `armor` |
+| `WARD` | Flat Ward, which cuts Spirit damage. No `%` | `ward` |
+| `FLOOR` | The least each stat percent gives, a whole number of at least 1 (1 when absent) | `stat_bonus_floor` |
+
+- Every number is above 0. An empty stats cell is an item with no bonuses.
+- A bad token stops the generator before it writes anything, naming the token, and the run exits with 1: an unknown word, a missing `+`, a `-`, a stat without `%`, a `%` on `ARMOR`, `WARD` or `FLOOR`, a number that isn't one or isn't above 0, or a word written twice.
 
 **Foundation tier authoring guidelines** (per [EQUIPMENT_DESIGN.md](EQUIPMENT_DESIGN.md)):
-- 1-2 attribute bonuses per item
-- Values in the `+1` to `+5` range
-- Simple, clear identity — a sword gives `STRENGTH`, a helm gives `WILLPOWER`
+- 1-2 stat percents per item. Body and head pieces may add `ARMOR` or `WARD`.
+- Every stat is 10 at Lv 1, where a percent gives `max(FLOOR, percent of 10, rounded down)`: `STRENGTH+30%` gives +3. Strength, Body and Agility stay at Lv 1 until body refining exists, so that is all Physical gear gives for now. Pick the percent for what the item should give at Lv 1; `FLOOR` lifts a second stat with a smaller percent (`AGILITY+10%, FLOOR+2` gives +2).
+- Simple, clear identity: a sword gives `STRENGTH`, a cowl gives `SPIRIT` and `WARD`.
 
 ### Spirit Valley
 
 | # | id | name | slot | stats | tier | cost | identity | source | description |
 |---|----|------|------|-------|------|------|----------|--------|-------------|
-| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND | STRENGTH+3, AGILITY+2 | Foundation | 60 | Starter weapon | Merchant | A simple iron blade, well-balanced for a beginner. |
-| E2 | iron_shortsword | Iron Shortsword | MAIN_HAND | STRENGTH+5, AGILITY+2 | Foundation | 150 | Dagger upgrade | Merchant | A heavier blade, demanding both hands. |
-| E3 | cultivators_cowl | Cultivator's Cowl | HEAD | WILLPOWER+3, SPIRIT+1 | Foundation | 40 | First HEAD slot — mental focus | Merchant | A felted cowl, traditional among initiate cultivators. |
-| E4 | reinforced_robes | Reinforced Robes | ARMOR | BODY+4, RESILIENCE+2 | Foundation | 180 | First ARMOR slot — survivability | Merchant | Padded robes lined with light scripted plates. |
-| E5 | dreadbeast_tooth_necklace | Dreadbeast Tooth Necklace | ACCESSORY | STRENGTH+2, AGILITY+2 | Foundation | 0 | Physical Offense | Loot | A small dreadbeast tooth, fashioned around a leather strap. |
-| E6 | leeching_ring | Leeching Ring | ACCESSORY | CONTROL+2, FOUNDATION+2 | Foundation | 120 | Cooldown + max mana | Merchant, Loot | A polished metal band engraved with a single character. |
-| E7 | scripted_bark | Scripted Bark | OFF_HAND | BODY+2 | Foundation | 75 | First offhand slot, played with makeshift dagger dropped by first mob seen | Merchant, Loot | A small scripted piece of bark, not much but will take a hit or two |
+| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND | STRENGTH+30%, AGILITY+10%, FLOOR+2 | Foundation | 60 | Starter weapon | Merchant | A simple iron blade, well-balanced for a beginner. |
+| E2 | iron_shortsword | Iron Shortsword | MAIN_HAND | STRENGTH+50%, AGILITY+10%, FLOOR+2 | Foundation | 150 | Dagger upgrade | Merchant | A heavier blade, demanding both hands. |
+| E3 | cultivators_cowl | Cultivator's Cowl | HEAD | SPIRIT+15%, WARD+4 | Foundation | 40 | First HEAD slot — mental focus | Merchant | A felted cowl, traditional among initiate cultivators. |
+| E4 | reinforced_robes | Reinforced Robes | ARMOR | BODY+40%, ARMOR+6 | Foundation | 180 | First ARMOR slot — survivability | Merchant | Padded robes lined with light scripted plates. |
+| E5 | dreadbeast_tooth_necklace | Dreadbeast Tooth Necklace | ACCESSORY | STRENGTH+20%, AGILITY+20% | Foundation | 0 | Physical Offense | Loot | A small dreadbeast tooth, fashioned around a leather strap. |
+| E6 | leeching_ring | Leeching Ring | ACCESSORY | MIND+20%, CONTROL+20% | Foundation | 120 | Cooldown + max mana | Merchant, Loot | A polished metal band engraved with a single character. |
+| E7 | scripted_bark | Scripted Bark | OFF_HAND | BODY+20% | Foundation | 75 | First offhand slot, played with makeshift dagger dropped by first mob seen | Merchant, Loot | A small scripted piece of bark, not much but will take a hit or two |
 
 ---
 
@@ -142,10 +147,9 @@ Icons are read from `assets/sprites/items/equipment/<id>.png`; all seven exist.
 | `.tres` in `resources/items/equipment/<zone>/` with no matching row | Reported as an orphan and never deleted. The `--delete-orphans` flag is not implemented |
 | Icon file missing | Run aborts before anything is written, naming the path |
 | Two rows share an id (across all zones) | Run aborts before anything is written |
-| Unknown `slot` literal, or an empty `id` / `name` / `slot` / `description` | Run aborts. Files already written in this run stay written |
-| Invalid stats DSL | An error is logged and the item is written with empty `attribute_bonuses`. The run continues and exits 0 |
+| Unknown `slot` literal, an empty `id` / `name` / `slot` / `description`, or a bad stats token | Run aborts before anything is written, naming the row |
 
-The generated fields are `item_id`, `item_name`, `description`, `slot_type`, `attribute_bonuses`, `base_value` and `icon`. `item_type` comes from `EquipmentDefinitionData._init()`. Generated files carry no "do not edit" marker.
+The generated fields are `item_id`, `item_name`, `description`, `slot_type`, `stat_percent_bonuses`, `stat_bonus_floor`, `armor`, `ward`, `base_value` and `icon`. `item_type` comes from `EquipmentDefinitionData._init()`. Generated files carry no "do not edit" marker.
 
 In May 2026 the UIDs injected into newly created files caused "invalid UID" warnings and had to be stripped (b658264). After a run that creates files, open the project in the editor and check for UID warnings before committing.
 
