@@ -155,7 +155,7 @@ func _refresh_new_seal() -> void:
 ## drawer tall enough for both, on even px. Tells the list when the height
 ## changes.
 func _layout_text() -> void:
-	ZoneActionButton.layout_title_row(_title, _new_seal, _tag, true)
+	ZoneActionButton.layout_title_row(_title, _new_seal, _tag)
 	_detail.position.y = _title.position.y + _title.size.y + DETAIL_GAP
 	_detail.size = Vector2(_detail.size.x, 2.0 * ceilf(_detail.get_minimum_size().y / 2.0))
 	var height: float = maxf(SHORT_HEIGHT, _detail.position.y + _detail.size.y + ROOM_UNDER_DETAIL)

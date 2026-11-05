@@ -49,13 +49,6 @@ const KNOWN_TRIMMERS: Array[String] = [
 	"res://scenes/ui/log_window/log_window.tscn",
 	# The zone chest's title.
 	"res://scenes/zones/zone_panel/zone_panel.tscn",
-	# The zone cards: the card, the presenters that fill it and the code that fits their text.
-	"res://scenes/zones/zone_action_button/zone_action_button.tscn",
-	"res://scenes/zones/zone_action_button/zone_action_button.gd",
-	"res://scenes/zones/zone_action_button/presenters/adventure_presenter.tscn",
-	"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn",
-	"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn",
-	"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn",
 	# The zone map's name plates and popovers.
 	"res://scenes/zones/map_markers/zone_map_label/zone_map_label.tscn",
 	"res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn",
