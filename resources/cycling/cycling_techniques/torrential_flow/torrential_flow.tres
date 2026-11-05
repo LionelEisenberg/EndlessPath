@@ -21,5 +21,7 @@ icon = ExtResource("3_x6wbn")
 path_curve = ExtResource("2_7hh5c")
 cycle_duration = 8.0
 base_madra_per_cycle = 250.0
+spirit_xp_per_cycle = 16.0
+minor_stat = 4
 cycling_zones = Array[ExtResource("1_21bxv")]([SubResource("Resource_nkwtb")])
 metadata/_custom_type_script = "uid://7kr7phhtq16r"

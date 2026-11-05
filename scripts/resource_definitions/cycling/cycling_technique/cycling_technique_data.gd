@@ -3,7 +3,8 @@ extends Resource
 
 ## One cycling technique: the path the Madra ball follows, how long a cycle takes,
 ## the Madra a cycle pays and the scoring zones along the path, with the icon its
-## drawer shows in the zone chest. CyclingManager loads the catalog from
+## drawer shows in the zone chest, and what it trains: Spirit, and at most one
+## other Spiritual stat. CyclingManager loads the catalog from
 ## resources/cycling/cycling_techniques/cycling_technique_list.tres.
 
 @export var id: String = ""
@@ -13,6 +14,11 @@ extends Resource
 @export var path_curve: Curve2D  # The path shape
 @export var cycle_duration: float = 10.0 # Seconds for one complete cycle
 @export var base_madra_per_cycle: float = 25.0  # Madra a cycle pays at Spirit Lv 1, in 0.08 s steps while the cursor is on the ball
+## The Spirit XP a fully followed cycle pays. Every technique pays some.
+@export var spirit_xp_per_cycle: float = 0.0
+## The one other stat the technique trains, through its own mini-game: an
+## AttributeType (MIND or CONTROL), or -1 for none.
+@export var minor_stat: int = -1
 
 @export var cycling_zones: Array[CyclingZoneData] = []
 
