@@ -306,6 +306,8 @@ func test_card_follows_a_stage_change() -> void:
 	assert_eq(_tag_text(card), "ENTER", "precondition: ready")
 	PersistenceManager.save_game_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
 	CultivationManager.advancement_stage_changed.emit(CultivationManager.AdvancementStage.COPPER)
+	_cap_main_stats()
+	assert_true(TribulationActionData.get_missing_requirements().is_empty(), "precondition: only the stage refuses")
 	assert_eq(_tag_text(card), "TRIAL")
 	assert_false(_ready_frame(card).visible)
 

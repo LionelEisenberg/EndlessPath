@@ -307,8 +307,10 @@ func test_bonuses_never_count_toward_the_cap() -> void:
 func test_a_full_copper_core_cannot_face_the_foundation_trial() -> void:
 	_fill_core()
 	assert_true(CultivationManager.advance_to_next_stage(), "precondition: Foundation leads to a next stage")
+	_cap_main_stats()
 	PersistenceManager.save_game_data.core_density_level = 100.0
 	assert_true(CultivationManager.is_core_full(), "precondition: Copper's core is full")
+	assert_true(TribulationActionData.get_missing_requirements().is_empty(), "precondition: only the stage refuses")
 	assert_false(_tribulation().can_attempt(), "the stage is past the trial's")
 	watch_signals(ActionManager)
 	ActionManager.select_action(_tribulation())
