@@ -426,7 +426,7 @@ Tests: `tests/unit/test_cycling_*.gd` and `tests/integration/test_cycling_*.gd`,
 ## Related Docs
 
 - [CULTIVATION.md](../cultivation/CULTIVATION.md): Core Density, Madra cap, stages, breakthrough
-- [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md): the Tribulation, the breakthrough at a full core (its own Breath of the Core mini-game, not built on cycling)
+- [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md): the Tribulation, the breakthrough at a full core with Strength and Spirit at the cap (its own Breath of the Core mini-game, not built on cycling)
 - [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md): path nodes that unlock techniques and the cycling perks
 - [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md): intended cycling pacing (Beat 1 Madra fill, Keystone #1)
 - [RESOURCES.md](../infrastructure/RESOURCES.md): Madra pool and adventure budget

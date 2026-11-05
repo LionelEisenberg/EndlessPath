@@ -75,7 +75,7 @@ Consequences:
 | 4 | `EVENT_TRIGGERED` | `EventManager.has_event_triggered(target_value)` | `comparison_op` is ignored |
 | 5 | `ITEM_OWNED` | `InventoryManager.has_item(str(target_value))` | Matches `item_id` across materials (qty > 0), the equipment grid, equipped gear, equipped accessories, quest items (qty > 0), and consumables (qty > 0). `comparison_op` is ignored. |
 | 6 | `RESOURCE_AMOUNT` | `ResourceManager.get_madra()` or `get_gold()` `op` `target_value` | `optional_params.resource_type` is `"madra"` (default) or `"gold"`. Any other value compares against 0.0. |
-| 7 | `ATTRIBUTE_VALUE` | `CharacterManager.get_total_attributes_data().get_attribute(type)` `op` `target_value` | `optional_params.attribute_type` is an `AttributeType` int (default `STRENGTH`). Uses total attributes (base plus bonuses). |
+| 7 | `ATTRIBUTE_VALUE` | `CharacterManager.get_total_attributes_data().get_attribute(type)` `op` `target_value` | `optional_params.attribute_type` is an `AttributeType` int (default `STRENGTH`), one of the six stats. Reads the stat's total, its trained value plus its bonuses ([CHARACTER.md](CHARACTER.md#total-attributes)). |
 
 Progress getters, which the Goals board reads to show `current / target` under a quest step:
 
@@ -124,7 +124,7 @@ Stored as `SaveGameData.unlock_progression`. `reset()` replaces it with a fresh 
                      Log.info("UnlockManager: Condition permanently unlocked: …")
 ```
 
-UnlockManager does **not** listen to `InventoryManager.inventory_changed`, `CharacterManager.base_attribute_changed`, or `CultivationManager.core_density_xp_updated`. A registered `ITEM_OWNED` or `ATTRIBUTE_VALUE` condition therefore latches on the next Madra, Gold, Core Density level, stage, or event signal after it becomes true.
+UnlockManager does **not** listen to `InventoryManager.inventory_changed`, `CharacterManager.stats_changed`, or `CultivationManager.core_density_xp_updated`. A registered `ITEM_OWNED` or `ATTRIBUTE_VALUE` condition therefore latches on the next Madra, Gold, Core Density level, stage, or event signal after it becomes true.
 
 ### Boot and save reset
 
@@ -208,7 +208,7 @@ These are evaluated live only.
 | Return to the [INTERVENER] (`celestial_intervener_dialogue_4`, max 1) | `q_reach_cd_10` |
 | Aura Well (`aura_well_training`) | `aura_well_discovered` |
 | Traveling Merchant (`spirit_valley_merchant`) | `merchant_discovered` |
-| The Tribulation (`spirit_valley_tribulation`) | `core_density_full`. The card then shows until the stage reaches its target (`is_passed()`), and starts only while the core is full (`can_attempt()`) |
+| The Tribulation (`spirit_valley_tribulation`) | `core_density_full`. The card then shows until the stage reaches its target (`is_passed()`), and starts only while `can_attempt()` holds ([ZONES.md](../zones/ZONES.md#subclasses) has what it checks) |
 | Refugee Camp encounter (map generation) | Map owned = true AND `merchant_discovered` = false (live) |
 | Aura Well "Mark down the location" choice | `aura_well_discovered` = false (live). It shows as completed once the condition is true. |
 
@@ -235,8 +235,8 @@ Tests: `tests/unit/test_unlock_*.gd` and `tests/integration/test_*_unlock.gd`, a
 ### Missing Functionality
 
 - `[MEDIUM]` `ZONE_UNLOCKED` and `ADVENTURE_COMPLETED` always return `false` and `Log.warn` on every evaluation. Registering either would log a warning on every sweep, which happens at least once per second while at the Aura Well.
-- `[MEDIUM]` The sweep doesn't listen to `InventoryManager.inventory_changed` or `CharacterManager.base_attribute_changed`. Registered `ITEM_OWNED` and `ATTRIBUTE_VALUE` conditions latch late, and quest steps that use them only re-check on unrelated triggers.
-- `[LOW]` No `CULTIVATION_STAGE ≥ COPPER` condition is registered, although the evaluation code supports it. Copper gates nothing yet; the breakthrough's own gate, `core_density_full` (`CULTIVATION_LEVEL ≥ 100`), is registered.
+- `[MEDIUM]` The sweep doesn't listen to `InventoryManager.inventory_changed` or `CharacterManager.stats_changed`. Registered `ITEM_OWNED` and `ATTRIBUTE_VALUE` conditions latch late, and quest steps that use them only re-check on unrelated triggers.
+- `[LOW]` No `CULTIVATION_STAGE ≥ COPPER` condition is registered, although the evaluation code supports it. Copper gates nothing yet; the Tribulation card's reveal, `core_density_full` (`CULTIVATION_LEVEL ≥ 100`), is registered, and `can_attempt()` gates the trial's start.
 - `[LOW]` `ITEM_OWNED` behaves differently in the two modes: it latches when registered but reverts in live checks once the item is gone. This is harmless today because the Refugee Camp Map is never consumed.
 
 ### Content
