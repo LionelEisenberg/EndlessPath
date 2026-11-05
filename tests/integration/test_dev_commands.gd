@@ -472,11 +472,18 @@ func test_grant_equipment_page_adds_a_page() -> void:
 # ATTRIBUTES AND STAGE
 #-----------------------------------------------------------------------------
 
-func test_add_attribute_adds_to_the_base_value() -> void:
-	var attributes: CharacterAttributesData = PersistenceManager.save_game_data.character_attributes
-	var before: float = attributes.strength
+func test_add_attribute_adds_levels() -> void:
 	assert_eq(DevCommands.add_attribute(CharacterAttributesData.AttributeType.STRENGTH, 5.0), "")
-	assert_eq(attributes.strength, before + 5.0)
+	assert_eq(CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.STRENGTH),
+		mini(6, CharacterManager.get_stat_level_cap()), "Lv 1 and five levels, up to the cap")
+
+func test_add_attribute_does_nothing_at_the_cap() -> void:
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
+	watch_signals(LogManager)
+	assert_eq(DevCommands.add_attribute(CharacterAttributesData.AttributeType.STRENGTH, 1.0), "", "a capped stat is no failure")
+	assert_eq(CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.STRENGTH),
+		CharacterManager.get_stat_level_cap(), "the level stays at the cap")
+	assert_eq(_dev_lines().size(), 0, "nothing was done, so nothing is logged")
 
 func test_add_attribute_refuses_an_unknown_attribute() -> void:
 	var unknown: CharacterAttributesData.AttributeType = 99 as CharacterAttributesData.AttributeType

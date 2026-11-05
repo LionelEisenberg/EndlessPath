@@ -93,13 +93,15 @@ static func add_path_points(amount: int) -> String:
 	_while_paused(PathManager.add_points.bind(amount))
 	return _succeed("Granted %d Path Points" % amount)
 
-## Adds the amount to the base value of one attribute. Refuses a value that is not
-## an attribute.
+## Adds whole levels to one stat, up to the stage's cap. Returns "" with nothing
+## done at the cap. Refuses a value that is not a stat.
 static func add_attribute(attribute: CharacterAttributesData.AttributeType, amount: float) -> String:
 	if not CharacterAttributesData.AttributeType.values().has(attribute):
 		return "Unknown attribute: %d" % attribute
-	_while_paused(CharacterManager.add_base_attribute.bind(attribute, amount))
-	return _succeed("Added %s %s" % [String.num(amount), CharacterManager.get_attribute_display_name(attribute)])
+	if CharacterManager.is_stat_capped(attribute):
+		return ""
+	_while_paused(CharacterManager.add_stat_levels.bind(attribute, roundi(amount)))
+	return _succeed("Raised %s to Lv %d" % [CharacterManager.get_attribute_display_name(attribute), CharacterManager.get_stat_level(attribute)])
 
 ## Breaks through to the next stage, as a passed Tribulation does. Refuses when the
 ## stage has no next stage.

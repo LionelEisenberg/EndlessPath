@@ -35,6 +35,8 @@ const LEGACY_ACCESSORY_GEAR_KEYS: Dictionary[int, int] = {4: 0, 5: 1}
 # CHARACTER MANAGER
 #-----------------------------------------------------------------------------
 
+## The player's trained stats: a level and XP for each of the six. A stat missing from it reads as Lv 1.
+@export var stat_training: StatTrainingData = StatTrainingData.new()
 @export var character_attributes: CharacterAttributesData = CharacterAttributesData.new()
 
 #-----------------------------------------------------------------------------
@@ -207,11 +209,13 @@ func _to_string() -> String:
 # STATE FUNCTIONS AND VERIFICATION
 #-----------------------------------------------------------------------------
 
-## A new save at the current version, for a game that starts fresh. A plain
-## SaveGameData.new() is version 0, the number an old file loads with.
+## A new save at the current version, for a game that starts fresh, with every
+## stat written out at Lv 1. A plain SaveGameData.new() is version 0, the number
+## an old file loads with, and its training record is empty.
 static func new_current() -> SaveGameData:
 	var save := SaveGameData.new()
 	save.save_version = CURRENT_VERSION
+	save.stat_training = StatTrainingData.new_default()
 	return save
 
 ## True when a newer build wrote this save. This build must neither migrate it
@@ -280,6 +284,9 @@ func _apply_zone_id_migrations() -> void:
 ## place, so the managers holding this object keep a valid reference. It copies
 ## from a fresh instance instead of listing the defaults a second time, so a new
 ## field resets without being added here, and every sub-resource is a new object.
+## The training record is then written out with every stat at Lv 1, as
+## new_current() writes it: a reset save is current, so no migration would ever
+## fill an empty one.
 func reset() -> void:
 	var defaults := SaveGameData.new()
 	var script: Script = get_script()
@@ -288,4 +295,5 @@ func reset() -> void:
 		if (usage & PROPERTY_USAGE_STORAGE) != 0:
 			var property_name: String = property["name"]
 			set(property_name, defaults.get(property_name))
+	stat_training = StatTrainingData.new_default()
 	save_version = CURRENT_VERSION

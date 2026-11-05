@@ -1,8 +1,8 @@
 extends GutTest
 
 ## Unit tests for the player's VitalsManager following CharacterManager's stats:
-## its maximum Health, Stamina and Madra move with equipped gear, with base
-## attributes, and with any modifier source, while an enemy's do not. Each test
+## its maximum Health, Stamina and Madra move with equipped gear, with trained
+## levels, and with any modifier source, while an enemy's do not. Each test
 ## builds a VitalsManager the way PlayerManager does (is_player, no attribute
 ## data of its own), on a fresh SaveGameData every manager is re-bound to. The
 ## original save is restored in after_each().
@@ -26,7 +26,6 @@ func before_each() -> void:
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
-	PersistenceManager.save_game_data.character_attributes = CharacterAttributesData.make()
 
 	_vitals = VitalsManager.new()
 	_vitals.is_player = true
@@ -82,17 +81,19 @@ func test_new_max_health_fills_the_next_run() -> void:
 	assert_eq(_vitals.current_health, 140.0, "an adventure starts at the geared maximum")
 
 #-----------------------------------------------------------------------------
-# BASE ATTRIBUTES
+# TRAINED LEVELS
 #-----------------------------------------------------------------------------
 
-func test_base_attribute_change_still_moves_the_maxima() -> void:
-	CharacterManager.add_base_attribute(AttributeType.BODY, 2.0)
-	assert_eq(_vitals.max_health, 120.0)
+func test_a_level_gained_moves_the_maxima() -> void:
+	CharacterManager.add_stat_levels(AttributeType.BODY, 2)
+	assert_eq(_vitals.max_health, CharacterManager.get_stat(Stat.MAX_HEALTH), "the vitals follow the new Body")
+	assert_gt(_vitals.max_health, 100.0, "two Body levels raise max Health past Lv 1's")
 
-func test_gear_and_base_add_up() -> void:
+func test_gear_and_levels_add_up() -> void:
 	_equip(_make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0}), EquipmentSlot.ARMOR)
-	CharacterManager.add_base_attribute(AttributeType.BODY, 2.0)
-	assert_eq(_vitals.max_health, 160.0, "12 base + 4 gear Body")
+	CharacterManager.add_stat_levels(AttributeType.BODY, 2)
+	assert_eq(_vitals.max_health, CharacterManager.get_stat(Stat.MAX_HEALTH), "the vitals follow the trained and geared Body")
+	assert_gt(_vitals.max_health, 140.0, "the levels add to the armor's 140")
 
 #-----------------------------------------------------------------------------
 # MODIFIER SOURCES

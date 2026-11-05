@@ -32,7 +32,6 @@ func before_each() -> void:
 	_save.gold = 0.0
 	_save.core_density_level = 0.0
 	_save.current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
-	_save.character_attributes = CharacterAttributesData.make()
 
 	_stage = AdvancementStageResource.new()
 	_stage.stage_name = "Test Foundation"
@@ -82,9 +81,9 @@ func after_each() -> void:
 func _pool_cap() -> float:
 	return _stage.get_max_madra(int(_save.core_density_level))
 
-## The adventure capacity for the save's base attributes (the test save has no equipment).
+## The adventure capacity for the player's total Mind (the test save has no equipment).
 func _adventure_capacity() -> float:
-	return _save.character_attributes.get_max_madra()
+	return CharacterManager.get_total_attributes_data().get_max_madra()
 
 ## The first message_logged text since watch_signals(LogManager).
 func _first_log_message() -> String:
@@ -321,7 +320,7 @@ func test_award_resource_adds_to_its_type() -> void:
 #-----------------------------------------------------------------------------
 
 func test_adventure_capacity_follows_mind_not_stage_cap() -> void:
-	_save.character_attributes.mind = 12.0
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, 3)
 	assert_ne(_adventure_capacity(), _pool_cap(), "precondition: the two caps differ")
 	assert_eq(ResourceManager.get_adventure_madra_capacity(), _adventure_capacity())
 

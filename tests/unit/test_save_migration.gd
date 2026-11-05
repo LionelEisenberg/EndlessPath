@@ -1,10 +1,10 @@
 extends GutTest
 
 ## Unit tests for SaveGameData: its version stamp and the migrations behind it,
-## repair(), reset(), and the save fields added for the map-first zone view. A
-## save written before those fields existed must load with their defaults, and
-## a save standing in the hidden Test Zone must move to Spirit Valley before
-## verify() runs.
+## repair(), reset(), the training record a new or reset save writes out, and
+## the save fields added for the map-first zone view. A save written before
+## those fields existed must load with their defaults, and a save standing in
+## the hidden Test Zone must move to Spirit Valley before verify() runs.
 
 const TMP_OLD_SAVE_PATH: String = "user://__test_old_save_migration.tres"
 
@@ -100,6 +100,19 @@ func test_a_newer_save_is_left_alone() -> void:
 
 func test_to_string_names_the_version() -> void:
 	assert_string_contains(str(SaveGameData.new_current()), "SaveVersion: %d" % SaveGameData.CURRENT_VERSION)
+
+#-----------------------------------------------------------------------------
+# STAT TRAINING
+#-----------------------------------------------------------------------------
+
+## A new save writes every stat out at Lv 1 with no XP. It reads the record's
+## dictionaries: get_level() and get_xp() give 1 and 0.0 for a missing key too.
+func test_a_new_save_holds_every_stat_at_level_one() -> void:
+	var training: StatTrainingData = SaveGameData.new_current().stat_training
+	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
+		var key: StringName = CharacterAttributesData.stat_key(stat)
+		assert_eq(training.levels.get(key), 1, "%s is written at Lv 1" % key)
+		assert_eq(training.xp.get(key), 0.0, "%s is written with no XP" % key)
 
 #-----------------------------------------------------------------------------
 # LEGACY ACCESSORIES
@@ -238,6 +251,7 @@ func test_reset_clears_seen_actions() -> void:
 func test_reset_matches_a_fresh_save() -> void:
 	var data := SaveGameData.new()
 	var old_inventory := data.inventory
+	var old_stat_training := data.stat_training
 	var old_character_attributes := data.character_attributes
 	var old_unlock_progression := data.unlock_progression
 	var old_event_progression := data.event_progression
@@ -257,6 +271,10 @@ func test_reset_matches_a_fresh_save() -> void:
 	assert_eq(data.unlocked_ability_ids, SaveGameData.new().unlocked_ability_ids, "the ability list is back to its declared default")
 	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION, "a reset save is a current one")
 	assert_not_same(data.inventory, old_inventory, "reset leaves a new inventory, not the old one emptied")
+	assert_not_same(data.stat_training, old_stat_training, "reset leaves a new training record")
+	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
+		var key: StringName = CharacterAttributesData.stat_key(stat)
+		assert_true(data.stat_training.levels.has(key), "the reset writes %s out: a current save is never migrated" % key)
 	assert_not_same(data.character_attributes, old_character_attributes)
 	assert_not_same(data.unlock_progression, old_unlock_progression)
 	assert_not_same(data.event_progression, old_event_progression)

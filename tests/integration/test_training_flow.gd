@@ -20,7 +20,6 @@ var _level_signal_levels: Array[int] = []
 
 func before_each() -> void:
 	_save_data = SaveGameData.new()
-	_save_data.character_attributes = CharacterAttributesData.make()
 	_save_data.madra = 0.0
 	_save_data.current_selected_zone_id = "SpiritValley"
 
@@ -74,8 +73,8 @@ func _on_tick(_data: TrainingActionData, _count: int) -> void:
 func _on_level(_data: TrainingActionData, level: int) -> void:
 	_level_signal_levels.append(level)
 
-func _get_spirit() -> float:
-	return _save_data.character_attributes.get_attribute(CharacterAttributesData.AttributeType.SPIRIT)
+func _spirit_level() -> int:
+	return CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.SPIRIT)
 
 ## Times the held tick timer out `count` times, as it does once every
 ## tick_interval_seconds while training runs.
@@ -99,7 +98,7 @@ func test_training_ticks_fire_effects_and_level_up() -> void:
 	assert_eq(_tick_signal_count, 4, "each time-out is one tick")
 	assert_eq(_save_data.madra, float(_tick_signal_count), "madra should equal tick count (1.0 per tick)")
 	assert_eq(_level_signal_levels, [1] as Array[int], "level 1 should have been gained exactly once (not yet level 2)")
-	assert_eq(_get_spirit(), 11.0, "Spirit should be 10 + 1 = 11 after one level-up")
+	assert_eq(_spirit_level(), 2, "Lv 1 + one level")
 
 	ActionManager.stop_action()
 
@@ -116,6 +115,6 @@ func test_training_ticks_fire_effects_and_level_up() -> void:
 	assert_eq(_level_signal_levels, [1, 2] as Array[int], "the restart counts on from the kept ticks")
 	assert_eq(ZoneManager.get_training_ticks("test_training", "SpiritValley"), _tick_signal_count,
 		"every tick, before and after the restart, is kept")
-	assert_eq(_get_spirit(), 12.0, "Spirit should be 12 after two level-ups")
+	assert_eq(_spirit_level(), 3, "Lv 1 + two levels")
 
 	ActionManager.stop_action()

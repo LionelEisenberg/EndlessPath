@@ -133,17 +133,6 @@ func set_attribute(stat: AttributeType, value: float) -> void:
 		AttributeType.CONTROL: control = value
 		_: Log.error("CharacterAttributesData: Unknown attribute type %s" % stat)
 
-## Add an amount to a specific attribute by type.
-func add_to_attribute(attr_type: AttributeType, amount: float) -> void:
-	var old_value := get_attribute(attr_type)
-	set_attribute(attr_type, old_value + amount)
-	Log.info("CharacterAttributesData: Added %.1f to %s (%.1f -> %.1f)" % [
-		amount,
-		AttributeType.keys()[attr_type],
-		old_value,
-		get_attribute(attr_type),
-	])
-
 #-----------------------------------------------------------------------------
 # DERIVED VALUES
 #-----------------------------------------------------------------------------

@@ -40,7 +40,7 @@ var _rows: Array[AbilityRow] = []
 ## The ability the right page describes.
 var _selected_id: String = ""
 ## Damage and heal previews by ability id, so pointing back and forth doesn't
-## redo them. Cleared on each opening and whenever a base attribute changes.
+## redo them. Cleared on each opening and whenever a stat changes.
 var _value_previews: Dictionary[String, float] = {}
 
 @onready var _filter_selector: SortSubBanner = %FilterSelector
@@ -69,7 +69,7 @@ func _ready() -> void:
 	for i: int in range(_equip_slots.size()):
 		_equip_slots[i].setup(i)
 		_equip_slots[i].ability_dropped.connect(_on_ability_dropped)
-	CharacterManager.base_attribute_changed.connect(_on_base_attribute_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -366,8 +366,8 @@ func _on_ability_dropped(ability_id: String, slot_index: int, from_slot: int) ->
 		AbilityManager.equip_ability_at_slot(ability_id, slot_index)
 	refresh()
 
-## A training tick can raise an attribute while the book is open.
-func _on_base_attribute_changed(_attribute_type: CharacterAttributesData.AttributeType, _new_value: float) -> void:
+## A stat can change while the book is open.
+func _on_stats_changed() -> void:
 	_value_previews.clear()
 	if _detail_card.is_visible_in_tree():
 		_show_details(_find_ability(_selected_id))

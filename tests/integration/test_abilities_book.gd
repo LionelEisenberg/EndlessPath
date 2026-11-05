@@ -186,3 +186,12 @@ func test_reopening_previews_damage_again() -> void:
 	_view.animate_open()
 	_view.select_ability(EXTRA_ID)
 	assert_eq(effect.calls, 2)
+
+## A level can be gained while the book is open.
+func test_a_stat_change_previews_damage_again() -> void:
+	var effect: CountingEffect = _add_counting_ability()
+	_view.select_ability(EXTRA_ID)
+	CharacterManager.stats_changed.emit()
+	_hover("enforce")
+	_hover(EXTRA_ID)
+	assert_eq(effect.calls, 2, "the preview is worked out again after a stat change")

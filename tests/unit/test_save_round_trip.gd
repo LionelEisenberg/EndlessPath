@@ -53,6 +53,10 @@ func _full_save() -> SaveGameData:
 		&"strength": 12.0, &"body": 13.0, &"agility": 14.0, &"spirit": 15.0, &"mind": 16.0, &"control": 17.0,
 		&"armor": 18.0, &"ward": 19.0,
 	})
+	save.stat_training = StatTrainingData.new_default()
+	save.stat_training.set_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
+	save.stat_training.set_xp(CharacterAttributesData.AttributeType.SPIRIT, 37.5)
+	save.stat_training.set_level(CharacterAttributesData.AttributeType.STRENGTH, 3)
 
 	# Cultivation: stage Copper, and a milestone paid in each stage.
 	save.core_density_xp = 340.0

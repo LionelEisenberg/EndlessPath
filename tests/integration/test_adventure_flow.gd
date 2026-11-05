@@ -33,7 +33,6 @@ func before_each() -> void:
 	_save.madra = 0.0
 	_save.core_density_level = 0.0
 	_save.current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
-	_save.character_attributes = CharacterAttributesData.make()
 
 	_stage = AdvancementStageResource.new()
 	_stage.stage_name = "Test Foundation"
@@ -83,12 +82,12 @@ func after_each() -> void:
 func _pool_cap() -> float:
 	return _stage.get_max_madra(int(_save.core_density_level))
 
-## The adventure capacity for the save's base attributes, with no equipment.
+## The adventure capacity for the trained Mind alone, with no equipment.
 func _base_capacity() -> float:
-	return _save.character_attributes.get_max_madra()
+	return CharacterAttributesData.make({&"mind": CharacterManager.get_trained_value(CharacterAttributesData.AttributeType.MIND)}).get_max_madra()
 
-func _set_mind(value: float) -> void:
-	_save.character_attributes.set_attribute(CharacterAttributesData.AttributeType.MIND, value)
+func _set_mind_level(level: int) -> void:
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, level)
 
 ## Equips a helmet that grants MIND_BONUS Mind.
 func _equip_mind_helmet() -> void:
@@ -167,20 +166,20 @@ func test_spending_full_budget_below_capacity_empties_pool() -> void:
 func test_higher_mind_raises_threshold() -> void:
 	_save.madra = _base_capacity() * 0.5
 	assert_true(ResourceManager.can_start_adventure(), "precondition: enough at Mind 10")
-	_set_mind(20.0)
+	_set_mind_level(11)
 	assert_false(ResourceManager.can_start_adventure(), "the same Madra falls short at Mind 20")
 
 func test_higher_mind_raises_budget_ceiling() -> void:
 	_save.core_density_level = 10.0
 	ResourceManager.add_madra(1000.0)
 	var budget_at_mind_10: float = ResourceManager.get_adventure_madra_budget()
-	_set_mind(20.0)
+	_set_mind_level(11)
 	assert_eq(ResourceManager.get_adventure_madra_budget(), _base_capacity())
 	assert_gt(ResourceManager.get_adventure_madra_budget(), budget_at_mind_10,
 		"the same full pool carries more Madra into an adventure at Mind 20")
 
 func test_equipment_mind_bonus_raises_capacity() -> void:
 	_equip_mind_helmet()
-	var total := CharacterAttributesData.make({&"mind": _save.character_attributes.mind + MIND_BONUS})
+	var total := CharacterAttributesData.make({&"mind": CharacterManager.get_trained_value(CharacterAttributesData.AttributeType.MIND) + MIND_BONUS})
 	assert_eq(ResourceManager.get_adventure_madra_capacity(), total.get_max_madra())
 	assert_gt(ResourceManager.get_adventure_madra_capacity(), _base_capacity())
