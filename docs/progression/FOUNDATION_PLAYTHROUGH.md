@@ -7,8 +7,8 @@
 ## Overview
 
 - **Target:** 30–60 minutes of committed play across 10 beats, ending with the Foundation → Copper breakthrough (Tribulation).
-- **Built:** Beats 1, 2, 3a, 3b, 4 and 9. Beat 3b unlocks the Merchant; Beat 4 is its shop (Merchant v1); Beat 9 is the Tribulation, which breaks through to Copper.
-- **Content ends** after the Merchant and the Tribulation. See [Where content ends](#where-content-ends).
+- **Built:** Beats 1, 2, 3a, 3b, 4 and 9. Beat 3b unlocks the Merchant; Beat 4 is its shop (Merchant v1); Beat 9 is the Tribulation, which breaks through to Copper. The Tribulation needs a full core and Strength and Spirit at the stage's cap, and nothing trains Strength in play, so play can't reach the breakthrough yet.
+- **Content ends** after the Merchant, at the Tribulation. See [Where content ends](#where-content-ends).
 - **Planned:** Beats 5, 6 and 10 (7 and 8 were dropped). See [Planned beats](#planned-beats-510).
 
 | Status tag | Meaning |
@@ -44,7 +44,7 @@
 | Abilities | `basic_strike` and `enforce`, unlocked and equipped | `SaveGameData` |
 | Cycling technique | `foundation_technique` (Foundational Technique) | `SaveGameData` |
 | Quests, events, conditions | None. The Goals board is hidden: no quest is active, and its Breakthrough milestone waits for NPC 4 (Beat 3b). | — |
-| HUD | The cultivator cabinet (Madra, Core Density, gold), the log board, and the dock's Inventory, Abilities, Character, and Path buttons are visible from the first frame. The Goals board appears with the first quest | — |
+| HUD | The cultivator cabinet (Madra, Core Density, the six stats at Lv 1, gold), the log board, and the dock's Inventory, Abilities, Character, and Path buttons are visible from the first frame. The Goals board appears with the first quest | — |
 
 ### Beat chain at a glance
 
@@ -70,6 +70,7 @@ BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible   (+1 pat
   │                    ─ event merchant_discovered ─► Traveling Merchant
 BEAT 4  Traveling Merchant ─ shop: gold buys 6 gear pieces (once per save each) and Crude Scales
 BEAT 9  CD 100 ─ cond core_density_full ─► The Tribulation card (NEW)   (the core is full; XP at the cap is lost)
+  │ the card stays TRIAL until Strength and Spirit reach the stage's cap (nothing trains Strength in play)
   │ the trial: pass ─► Copper, level 0, the card gone
   │            fail ─► CD 100 → 95, the card stays (retry once the core is full again)
 END OF AUTHORED CONTENT
@@ -110,7 +111,7 @@ Deviations from the original design:
 
 | # | Player does | What happens | Ids |
 |---|---|---|---|
-| 1 | Starts **The Shallow Woods** | Requires Madra ≥ 50% of adventure capacity: FOUNDATION × 10 × 0.5 = 50 at default stats. The run has a 300 s limit. The map comes from `shallow_woods.tres` (see [ADVENTURING.md](../adventuring/ADVENTURING.md)): Starving Dreadbeast ×3 and Amorphous Spirit ×4 regular fights, Coalescing Spirit ×2 and Ravenous Dreadbeast ×2 elites, a Manifested Spirit boss (the regular `amorphous_spirit` enemy), one Aura Well, and the Refugee Camp when eligible. Enemy stats are in [COMBAT.md](../combat/COMBAT.md). | Adventure `shallow_woods` |
+| 1 | Starts **The Shallow Woods** | Requires Madra ≥ 50% of the adventure capacity, Mind × 10 ([RESOURCES.md](../infrastructure/RESOURCES.md#madra-caps)): 50 at Lv 1 Mind. The run has a 300 s limit. The map comes from `shallow_woods.tres` (see [ADVENTURING.md](../adventuring/ADVENTURING.md)): Starving Dreadbeast ×3 and Amorphous Spirit ×4 regular fights, Coalescing Spirit ×2 and Ravenous Dreadbeast ×2 elites, a Manifested Spirit boss (the regular `amorphous_spirit` enemy), one Aura Well, and the Refugee Camp when eligible. Enemy stats are in [COMBAT.md](../combat/COMBAT.md). | Adventure `shallow_woods` |
 | 2 | Wins any combat | On the first enemy death `AdventureCombat._on_enemy_health_changed()` fires the event. Step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), the condition latches, and NPC 3 appears in Spirit Valley. | Event and condition `q_first_steps_enemy_defeated` |
 | 3 | Clicks NPC 3 | Label `dialogue_3` plays, then the event fires and `q_first_steps` completes. `AwardPathPointEffectData(1)` adds the first path point ("Quest Complete: First Steps Out"), and the dock's Path button shows its count seal. | Action and event `celestial_intervener_dialogue_3` |
 | 4 | — | NPC 3's second effect starts Beat 3b's quest ("Quest Started: Harden Your Core") | Quest `q_reach_core_density_10`, step 0 `reach_cd_10` |
@@ -134,10 +135,10 @@ Deviations from the original design:
 
 - **Placement:** a `shallow_woods.tres` `encounter_quotas` entry with count 1, ANCHOR placement, `min_distance_from_origin` 3, and `min_fillers_on_path` 1. Every map gets exactly one Aura Well, drawn with the REST_SITE icon. Map generation is described in [ADVENTURING.md](../adventuring/ADVENTURING.md).
 - **Choices** (`aura_well_encounter.tres`):
-  - **Rest:** ChangeVitals with `body_hp_multiplier` 5.0 and `foundation_madra_multiplier` 2.0, which gives +50 HP and +20 Madra at the default BODY and FOUNDATION of 10. Always available.
+  - **Rest:** ChangeVitals with `body_hp_multiplier` 5.0 and `mind_madra_multiplier` 2.0, which gives +5 × Body HP and +2 × Mind Madra: +50 HP and +20 Madra at Lv 1 (Body and Mind 10). Always available.
   - **Mark down the location:** the same rest plus `TriggerEventEffectData("aura_well_discovered")`. `requirements = {aura_well_discovered: false}` and `completion_condition = aura_well_discovered`. Once the event has fired, every Aura Well renders this choice disabled as "✓ Location noted".
 - **Unlock:** the event latches the condition `aura_well_discovered`, and the **Aura Well** training action (`aura_well_training`, TRAIN_STATS) appears in Spirit Valley.
-- **Training:** 1 s ticks award +1.5 Madra per tick (`aura_well_madra_trickle_effect.tres`), and each training level awards +1 SPIRIT (`aura_well_spirit_award_effect.tres`). Levels cost 60, 300, 600, and 1200 ticks, then ×2 per level (2400, 4800, …). That is about 1, 5, 10, 20, and 40 minutes, with no cap.
+- **Training:** 1 s ticks award +1.5 Madra per tick (`aura_well_madra_trickle_effect.tres`), and each training level raises Spirit one level (`aura_well_spirit_award_effect.tres`), up to the stage's cap ([CULTIVATION.md](../cultivation/CULTIVATION.md#advancement-stages)); a training level past it awards no Spirit. Levels cost 60, 300, 600, and 1200 ticks, then ×2 per level (2400, 4800, …). That is about 1, 5, 10, 20, and 40 minutes, and the training levels themselves have no cap.
 - **No quest.** The new card, with its NEW seal, is the only signal. The Aura Well resolves before foraging only when the zone has no saved last idle action, so a player who forages keeps foraging until they pick the well.
 
 ### Beat 3b: Second Keystone + Merchant Unlock `IMPLEMENTED`
@@ -149,7 +150,7 @@ Deviations from the original design:
 | 1 | Cycles with **Smooth Flow** | 15 s cycle, 200 base Madra, and 4 cycling zones that give Core Density XP per click (perfect / good / ok): 25/15/5, 25/15/5, 50/25/10, 25/15/5. CD 10 needs about 110 cumulative XP, roughly one perfect cycle. | `smooth_flow` |
 | 2 | Reaches CD 10 | `CultivationManager` adds +1 path point (the milestone award). The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and NPC 4 appears. | Condition `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) |
 | 3 | Optionally buys **Power Font** (Keystone #2) | It requires Pure Core Awakening and unlocks the `power_font` ability. The alternatives are Torrential Flow (MAJOR: a technique) and Expanded Core (MINOR: +25 Madra capacity). Nothing requires the keystone. | Node `power_font` |
-| 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. The event's condition latches, and the Goals board's Breakthrough milestone ("Raise Core Density to 100") takes the finished quest's place: Foundation names it as its `breakthrough_goal_condition`, so the climb to 100 has a goal once the quests run out. | Action, event and condition `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
+| 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. The event's condition latches, and the Goals board's Breakthrough milestone takes the finished quest's place, with a line for each requirement still missing ("Raise Core Density to 100", then each of Strength and Spirit below the stage's cap, such as "Strength Lv 1 / 10"): Foundation names it as its `breakthrough_goal_condition`, so the climb to 100 has a goal once the quests run out. | Action, event and condition `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
 | 5 | Starts another Shallow Woods run | The **Refugee Camp** anchor is placed: count 1, `min_distance_from_origin` 3, REST_SITE icon. Its live gate is `refugee_camp_map_owned` (ITEM_OWNED) = true and `merchant_discovered` = false. | Encounter `refugee_camp` |
 | 6 | Chooses **Approach the camp** | The event fires and the condition latches, and **Traveling Merchant** appears in Spirit Valley. The tile then reads "The camp is empty now — they must have moved on, following your map back to the valley." Later maps never place the camp. | Event and condition `merchant_discovered`; action `spirit_valley_merchant` |
 | 7 | Clicks **Traveling Merchant** | The shop opens: see [Beat 4](#beat-4-merchant-shop-implemented). | Action `spirit_valley_merchant` |
@@ -171,6 +172,7 @@ Deviations from the original design:
 | Iron Shortsword | Main hand | 150 | 1 per save |
 | Reinforced Robes | Armor | 180 | 1 per save |
 
+- **Gear rows.** A gear row's effects line gives the slot, then the item's gear lines, worded as in [INVENTORY.md](../inventory/INVENTORY.md#equipment-details-and-marks), and reprints them when the stats change (`CharacterManager.stats_changed`), since each bonus follows its stat's trained value. A row's effects line wraps rather than being cut off.
 - **Rules** (`MerchantManager`):
   - A gear piece bought from this merchant stays sold out for the rest of the save, even if the player trashes it. Purchases are kept per merchant in `SaveGameData.merchant_ledgers`.
   - When the price is above the player's gold, the row reads "Need N more gold" and Buy is disabled.
@@ -194,13 +196,13 @@ Deviations from the original design:
 
 ### Beat 9: The Tribulation `IMPLEMENTED`
 
-**Trigger:** Core Density reaches 100, which is now Foundation's cap. There is no quest and no dialogue. The design is [the Breath of the Core spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). How it plays and where its code lives is in [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
+**Trigger:** Core Density reaches 100, Foundation's cap. The trial also needs Strength and Spirit at the stage's stat cap, and nothing trains Strength in play ([CHARACTER.md](../infrastructure/CHARACTER.md#work-remaining)), so play can't ready it yet; the `tribulation_ready` preset sets both stats for testing ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#starting-presets)). There is no quest and no dialogue. The design is [the Breath of the Core spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). How it plays and where its code lives is in [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
 
 | # | Player does | What happens | Ids |
 |---|---|---|---|
-| 1 | Cycles to level 100 | The level-up that reaches the cap drops the leftover XP, and the log writes "Your core is full. The Tribulation waits in Spirit Valley." From then on XP is lost: the cabinet's figure reads "Core full", cycling says "Core full" where it would say "+N XP", and the Goals board's milestone reads "Face the Tribulation" (a player who never talked to NPC 4 has no milestone on the board). | `CultivationManager.core_filled`, `CORE_FULL_LOG` |
-| 2 | — | The condition latches as the core fills, and **The Tribulation** appears under Cultivate with a NEW seal, already ready: the tag ENTER, the steady brass frame and, in brass, "About 38 s" with "failure costs 5 levels" in the right column. The tag TRIAL and `Core 95 / 100` show only after a failure (row 6), and then the card refuses a click until the core is full again. | Condition `core_density_full` (CULTIVATION_LEVEL ≥ 100); action `spirit_valley_tribulation` (`ActionType.TRIBULATION` = 7) |
-| 3 | Clicks the card at 100 | The board opens in the map gap: the HUD boards and the dock hide and the map takes no input. The intro panel gives the rules ("4 cracks end the trial and cost 5 levels of Core Density.") with **Begin** and **Not yet**. Space or a click on the board begins; Not yet or Escape closes it with nothing changed. | `ActionManager.start_tribulation`, `TribulationViewState`, `TribulationView` |
+| 1 | Cycles to level 100 | The level-up that reaches the cap drops the leftover XP, and the log writes "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley." From then on XP is lost: the cabinet's figure reads "Core full", and cycling says "Core full" where it would say "+N XP". The Goals board's milestone lists each of Strength and Spirit still below the stage's cap, a line each ("Strength Lv 1 / 10"), and reads "Face the Tribulation" once both are at it (a player who never talked to NPC 4 has no milestone on the board). | `CultivationManager.core_filled` |
+| 2 | — | The condition latches as the core fills, and **The Tribulation** appears under Cultivate with a NEW seal. Until Strength and Spirit are both at the cap it stays TRIAL: the core rod and `Core 100 / 100`, with the stats still short on a line under them, and a click is refused with a log line for each missing requirement. With both at the cap it is ready: the tag ENTER, the steady brass frame and, in brass, "About 38 s" with "failure costs 5 levels" in the right column. After a failure (row 6) it is TRIAL again, with `Core 95 / 100`, until the core is full again. [ZONES.md](../zones/ZONES.md#player-experience) has the card. | Condition `core_density_full` (CULTIVATION_LEVEL ≥ 100); action `spirit_valley_tribulation` (`ActionType.TRIBULATION` = 7); `TribulationActionData.can_attempt()` |
+| 3 | Clicks the ready card | The board opens in the map gap: the HUD boards and the dock hide and the map takes no input. The intro panel gives the rules ("4 cracks end the trial and cost 5 levels of Core Density.") with **Begin** and **Not yet**. Space or a click on the board begins; Not yet or Escape closes it with nothing changed. | `ActionManager.start_tribulation`, `TribulationViewState`, `TribulationView` |
 | 4 | Plays the Breath of the Core | About 38 s and 25 beats in five phases (Steady breath, Heartbeat, Echo, Quickening, the last breath with its hold). Space or a click as the bright sphere crosses the ring: PERFECT within ±70 ms, GOOD within ±140 ms. Every miss is a crack, and 4 cracks end the trial at once. Once it starts there is no way out, and losing focus does not pause it. | `foundation_tribulation.tres`, `TribulationRun` |
 | 5 | Passes | Applied before the panel shows: the stage becomes Copper at level 0 with no XP, and the Madra cap follows Copper's curve (600 at level 0). The log reads "You break through to Copper." The card goes away at once, and the Goals board's milestone reads "Copper reached". The panel reads "Breakthrough" with the grade (Flawless, Clean or Scraped through). | `CultivationManager.advance_to_next_stage()`, `copper_advancement_stage.tres` |
 | 6 | Fails | The core loses 5 levels (100 → 95) and keeps its path points; the panel reads "Your core cracks". The card stays with `Core 95 / 100`, and the player cycles back to 100 to try again. Regaining the levels pays no second path point. | `lose_core_density_levels(5)`, `core_density_milestones` |
@@ -223,17 +225,17 @@ Deviations from the original design:
 
 After Beat 4 and the Tribulation:
 
-- No quest is active, and the Goals board shows only its milestone (it reads "Face the Tribulation" at Core Density 100, and "Copper reached" after a pass).
+- No quest is active, and the Goals board shows only its milestone (at Core Density 100 it lists Strength and Spirit while they are below the stage's cap, then reads "Face the Tribulation"; it reads "Copper reached" after a pass).
 - No further NPC actions, events, or conditions exist, and the Intervener is gone. Gold buys the Merchant's six gear pieces once each; after that it only buys Crude Scales.
 - Only repeatable systems remain:
   - cycling (+1 path point per 10 CD levels, up to level 100)
   - Shallow Woods runs (elites, the Manifested Spirit boss, Aura Well rests, loot)
-  - Aura Well training
+  - Aura Well training (Spirit up to the stage's cap)
   - Spring Forest Foraging
   - the Merchant (Crude Scales, and gear until it sells out)
   - consumables
   - Path tree purchases (14 nodes)
-- Core Density stops at 100, where the Tribulation waits. A pass reaches Copper, which has stage data and nothing else: no Copper zone, quest, path node or content is gated on it yet.
+- Core Density stops at 100, where the Tribulation waits. It also needs Strength and Spirit at the stage's cap: the Aura Well trains Spirit, but nothing trains Strength in play ([CHARACTER.md](../infrastructure/CHARACTER.md#work-remaining)), so play stops there. A pass reaches Copper, which has stage data and nothing else: no Copper zone, quest, path node or content is gated on it yet.
 - The Test Zone is hidden on the map and has no actions (the dev panel's "Show hidden zones" toggle can show it).
 
 ### Beat index
@@ -242,14 +244,14 @@ After Beat 4 and the Tribulation:
 |---|---|---|---|
 | 1 | Awakening | Cycling, then Adventure and Foraging, via `q_fill_core` and NPCs 1–2 | `IMPLEMENTED` |
 | 2 | First Steps Out | First victory, first path point, Keystone #1 (Pure Core Awakening) | `IMPLEMENTED` |
-| 3a | Aura Well Discovery | Aura Well training action (+1.5 Madra/tick, +1 Spirit/level) | `IMPLEMENTED` |
+| 3a | Aura Well Discovery | Aura Well training action (+1.5 Madra/tick, +1 Spirit/level up to the stage's cap) | `IMPLEMENTED` |
 | 3b | Second Keystone + Merchant unlock | CD 10, NPC 4, Refugee Camp Map, Refugee Camp, Merchant action | `IMPLEMENTED` |
 | 4 | Merchant shop | Gold buys gear (once per save each) and Crude Scales | `IMPLEMENTED` |
 | 5 | Elite Gear Drop | First elite defeated; tier-bump gear | `STUBBED` |
 | 6 | Third Keystone | Keystone #3 at CD ~30 | `PLANNED` |
 | 7 | Tribulation Guardian (dropped) | Replaced on 2026-10-23 by a Spirit Valley action | — |
 | 8 | Advancement Zone (dropped) | Replaced on 2026-10-23 by a Spirit Valley action | — |
-| 9 | The Tribulation | CD 100 reveals the Tribulation in Spirit Valley; a pass reaches Copper, a failure costs 5 levels | `IMPLEMENTED` ([spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md)) |
+| 9 | The Tribulation | CD 100 reveals the Tribulation in Spirit Valley, which also needs Strength and Spirit at the stage's cap (out of reach in play: nothing trains Strength); a pass reaches Copper, a failure costs 5 levels | `IMPLEMENTED` ([spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md)) |
 | 10 | Zone 2 Onramp | Zone 2 accessible | `PLANNED` (sketch) |
 
 ## Planned beats (5–10)
@@ -289,7 +291,7 @@ On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advanc
 | Value | Data | Source |
 |---|---|---|
 | Starting Madra / Foundation cap | 25 / 100 + 5 × CD level (100 at CD 0, 150 at CD 10, 600 at CD 100) | `SaveGameData`, `foundation_advancement_stage.tres` |
-| Adventure capacity / start threshold | FOUNDATION × 10 (100 at default) / 50% of capacity | `CharacterAttributesData.get_max_madra()`, `ResourceManager` |
+| Adventure capacity / start threshold | Mind × 10, gear included (100 at Lv 1) / 50% of capacity | `CharacterAttributesData.get_max_madra()`, `ResourceManager` |
 | Shallow Woods time limit | 300 s | `spirit_valley_adventure_action.tres` |
 | Foundational Technique | 8 s cycle, 50 base Madra (paid while the cursor is on the ball), no zones, so 0 CD XP | `foundation_cycling_technique.tres` |
 | Smooth Flow | 15 s cycle, 200 base Madra, 4 zones; per-cycle CD XP is 125 perfect / 70 good / 25 ok | `smooth_flow.tres`, `cycling_zone_data/zone_1..4.tres` |
@@ -298,15 +300,15 @@ On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advanc
 | Cumulative CD XP | CD 10 ≈ 110; CD 30 ≈ 406; CD 50 ≈ 846; CD 100 ≈ 3,122 | Computed |
 | Path points by CD 100 | 11 (1 quest + 10 milestones), each milestone paid once per stage | `q_first_steps`, `CultivationManager` |
 | Core Density cap | 100 in Foundation and Copper; XP earned at the cap is lost | `max_core_density_level` in the stage resources |
-| The Tribulation | About 38 s and 25 beats; windows ±70 ms (perfect) and ±140 ms (good); 4 cracks fail; a failure costs 5 levels; the Tribulation card appears at CD 100 | `foundation_tribulation.tres` |
+| The Tribulation | About 38 s and 25 beats; windows ±70 ms (perfect) and ±140 ms (good); 4 cracks fail; a failure costs 5 levels; the Tribulation card appears at CD 100 and opens with Strength and Spirit at the stage's cap | `foundation_tribulation.tres`, `TribulationActionData` |
 | Copper | 20 × 1.02^(L−1) XP to reach level L (about 6,245 to level 100); Madra cap 600 + 10 × L; 2 path points per milestone. Placeholders until Copper is designed | `copper_advancement_stage.tres` |
 | Pure Madra tree capacity | 14 nodes at 1 point each = 22 purchases (repeatables max 3 / 5 / 3) | `resources/path_progression/pure_madra/nodes/` |
-| Aura Well training | +1.5 Madra per 1 s tick; +1 SPIRIT per level; 60 / 300 / 600 / 1200 ticks, then ×2 | `aura_well_training_action.tres`, `TrainingActionData` defaults |
-| Aura Well rest | +5 × BODY HP, +2 × FOUNDATION Madra | `aura_well_encounter.tres` |
+| Aura Well training | +1.5 Madra per 1 s tick; +1 Spirit level per training level, up to the stage's cap (training levels past it award none); 60 / 300 / 600 / 1200 ticks, then ×2 | `aura_well_training_action.tres`, `TrainingActionData` defaults |
+| Aura Well rest | +5 × Body HP, +2 × Mind Madra (totals, gear included) | `aura_well_encounter.tres` |
 | Consumables | Crude Scale and Barely Coalesced Scale: +20 Madra (10 s cooldown) | `resources/items/consumables/` |
 | Merchant prices | Crude Scale 10, Cultivator's Cowl 40, Makeshift Dagger 60, Scripted Bark 75, Leeching Ring 120, Iron Shortsword 150, Reinforced Robes 180 (starting values; all gear 625) | Item `base_value`; stock in `spirit_valley_merchant_stock.tres` |
 
-**Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). The curve must be retuned before Beat 6 and the Tribulation reach players. It also sets what the Tribulation's penalty weighs: the 5 levels from 96 to 100 cost about 342 XP, which is 40–75 s of Smooth Flow cycling today.
+**Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). Beat 9 also waits on Strength and Spirit at the stage's cap, which play can't reach yet ([Beat 9](#beat-9-the-tribulation-implemented)). The curve must be retuned before Beat 6 and the Tribulation reach players. It also sets what the Tribulation's penalty weighs: the 5 levels from 96 to 100 cost about 342 XP, which is 40–75 s of Smooth Flow cycling today.
 
 ### Targets to validate
 
@@ -456,7 +458,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Missing Functionality
 
-- `[HIGH]` Copper unlocks nothing. The Tribulation reaches it, but no zone, quest, path node, Scripting or Elixir Making is gated on the stage yet, so a pass ends in an empty stage. This blocks Beat 10 and the Copper milestone.
+- `[HIGH]` Copper unlocks nothing. A Tribulation pass reaches it (out of reach in play while nothing trains Strength, [CHARACTER.md](../infrastructure/CHARACTER.md#work-remaining)), but no zone, quest, path node, Scripting or Elixir Making is gated on the stage yet, so a pass ends in an empty stage. This blocks Beat 10 and the Copper milestone.
 - `[MEDIUM]` The Tribulation is untuned and unplayed by the user: its windows, length and 5-level penalty are starting values, and its copy is placeholder. Run the targets under [Loop Economy](#targets-to-validate) (the spec's [test plan](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md#starting-values-and-test-plan)).
 - `[MEDIUM]` Once the six gear pieces are bought (625 gold), gold only buys Crude Scales. The next gold sink needs new stock (for example a Copper merchant) or rotation.
 - `[MEDIUM]` No events or working condition types exist for an elite defeated, the boss defeated, an adventure completed, or a zone unlocked. `ADVENTURE_COMPLETED` and `ZONE_UNLOCKED` always return false. Beat 5 depends on the elite one.

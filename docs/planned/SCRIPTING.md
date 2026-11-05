@@ -52,7 +52,7 @@ What exists:
 - **Effects:** quality tiers could pick between different `EffectData` sets. See [EFFECTS.md](../infrastructure/EFFECTS.md).
 
 What's missing:
-- **Buffs outside combat:** there is no system for them. `BuffEffectData` and `CombatBuffManager` only run inside a fight, and `CharacterManager.get_total_attributes_data()` has a TODO for active buffs. Short-duration Script buffs that act outside combat (e.g. on cycling) need a timed-modifier system first. The same hookup problem leaves the path tree's numeric perks inert ([PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
+- **Buffs outside combat:** there is no system for them. `BuffEffectData` and `CombatBuffManager` only run inside a fight. A Script buff to a stat would be a CharacterManager modifier source (`set_modifier_source()`, [CHARACTER.md](../infrastructure/CHARACTER.md)), though nothing exists yet to time one, and a buff that acts on cycling has nothing to land on: cycling reads no stat. The same hookup problem leaves the path tree's numeric perks inert ([PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
 - **Zone action:** no `ScriptActionData` subclass of `ZoneActionData` exists. `ZoneActionData.ActionType` is `FORAGE`, `ADVENTURE`, `NPC_DIALOGUE`, `MERCHANT`, `TRAIN_STATS`, `CYCLING`, `ZONE_EVENT`, `TRIBULATION`. A new `SCRIPTING` type (or `ZONE_EVENT`) could route it through `ActionManager` ([ZONES.md](../zones/ZONES.md)).
 - **Tracing input:** the calligraphy mechanic likely needs a custom `Path2D`-based input system, similar to how Cycling uses paths ([CYCLING.md](../cycling/CYCLING.md)).
 
