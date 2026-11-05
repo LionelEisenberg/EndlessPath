@@ -18,8 +18,8 @@ extends Control
 ## ending where the figure under it does, in a slot as wide as its widest reading
 ## up to the technique's top rate at the player's Spirit, so as it climbs the
 ## name beside it never moves; a stats change (a Spirit level, Spirit gear)
-## sizes the slot again. The cycling card is not in the list while the player cycles, so the
-## cycling tray takes no clicks.
+## sizes the slot again. The cycling card is not in the list while the player
+## cycles, so the cycling tray takes no clicks.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
