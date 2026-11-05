@@ -11,7 +11,7 @@ extends GutTest
 ## and the cabinet handed over, and the technique stepped by hand with advance()
 ## (its own processing is off, so the real mouse never races a test). The
 ## technique is smooth_flow, a 15 s cycle of 200 Madra with 4 zones, on a fresh
-## save (25 Madra, cap 100).
+## save (25 Madra, max 100).
 
 const VIEW_SCENE_PATH: String = "res://scenes/cycling/cycling_view/cycling_view.tscn"
 const VIEW_SCENE: PackedScene = preload(VIEW_SCENE_PATH)
@@ -200,7 +200,7 @@ func test_the_status_label_stops_promising_xp_at_a_full_core() -> void:
 	PersistenceManager.save_game_data.core_density_level = 100.0
 	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
 	assert_false(_technique.cycling_zones.is_empty(), "precondition: the technique has zones")
-	ResourceManager.set_madra(CultivationManager.get_max_madra())
+	ResourceManager.set_madra(ResourceManager.get_max_madra())
 	_technique.start_cycle()
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
