@@ -56,9 +56,12 @@ const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
-## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
+## A technique drawer or an activity card is 72 tall with a line each, with 8
+## between them (kit §5.5); each line more is 18.
 const DRAWER_HEIGHT: float = 72.0
 const DRAWER_GAP: float = 8.0
+const STAT_LINE: float = 18.0
+const StatCaps := preload("res://tests/helpers/stat_caps.gd")
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -585,6 +588,35 @@ func test_focus_request_scrolls() -> void:
 	await wait_process_frames(2)
 	assert_true(_card_fully_visible(ADVENTURE_ID))
 	assert_true(_card_flashing(ADVENTURE_ID))
+
+## A card that grows where it stands (the Tribulation's stat line appearing)
+## moves every fold under it down by its new line and none above it, the list
+## measures the taller card, and it still folds under a whole card.
+func test_the_list_refolds_when_a_card_grows() -> void:
+	await _add_panel()
+	_unlock_everything()
+	StatCaps.cap_main_stats()
+	await wait_process_frames(2)
+	var list := _list() as ActivityList
+	var card: ZoneActionButton = _panel.get_card(TRIBULATION_ID) as ZoneActionButton
+	assert_not_null(card, "precondition: the Tribulation is listed")
+	assert_eq(card.size.y, DRAWER_HEIGHT, "precondition: with the stats at the cap, one line")
+	var folds_before: Array[float] = list.get_fold_heights()
+	var content_before: float = list.get_content_height()
+	var top_before: float = card.get_global_rect().position.y - _scroll().get_global_rect().position.y
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.STRENGTH, CharacterManager.get_stat_level_cap() - 1)
+	await wait_process_frames(2)
+	assert_eq(card.size.y, DRAWER_HEIGHT + STAT_LINE, "the stat line grows the card")
+	assert_eq(list.get_content_height(), content_before + STAT_LINE, "the list measures it")
+	var folds_after: Array[float] = list.get_fold_heights()
+	assert_eq(folds_after.size(), folds_before.size(), "precondition: the same cards")
+	for index: int in folds_before.size():
+		var moved: float = folds_after[index] - folds_before[index]
+		if folds_before[index] <= top_before:
+			assert_eq(moved, 0.0, "a fold above the card stays: %d" % index)
+		else:
+			assert_eq(moved, STAT_LINE, "a fold under the card moves down a line: %d" % index)
+	assert_true(folds_after.has(list.size.y) or is_equal_approx(list.size.y, list.get_content_height()), "the list folds under a whole card")
 
 #-----------------------------------------------------------------------------
 # LORE
