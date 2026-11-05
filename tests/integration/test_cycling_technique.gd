@@ -6,7 +6,7 @@ extends GutTest
 ## and result) and CyclingZone (the states that can still score). A cycle is stepped by
 ## calling advance() with a chosen cursor, as _process() calls it with the
 ## mouse. The technique under test is smooth_flow unless a test says otherwise:
-## a 15 s cycle of 200 Madra with 4 zones, on a fresh save (25 Madra, max 100).
+## a 15 s cycle of 80 Madra with 4 zones, on a fresh save (25 Madra, max 100).
 
 const TECHNIQUE_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique/cycling_technique.tscn")
 const SMOOTH_FLOW_PATH: String = "res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres"
@@ -22,10 +22,10 @@ const FRAME: float = 1.0 / 60.0
 const CYCLE_SECONDS: float = 15.0
 
 ## The Madra one step draws: base_madra_per_cycle * 0.08 / cycle_duration.
-const MADRA_STEP: float = 200.0 * 0.08 / 15.0
+const MADRA_STEP: float = 80.0 * 0.08 / 15.0
 
 ## The Madra steady tracking draws a second: base_madra_per_cycle / cycle_duration.
-const MADRA_RATE: float = 200.0 / 15.0
+const MADRA_RATE: float = 80.0 / 15.0
 
 ## Where the ball waits: the first point of smooth_path.tres, on even px.
 const START: Vector2 = Vector2(320.0, 464.0)
@@ -116,7 +116,7 @@ func _count_pellets() -> Array[int]:
 	return count
 
 ## Swaps the fixture's technique for a new one playing foundation_technique: an 8 s
-## cycle of 50 Madra in 100 steps of 0.5, no zones, on a path that ends where it
+## cycle of 30 Madra in 100 steps of 0.3, no zones, on a path that ends where it
 ## starts. It is built with the technique, so no old zones are thrown away.
 func _use_foundation() -> void:
 	_technique = TECHNIQUE_SCENE.instantiate() as CyclingTechnique
@@ -286,16 +286,18 @@ func test_cap_reached_mid_cycle() -> void:
 	# Review Focus 2: the step that meets the cap pays what fits, and the later
 	# steps pay and request nothing.
 	watch_signals(_technique)
-	ResourceManager.set_madra(98.0)
+	# A step is 0.427: from 99.2 the first fits whole and the second fills the
+	# last 0.373.
+	ResourceManager.set_madra(99.2)
 	_technique.start_cycle()
 	_run(1.0, 60.0, true)
 	assert_signal_emit_count(_technique, "madra_particle_requested", 2)
-	assert_true(is_equal_approx(_technique.get_current_result().madra_added, 2.0))
+	assert_almost_eq(_technique.get_current_result().madra_added, 0.8, 0.000001)
 	assert_eq(ResourceManager.get_madra(), 100.0)
 
 func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	# add_madra() reports each step snapped to 0.001 (1.067 for 1.0667), and a
-	# full cycle's 187 snapped steps sum to 199.53: "+200" for the 199.47 it adds.
+	# full cycle's 187 snapped steps sum to 79.85 for the 79.79 it adds.
 	_make_room(200.0)
 	ResourceManager.set_madra(46.0)
 	assert_gt(ResourceManager.get_max_madra(), 46.0 + 200.0, "precondition: the cycle never meets the max")
@@ -308,14 +310,14 @@ func test_the_result_counts_the_madra_the_pool_gained() -> void:
 
 func test_spirit_raises_the_madra_a_cycle_draws() -> void:
 	# Spirit Lv 6 is 15, a multiplier of 1.5, so the Foundational Technique's
-	# cycle of 50 draws 75. The level is set after the technique is ready: it
+	# cycle of 30 draws 45. The level is set after the technique is ready: it
 	# follows the stats change, not only what it read on ready.
 	_make_room(500.0)
 	ResourceManager.set_madra(0.0)
 	_use_foundation()
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
 	assert_eq(_track_one_cycle(func() -> float: return FRAME), 100, "precondition: the cycle's 100 steps")
-	assert_almost_eq(_technique.get_current_result().madra_added, 75.0, 0.01, "50 Madra at 1.5x")
+	assert_almost_eq(_technique.get_current_result().madra_added, 45.0, 0.01, "30 Madra at 1.5x")
 
 func test_the_rate_reads_madra_at_spirit() -> void:
 	# At Spirit 15 steady tracking reads 1.5 x base_madra_per_cycle / cycle_duration.
@@ -330,7 +332,7 @@ func test_a_tracked_8_s_cycle_pays_its_last_step_at_120_fps() -> void:
 	# its last instant. Float error in 960 frames of 1 / 120 s must not cost it.
 	_use_foundation()
 	assert_eq(_track_one_cycle(func() -> float: return 1.0 / 120.0), 100, "100 steps at 120 FPS")
-	assert_almost_eq(_technique.get_current_result().madra_added, 50.0, 0.000001, "the cycle's 50 Madra")
+	assert_almost_eq(_technique.get_current_result().madra_added, 30.0, 0.000001, "the cycle's 30 Madra")
 
 func test_a_tracked_8_s_cycle_pays_100_steps_at_uneven_frame_times() -> void:
 	# Frames of 1 / 120 to 1 / 40 s, drawn from fixed seeds.
@@ -358,7 +360,7 @@ func test_a_hitch_through_the_end_pays_only_the_steps_left() -> void:
 	_technique.advance(16.0, path_end)
 	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
 	assert_eq(pellets[0], 100, "the 75 steps left in the cycle, not the 200 the frame covers")
-	assert_almost_eq(_technique.get_current_result().madra_added, 50.0, 0.000001)
+	assert_almost_eq(_technique.get_current_result().madra_added, 30.0, 0.000001)
 
 #-----------------------------------------------------------------------------
 # THE MADRA RATE
@@ -371,7 +373,7 @@ func test_a_hitch_through_the_end_pays_only_the_steps_left() -> void:
 
 func test_rate_holds_steady_while_tracking() -> void:
 	# Steady tracking reads base_madra_per_cycle / cycle_duration at any frame
-	# rate, from the first frame on (13.333 reads +13.3).
+	# rate, from the first frame on (5.333 reads +5.3).
 	for fps: float in [30.0, 60.0, 144.0]:
 		_technique.stop_cycling()
 		ResourceManager.set_madra(25.0)
@@ -381,9 +383,9 @@ func test_rate_holds_steady_while_tracking() -> void:
 		for _frame: int in roundi(3.0 * fps):
 			_technique.advance(1.0 / fps, _technique.get_ball_global_position())
 			last = CyclingManager.get_madra_rate()
-			if not is_equal_approx(snappedf(last, 0.1), 13.3):
+			if not is_equal_approx(snappedf(last, 0.1), 5.3):
 				off += 1
-		assert_eq(off, 0, "frames of 3 s at %d FPS whose rate did not read 13.3" % fps)
+		assert_eq(off, 0, "frames of 3 s at %d FPS whose rate did not read 5.3" % fps)
 		assert_almost_eq(last, MADRA_RATE, 0.001, "exactly base_madra_per_cycle / cycle_duration at %d FPS" % fps)
 
 func test_rate_falls_to_zero_once_tracking_stops() -> void:
@@ -420,7 +422,7 @@ func test_rate_falls_to_zero_once_the_cap_is_met() -> void:
 func test_the_frame_that_meets_the_cap_still_draws() -> void:
 	# A frame draws if there is room under the cap before its steps, so the frame
 	# whose own step fills the cap still counts.
-	ResourceManager.set_madra(99.5)
+	ResourceManager.set_madra(99.7)
 	_technique.start_cycle()
 	_run(5.0 / 60.0, 60.0, true)
 	assert_eq(ResourceManager.get_madra(), 100.0, "precondition: the fifth frame's step filled the cap")
@@ -442,10 +444,10 @@ func test_auto_restart_keeps_the_rate() -> void:
 			break
 	assert_eq(completed[0], 1, "precondition: the cycle ended")
 	assert_true(CyclingManager.is_cycle_running(), "the next cycle started in the same frame")
-	assert_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 13.3, "the rate carries into it")
+	assert_almost_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 5.3, 0.000001, "the rate carries into it")
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	assert_true(CyclingManager.is_cycle_running())
-	assert_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 13.3, "and the frame after")
+	assert_almost_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 5.3, 0.000001, "and the frame after")
 	assert_eq(completed[0], 1)
 
 func test_a_manual_start_begins_from_an_empty_window() -> void:
