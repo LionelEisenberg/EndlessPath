@@ -233,20 +233,6 @@ func get_breakthrough_goal_condition() -> UnlockConditionData:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.breakthrough_goal_condition if res else null
 
-## Maximum Madra the player can hold: the current stage's curve at the current
-## Core Density level. 0.0 when there is no save or stage resource.
-func get_max_madra() -> float:
-	return get_max_madra_at(int(get_core_density_level()))
-
-## Maximum Madra at Core Density `level` in the current stage, for a readout that
-## shows the core at another level than its own (the cultivator cabinet while XP
-## flies to it). 0.0 when there is no save or stage resource.
-func get_max_madra_at(level: int) -> float:
-	var res: AdvancementStageResource = _get_current_stage_resource()
-	if res == null:
-		return 0.0
-	return res.get_max_madra(level)
-
 func get_current_advancement_stage() -> AdvancementStage:
 	if live_save_data == null:
 		return AdvancementStage.FOUNDATION

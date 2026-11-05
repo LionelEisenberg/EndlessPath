@@ -2,7 +2,8 @@ class_name CultivatorPlate
 extends Control
 
 ## The cultivator cabinet at the zone view's top left (lacquer kit §5.1).
-## Four rows on the lacquer board: the Madra orb with Madra / max and, while
+## Four rows on the lacquer board: the Madra orb with Madra / max (the max is
+## the max Madra stat, which Mind, gear and any modifier source move) and, while
 ## the running action earns Madra, its rate; the Core Density orb with the
 ## stage, level and XP beads (all lit, with "Core full" for the XP figure, at the
 ## stage's Core Density cap); the six stats in two triangles, Physical on the
@@ -20,8 +21,7 @@ extends Control
 ## held out of the readout (hold_madra, hold_core_xp) until each pellet lands
 ## (release_madra, release_core_xp), so the orbs fill as the pellets arrive, not
 ## as they leave: the Madra shown is the Madra less what is in flight, and the
-## core is shown as it stood that much XP ago, level by level, with the Madra
-## max of the level shown.
+## core is shown as it stood that much XP ago, level by level.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -111,13 +111,11 @@ func release_madra(amount: float) -> void:
 func hold_core_xp(amount: float) -> void:
 	_held_xp += amount
 	_update_core_density()
-	_update_madra()
 
 ## Shows `amount` of held Core Density XP: it has reached the Core orb.
 func release_core_xp(amount: float) -> void:
 	_held_xp = _less_held(_held_xp, amount)
 	_update_core_density()
-	_update_madra()
 
 ## Returns the core as it stood `xp_back` XP before `level` with `xp` toward the
 ## next level, as Vector2(level, xp): the XP comes off the current level's, then
@@ -141,11 +139,11 @@ func _update_all() -> void:
 	_update_stats()
 	_update_gold()
 
-## Madra / max and the orb's liquid at Madra / max. The max follows the Core
-## Density level shown, so a level-up refreshes this too.
+## Madra / max and the orb's liquid at Madra / max, the max being the pool's
+## (ResourceManager.get_max_madra()).
 func _update_madra() -> void:
 	var madra: float = maxf(ResourceManager.get_madra() - _held_madra, 0.0)
-	var max_madra: float = CultivationManager.get_max_madra_at(int(_shown_core().x))
+	var max_madra: float = ResourceManager.get_max_madra()
 	var fraction: float = clampf(madra / max_madra, 0.0, 1.0) if max_madra > 0.0 else 0.0
 	_madra_fill.set_shader_parameter(FILL_PARAMETER, fraction)
 	_madra_value_label.text = str(floori(madra))
@@ -232,12 +230,10 @@ func _on_core_density_xp_updated(_xp: float, _level: float) -> void:
 
 func _on_core_density_level_updated(_xp: float, _level: float) -> void:
 	_update_core_density()
-	_update_madra()
 
 ## A breakthrough raises the stats' cap too, so the cells re-read.
 func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
 	_update_core_density()
-	_update_madra()
 	_update_stats()
 
 func _on_current_action_changed(_action_data: ZoneActionData) -> void:
@@ -248,8 +244,11 @@ func _on_current_action_changed(_action_data: ZoneActionData) -> void:
 func _on_madra_rate_changed(_rate: float) -> void:
 	_update_rate()
 
+## Mind, gear and any modifier source move the max Madra, so the Madra row
+## re-reads too.
 func _on_stats_changed() -> void:
 	_update_stats()
+	_update_madra()
 
 ## Ignores the payload and re-reads CharacterManager, as _on_madra_rate_changed()
 ## does: XP at the cap arrives as 0 XP, and the capped cell keeps its full ring.

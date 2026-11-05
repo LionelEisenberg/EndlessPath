@@ -12,6 +12,8 @@ const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator
 const AURA_WELL_ID: String = "aura_well_training"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
+## The modifier source the Madra tests raise the max Madra stat under.
+const TEST_SOURCE: StringName = &"test_cultivator_plate"
 
 const Attribute := CharacterAttributesData.AttributeType
 
@@ -33,6 +35,7 @@ func before_each() -> void:
 	_plate = _add_plate()
 
 func after_each() -> void:
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	# A cycle session left running would leak into later files.
@@ -84,6 +87,12 @@ func _use_a_short_stage(cap: int) -> void:
 	var stages: Array[AdvancementStageResource] = [short_stage]
 	CultivationManager.advancement_stage_resources = stages
 
+## A modifier source that adds `amount` to the max Madra stat.
+func _max_madra_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)]
+		return modifiers
+
 ## A stat cell, by its unique name in the cabinet.
 func _cell(unique_name: String) -> StatCell:
 	return _node(unique_name) as StatCell
@@ -123,16 +132,20 @@ func test_madra_follows_its_signal() -> void:
 	ResourceManager.set_madra(46.0)
 	assert_eq(_text("MadraValueLabel"), "46")
 
-## The max follows the Core Density level, so a level-up refills the orb
-## against the new max.
-func test_madra_fill_follows_max() -> void:
+## Mind, gear and any modifier source move the max, and the orb fills against it.
+func test_the_madra_max_follows_the_max_madra_stat() -> void:
+	ResourceManager.set_madra(100.0)
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(100.0))
+	assert_eq(_text("MadraMaxLabel"), "/ 200")
+	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0001, "100 of 200 Madra")
+
+## Core Density sets no Madra cap any more.
+func test_a_core_density_level_up_leaves_the_madra_max_alone() -> void:
 	_load_core_density(32.0, 0.0)
-	ResourceManager.set_madra(130.0)
-	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0001, "130 of 260 Madra")
 	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
-	var max_madra: float = CultivationManager.get_max_madra()
-	assert_gt(max_madra, 260.0, "precondition: the level-up raised the max")
-	assert_almost_eq(_fill("MadraOrb"), 130.0 / max_madra, 0.0001)
+	assert_eq(CultivationManager.get_core_density_level(), 33.0, "precondition: the core levelled")
+	assert_eq(_text("MadraMaxLabel"), "/ 100")
+	assert_almost_eq(_fill("MadraOrb"), 0.25, 0.0001, "25 of 100 Madra")
 
 #-----------------------------------------------------------------------------
 # MADRA RATE
