@@ -12,8 +12,8 @@ The player experiences effects as the results of their actions:
 
 1. Finishing a conversation with the Celestial Intervener unlocks new actions (events) and starts or advances a quest (toast).
 2. Completing **First Steps Out** grants a path point. Completing **Harden Your Core** puts the Refugee Camp Map in the inventory, logged as "Obtained 1x Refugee Camp Map".
-3. Training at the Aura Well adds 1.5 Madra every second and +1 Spirit each time a training level is crossed.
-4. Resting at an Aura Well restores HP and Madra in proportion to BODY and FOUNDATION.
+3. Training at the Aura Well adds 1.5 Madra every second and a Spirit level each time a training level is crossed, up to the stage's cap.
+4. Resting at an Aura Well restores HP and Madra in proportion to Body and Mind.
 5. Defeating a Ravenous Dreadbeast elite can drop a Dreadbeast Tooth Necklace (25%).
 6. Using a Crude Scale or Barely Coalesced Scale consumable restores 20 Madra.
 
@@ -39,7 +39,7 @@ Execution is synchronous and context-free. `process()` takes no arguments; `Adve
 |---|---|---|
 | `ZoneActionData.success_effects` / `failure_effects` | `ActionManager` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stops when the player leaves the shop; adventures stop with `false` on time-out. |
 | `TrainingActionData.effects_per_tick` | `ActionManager`'s training timer | Every `tick_interval_seconds` while the training action is selected |
-| `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` and the Now strip also read the first `AwardAttributeEffectData` here for "each level +1 Spirit" and "Lv n → n+1 · +1 Spirit". |
+| `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` and the Now strip also read the first `AwardAttributeEffectData` here for "+1 Spirit / level" and "+1 Spirit at Lv n+1". |
 | `QuestData.completion_effects` | `QuestManager` | After the last step advances, before `quest_completed` |
 | `EncounterChoice.success_effects` | `AdventureTilemap.select_choice()` (plain choices), or `AdventureTilemap` when the timeline ends (`DialogueChoice`) | Choice picked, or its timeline ended |
 | `CombatChoice.success_effects` / `failure_effects` | `AdventureTilemap.handle_combat_result()` | Combat won (after gold is added) or lost |
@@ -110,7 +110,7 @@ Four subclasses set `effect_type` in `_init()`: StartQuest, AwardAttribute, Awar
 | `attribute_type` | `CharacterAttributesData.AttributeType` | `STRENGTH` (0) |
 | `amount` | `float` | `1.0` |
 
-`process()`: `CharacterManager.add_base_attribute(attribute_type, amount)`. The base attribute change is permanent.
+`process()`: `CharacterManager.add_stat_levels(attribute_type, roundi(amount))`, so `amount` is rounded to whole levels. The stat rises up to the stage's cap, and the levels past it are lost. They are trained levels, saved in `SaveGameData.stat_training` ([CHARACTER.md](CHARACTER.md) has the training record).
 
 ### AwardPathPointEffectData
 
@@ -128,17 +128,17 @@ Four subclasses set `effect_type` in `_init()`: StartQuest, AwardAttribute, Awar
 | `stamina_change` | `float` | `0.0` | Flat stamina (never scaled) |
 | `madra_change` | `float` | `0.0` | Flat Madra |
 | `body_hp_multiplier` | `float` | `0.0` | Adds BODY × multiplier to HP |
-| `foundation_madra_multiplier` | `float` | `0.0` | Adds FOUNDATION × multiplier to Madra |
+| `mind_madra_multiplier` | `float` | `0.0` | Adds MIND × multiplier to Madra |
 
 - `get_final_health_change()` = `health_change + body_hp_multiplier × BODY`
-- `get_final_madra_change()` = `madra_change + foundation_madra_multiplier × FOUNDATION`
+- `get_final_madra_change()` = `madra_change + mind_madra_multiplier × MIND`
 - `get_final_stamina_change()` = `stamina_change`
 
-Attributes come from `CharacterManager.get_total_attributes_data()`.
+BODY and MIND are the totals, trained values plus gear, from `CharacterManager.get_total_attributes_data()`.
 
 `process()`: `PlayerManager.vitals_manager.apply_vitals_change(health, stamina, madra)`. Without a vitals manager → `Log.error`.
 
-`describe()` joins the non-zero parts, for example "+20 Madra", "+15 Health", or "+500% Body as Health". Whole numbers print without ".0". It returns "No effect" when every part is zero.
+`describe()` joins the non-zero parts, for example "+20 Madra", "+15 Health", "+500% Body as Health" or "+200% Mind as Madra". Whole numbers print without ".0". It returns "No effect" when every part is zero.
 
 ## Integration Points
 
@@ -169,7 +169,7 @@ Every authored effect instance:
 | `q_reach_core_density_10.tres` `completion_effects` | AwardItem | `refugee_camp_map` × 1 |
 | `aura_well_madra_trickle_effect.tres` (Aura Well `effects_per_tick`) | AwardResource | MADRA, 1.5, quiet |
 | `aura_well_spirit_award_effect.tres` (Aura Well `effects_on_level`) | AwardAttribute | SPIRIT (3), 1.0 |
-| `aura_well_encounter.tres` "Rest" choice | ChangeVitals | `body_hp_multiplier` 5.0, `foundation_madra_multiplier` 2.0 (+50 HP and +20 Madra at the default 10 BODY / 10 FOUNDATION) |
+| `aura_well_encounter.tres` "Rest" choice | ChangeVitals | `body_hp_multiplier` 5.0, `mind_madra_multiplier` 2.0 (+50 HP and +20 Madra at Body and Mind 10) |
 | `aura_well_encounter.tres` "Mark down the location" choice | ChangeVitals (same sub-resource as Rest) → TriggerEvent | `aura_well_discovered` |
 | `refugee_camp_encounter.tres` "Approach the camp" choice | TriggerEvent | `merchant_discovered` |
 | `ravenous_dreadbeast_encounter.tres` "Attack the Dreadbeast" (`CombatChoice.success_effects`) | AwardLootTable | Inline table: `dreadbeast_tooth_necklace`, `drop_chance` 0.25 |

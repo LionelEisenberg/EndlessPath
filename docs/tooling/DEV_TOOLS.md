@@ -9,7 +9,7 @@
 | Dev commands | `singletons/dev_manager/dev_commands.gd` (`DevCommands`) | Called from code and tests | One command API over the managers' public functions: complete an action, trigger an event, reach a Core Density level, buy a path node, award an item. See [Dev Commands](#dev-commands) |
 | Map Preview | `scenes/tools/map_preview.tscn` + `scripts/tools/map_preview.gd` | Open in the editor and press **Generate** in the Inspector | Preview procedural adventure maps without running the game |
 | UID generator | `scripts/tools/generate_uid.gd` | Headless `-s` script | Print fresh `uid://` strings for hand-written `.tscn`/`.tres` |
-| Items generator | `scripts/tools/items_md_to_resources.gd`, `items_md_parser.gd` | Headless `-s` script | Generate equipment `.tres` files from `docs/inventory/ITEMS.md`. Documented in [ITEMS.md](../inventory/ITEMS.md). |
+| Items generator | `scripts/tools/items_md_to_resources.gd` (the entry), `items_md_generator.gd` (the worker it loads), `items_md_parser.gd` | Headless `-s` script | Generate equipment `.tres` files from `docs/inventory/ITEMS.md`. Documented in [ITEMS.md](../inventory/ITEMS.md). |
 | Label testing scene | `tests/label_tests/label_testing_scene.tscn` | Open and run the scene (F6) | Visual comparison of Label theme variants. See [UI_STYLING.md](../UI_STYLING.md#label-testing-scene). |
 | GUT test runner | `addons/gut/` | CLI or the GUT editor panel | Unit and integration tests. See [TESTING.md](../testing/TESTING.md). |
 | Debug switches | Various exports, and the launch options | Edit in the Inspector or in code, or pass them after `--` | See [Other debug switches](#other-debug-switches) |
@@ -110,7 +110,7 @@ The player's resources and progress. A refusal shows above the controls.
 | Stage line | `CultivationManager` | "Stage: Foundation · Core Density 42 / 100". It follows `core_density_level_updated` and `advancement_stage_changed` |
 | Advance to the next stage | `DevCommands.advance_stage()` | Breaks through as a passed Tribulation does. Refused at the last stage |
 | Path Points (0 to 1000) + Add | `DevCommands.add_path_points()` | Adds to the Path Point balance and emits `points_changed` |
-| Attribute picker (the eight), amount (0 to 1000) + Add | `DevCommands.add_attribute()` | Adds the amount to the attribute's base value |
+| Stat picker (the six), Lv (from 1, past the cap too), XP (0 to 100,000) + Set | `DevCommands.set_stat_level()` | Puts the stat at the level, past the stage's cap too, with the XP toward the next level, held below the next level's cost |
 | Technique picker + Unlock, Equip | `DevCommands.unlock_technique()`, `equip_technique()` | Every cycling technique of the catalog. Equip refuses a locked one |
 | Unlock all techniques | `DevCommands.unlock_all_techniques()` | Unlocks every technique, and logs how many were new |
 | Ability picker + Unlock, Equip; Equip in slot (1 to 4) | `DevCommands.unlock_ability()`, `equip_ability()` | Every combat ability. Equip puts it in the slot picked, replacing what is there, and refuses a locked one |
@@ -193,6 +193,7 @@ A step reads the fields its kind lists and ignores the rest. A level, a slot and
 | `AWARD_ITEM` | an item resource path | the quantity | `award_item()` |
 | `ADVANCE_STAGE` | | | `advance_stage()` |
 | `TRAVEL` | a zone id | | `travel_to_zone()` |
+| `RAISE_STAT_TO_CAP` | a stat key, such as `strength` | | `raise_stat_to_cap()` |
 
 `Kind` is stored as an int in `.tres` files: append a kind, never insert or reorder one. Use `TRIGGER_EVENT` for the events that adventure or combat code fires, which no zone action's effects fire (`q_first_steps_enemy_defeated`, `aura_well_discovered`, `merchant_discovered`).
 
@@ -208,7 +209,7 @@ A step reads the fields its kind lists and ignores the rest. A level, a slot and
 | `beat_2` | First Steps Out | Trigger `q_first_steps_enemy_defeated`; complete `celestial_intervener_dialogue_3`; buy path node `pure_core_awakening`; equip technique `smooth_flow`; equip ability `empty_palm` in slot 3 | `celestial_intervener_dialogue_3` |
 | `beat_3a` | Aura Well | Trigger `aura_well_discovered` | `aura_well_discovered` |
 | `beat_3b` | Merchant unlocked | Reach Core Density 10; complete `celestial_intervener_dialogue_4`; trigger `merchant_discovered` | `merchant_discovered` |
-| `beat_9_ready` | Tribulation ready | Reach Core Density 100 | `core_density_full` |
+| `beat_9_ready` | Tribulation ready | Reach Core Density 100; raise Strength and Spirit to the stage's cap | `core_density_full` |
 | `beat_9` | Copper | Advance to the next stage | none |
 
 `optional_quest_ids` and `excluded_action_ids` name what the route leaves out on purpose. Both are empty today: the route completes every quest of the catalog and makes every zone action available at some point.
@@ -235,7 +236,7 @@ The recipes the game ships, in `resources/dev/save_presets/`:
 | `adventure_open` | Adventure open | `beat_1` | none | The first adventure and fight: the Shallow Woods and foraging are open |
 | `path_open` | First keystone | `beat_2` | none | The path tree and the techniques: Pure Core Awakening bought, Smooth Flow and Empty Palm equipped |
 | `merchant_open` | Merchant open | `beat_3b` | Set gold to 700 | The shop, with gold for every piece |
-| `tribulation_ready` | Tribulation ready | `beat_9_ready` | none | The Tribulation: every quest done, Core Density 100 |
+| `tribulation_ready` | Tribulation ready | `beat_9_ready` | none | The Tribulation: every quest done, Core Density 100, Strength and Spirit at the stage's cap |
 | `copper` | Copper | `beat_9` | none | The first moments of Copper, the Tribulation passed |
 
 ### Adding a preset
@@ -383,7 +384,8 @@ A command with nothing to do (an action used up, an event already fired, a node 
 | `reach_core_density(level)` | Raises Core Density to the level, or to the stage's cap when that is lower, through real XP, one level at a time, so milestones pay and the core fills as in play | A stage whose next level costs no XP |
 | `set_madra(value)`, `set_gold(value)` | Sets the resource to exactly the value | A negative value |
 | `add_path_points(amount)` | Adds to the Path Point balance | |
-| `add_attribute(attribute, amount)` | Adds to the base value of one attribute | A value that is not an attribute |
+| `set_stat_level(stat_key, level, xp = 0.0)` | Puts one stat at the level, past the stage's cap too, with `xp` toward the next level; `CharacterManager` keeps the XP below the next level's cost, and the `[DEV]` line says the XP the stat holds | A key that names no stat; a level below 1; negative XP |
+| `raise_stat_to_cap(stat_key)` | Raises one stat to the stage's cap, with no XP. At or past the cap it does nothing, so a stat set past the cap is never lowered | A key that names no stat |
 | `advance_stage()` | Breaks through to the next stage, as a passed Tribulation does | A stage with no next stage |
 | `buy_path_node(node_id)` | Buys a node of the current path tree, granting only the Path Points the balance is short of | No path chosen; a node the tree lacks; a stage too low; a prerequisite not bought (named); a node the manager still will not sell |
 | `unlock_technique(technique_id)`, `equip_technique(technique_id)` | Unlocks, or equips in place of the equipped one | An unknown id; equip also a locked technique |
@@ -438,7 +440,7 @@ Output: five lines of the form `uid://...`.
 
 ## Items Generator
 
-`scripts/tools/items_md_to_resources.gd` (with the parser `scripts/tools/items_md_parser.gd`, tested by `tests/unit/test_items_md_parser.gd`) turns the equipment tables in `docs/inventory/ITEMS.md` into `.tres` files. Usage and schema are documented in [ITEMS.md](../inventory/ITEMS.md).
+The command runs the entry, `scripts/tools/items_md_to_resources.gd`, which loads the worker, `scripts/tools/items_md_generator.gd`. The worker turns the equipment tables in `docs/inventory/ITEMS.md` into `.tres` files, with the parser `scripts/tools/items_md_parser.gd`. Usage, schema, and how and why the entry loads the worker are documented in [ITEMS.md](../inventory/ITEMS.md#generator).
 
 ## Other debug switches
 
@@ -478,6 +480,7 @@ Output: five lines of the form `uid://...`.
 | MainView / MainGame | `DevPanel` is `MainView`'s last child, and `main_game.tscn` hands it the `AdventureView`. `MainGame._process()` adds the scaled frame time to the playtime, so the time speed counts |
 | ResourceManager | `set_madra()`, `set_gold()` |
 | CultivationManager | `add_core_density_xp()` (behind `reach_core_density()`), `advance_to_next_stage()` (behind `advance_stage()`). The Player tab's stage line reads the stage, the level and the cap, and follows `core_density_level_updated` and `advancement_stage_changed` |
+| CharacterManager | `set_stat_level()` (behind `set_stat_level()` and `raise_stat_to_cap()`), `get_stat_level_cap()` (behind `raise_stat_to_cap()`) |
 | PathManager | `add_points()` |
 | UnlockManager / EventManager / QuestManager | The Story tab reads `get_unlocked_condition_ids()`, `get_triggered_events()` and the quests' getters, and follows their signals. `unlock_condition_list` feeds `known_event_ids()`. `force_unlock_condition()` is a test fixture: no panel control calls it |
 | CyclingManager | `get_all_techniques()`, `unlock_technique()`, `equip_technique()` |
@@ -508,7 +511,7 @@ Output: five lines of the form `uid://...`.
 | `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | `set_dev_reveal_all()`, `_dev_reveal_all` rendering paths |
 | `scripts/tools/map_preview.gd`, `scenes/tools/map_preview.tscn`, `scenes/tools/encounter_id_label.tscn` | Map Preview |
 | `scripts/tools/generate_uid.gd` | UID generator |
-| `scripts/tools/items_md_to_resources.gd`, `scripts/tools/items_md_parser.gd` | Items generator |
+| `scripts/tools/items_md_to_resources.gd`, `scripts/tools/items_md_generator.gd`, `scripts/tools/items_md_parser.gd` | Items generator: the entry the command runs, the worker it loads, and the parser |
 
 Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 

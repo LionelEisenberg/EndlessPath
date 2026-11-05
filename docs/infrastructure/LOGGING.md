@@ -79,15 +79,15 @@ LogWindow (Control, the 440x204 slot)
     BoardTexture % (TextureRect)       lacquer_log1_ai … lacquer_log5_ai, one per line count
     TitleLabel "Log" (LabelLacquerPanelTitle), HintLabel "Full log · L" (LabelLacquerDetail)
     Line4 … Line0 %                    LineBullet<n> (10x10 inlaid bullet) + LineLabel<n> (LabelLacquerDetail, 384 px, ellipsis)
-  FullBoard % (Control, 440x560)       hidden by default
+  FullBoard % (Control)                hidden by default
     FullBoardTexture (Panel)           StyleBoxTexture 9-slice of lacquer_log5_ai
     FullTitleLabel "Log", FullHintLabel "Close · L"
-    FullLogText % (RichTextLabel, RichTextLacquerLog, 406x468: 18 whole 26 px lines)
+    FullLogText % (RichTextLabel, RichTextLacquerLog: a whole number of lines tall)
 ```
 
 - **Board.** Shows the newest 5 lines from `get_history()`, newest at the bottom, with their BBCode stripped (`plain_text()`). It is 74 + 26 px per line tall (the one-line board, empty, before anything is logged) and grows upward one line at a time from screen y 1056.
 - **Tones.** `tone_for(bbcode)` reads the first `[color]` tag: orange-to-yellow hues (gold, yellow, orange) are BRASS, cyan-to-blue are MADRA, green, lime and the light neutrals (white, `light_gray`: value 0.8 and up) are CREAM, and anything else (red, magenta, gray, silver, no colour) is TAN. So a material haul (`light_gray`) is cream, as kit §5.3 asks; the cyan "Adventure Started" / "Adventure Ended" lines read Madra blue, a known difference from the kit's tan system lines. Lines fade by colour steps, never by opacity: ages 0 and 1 keep their tone, age 2 is tan, ages 3 and 4 are dim (`#94806A`), and each bullet takes the same colour.
-- **Full log.** L (`toggle_log`), Escape while it is open, or `LogManager.toggle_window()` toggle it. It shows every kept line in its tone, without fading, newest at the bottom, scrolling in whole lines. Each entry is a one-row table (an 18 px bullet cell, then the text), so a wrapped line hangs under its own text. New lines append while it is open, and the oldest go past `HISTORY_LIMIT`. The rail's end caps are lit only when the text can scroll that way (kit §4.4). It never opens while the log is hidden, and hiding the log closes it. A menu book, the cycling board or the Tribulation board closes it and keeps it shut while it is open (`set_full_log_blocked()`, called through `MainViewState` by `BookViewState`, `CyclingViewState` and `TribulationViewState`): the log ignores L and Escape then, so Escape closes the book or the board.
+- **Full log.** L (`toggle_log`), Escape while it is open, or `LogManager.toggle_window()` toggle it. Where the open full log sits and what it covers is under [MAIN_VIEW.md's HUD placement](MAIN_VIEW.md#hud-placement). It shows every kept line in its tone, without fading, newest at the bottom, scrolling in whole lines. Each entry is a one-row table (an 18 px bullet cell, then the text), so a wrapped line hangs under its own text. New lines append while it is open, and the oldest go past `HISTORY_LIMIT`. The rail's end caps are lit only when the text can scroll that way (kit §4.4). It never opens while the log is hidden, and hiding the log closes it. A menu book, the cycling board or the Tribulation board closes it and keeps it shut while it is open (`set_full_log_blocked()`, called through `MainViewState` by `BookViewState`, `CyclingViewState` and `TribulationViewState`): the log ignores L and Escape then, so Escape closes the book or the board.
 - **Visibility.** It sits below `GreyBackground` (z 2). The merchant shop hides it (`MainView.hide_hud_boards()`) and the Tribulation steps it off the left edge of the screen, and it comes back as it was when they close. The menu books leave it showing, dimmed under their backdrop, and cycling leaves it showing beside its board. See [MAIN_VIEW.md](MAIN_VIEW.md#hud-boards).
 
 ## BBCode Conventions
@@ -98,15 +98,15 @@ Callers format their own strings as single lines. The board strips the tags and 
 |--------|---------|-------------------|
 | `[color=cyan]` | Madra, adventure lifecycle, consumables, combat interrupts and strips | `Gained %d Madra` (ResourceManager), `Adventure Started: %s` / `Adventure Ended` (AdventureView), consumable `Obtained %dx %s` (InventoryManager), `cast was interrupted!` / `buffs were stripped!` (CombatEffectManager), `Cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 XP` (CyclingView, one per finished cycle; `· Core full` ends it in place of the XP once the core is full) |
 | `[color=gold]` | Gold | `Gained %d Gold`, `Spent %d Gold` (ResourceManager) |
-| `[color=red]` | Failure or loss | `Not enough Madra! Need %.0f, have %.0f` (AdventurePresenter), `Your core must be full to face the Tribulation (%d / %d).` (TribulationPresenter), `Combat Defeat...` (AdventureView), `took %d Damage` (CombatEffectManager), `Discarded %s` (TrashSlot) |
+| `[color=red]` | Failure or loss. The board shows every red line in tan (`tone_for()`) | `Not enough Madra! Need %.0f, have %.0f` (AdventurePresenter), `The Tribulation needs %s.` (TribulationPresenter, one line per missing requirement, such as `Strength Lv 3 / 10`), `Combat Defeat...` (AdventureView), `took %d Damage` (CombatEffectManager), `Discarded %s` (TrashSlot) |
 | `[color=green]` | Success or healing | `Combat Victory!` (AdventureView), `healed for %d Health` (CombatEffectManager) |
 | `[color=orange]` | Encounter choice | `Encounter: %s` (AdventureView) |
 | `[color=light_gray]` | Material loot | `Looted %dx %s` (InventoryManager) |
 | `[color=purple]` | Equipment loot | `Looted %dx %s` (InventoryManager) |
 | `[color=yellow]` | Quest items | quest-item `Obtained %dx %s` (InventoryManager) |
-| No colour (tan) | Idle action resumes; the breakthrough | `Resumed %s`, `Travelled to %s · resumed %s`, `Travelled to %s`, `Started %s` (ActionManager); `Your core is full. The Tribulation waits in Spirit Valley.` (CultivationManager, when the core fills and a next stage waits) and `You break through to %s.` (CultivationManager, on a pass) |
+| No colour (tan) | Idle action resumes; the breakthrough; stat levels; dodges | `Resumed %s`, `Travelled to %s · resumed %s`, `Travelled to %s`, `Started %s` (ActionManager); `Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley.` (CultivationManager, when the core fills and a next stage waits) and `You break through to %s.` (CultivationManager, on a pass); `[b]Spirit[/b] reached Lv 6` (CharacterManager, a line per level a stat gains); `[b]Player[/b] dodged <ability name>` (CombatAbilityInstance) |
 | `[color=magenta][DEV][/color]` prefix | Dev tools: the commands, the session switches and the dev panel's toggles | `Set Madra to %d`, `Won the fight`, `Restarted preset '%s'` (`DevCommands.log_dev_line()`) |
-| `[b]name[/b]` | Combatant name | `[b]%s[/b] took …` (CombatEffectManager) |
+| `[b]name[/b]` | Combatant name, or the stat's name in a level line | `[b]%s[/b] took …` (CombatEffectManager), `[b]%s[/b] reached Lv %d` (CharacterManager) |
 
 ## Integration Points
 
@@ -115,7 +115,7 @@ Callers format their own strings as single lines. The board strips the tags and 
 | `MainGame` | Sets the console print level from `log_print_level` |
 | `LogWindow` | The only listener of `message_logged` and `visibility_toggled`; reads `get_history()` |
 | `MainView` / view states | `ZoneViewState` places the log slot (the adventure leaves it there); the merchant shop and the Tribulation hide it, and a menu book, cycling or the Tribulation blocks the full log ([MAIN_VIEW.md](MAIN_VIEW.md#hud-boards)) |
-| ResourceManager, CultivationManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, AdventurePresenter, TribulationPresenter, TrashSlot, ZoneViewBackground, DevCommands | Send player-facing messages through `LogManager.log_message()` |
+| ResourceManager, CultivationManager, CharacterManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, CombatAbilityInstance, AdventurePresenter, TribulationPresenter, TrashSlot, ZoneViewBackground, DevCommands | Send player-facing messages through `LogManager.log_message()` |
 | Every singleton and most scenes | Developer diagnostics through `Log.*` |
 | Godot engine | `Log` is registered with `OS.add_logger()` and receives engine errors and `print()` output |
 
@@ -145,5 +145,5 @@ Callers format their own strings as single lines. The board strips the tags and 
 - `[LOW]` The `Log.Event` order puts `INFO` (0) below `DEBUG` (1), the reverse of the usual severity order. `MainGame`'s script default (`DEBUG`) would hide INFO lines, and only the scene override to `INFO` avoids that.
 - `[LOW]` `LogManager.toggle_window()` has no caller outside the tests, and the names `toggle_window` and `visibility_toggled` are misleading: they open the full log, they don't show or hide the log.
 - `[LOW]` A developer error goes to the player log. `ZoneViewBackground` reports `Failed to load layer %s` through `LogManager` instead of `Log.error`.
-- `[LOW]` There is heavy `Log.info` in hot paths. `CombatEffectData.calculate_value()` logs at least 3 lines per call (plus one per non-zero scaling term), and `calculate_damage()` adds defense lines on top. This includes the damage previews: the Abilities book's details card calls `calculate_value()` for its figure, and the technique tooltip's damage line does through `AbilityRow.format_damage()` (neither reaches `calculate_damage()`). All of it reaches the console at the `INFO` print level.
+- `[LOW]` There is heavy `Log.info` in hot paths. `CombatEffectData.calculate_value()` logs three lines a call, none per scaling term, and `calculate_damage()` adds defense lines on top. This includes the previews: the Abilities book's details card calls `calculate_value()` for its figure, the technique tooltip's damage line does through `AbilityRow.format_damage()` (neither reaches `calculate_damage()`), and the Character book's rows of what a stat does call it too, twice per scaling effect (the stat now and at its next level). All of it reaches the console at the `INFO` print level.
 - `[LOW]` There are no tests for `Log`. `LogManager`'s history (`test_log_manager_history.gd`) and the log board and full log (`test_log_board.gd`) are tested.

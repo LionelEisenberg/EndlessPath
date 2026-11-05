@@ -21,7 +21,7 @@ The UI is a book (`InventoryView`), the red one of the four menu books that shar
 | Materials | A 6 × 6 page of stacks | The material's details and where it is gathered |
 | Journal | The quest items, in a list | The item's details and its quest |
 
-Items arrive from three sources: foraging loot tables, adventure encounter effects and quest completion effects. Equipped gear feeds attribute bonuses into `CharacterManager`. Quest items gate content through the `ITEM_OWNED` unlock condition.
+Items arrive from three sources: foraging loot tables, adventure encounter effects and quest completion effects. The worn gear is a modifier source in `CharacterManager`: each item adds percents of the player's trained stats (rounded down, never below its floor), and flat armor and Ward. Quest items gate content through the `ITEM_OWNED` unlock condition.
 
 Related docs:
 - [ITEMS.md](ITEMS.md) — equipment catalog. The headless generator turns it into `.tres` files. Other item types are hand-authored `.tres`.
@@ -50,7 +50,7 @@ Related docs:
    - left column: Head, Main hand, Accessory 1
    - right column: Body, Off hand, Accessory 2
 
-   Each slot's name is printed just above it, and an empty gear slot is a shallow slot. Dotted leaders run straight from the head, body and hand slots to the figure (level lines, the body's turning down onto the shoulder); the accessories have none. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row in body-size dark ink, worded as the tooltip words them (`+2 Strength`), and its description. It prints no hint. The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps.
+   Each slot's name is printed just above it, and an empty gear slot is a shallow slot. Dotted leaders run straight from the head, body and hand slots to the figure (level lines, the body's turning down onto the shoulder); the accessories have none. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row in body-size dark ink, worded as the tooltip words them (`+50% Strength (+5)`, `Armor 6`, `Ward 4`: the figure in parentheses is what the stat gains at its trained value, so it follows the stat's level), and its description. It prints no hint. The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps, and a bonus too long for its column wraps and its row grows.
 
    On opening, the details show the first item on the grid page, else the first worn piece (Head, Main hand, Accessory 1, Body, Off hand, Accessory 2); with neither, they hide. While the bag changes (foraging, a purchase), they and the marks stay on the item the player picked. When that item is discarded, they move to the first item.
 5. **Consumables tab.** Pressed into the paper like the Equipment tab.
@@ -288,7 +288,10 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | Class | Field | Type | Default | Notes |
 |---|---|---|---|---|
 | `EquipmentDefinitionData` | `slot_type` | `EquipmentSlot` | `MAIN_HAND` | |
-| | `attribute_bonuses` | `Dictionary` (AttributeType int → float) | `{}` | Tooltip: one `+N Attribute` line per non-zero bonus |
+| | `stat_percent_bonuses` | `Dictionary[StringName, float]` | `{}` | Stat key (`&"strength"` … `&"control"`) → the fraction of the player's trained value of that stat the item adds while worn: 0.3 is +30% |
+| | `stat_bonus_floor` | `int` | 1 | The least each of the item's stat percents gives, in whole points |
+| | `armor` | `float` | 0.0 | Flat armor, which cuts physical damage taken |
+| | `ward` | `float` | 0.0 | Flat Ward, which cuts Spirit damage taken |
 | `MaterialDefinitionData` | `source_zone_ids` | `Array[String]` | `[]` | Tooltip line "Source Zones: <ids>" |
 | | `source_description` | `String` | `""` | Not shown: the Materials page lists the activities that yield it (`MaterialSources`) |
 | | `used_in` | `String` | `""` | Free text. Not shown |
@@ -296,6 +299,8 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | | `cooldown_seconds` | `float` | 0.0 | In a fight, each hotbar slot's `CombatConsumableInstance` enforces it, afresh every fight. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
 | `QuestItemDefinitionData` | `from_source` | `String` | `""` | The Journal's `From …` line, and the line under the name of an item that belongs to no quest |
 | | `zone_id` | `String` | `""` | The zone the item belongs to: the Journal prints its name on a tag at the item panel's top right. Empty, or a zone the game does not know, shows no tag |
+
+`EquipmentDefinitionData.get_stat_bonus(stat, trained_value)` gives the points an item adds to a stat: its percent of the trained value, rounded down and never below `stat_bonus_floor`, or 0 when it has no percent for the stat. It is not held to the stat's level cap, so gear lifts a capped stat past it. `get_stat_modifiers(trained_values)` hands those points, armor and Ward to CharacterManager's gear source as flat modifiers. An equipment item's tooltip lines are `BookText.gear_bonus_lines()` at the player's trained values (see [Equipment details and marks](#equipment-details-and-marks)). [ITEMS.md](ITEMS.md) holds each item's percents.
 
 **ItemInstanceData**
 
@@ -401,8 +406,9 @@ Right-click quick-equip ignores the trash slot: a held item is rescued only by d
 
 ### Equipment details and marks
 
-- `EquipmentDetails.show_item(data)` prints an item and shows the panel; `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.bonus_lines()` (`+2 Strength`, as the tooltip words them), two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`.
-- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule 8 px under each row's baseline, and the description from 798. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
+- `EquipmentDetails.show_item(data)` prints an item and shows the panel; `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.gear_bonus_lines()` at the player's trained values (`+50% Strength (+5)`, `Armor 6`, `Ward 4`), two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`. The panel reprints its item on `CharacterManager.stats_changed`, so each figure follows its stat.
+- The panel never grows, though a bonus too long for its column wraps and grows its row. It is laid out for the longest real item, the Dreadbeast Tooth Necklace, and shorter items flow up from the same gaps.
+- The same lines are an equipment item's tooltip lines. The item tooltip (`ItemDescriptionPanel`) prints them as they stand when it opens, and the shop's gear rows print them too ([FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented)).
 - `InventorySlot.set_marked()` shows a slot's printer's marks. The tab marks the slot that holds the item shown, and while dragging, the drop target. Picking an item up takes the marks off the slot it leaves.
 - `EquipmentTab.open_page()` selects `ALL` and applies it, refreshes the footer, then shows the first item on the grid page, else the first worn piece in the figure's order (`GearSelector.get_slots()`), else clears the details. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` and every drop, the tab follows the item shown (deferred, once the slots have re-bound): it marks the visible slot holding it (none when it is on another page) and refreshes its hint. When the item is no longer in the bag or worn, which is how a discard ends, it runs `open_page()`, unless the player last pointed at it in the discard slot: then the details and the marks stay on it. Flipping to another page follows it too.
@@ -501,7 +507,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | System | Connection |
 |---|---|
 | MainView / ZoneViewState | `open_inventory` (`I`) in `ZoneViewState` pushes `InventoryViewState`. `close_inventory` (`I` or `Escape`) or `open_inventory` plays the close animation, then pops the state. The SystemMenu INVENTORY button fires the same action |
-| CharacterManager | Sums `attribute_bonuses` from `equipped_gear` and `equipped_accessories`. This feeds every attribute getter and `get_total_attributes_data()` |
+| CharacterManager | The worn gear (`equipped_gear` and `equipped_accessories`) is CharacterManager's gear modifier source: each item's percents of the trained values (`get_stat_modifiers()`), armor and Ward ([CHARACTER.md](../infrastructure/CHARACTER.md#total-attributes) has the totals). CharacterManager hears `inventory_changed` and emits `stats_changed`, on which the Equipment details reprint their item. The gear lines read `get_trained_values()` |
 | ActionManager (foraging) | Each time the forage timer finishes, rolls `ForageActionData.loot_table` and awards the result |
 | Adventure encounters | `AwardLootTableEffectData` / `AwardItemEffectData` in choice `success_effects`. `AdventureView` listens to `item_awarded` for the end-card loot (one entry per award call; quantity ignored) |
 | QuestManager | A quest's `completion_effects` can award items (`q_reach_core_density_10` → Refugee Camp Map). The Journal shows each quest item's quest from `get_quest_id_for_item()`, and its steps' figures from `QuestStepData.get_progress_text()` |
@@ -516,17 +522,17 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 
 ### Equipment
 
-These seven items live in `resources/items/equipment/spirit_valley/` and are generated from [ITEMS.md](ITEMS.md).
+These seven items live in `resources/items/equipment/spirit_valley/` and are generated from [ITEMS.md](ITEMS.md), which holds each item's bonuses.
 
-| id | Name | Slot | Bonuses | base_value | How the player gets it on `main` |
-|---|---|---|---|---|---|
-| `makeshift_dagger` | Makeshift Dagger | MAIN_HAND | STRENGTH +3, AGILITY +2 | 60 | Merchant, once per save |
-| `iron_shortsword` | Iron Shortsword | MAIN_HAND | STRENGTH +5, AGILITY +2 | 150 | Merchant, once per save |
-| `cultivators_cowl` | Cultivator's Cowl | HEAD | WILLPOWER +3, SPIRIT +1 | 40 | Merchant, once per save |
-| `reinforced_robes` | Reinforced Robes | ARMOR | BODY +4, RESILIENCE +2 | 180 | Merchant, once per save |
-| `dreadbeast_tooth_necklace` | Dreadbeast Tooth Necklace | ACCESSORY | STRENGTH +2, AGILITY +2 | 0 | 25% drop from the Ravenous Dreadbeast elite in Shallow Woods (quota 2 per map) |
-| `leeching_ring` | Leeching Ring | ACCESSORY | FOUNDATION +2, CONTROL +2 | 120 | Merchant, once per save (planned: Loot) |
-| `scripted_bark` | Scripted Bark | OFF_HAND | BODY +2 | 75 | Merchant, once per save (planned: Loot) |
+| id | Name | Slot | base_value | How the player gets it on `main` |
+|---|---|---|---|---|
+| `makeshift_dagger` | Makeshift Dagger | MAIN_HAND | 60 | Merchant, once per save |
+| `iron_shortsword` | Iron Shortsword | MAIN_HAND | 150 | Merchant, once per save |
+| `cultivators_cowl` | Cultivator's Cowl | HEAD | 40 | Merchant, once per save |
+| `reinforced_robes` | Reinforced Robes | ARMOR | 180 | Merchant, once per save |
+| `dreadbeast_tooth_necklace` | Dreadbeast Tooth Necklace | ACCESSORY | 0 | 25% drop from the Ravenous Dreadbeast elite in Shallow Woods (quota 2 per map) |
+| `leeching_ring` | Leeching Ring | ACCESSORY | 120 | Merchant, once per save (planned: Loot) |
+| `scripted_bark` | Scripted Bark | OFF_HAND | 75 | Merchant, once per save (planned: Loot) |
 
 ### Materials
 
@@ -573,14 +579,14 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `singletons/inventory_manager/inventory_manager.gd` | Inventory state and all mutations |
 | `singletons/persistence_manager/inventory_data.gd` | Saved inventory container and page constants |
 | `scripts/resource_definitions/items/item_definition_data.gd` | Base item class + `ItemType` |
-| `scripts/resource_definitions/items/equipment/equipment_definition_data.gd` | `EquipmentSlot`, `attribute_bonuses` |
+| `scripts/resource_definitions/items/equipment/equipment_definition_data.gd` | `EquipmentSlot`, the stat percents and their floor, armor and Ward |
 | `scripts/resource_definitions/items/material_definition_data.gd` | Material fields |
 | `scripts/resource_definitions/items/consumable_definition_data.gd` | Effects, cooldown, `use()` |
 | `scripts/resource_definitions/items/quest_item_definition_data.gd` | `from_source`, `zone_id` |
 | `scripts/resource_definitions/items/item_instance_data.gd` | Equipment instance wrapper |
 | `scripts/resource_definitions/loot/loot_table.gd`, `loot_table_entries.gd` | Loot rolling |
 | `scripts/resource_definitions/effects/award_item_effect_data.gd`, `award_loot_table_effect_data.gd` | Effect-driven awards |
-| `scripts/tools/items_md_parser.gd`, `items_md_to_resources.gd` | ITEMS.md → equipment `.tres` generator |
+| `scripts/tools/items_md_parser.gd`, `items_md_to_resources.gd`, `items_md_generator.gd` | ITEMS.md → equipment `.tres` generator: the parser, the CLI entry and its worker ([ITEMS.md](ITEMS.md#generator)) |
 | `scenes/ui/main_view/states/inventory_view_state.gd` | Open/close state (`BookViewState`) |
 | `scenes/inventory/inventory_view/inventory_view.gd` | Tab switching with the page turn, trash flush on close (`MenuBookView`) |
 | `scenes/ui/book_frame/` | The shared book (`BookFrame`) and the menu views' base (`MenuBookView`) |
@@ -647,3 +653,5 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
   - no `##` docs on `get_inventory`, `get_material_items`, `award_items`, `unequip_item` and `move_equipment`
   - `ItemDefinitionData`'s type-name and tooltip-line getters start with `_` but are called from other classes
 - `[LOW]` **`GearSelector` finds its slots through the global "GearSlots" group**, so a second GearSelector in the tree would pick up both sets.
+- `[LOW]` **An unknown stat key is logged on every stat read.** While an item whose `stat_percent_bonuses` holds a key that names no stat is worn, `get_stat_modifiers()` logs the key each time the gear source is asked, which is every `CharacterManager.get_stat()` call. The generator never writes such a key; a hand-edited `.tres` can.
+- `[LOW]` **The equipment class reads an autoload.** `EquipmentDefinitionData`'s tooltip lines read `CharacterManager`, so a headless `-s` script, which Godot compiles with every class it names before it registers the autoloads, must not name it, directly or through another class. [ITEMS.md](ITEMS.md#generator) has the generator's workaround.

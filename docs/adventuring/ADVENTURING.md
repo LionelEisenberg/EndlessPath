@@ -16,11 +16,11 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
    - Below half the capacity, its detail row is a Madra rod with `<madra> / <threshold>` after it, and a cream `~N s` at the right while a Madra action runs. Clicking shakes the row softly (`MapGlyph.SOFT_SHAKE_KEYFRAMES`, 4 px at most) and logs "Not enough Madra! Need X, have Y"; the running idle action keeps going.
    - At half the capacity or more, a brass frame holds steady around the card, it reads "<minutes> min run · carries <capacity> Madra", and its tag reads ENTER.
 2. On click, the zone view locks input and the map's plates hide. Between 8 and 25 Madra pellets fly in 2 px steps from the cultivator cabinet's Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then pushes in to 1.5× the player's zoom over 0.5 s, and the zone view dissolves into the adventure view.
-3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s. The adventure view keeps the zone view's frame:
+3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at the player's rate ([CHARACTER.md](../infrastructure/CHARACTER.md#derived-stats)), times the adventure's [`stamina_regen_modifier`](#adventureactiondata-extends-zoneactiondata). The adventure view keeps the zone view's frame:
    - The vitals cabinet (top left) shows Health and Madra on orbs and Stamina on a rod, each with `current / max`. In a fight, up to three buff sockets sit beside the Health figures.
    - The chest (top right) is titled with the adventure's name. It holds the run clock (`M:SS`, counting down from the time limit. The seconds are cut, not rounded: a 300 s run reads `4:59` through its first second (`5:00` only on its very first frame) and `0:00` through its last. The clock's recess becomes a vermilion seal for the last 30 seconds), the Here tray for the tile the player stands on, the tile's lore and choice drawers, and the Run ledger (the fights fought of the map's fights, gold earned, tiles explored, and the run's loot). Nothing in the frame is cut off: a long name, line or hint wraps, and the tray, the drawers and the chest grow with it.
    - The technique dock (bottom centre) previews the equipped loadout on the map (hover a slot to read the technique and see its cost), and the consumables on the inventory's hotbar with their counts in a row of sockets along its top.
-   - The log and the Goals board stay where the zone view puts them: the log at the bottom left, Goals under the cabinet with its cords showing.
+   - The log and the Goals board stay up ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards) says where).
 4. The player starts on the origin tile:
    - The screen is fog in three tiers, darker the farther a cell lies from the tiles the player sees (the zone map's fog). It reaches well past the map, so the map's shape stays hidden.
    - Adjacent map tiles are revealed as veiled tiles (dark, with a dotted tan rim), each under a carved coin with a tan "?", so their type stays hidden. An empty tile shows the same coin.
@@ -167,7 +167,7 @@ This is the zone action that launches an adventure. It inherits `action_id`, `ac
 | `difficulty_modifier` | `float` | 1.0 | **Unused** |
 | `completion_time_modifier` | `float` | 1.0 | **Unused** |
 | `time_limit_seconds` | `int` | 10 | `AdventureView.start_adventure()` (values ≤ 0 fall back to 10) |
-| `stamina_regen_modifier` | `float` | 1.0 | `AdventureView`, when it sets the run's Stamina regen → `stamina_regen = 1.0 × modifier` |
+| `stamina_regen_modifier` | `float` | 1.0 | `AdventureView`, at each run's start: the run's Stamina regen is the player's `CharacterManager.get_stat(STAMINA_REGEN)` ([CHARACTER.md](../infrastructure/CHARACTER.md#derived-stats)) times this modifier, kept for the whole run. The run's end sets it to 0 |
 | `cooldown_seconds` | `float` | 0.0 | **Unused** |
 | `daily_limit` | `int` | 0 | **Unused** |
 
@@ -244,12 +244,11 @@ Choices accept any `EffectData` subclass; [EFFECTS.md](../infrastructure/EFFECTS
 
 | Class | Calls | Used in shipped encounters |
 |-------|-------|----------------------------|
-| `ChangeVitalsEffectData` | `PlayerManager.vitals_manager.apply_vitals_change()`; health += `body_hp_multiplier × BODY`, Madra += `foundation_madra_multiplier × FOUNDATION` | Aura Well (both choices) |
+| `ChangeVitalsEffectData` | `PlayerManager.vitals_manager.apply_vitals_change()` | Aura Well (both choices; [EFFECTS.md](../infrastructure/EFFECTS.md#existing-content) has the rest's multipliers) |
 | `TriggerEventEffectData` | `EventManager.trigger_event(event_id)` ([EVENTS.md](../infrastructure/EVENTS.md)) | Aura Well "Mark", Refugee Camp |
 | `AwardLootTableEffectData` | `loot_table.roll_loot()` → `InventoryManager.award_items()` | Ravenous Dreadbeast |
 | `AwardItemEffectData` | `InventoryManager.award_items()` | — |
 | `AwardResourceEffectData` | `ResourceManager.award_resource()` | — |
-| `AwardAttributeEffectData` | `CharacterManager.add_base_attribute()` | — |
 | `AwardPathPointEffectData` | `PathManager.add_points()` | — |
 | `StartQuestEffectData` | `QuestManager.start_quest()` | — |
 
@@ -299,7 +298,6 @@ ZoneActionButton click
            reset stats; connect InventoryManager.item_awarded
            vitals.initialize_current_values(budget)              — HP = max, Stamina = max, Madra = budget
            VitalsPlate.setup_vitals(vitals); TechniqueDock.show_loadout()
-           stamina_regen = 1.0 × stamina_regen_modifier
            AdventureChest.set_title(action_name)
            RunTimer.start(time_limit_seconds); RunClock.bind_timer(RunTimer)
            AdventureTilemap.start_adventure(action)              — generate map, visit origin
@@ -307,13 +305,13 @@ ZoneActionButton click
 
 Madra numbers (`ResourceManager`):
 
-| Value | Formula | Default character (FOUNDATION 10) |
-|-------|---------|-----------------------------------|
-| Capacity | `CharacterManager.get_total_attributes_data().get_max_madra()` = total FOUNDATION × 10 | 100 |
+| Value | Formula | A Lv 1 character, no gear |
+|-------|---------|---------------------------|
+| Capacity | `get_adventure_madra_capacity()` ([RESOURCES.md](../infrastructure/RESOURCES.md#madra-caps) has the formula) | 100 |
 | Threshold to start | capacity × 0.5 | 50 |
 | Budget spent | `min(capacity, current Madra)` | up to 100 |
 
-The capacity uses total attributes, so equipment bonuses count. The path tree's `madra_capacity_bonus` does not count, because nothing consumes it. Vitals use BODY: max HP = BODY × 10 and max Stamina = BODY × 5, so a default character has 100 HP and 50 Stamina, or 10 steps before relying on regeneration.
+The path tree's `madra_capacity_bonus` does not count toward the capacity, because nothing consumes it. Max Health and max Stamina are derived stats ([CHARACTER.md](../infrastructure/CHARACTER.md#derived-stats)), so a new character has 100 Health and 50 Stamina, or 10 steps before relying on regeneration.
 
 ### Map Generation
 
@@ -478,7 +476,7 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
   | A resolved encounter | its `encounter_name` | CLEARED | the tile's summary |
   | A NoOp tile, or an encounter with no choices | "Open ground" (tan) | none | "Click a hex to walk · 5 Stamina a step" |
 
-  - The glyph is the encounter's own, frame 0 (`EncounterCoin.glyph_for()`). The enemy named is the first of the first combat choice's pool, the one `AdventureCombat` fights. The line carries no Health (it may come back as an unlockable, and `VitalsManager.max_health_for()` stays for it).
+  - The glyph is the encounter's own, frame 0 (`EncounterCoin.glyph_for()`). The enemy named is the first of the first combat choice's pool, the one `AdventureCombat` fights. The line carries no Health (it may come back as an unlockable; an enemy's Max Health is `CharacterAttributesData.get_max_health()`).
   - An unresolved tile shows its `description` as lore, the lock line ("Choose what to do here before you walk on"), a divider and one `ChoiceDrawer` per choice (at most three; more are left out with a `Log.warn`). A resolved tile shows `text_description_completed` ("Encounter completed." when empty), the walk hint ("Click a hex to walk · 5 Stamina a step · <n> steps left", from the current Stamina, kept current as it changes) in the lock line's place, and no drawers. Open ground shows neither.
   - A drawer (`ChoiceDrawer`, 408 wide and 72 tall at least, on `lacquer_drawer9_ai.png`, a 9-slice, with the zone card's carved socket as a piece of its own) shows the choice's glyph (the story icon for a `DialogueChoice`), its `label` at x 64, a tag (FIGHT for a `CombatChoice`, TALK for a `DialogueChoice`) at x 320 and a detail line: the choice's `tooltip` and nothing else. A choice without one has no detail line, and its label centres on the face. It is available, locked (`not evaluate_requirements()`: tan title, the LOCKED seal, no press) or completed (`is_completed()`: the `completed_label` in tan, no press). Completed outranks locked, because a choice such as the Aura Well's "Mark down the location" fails its own requirement the moment it is done. Hovering an available drawer frames it; pressing it emits `choice_selected`.
   - The Run ledger shows the fights fought of the map's fights (every fight that ends counts, and a lost one ends the run), gold earned this run, tiles explored of the map's tiles (each with its icon), and a "Loot" row of six sockets with the run's latest item awards, newest last. All six sockets are always there; empty ones are carved recesses.
@@ -529,7 +527,7 @@ The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map
 | `ActionManager` | `adventure_start_requested(action)`, `confirm_adventure_start(action, budget)` → `start_adventure(action, budget)`, `stop_action(successful)` → `stop_adventure` plus the action's completion effects |
 | `ResourceManager` | `get_adventure_madra_capacity/budget/threshold()`, `can_start_adventure()`, `spend_madra()` during the drain, `add_gold()` on combat wins |
 | Zones (`ZoneTransition`, `ZoneViewState`, `AdventurePresenter`, `MapMarkers`) | Madra pellet drain and camera zoom, input blocker, the adventure card's Madra line and reject shake, hiding the map markers ([ZONES.md](../zones/ZONES.md)) |
-| `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`; the log and Goals boards stay where the zone view puts them; `ViewDissolve` into the adventure and back, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#shared-widgets)); `AdventureEndCardState` (grey background) |
+| `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`; places the Goals board and leaves the log where it is, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards) for the places; `ViewDissolve` into the adventure and back, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#shared-widgets)); `AdventureEndCardState` (grey background) |
 | `PlayerManager.vitals_manager` | `initialize_current_values(budget)`, `stamina_regen`, Stamina deducted per step, `ChangeVitalsEffectData`, HP for end conditions and the end card. `VitalsPlate` follows its three signals, and the Here tray's walk hint follows `stamina_changed` |
 | Combat (`AdventureCombat`) | `initialize_combat(choice, action)`, `start()`, `stop()`, `trigger_combat_end(is_successful, gold)`, the static `gold_reward_for()`; `TechniqueDock.bind()` and `VitalsPlate.bind_buffs()` take the player's combatant for a fight ([COMBAT.md](../combat/COMBAT.md)) |
 | `InventoryManager` | `item_awarded(item, quantity)` feeds end-card loot; loot effects call `award_items()`; `ITEM_OWNED` conditions call `has_item()` |
@@ -567,10 +565,10 @@ The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map
 | `starving_dreadbeast_encounter` (`combat_encounters/regular/`) | Starving Dreadbeast Attacks! | `COMBAT_REGULAR` | FILLER | 0 | 0 | "Attack the Dreadbeast" → `starving_dreadbeast` | 20 gold |
 | `coalescing_spirit_encounter` (`combat_encounters/elite/`) | Coalescing Spirit Attacks! | `COMBAT_ELITE` | ANCHOR | 0 | 1 | "Attack the Spirit" → `coalescing_spirit` | 0 gold (no `base_gold_drop`) |
 | `ravenous_dreadbeast_encounter` (`combat_encounters/elite/`) | Ravenous Dreadbeast Attacks! | `COMBAT_ELITE` | ANCHOR | 0 | 1 | "Attack the Dreadbeast" → `ravenous_dreadbeast` | 20 gold + 25% Dreadbeast Tooth Necklace (inline loot table) |
-| `aura_well` (`special_encounters/`) | Aura Well | `REST_SITE` | ANCHOR | 3 | 1 | "Rest" → +5 × BODY HP, +2 × FOUNDATION Madra. "Mark down the location" (requires `aura_well_discovered` = false) → same restore plus fires `aura_well_discovered`; once the event has fired the drawer reads "✓ Location noted" in tan and takes no press (see the ✓ item under Work Remaining). | Unlocks the Aura Well training zone action |
+| `aura_well` (`special_encounters/`) | Aura Well | `REST_SITE` | ANCHOR | 3 | 1 | "Rest" → restores Health and Madra ([EFFECTS.md](../infrastructure/EFFECTS.md#existing-content) has how much). "Mark down the location" (requires `aura_well_discovered` = false) → same restore plus fires `aura_well_discovered`; once the event has fired the drawer reads "✓ Location noted" in tan and takes no press (see the ✓ item under Work Remaining). | Unlocks the Aura Well training zone action |
 | `refugee_camp` (`special_encounters/`) | Refugee Camp | `REST_SITE` | ANCHOR | 3 | 1 | "Approach the camp" → fires `merchant_discovered` | Unlocks the Merchant zone action and its shop. Only eligible while `refugee_camp_map` is owned (ITEM_OWNED) and `merchant_discovered` has not fired. |
 
-Enemy stats and abilities are in [COMBAT.md](../combat/COMBAT.md). All gold values assume the 1.0 multipliers above. With default attributes (BODY 10, FOUNDATION 10), the Aura Well restores 50 HP and 20 Madra.
+Enemy stats and abilities are in [COMBAT.md](../combat/COMBAT.md). All gold values assume the 1.0 multipliers above.
 
 ### Placeholder Encounters (not used by any adventure)
 
@@ -659,6 +657,7 @@ Tests: `tests/unit/test_adventure_*.gd` and `tests/integration/test_adventure_*.
   - No shipped encounter deals damage outside combat.
 - `[LOW]` **An encounter can soft-lock the player.** An unvisited encounter locks movement until a choice resolves it, and there is no built-in "leave" option. If every drawer is locked or completed, the player is stuck until the timer runs out. Every shipped encounter has a drawer that is always available.
 - `[LOW]` **Loot ignores quantities.** `AdventureView` adds one entry per `item_awarded` emission and ignores the quantity, and duplicate items are not stacked. The end card and the Run ledger's loot sockets show that list.
+- `[LOW]` **A stat changed mid-run moves max Stamina at once, but the regen only at the next run.** The player's max Stamina follows `CharacterManager.stats_changed`, while the run's Stamina regen is set once, at the run's start (the [`stamina_regen_modifier` row](#adventureactiondata-extends-zoneactiondata)). Only the dev panel can change a stat during a run.
 
 ### Missing Functionality
 
@@ -668,7 +667,7 @@ Tests: `tests/unit/test_adventure_*.gd` and `tests/integration/test_adventure_*.
   - As a result, no quest, zone or Foundation beat can be gated on clearing an adventure.
 - `[HIGH]` **Path perks that target adventures do nothing.**
   - Madra Reclamation (`ADVENTURE_MADRA_RETURN_PCT`, +10% per purchase, up to 5) and Iron Will (`STAMINA_RECOVERY_MULT`, ×1.2) can be bought, and `PathManager` computes their values.
-  - But `AdventureView.stop_adventure()` never refunds unspent Madra, and the run's Stamina regen reads only `stamina_regen_modifier`. Players spend path points for no effect.
+  - But `AdventureView.stop_adventure()` never refunds unspent Madra, and the run's Stamina regen reads the player's Agility (through `CharacterManager.get_stat(STAMINA_REGEN)`) and `stamina_regen_modifier`, not Iron Will's multiplier. Players spend path points for no effect.
 - `[MEDIUM]` **There are no "seen" or "reached" hooks on encounters.** Effects only run when a choice resolves; nothing fires when a tile is revealed or first entered. [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md) needs one: Beat 5's `q_first_elite` starts when the elite is first seen.
 - `[MEDIUM]` **No difficulty scaling.** `difficulty_modifier` and `experience_multiplier` on `AdventureActionData` are never read, and nothing scales by distance from the origin. Both are needed before Copper-tier adventures.
 - `[MEDIUM]` **Fights always use the first enemy.** `AdventureCombat` uses `enemy_pool[0]` (TODO at `adventure_combat.gd:144`), so every encounter authors a single enemy (see [COMBAT.md](../combat/COMBAT.md)).
@@ -692,7 +691,7 @@ Tests: `tests/unit/test_adventure_*.gd` and `tests/integration/test_adventure_*.
 
 - `[MEDIUM]` **The fight keeps its old look.** The enemy's floating plate, the painted fighters, the parallax forest behind them, the `Atmosphere` layer and the 0.25 s fade into the fight are unchanged, and the plate's right end runs under the chest. The opponent page, the combat stage, the new fighters and the dither dissolve are PR 2 of the lacquer rework (see [Related Design Docs](#related-design-docs)).
 - `[MEDIUM]` **Text is still cut off elsewhere.** The adventure frame, the Goals board and the Now strip wrap and grow, but the log board's five lines (on this screen, at the bottom left), the zone chest's title, the zone cards, the map plates and popovers and the Abilities view still end in an ellipsis. [STYLE_GUIDE.md](../STYLE_GUIDE.md#5-type) (Where text still trims) lists them and the tests that pin them, and `KNOWN_TRIMMERS` in `test_boards_never_trim_text.gd` pins the list of their files.
-- `[LOW]` **No enemy Health before a fight.** The Here tray's line used to carry the enemy's Health, and a fight's drawer its techniques and gold; neither does now. Health may come back as an unlockable; `VitalsManager.max_health_for()` and `AdventureCombat.gold_reward_for()` stay, tested.
+- `[LOW]` **No enemy Health before a fight.** The Here tray's line names the enemy without its Health, and a fight's drawer shows neither its techniques nor its gold. Health may come back as an unlockable: an enemy's Max Health is `CharacterAttributesData.get_max_health()`, and a won fight's gold is `AdventureCombat.gold_reward_for()`, both tested.
 - `[LOW]` **Two socket textures.** The Here tray's glyph socket is `lacquer_socket_glyph_ai.png`, a drawer's is `lacquer_socket_drawer_ai.png`: the same size in the same column, in two textures.
 - `[MEDIUM]` **BM Euljiro has no ✓ glyph.** The Aura Well's `completed_label` is "✓ Location noted". A drawer draws the ✓ through a system-font fallback; on a machine with no font that has U+2713, Godot draws a hex-code box ("2713") instead. Drop the ✓ from `aura_well_encounter.tres`, or draw the tick as a kit glyph beside the label.
 - `[LOW]` **Clicks are ignored while walking.** `AdventureTilemap` ignores a click while the queue is non-empty or `is_moving`, so the player cannot change destination mid-route.
@@ -715,7 +714,7 @@ Tests: `tests/unit/test_adventure_*.gd` and `tests/integration/test_adventure_*.
 - `[LOW]` `AdventureTilemap` creates `AdventureMapGenerator` (a `Node`) with `.new()` and never adds it to the tree or frees it, so it leaks one node per view (`test_adventure_end_flow.gd` and `test_adventure_view_frame.gd` free it by hand). It could be a `RefCounted`.
 - `[LOW]` "Show Whole Map" is not purely visual: dev-revealed tiles are painted on `AdventureVisibleMap`, so they become clickable and pathable (and a hover shows the route to them).
 - `[LOW]` `EffectData.EffectType` is not used for dispatch. The `AwardResource`, `AwardItem`, `AwardLootTable` and `TriggerEvent` effect classes don't set it in `_init()`, so it stays `NONE` unless the `.tres` sets it, and none of the adventure encounter effects do.
-- `[LOW]` Open TODOs: where `AdventureTilemap` applies a choice's effects (`# TODO: Pass context if needed`) and where `AdventureView` sets the Stamina regen (`# TODO: ... more complex calculation logic`).
+- `[LOW]` Open TODO: where `AdventureTilemap` applies a choice's effects (`# TODO: Pass context if needed`).
 
 #### Tests
 - `[MEDIUM]` `test_min_fillers_on_path_guaranteed` counts NoOp tiles as fillers (they inherit `placement = FILLER`), so it passes even if Phase 4 is broken.

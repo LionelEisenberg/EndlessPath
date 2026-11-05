@@ -20,7 +20,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 |---|---|---|
 | Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zones scored by pressing the ball, technique drawers and the last cycle's line in the zone chest; Madra and Core Density XP |
 | Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels and cap, advancement stages (Foundation, Copper), the breakthrough |
-| Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | The Foundation → Copper breakthrough: a Spirit Valley action at a full core that runs the Breath of the Core mini-game, and where its code lives. Designed in the [spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md) |
+| Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | The Foundation → Copper breakthrough: a Spirit Valley action that runs the Breath of the Core mini-game once the core is full and Strength and Spirit are at the cap, and where its code lives. Designed in the [spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md) |
 | Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest and its techniques mode, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
 | Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps in the lacquer look (fog tiers, coins, rims, route dots), the vitals cabinet, chest and run clock, movement and stamina, encounters, end card |
 | Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies, the technique dock |
@@ -39,7 +39,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, cycling mode, the Tribulation board, the boards' open and close transition, input routing, keybindings, dock |
 | Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, save sessions and launch options, safe writes, backups, versioning, play stats |
 | Resources | [infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra and Gold, the two Madra caps, sources and sinks |
-| Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, derived stats, player vitals, the Character view |
+| Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | The six trained stats with their levels and the stage cap, derived stats, player vitals, the Character view |
 | Unlocks | [infrastructure/UNLOCKS.md](infrastructure/UNLOCKS.md) | Unlock condition types, latching, every registered condition |
 | Events | [infrastructure/EVENTS.md](infrastructure/EVENTS.md) | One-shot event flags and every event id |
 | Effects | [infrastructure/EFFECTS.md](infrastructure/EFFECTS.md) | The `EffectData` hierarchy and where each effect is used |
@@ -63,7 +63,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | System | Doc | Unlocks at | Blocked on |
 |---|---|---|---|
-| Scripting | [planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper | Copper gates nothing yet (the Tribulation reaches it); out-of-combat buff system |
+| Scripting | [planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper | Copper gates nothing yet; out-of-combat buff system |
 | Elixir Making | [planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper | Copper gates nothing yet; out-of-combat buff system; a way to spend materials |
 | Soulsmithing | [planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron | A Copper → Iron breakthrough and an Iron stage; Sacred Resources |
 

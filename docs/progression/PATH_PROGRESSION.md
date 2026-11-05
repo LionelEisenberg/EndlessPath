@@ -227,7 +227,7 @@ Constants and hooks:
 
 | Source | Amount | Trigger |
 |--------|--------|---------|
-| Core Density milestone | `CultivationManager.PATH_POINTS_PER_STAGE[stage]`: Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` where `level % PATH_POINT_LEVEL_INTERVAL (10) == 0` and the level is above the stage's entry in `SaveGameData.core_density_milestones` (`cultivation_manager.gd:248-257`). A level lost to a failed Tribulation and regained pays nothing again |
+| Core Density milestone | Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` to a multiple of 10 that is above the stage's entry in `SaveGameData.core_density_milestones`. A level lost to a failed Tribulation and regained pays nothing again |
 | Quest `q_first_steps` ("First Steps Out") | 1 | `completion_effects` → `AwardPathPointEffectData` (default `amount = 1`) |
 | Dev panel Player tab "Path Points" row | 0–1000 | `DevCommands.add_path_points()` → `add_points()` |
 
@@ -600,8 +600,8 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - `MADRA_ON_LEVEL_UP` (Breakthrough Surge): the level-up loop in `CultivationManager.add_core_density_xp()`.
   - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone radius, `CyclingRules.ZONE_RADIUS` (20). `CyclingRules.tier_for_distance()` and `CyclingTechnique` read it. The zones have no shape of their own.
   - `ADVENTURE_MADRA_RETURN_PCT` (Madra Reclamation): `AdventureView.stop_adventure()`, by refunding a share of `PlayerManager.vitals_manager.current_madra`.
-  - `STAMINA_RECOVERY_MULT` (Iron Will): the stamina regeneration in `AdventureView`.
-  - `ATTRIBUTE_BONUS` (no content uses it): the attribute bonuses in `CharacterManager`, which only sum equipment.
+  - `STAMINA_RECOVERY_MULT` (Iron Will): a modifier on the player's `STAMINA_REGEN` stat, which a run reads for its Stamina regen (`CharacterManager.get_stat(STAMINA_REGEN)`, [ADVENTURING.md](../adventuring/ADVENTURING.md#adventureactiondata-extends-zoneactiondata)).
+  - `ATTRIBUTE_BONUS` (no content uses it): a CharacterManager modifier source beside the gear's (`set_modifier_source()`).
 - `[MEDIUM]` **Path points are announced only by the dock.**
   - The dock's Path button shows a ring and a count seal while points are unspent, which is the signal FOUNDATION_PLAYTHROUGH Beat 6 relies on.
   - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`, and nothing shows a toast, so a point earned while cycling (the dock hides) or in an adventure (the zone view is hidden) goes unseen until the zone view shows again.
