@@ -55,3 +55,15 @@ func test_the_shipped_curve_starts_at_the_baseline_and_grows() -> void:
 		return
 	assert_eq(shipped.get_value_for_level(1), CharacterAttributesData.STAT_BASELINE, "Lv 1 is the baseline")
 	assert_gt(shipped.get_xp_to_next(2), shipped.get_xp_to_next(1), "each level costs more")
+
+## The shipped numbers, the spec's. The class defaults are the same numbers, so
+## an editor re-save that drops a line, then a change of that default, would
+## retune the game with nothing else noticing.
+func test_the_shipped_curve_holds_the_specs_numbers() -> void:
+	var shipped: StatProgressionData = load(SHIPPED_PATH) as StatProgressionData
+	assert_not_null(shipped, "%s loads as a StatProgressionData" % SHIPPED_PATH)
+	if shipped == null:
+		return
+	assert_eq(shipped.xp_to_level_two, 100.0, "Lv 2 costs 100 XP")
+	assert_eq(shipped.xp_growth, 1.25, "each later level costs 1.25 times the last")
+	assert_eq(shipped.value_per_level, 1.0, "each level adds 1 point")

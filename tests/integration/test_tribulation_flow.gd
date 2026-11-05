@@ -22,6 +22,7 @@ const Stage := CultivationManager.AdvancementStage
 const Mode := TribulationView.Mode
 const Attribute := CharacterAttributesData.AttributeType
 const StatSources := preload("res://tests/helpers/stat_sources.gd")
+const StatCaps := preload("res://tests/helpers/stat_caps.gd")
 
 const VIEW_SCENE_PATH: String = "res://scenes/tribulation/tribulation_view.tscn"
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
@@ -100,15 +101,9 @@ func _tribulation() -> TribulationActionData:
 ## the way play does. The last level is earned with XP, so the level-up reaches
 ## the cap, announces the full core and runs the unlock check.
 func _fill_core() -> void:
-	_cap_main_stats()
+	StatCaps.cap_main_stats()
 	PersistenceManager.save_game_data.core_density_level = 99.0
 	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
-
-## Strength and Spirit trained to the stage's cap, as the trial needs them.
-func _cap_main_stats() -> void:
-	var cap: int = CharacterManager.get_stat_level_cap()
-	CharacterManager.set_stat_level(Attribute.STRENGTH, cap)
-	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
 
 ## Unlocks Spring Forest Foraging. It is the zone's first idle action, so it
 ## starts at once.
@@ -307,7 +302,7 @@ func test_bonuses_never_count_toward_the_cap() -> void:
 func test_a_full_copper_core_cannot_face_the_foundation_trial() -> void:
 	_fill_core()
 	assert_true(CultivationManager.advance_to_next_stage(), "precondition: Foundation leads to a next stage")
-	_cap_main_stats()
+	StatCaps.cap_main_stats()
 	PersistenceManager.save_game_data.core_density_level = 100.0
 	assert_true(CultivationManager.is_core_full(), "precondition: Copper's core is full")
 	assert_true(TribulationActionData.get_missing_requirements().is_empty(), "precondition: only the stage refuses")

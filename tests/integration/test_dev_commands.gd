@@ -506,6 +506,15 @@ func test_raise_stat_to_cap_never_lowers_a_stat() -> void:
 	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), cap + 2, "Spirit stays past the cap")
 	assert_eq(_dev_lines().size(), 0, "nothing was done, so nothing is logged")
 
+## A stat exactly at the cap has nothing to raise: no failure, nothing logged.
+func test_raise_stat_to_cap_at_the_cap_does_nothing() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
+	watch_signals(LogManager)
+	assert_eq(DevCommands.raise_stat_to_cap(&"spirit"), "", "a stat at the cap is no failure")
+	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), cap, "Spirit stays at the cap")
+	assert_eq(_logged_lines().size(), 0, "nothing was done, so nothing is logged")
+
 ## Foundation names the stage now, not a stat.
 func test_raise_stat_to_cap_refuses_an_unknown_stat() -> void:
 	assert_ne(DevCommands.raise_stat_to_cap(&"foundation"), "")
@@ -601,11 +610,12 @@ func test_a_command_pauses_recording_for_its_own_duration() -> void:
 	DevCommands.award_item(CRUDE_SCALE, 1)
 	DevCommands.complete_action(NPC_1)
 	DevCommands.set_stat_level(&"mind", 3)
+	DevCommands.raise_stat_to_cap(&"spirit")
 	assert_eq(during_event, [true, true] as Array[bool], "the aura event, then NPC 1's event")
 	assert_eq(during_madra, [true] as Array[bool], "set_madra")
 	assert_eq(during_award, [true] as Array[bool], "award_item")
 	assert_eq(during_completion, [true] as Array[bool], "complete_action: the quest NPC 1 starts")
-	assert_eq(during_level, [true] as Array[bool], "set_stat_level")
+	assert_eq(during_level, [true, true] as Array[bool], "set_stat_level, then raise_stat_to_cap")
 	assert_false(_stats().recording_paused, "and recording is on again after them")
 
 ## A holder further out (a preset build, say) keeps its pause across a command.

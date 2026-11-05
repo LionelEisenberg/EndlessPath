@@ -117,7 +117,19 @@ func test_only_the_player_dodges_under_its_chance() -> void:
 		_fix_roll(fighter, case["roll"])
 		assert_eq(fighter.effect_manager.try_dodge(), case["dodges"], case["name"])
 
-## A manager with no owner, or with an owner that has no data, never dodges.
+## At a chance of 0 no roll is drawn at all: Lv 1 Agility never calls dodge_roll.
+func test_no_chance_draws_no_roll() -> void:
+	var player: CombatantNode = _combatant("Player", true, CharacterAttributesData.make())
+	assert_eq(player.combatant_data.attributes.get_dodge_chance(), 0.0, "precondition: Lv 1 Agility has no chance")
+	var rolls: Array[int] = [0]
+	player.effect_manager.dodge_roll = func() -> float:
+		rolls[0] += 1
+		return 0.0
+	assert_false(player.effect_manager.try_dodge(), "no chance, no dodge")
+	assert_eq(rolls[0], 0, "and no roll drawn")
+
+## A manager with no owner, an owner that has no data, or data with no
+## attributes never dodges.
 func test_a_bare_node_never_dodges() -> void:
 	var manager := CombatEffectManager.new()
 	add_child_autofree(manager)
@@ -128,6 +140,10 @@ func test_a_bare_node_never_dodges() -> void:
 	fighter.is_player = true
 	manager.setup(fighter)
 	assert_false(manager.try_dodge(), "an owner with no data")
+	# CombatantData._init() gives new data its own attributes: take them away.
+	fighter.combatant_data = CombatantData.new()
+	fighter.combatant_data.attributes = null
+	assert_false(manager.try_dodge(), "an owner whose data has no attributes")
 
 ## A dodge stops the damage and the interrupt riding on it, and is logged. The
 ## biter's Hunger still applies.

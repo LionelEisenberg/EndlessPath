@@ -11,6 +11,7 @@ extends GutTest
 ## a long step wraps and the board grows to hold it.
 
 const Attribute := CharacterAttributesData.AttributeType
+const StatCaps := preload("res://tests/helpers/stat_caps.gd")
 
 const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
@@ -63,12 +64,6 @@ func _use_fresh_save(save: SaveGameData = SaveGameData.new(), npc_4_talked: bool
 		save.unlock_progression.unlocked_condition_ids.append(NPC_4_EVENT)
 	PersistenceManager.save_game_data = save
 	PersistenceManager.save_data_reset.emit()
-
-## Strength and Spirit trained to the stage's cap, as the Tribulation needs them.
-func _cap_main_stats() -> void:
-	var cap: int = CharacterManager.get_stat_level_cap()
-	CharacterManager.set_stat_level(Attribute.STRENGTH, cap)
-	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
 
 ## Swaps in a Foundation that fills at `cap`, with a Copper after it. Call it
 ## before the save loads; after_each() restores the real stages.
@@ -246,7 +241,7 @@ func test_milestone_at_the_cap_asks_for_the_tribulation() -> void:
 	var save := SaveGameData.new()
 	save.core_density_level = 120.0
 	_use_fresh_save(save)
-	_cap_main_stats()
+	StatCaps.cap_main_stats()
 	assert_eq(CultivationManager.get_core_density_level(), 100.0, "precondition: the save loaded at the cap")
 	_add_goals()
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
@@ -334,7 +329,7 @@ func test_milestone_reads_the_stages_cap() -> void:
 	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 40")
 	assert_eq(_text("MilestoneFigureLabel"), "20 / 40")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.5 * MILESTONE_ROD_STEPS))
-	_cap_main_stats()
+	StatCaps.cap_main_stats()
 	save.core_density_level = 40.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
@@ -404,7 +399,7 @@ func test_copper_shows_its_milestone_without_npc_4() -> void:
 
 func test_long_step_text_wraps_and_does_not_widen_board() -> void:
 	# Two stat lines under the milestone would grow the board on their own.
-	_cap_main_stats()
+	StatCaps.cap_main_stats()
 	var long_text: String = "Walk the long road ".repeat(16).substr(0, 300)
 	assert_eq(long_text.length(), 300, "precondition: a 300-character step")
 	var quest_id: String = _use_single_quest("A Quest Whose Name Runs Far Past The Board's Edge", long_text)

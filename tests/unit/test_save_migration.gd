@@ -283,6 +283,29 @@ func test_repair_fills_a_missing_stat() -> void:
 	assert_eq(data.stat_training.get_level(AttributeType.SPIRIT), 4, "the rest is kept")
 	assert_true(data.verify(), "a repaired save passes verify()")
 
+## A stat whose level is there but whose XP is not fails the check as well.
+func test_repair_fills_a_missing_xp_entry() -> void:
+	var data := SaveGameData.new_current()
+	data.stat_training.set_xp(AttributeType.SPIRIT, 40.0)
+	data.stat_training.xp.erase(&"mind")
+	assert_true(data.stat_training.levels.has(&"mind"), "precondition: Mind's level is still there")
+	assert_false(data.verify(), "a record missing a stat's XP is invalid")
+	assert_eq(data.repair(), PackedStringArray(["stat_training"]), "repair() names what it changed")
+	assert_eq(data.stat_training.xp.get(&"mind"), 0.0, "Mind's XP is written out at 0, not left to the default")
+	assert_eq(data.stat_training.get_xp(AttributeType.SPIRIT), 40.0, "the rest is kept")
+	assert_true(data.verify(), "a repaired save passes verify()")
+
+## Each check runs on its own, so a save faulty in both is repaired in both.
+func test_repair_fixes_the_zone_and_the_record_together() -> void:
+	var data := SaveGameData.new_current()
+	data.current_selected_zone_id = "NoSuchZone"
+	data.stat_training.levels.erase(&"body")
+	assert_false(data.verify(), "the save is invalid in both")
+	assert_eq(data.repair(), PackedStringArray(["current_selected_zone_id", "stat_training"]), "repair() names both")
+	assert_eq(data.current_selected_zone_id, "", "the zone goes back to the first one in the list")
+	assert_eq(data.stat_training.levels.get(&"body"), 1, "Body is written back at Lv 1")
+	assert_true(data.verify(), "a save repaired in both passes verify()")
+
 func test_repair_makes_a_missing_record() -> void:
 	var data := SaveGameData.new_current()
 	data.stat_training = null

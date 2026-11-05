@@ -12,6 +12,7 @@ extends GutTest
 ## Strength and Spirit at the cap; the trial itself is test_tribulation_flow.gd's.
 
 const Attribute := CharacterAttributesData.AttributeType
+const StatCaps := preload("res://tests/helpers/stat_caps.gd")
 
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
 
@@ -54,7 +55,7 @@ func before_each() -> void:
 	UnlockManager.force_unlock_condition(FULL_CORE_CONDITION)
 	_logged.clear()
 	LogManager.message_logged.connect(_on_message_logged)
-	_cap_main_stats()
+	StatCaps.cap_main_stats()
 
 func after_each() -> void:
 	LogManager.message_logged.disconnect(_on_message_logged)
@@ -81,12 +82,6 @@ func _stop_everything() -> void:
 ## Puts the core at this level. A card reads the level as it is built.
 func _set_core_level(level: float) -> void:
 	PersistenceManager.save_game_data.core_density_level = level
-
-## Strength and Spirit trained to the stage's cap, as the trial needs them.
-func _cap_main_stats() -> void:
-	var cap: int = CharacterManager.get_stat_level_cap()
-	CharacterManager.set_stat_level(Attribute.STRENGTH, cap)
-	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
 
 func _card_for(action: ZoneActionData) -> ZoneActionButton:
 	var card: ZoneActionButton = CARD_SCENE.instantiate() as ZoneActionButton
@@ -306,7 +301,9 @@ func test_card_follows_a_stage_change() -> void:
 	assert_eq(_tag_text(card), "ENTER", "precondition: ready")
 	PersistenceManager.save_game_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
 	CultivationManager.advancement_stage_changed.emit(CultivationManager.AdvancementStage.COPPER)
-	_cap_main_stats()
+	# Checked before the stats are capped: their stat_level_changed refreshes the card on its own.
+	assert_eq(_tag_text(card), "TRIAL", "the card follows the stage")
+	StatCaps.cap_main_stats()
 	assert_true(TribulationActionData.get_missing_requirements().is_empty(), "precondition: only the stage refuses")
 	assert_eq(_tag_text(card), "TRIAL")
 	assert_false(_ready_frame(card).visible)
