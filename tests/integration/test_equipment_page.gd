@@ -11,8 +11,10 @@ const COWL: EquipmentDefinitionData = preload("res://resources/items/equipment/s
 const ROBES: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/reinforced_robes.tres")
 const NECKLACE: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/dreadbeast_tooth_necklace.tres")
 const SWORD: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/iron_shortsword.tres")
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
 
 var _saved_inventory: InventoryData = null
+var _saved_training: StatTrainingData = null
 var _view: MenuBookView = null
 
 #-----------------------------------------------------------------------------
@@ -22,12 +24,15 @@ var _view: MenuBookView = null
 func before_each() -> void:
 	_saved_inventory = PersistenceManager.save_game_data.inventory
 	PersistenceManager.save_game_data.inventory = InventoryData.new()
+	_saved_training = PersistenceManager.save_game_data.stat_training
+	PersistenceManager.save_game_data.stat_training = StatTrainingData.new_default()
 
 func after_each() -> void:
 	# PaginationBar.setup() and the details' bonus rows free what they replace
 	# a frame late: let that frame pass so GUT counts no orphans.
 	await wait_process_frames(1)
 	PersistenceManager.save_game_data.inventory = _saved_inventory
+	PersistenceManager.save_game_data.stat_training = _saved_training
 
 ## The inventory book's Equipment tab, before the book opens.
 func _tab() -> Control:
@@ -44,6 +49,17 @@ func _open_tab() -> Control:
 
 func _details(tab: Control) -> EquipmentDetails:
 	return tab.get_node("%EquipmentDetails") as EquipmentDetails
+
+## The bonuses the details print, row by row: each row's left bonus, then its
+## right bonus when that half shows.
+func _bonus_texts(details: EquipmentDetails) -> Array[String]:
+	var texts: Array[String] = []
+	for row: Node in details.get_node("%Bonuses").get_children():
+		texts.append((row.get_node("%LeftBonus") as Label).text)
+		var right: Label = row.get_node("%RightBonus") as Label
+		if right.visible:
+			texts.append(right.text)
+	return texts
 
 func _gear_slot(tab: Control, slot_name: String) -> GearSlot:
 	return tab.get_node("%GearSelector").find_child(slot_name, true, false) as GearSlot
@@ -266,10 +282,24 @@ func test_details_print_the_slot_and_the_bonuses() -> void:
 	var details: EquipmentDetails = _details(tab)
 	assert_eq((details.get_node("%SlotLabel") as Label).text, "MAIN HAND")
 	assert_eq((details.get_node("%Icon") as TextureRect).texture, DAGGER.icon)
-	var row: BonusRow = details.get_node("%Bonuses").get_child(0) as BonusRow
-	assert_eq((row.get_node("%LeftBonus") as Label).text, "+3 Strength")
-	assert_eq((row.get_node("%RightBonus") as Label).text, "+2 Agility")
+	var lines: Array[String] = BookText.gear_bonus_lines(DAGGER, CharacterManager.get_trained_values())
+	assert_gt(lines.size(), 0, "precondition: the dagger has bonuses")
+	assert_eq(_bonus_texts(details), lines, "every bonus line, in order")
 	assert_eq((details.get_node("%Description") as Label).text, DAGGER.description)
+
+## The details reprint the item they already show, and the bonus they print in
+## parentheses is the one the total gets.
+func test_details_reprint_when_a_stat_levels() -> void:
+	var tab: Control = _tab()
+	var charm: EquipmentDefinitionData = GearFixture.spirit_charm()
+	InventoryManager.award_items(charm, 1)
+	InventoryManager.equip_item(InventoryManager.get_inventory().equipment[0], charm.slot_type, 0)
+	tab.open_page()
+	var details: EquipmentDetails = _details(tab)
+	assert_eq(_bonus_texts(details), ["+50% Spirit\u00a0(+5)"] as Array[String], "Spirit Lv 1 (10)")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
+	assert_eq(_bonus_texts(details), ["+50% Spirit\u00a0(+7)"] as Array[String], "reprinted at Spirit Lv 5 (14)")
+	assert_eq(CharacterManager.get_gear_bonus(CharacterAttributesData.AttributeType.SPIRIT), 7.0, "the +7 printed is the bonus the total gets")
 
 func test_long_names_wrap_inside_the_panel() -> void:   # Review Focus 1
 	var tab: Control = await _open_tab()

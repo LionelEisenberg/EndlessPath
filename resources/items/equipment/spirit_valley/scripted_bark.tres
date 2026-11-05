@@ -9,9 +9,6 @@ slot_type = 1
 stat_percent_bonuses = Dictionary[StringName, float]({
 &"body": 0.2
 })
-attribute_bonuses = {
-1: 2.0
-}
 item_id = "scripted_bark"
 item_name = "Scripted Bark"
 description = "A small scripted piece of bark, not much but will take a hit or two"

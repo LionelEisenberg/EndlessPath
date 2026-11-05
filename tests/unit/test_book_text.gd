@@ -1,6 +1,9 @@
 extends GutTest
 
-## BookText: the pressed pages' number, effect-line and bonus-line helpers.
+## BookText: the pressed pages' number, effect-line and gear bonus-line helpers.
+
+const AttributeType = CharacterAttributesData.AttributeType
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
 
 #-----------------------------------------------------------------------------
 # NUMBERS
@@ -38,14 +41,19 @@ func test_effect_line_of_only_a_cooldown_has_no_leading_separator() -> void:
 # EQUIPMENT
 #-----------------------------------------------------------------------------
 
-func test_bonus_lines_skip_zero_and_set_fractions_to_one_decimal() -> void:
-	var charm := EquipmentDefinitionData.new()
-	# Written out of attribute order on purpose: the lines must still come
-	# back Strength, Body, Control.
-	charm.attribute_bonuses = {
-		CharacterAttributesData.AttributeType.CONTROL: 1.5,
-		CharacterAttributesData.AttributeType.SPIRIT: 0.0,
-		CharacterAttributesData.AttributeType.BODY: -2.0,
-		CharacterAttributesData.AttributeType.STRENGTH: 4.0,
-	}
-	assert_eq(BookText.bonus_lines(charm), ["+4 Strength", "-2 Body", "+1.5 Control"] as Array[String])
+func test_gear_bonus_lines_word_each_bonus_with_its_value_now() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a stat at its floor", "item": GearFixture.item({&"strength": 0.1}, 2),
+			"trained": {AttributeType.STRENGTH: 10.0}, "lines": ["+10% Strength\u00a0(+2)"]},
+		{"name": "stats in stat order, then armor, then Ward",
+			"item": GearFixture.item({&"control": 0.2, &"strength": 0.5}, 1, 6.0, 4.0),
+			"trained": {AttributeType.STRENGTH: 10.0, AttributeType.CONTROL: 15.0},
+			"lines": ["+50% Strength\u00a0(+5)", "+20% Control\u00a0(+3)", "Armor 6", "Ward 4"]},
+		{"name": "a fractional percent", "item": GearFixture.item({&"spirit": 0.125}),
+			"trained": {AttributeType.SPIRIT: 16.0}, "lines": ["+12.5% Spirit\u00a0(+2)"]},
+		{"name": "no bonuses", "item": GearFixture.item({}), "trained": {}, "lines": []},
+	]
+	for case: Dictionary in cases:
+		var expected: Array[String] = []
+		expected.assign(case.lines)
+		assert_eq(BookText.gear_bonus_lines(case.item, case.trained), expected, case.name)

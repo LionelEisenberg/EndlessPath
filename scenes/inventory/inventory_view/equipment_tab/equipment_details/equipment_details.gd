@@ -4,12 +4,14 @@ extends PanelContainer
 ## EquipmentDetails
 ## The Gear page's details panel, pressed into the paper under the figure: the
 ## item the player last pointed at, in a deep slot beside its name and slot
-## caption, its bonuses two to a row as the tooltip words them ("+2 Strength"),
-## and its description. The panel has a fixed height laid out for the longest
-## real item, the Dreadbeast Tooth Necklace (spec: its name's baselines at
-## screen 654 and 688, the slot caption 26 px under the name's last line, the
-## first bonus row's baseline at 752, the description from 798). Shorter items
-## flow up from the same gaps. It prints no hint (2026-10-28 review).
+## caption, its bonuses two to a row ("+10% Strength (+1)", the number being
+## what the stat gains at its trained value now), and its description. A
+## bonus follows its stat, so the panel reprints its item whenever the stats
+## change. The panel has a fixed height laid out for the longest real item,
+## the Dreadbeast Tooth Necklace (spec: its name's baselines at screen 654 and
+## 688, the slot caption 26 px under the name's last line, the first bonus
+## row's baseline at 752, the description from 798). Shorter items flow up
+## from the same gaps. It prints no hint (2026-10-28 review).
 ##
 ## %Flow lays out the name, bonuses and description from the top of the
 ## panel's content. The header, the bonus rows and the gaps before them are all
@@ -42,6 +44,13 @@ const _BONUSES_PER_ROW: int = 2
 var _item: ItemInstanceData = null
 
 #-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
+func _ready() -> void:
+	CharacterManager.stats_changed.connect(_on_stats_changed)
+
+#-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
@@ -69,6 +78,13 @@ func get_item() -> ItemInstanceData:
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
+## Reprints the item shown, so its bonuses match the trained values. It calls
+## _print_item() itself: show_item() returns early for the item it already
+## shows, and so does EquipmentTab._show_slot() for the slot it shows.
+func _on_stats_changed() -> void:
+	if _item != null:
+		_print_item(_item.item_definition)
+
 ## Prints the item: its icon, name, slot caption, bonuses and description.
 func _print_item(def: ItemDefinitionData) -> void:
 	var bonuses: Array[String] = []
@@ -76,7 +92,7 @@ func _print_item(def: ItemDefinitionData) -> void:
 	if def is EquipmentDefinitionData:
 		var equipment: EquipmentDefinitionData = def as EquipmentDefinitionData
 		_slot_label.text = BookText.slot_name(equipment.slot_type)
-		bonuses = BookText.bonus_lines(equipment)
+		bonuses = BookText.gear_bonus_lines(equipment, CharacterManager.get_trained_values())
 	_icon.texture = def.icon
 	_name_label.text = def.item_name
 	_set_bonuses(bonuses)

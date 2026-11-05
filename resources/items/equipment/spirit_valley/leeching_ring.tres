@@ -10,10 +10,6 @@ stat_percent_bonuses = Dictionary[StringName, float]({
 &"control": 0.2,
 &"mind": 0.2
 })
-attribute_bonuses = {
-4: 2.0,
-5: 2.0
-}
 item_id = "leeching_ring"
 item_name = "Leeching Ring"
 description = "A polished metal band engraved with a single character."

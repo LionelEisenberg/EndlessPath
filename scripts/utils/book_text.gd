@@ -1,9 +1,9 @@
 class_name BookText
 
 ## Text helpers for the inventory book's pressed pages: stack counts, seconds,
-## consumable effect lines, equipment slot captions and bonus lines. Everything
-## returns plain text except color_madra() and effect_line(), which return
-## BBCode for a RichTextLabel.
+## consumable effect lines, equipment slot captions and gear bonus lines.
+## Everything returns plain text except color_madra() and effect_line(), which
+## return BBCode for a RichTextLabel.
 
 ## Marks a stack count: "×7". The multiplication sign, not the letter x.
 const _COUNT_MARK: String = "×"
@@ -91,17 +91,26 @@ static func slot_name(slot: EquipmentDefinitionData.EquipmentSlot) -> String:
 	Log.error("BookText: Unknown equipment slot %s" % slot)
 	return ""
 
-## Returns one line for each attribute the equipment changes, worded as its
-## tooltip words it, in CharacterAttributesData.AttributeType order: "+3
-## Strength" or "+1.5 Spirit". A bonus of zero is left out.
-static func bonus_lines(def: EquipmentDefinitionData) -> Array[String]:
+## Returns one line for each bonus the gear gives: each stat it has a percent
+## above 0 for, in CharacterAttributesData.AttributeType order, as "+10%
+## Strength (+1)", then "Armor 6" and "Ward 4", each when above 0. The number
+## in parentheses is what the stat gains at its value in `trained_values`
+## (AttributeType to float; a stat it lacks counts as STAT_BASELINE, its Lv 1
+## value). It comes from get_stat_bonus(), as the totals' bonus does, so card
+## and total can't disagree. The space before "(" is a no-break space, so a
+## wrapping row never parts the figure from its stat.
+static func gear_bonus_lines(def: EquipmentDefinitionData, trained_values: Dictionary) -> Array[String]:
 	var lines: Array[String] = []
-	for attribute_type: int in CharacterAttributesData.AttributeType.values():
-		var bonus: float = def.attribute_bonuses.get(attribute_type, 0.0)
-		if is_zero_approx(bonus):
+	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
+		var percent: float = def.stat_percent_bonuses.get(CharacterAttributesData.stat_key(stat), 0.0)
+		if percent <= 0.0:
 			continue
-		var attribute_name: String = CharacterAttributesData.AttributeType.find_key(attribute_type)
-		lines.append("%s %s" % [_signed(bonus), attribute_name.capitalize()])
+		var bonus: float = def.get_stat_bonus(stat, trained_values.get(stat, CharacterAttributesData.STAT_BASELINE))
+		lines.append("%s%% %s\u00a0(%s)" % [_signed(percent * 100.0), CharacterManager.get_attribute_display_name(stat), _signed(bonus)])
+	if def.armor > 0.0:
+		lines.append("Armor %s" % _plain(def.armor))
+	if def.ward > 0.0:
+		lines.append("Ward %s" % _plain(def.ward))
 	return lines
 
 #-----------------------------------------------------------------------------
@@ -120,3 +129,9 @@ static func _signed(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):
 		return "%+d" % roundi(value)
 	return "%+.1f" % value
+
+## A number without a sign, a decimal only when it has one: 6.0 → "6", 6.5 → "6.5".
+static func _plain(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return "%d" % roundi(value)
+	return "%.1f" % value

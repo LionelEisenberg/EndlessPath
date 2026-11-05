@@ -37,10 +37,6 @@ enum EquipmentSlot {
 ## Flat: cuts Spirit damage taken.
 @export var ward: float = 0.0
 
-## Legacy: reaches no stat; read only by the gear text and the ITEMS.md tools
-## until Task 1.8 deletes it.
-@export var attribute_bonuses: Dictionary = {}
-
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -89,16 +85,13 @@ func get_stat_modifiers(trained_values: Dictionary) -> Array[StatModifierData]:
 # TOOLTIP
 #-----------------------------------------------------------------------------
 
+## Tooltip lines: the item's BookText.gear_bonus_lines() at the player's
+## trained values, each in the effect ink ("+30% Strength (+3)", "Armor 6",
+## "Ward 4"). The item tooltip (ItemDescriptionPanel) and the shop
+## (MerchantStockRow) print these. Every call reads the training afresh, so a
+## reader that calls it again prints each bonus as it stands.
 func _get_item_effects() -> Array[String]:
 	var effects: Array[String] = []
-
-	for attr_type: int in attribute_bonuses:
-		var value: float = attribute_bonuses[attr_type]
-		var attr_name: String = CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
-		var value_text: String = str(int(value)) if is_equal_approx(value, roundf(value)) else str(value)
-		if value > 0:
-			effects.append("[color=#a89070]+%s %s[/color]" % [value_text, attr_name])
-		elif value < 0:
-			effects.append("[color=#a89070]%s %s[/color]" % [value_text, attr_name])
-
+	for line: String in BookText.gear_bonus_lines(self, CharacterManager.get_trained_values()):
+		effects.append("[color=#a89070]%s[/color]" % line)
 	return effects

@@ -10,10 +10,6 @@ stat_percent_bonuses = Dictionary[StringName, float]({
 &"strength": 0.3
 })
 stat_bonus_floor = 2
-attribute_bonuses = {
-0: 3.0,
-2: 2.0
-}
 item_id = "makeshift_dagger"
 item_name = "Makeshift Dagger"
 description = "A simple iron blade, well-balanced for a beginner."
