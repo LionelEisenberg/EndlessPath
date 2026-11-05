@@ -159,7 +159,7 @@ These names and signatures cross tasks and phases. Every task uses them as writt
 
 **Branch and PR:** `feat/game-stats-rework-e6a4b4`, this worktree's branch, which already holds the spec and this plan; one PR, opened in Task 1.17.
 
-**Order:** tasks run in number order. Task 1.0's approval gates Tasks 1.8, 1.10, 1.13, 1.15 and 1.16; Tasks 1.1 to 1.7 need no approval and can start while the canvas is in review.
+**Order:** tasks run in number order, except where noted. Task 1.0's approval gates Tasks 1.8, 1.10, 1.13, 1.15 and 1.16; Tasks 1.1 to 1.7 need no approval and can start while the canvas is in review. Tasks 1.9, 1.12 and 1.14 also ran before the approval, because none of them depends on a gated task: Task 1.12 created the shared test helper Task 1.11 reuses, and Task 1.14's preset test holds before and after Task 1.13 adds the stat requirement.
 
 **Shared notes:** The `-s` test command imports nothing (TESTING.md). After a `class_name` script is added or deleted, `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` refreshes the class cache (Tasks 1.1 and 1.2 run it). It writes a `.gd.uid` beside each new script, committed with it, and `git status --short project.godot` must then print nothing (CLAUDE.md, the Dialogic patch). Tasks 1.1 to 1.5 and 1.13 to 1.16 give their tests as name, setup and assertions with their exact values; where a test gives no assert message, write one that names what it checks, and every table test's message names its case. Tasks 1.6 to 1.12 give them as GDScript. Table tests are `Array[Dictionary]` cases named in the assert message.
 
@@ -1518,7 +1518,7 @@ func test_cost_lines_show_the_cut_values() -> void:
 		assert_eq(AbilityRow.format_costs(case["ability"], case["cost_cut"], case["cooldown_cut"]), case["costs"], "%s: costs and timings" % case["name"])
 ```
 
-  - **`tests/integration/test_technique_dock.gd` and `tests/integration/test_abilities_book.gd`:** each gets a `##`-documented `const TEST_SOURCE: StringName = &"test_control"`, `const StatSources := preload("res://tests/helpers/stat_sources.gd")`, and a `CharacterManager.remove_modifier_source(TEST_SOURCE)` call in `after_each()` (in the dock test, after the nodes are freed and before `_set_vitals.callv(_original_vitals)`). Create `tests/helpers/stat_sources.gd` (`extends RefCounted`, statics only, no `class_name`, like `AdventureMapFixture`) holding the helper below as `## A modifier source that raises `stat` by a FLAT `amount`.` `static func flat(stat: StatModifierData.Stat, amount: float) -> Callable`, with `stat` in place of `StatModifierData.Stat.CONTROL`. The tests below call `StatSources.flat(StatModifierData.Stat.CONTROL, 20.0)` wherever they show `_control_source(20.0)`. Add `tests/helpers/stat_sources.gd` and its `.uid` to Files (Create) and to Step 11's staging:
+  - **`tests/integration/test_technique_dock.gd` and `tests/integration/test_abilities_book.gd`:** each gets a `##`-documented `const TEST_SOURCE: StringName = &"test_control"`, `const StatSources := preload("res://tests/helpers/stat_sources.gd")`, and a `CharacterManager.remove_modifier_source(TEST_SOURCE)` call in `after_each()` (in the dock test, after the nodes are freed and before `_set_vitals.callv(_original_vitals)`). Reuse `tests/helpers/stat_sources.gd`, which Task 1.12 created (it ran first, while the canvas waited): it holds the helper below as `## A modifier source that raises `stat` by a FLAT `amount`.` `static func flat(stat: StatModifierData.Stat, amount: float) -> Callable`, with `stat` in place of `StatModifierData.Stat.CONTROL`. The tests below call `StatSources.flat(StatModifierData.Stat.CONTROL, 20.0)` wherever they show `_control_source(20.0)`. Stage only this task's files at Step 11; the helper is committed already:
 
 ```gdscript
 ## A modifier source that raises Control by `amount`.
@@ -1630,7 +1630,7 @@ Before Step 1, invoke `godot-prompter:godot-testing`.
 - [ ] **Step 1: Write the failing test.** In `tests/integration/test_adventure_view_frame.gd`:
   - Add a `##`-documented `const TEST_SOURCE: StringName = &"test_agility"`, and call `CharacterManager.remove_modifier_source(TEST_SOURCE)` in `after_each()` just before `_restore_vitals(_saved_vitals)`.
   - `_start_run()` gains a second parameter, `stamina_regen_modifier: float = -1.0`, set on the duplicated action when it is >= 0. Its doc adds "A modifier below 0 keeps the action's own."
-  - Add `const StatSources := preload("res://tests/helpers/stat_sources.gd")` (Task 1.11's helper), call `StatSources.flat(StatModifierData.Stat.AGILITY, 20.0)` in the test below wherever it shows `_agility_source(20.0)`, and add:
+  - Add `const StatSources := preload("res://tests/helpers/stat_sources.gd")` (the shared helper, created by this task: Task 1.12 runs before Task 1.11), call `StatSources.flat(StatModifierData.Stat.AGILITY, 20.0)` in the test below wherever it shows `_agility_source(20.0)`, and add:
 
 ```gdscript
 ## A run regenerates Stamina at STAMINA_REGEN (Agility x 0.1 a second) times the
