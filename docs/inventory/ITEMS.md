@@ -2,7 +2,7 @@
 
 > **Source-of-truth catalog for equipment content in EndlessPath.**
 >
-> The generator `scripts/tools/items_md_to_resources.gd` reads the **Equipment** tables below, using `scripts/tools/items_md_parser.gd`. It writes one `.tres` per row under `resources/items/equipment/<zone>/`. Re-running it overwrites the generated fields in those files (`item_id`, `item_name`, `description`, `slot_type`, `stat_percent_bonuses`, `stat_bonus_floor`, `armor`, `ward`, `base_value`, `icon`). **Edit equipment here, not in the `.tres`.**
+> The generator reads the **Equipment** tables below and writes one `.tres` per row under `resources/items/equipment/<zone>/`. Its command runs `scripts/tools/items_md_to_resources.gd`, which loads the worker, `scripts/tools/items_md_generator.gd`, once the autoloads exist; the worker parses the tables with `ItemsMdParser` (`scripts/tools/items_md_parser.gd`). Re-running it overwrites the generated fields in those files (`item_id`, `item_name`, `description`, `slot_type`, `stat_percent_bonuses`, `stat_bonus_floor`, `armor`, `ward`, `base_value`, `icon`). **Edit equipment here, not in the `.tres`.**
 >
 > Materials, consumables and quest items are not generated yet. They are hand-authored `.tres` files; see their sections below.
 >
@@ -107,10 +107,11 @@ Format: `<WORD>+<N>[%], ...`, comma-separated, each word at most once.
 
 ## Generator
 
-The generator covers the **Equipment** section only. It was implemented on 2026-05-22 and has two parts:
+The generator covers the **Equipment** section only. It was implemented on 2026-05-22 and is made of:
 
-- `scripts/tools/items_md_to_resources.gd`, a headless CLI script (`extends SceneTree`)
-- `ItemsMdParser` in `scripts/tools/items_md_parser.gd`, a set of static helpers unit-tested in `tests/unit/test_items_md_parser.gd`
+- `scripts/tools/items_md_to_resources.gd`, the headless CLI script (`extends SceneTree`) the command runs with `-s`. Godot compiles a `-s` script, with every class it names, before it registers the autoloads, and the item classes reach code that reads an autoload, so this script names no game class. Once the run has started and the autoloads exist, it loads the worker and runs it.
+- `scripts/tools/items_md_generator.gd`, the worker: it reads this doc, checks every row and writes the files.
+- `ItemsMdParser` in `scripts/tools/items_md_parser.gd`, a set of static helpers unit-tested in `tests/unit/test_items_md_parser.gd`. The worker parses the tables with it.
 
 ### Invocation
 
