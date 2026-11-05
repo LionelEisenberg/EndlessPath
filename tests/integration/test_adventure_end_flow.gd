@@ -87,13 +87,15 @@ func test_boss_win_ends_the_adventure_once_as_a_victory() -> void:
 ## the save when the run ends, and a repeat of the win pays nothing more.
 func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
 	_start_adventure(300)
-	# The run's own copy of the action. 9 is under Foundation's level-1 cost of
-	# 10, so the boss's XP stays in the save's core_density_xp at level 0.
-	_view.adventure_tilemap.current_adventure_action_data.core_density_xp_boss = 9.0
 	var xp_when_the_run_ended: Array[float] = []
 	_view.adventure_completed.connect(func(_result: AdventureResultData) -> void:
 		xp_when_the_run_ended.append(CultivationManager.get_core_density_xp()))
 	var boss_choice := _boss_choice(RecordingEffect.new())
+	# 9 is under Foundation's level-1 cost of 10, so the boss's XP stays in the
+	# save's core_density_xp at level 0.
+	var award := AwardCoreDensityXpEffectData.new()
+	award.amount = 9.0
+	boss_choice.success_effects.append(award)
 	_view.adventure_tilemap._current_combat_choice = boss_choice
 	_view._on_start_combat(boss_choice)
 

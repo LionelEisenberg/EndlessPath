@@ -7,11 +7,18 @@
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_srkob"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_pugfe"]
 [ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_2g4xi"]
+[ext_resource type="Script" uid="uid://c01t8okcbx2km" path="res://scripts/resource_definitions/effects/award_core_density_xp_effect_data.gd" id="20_cdxp"]
+
+[sub_resource type="Resource" id="Resource_core_density_xp"]
+script = ExtResource("20_cdxp")
+amount = 20.0
+metadata/_custom_type_script = "uid://c01t8okcbx2km"
 
 [sub_resource type="Resource" id="Resource_f6ngc"]
 script = ExtResource("6_2g4xi")
 enemy_pool = Array[ExtResource("2_glsdj")]([ExtResource("3_rkwkm")])
 label = "Attack the Dreadbeast"
+success_effects = Array[ExtResource("4_srkob")]([SubResource("Resource_core_density_xp")])
 metadata/_custom_type_script = "uid://cpq8eacgl1537"
 
 [resource]

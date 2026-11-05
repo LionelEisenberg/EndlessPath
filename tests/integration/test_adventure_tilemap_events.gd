@@ -139,16 +139,19 @@ func _walk_to(coord: Vector3i) -> void:
 	_click(coord)
 	await _wait_for_hop(coord)
 
-## Starts the run on the fixture map with an action paying 7 Core Density XP for
-## a regular fight, 9 for an elite and 13 for the boss. 7 and 9 are under
-## Foundation's level-1 cost of 10, so one fight's XP stays in the save's
-## core_density_xp at level 0.
+## Adds a reward of `amount` Core Density XP to the choice's success effects.
+func _give_core_density(choice: EncounterChoice, amount: float) -> void:
+	var award := AwardCoreDensityXpEffectData.new()
+	award.amount = amount
+	choice.success_effects.append(award)
+
+## Starts the run on the fixture map with its fight paying 7 Core Density XP and
+## its boss 13. 7 is under Foundation's level-1 cost of 10, so the fight's XP
+## stays in the save's core_density_xp at level 0.
 func _start_paying() -> void:
-	var action: AdventureActionData = AdventureMapFixture.ADVENTURE_ACTION.duplicate()
-	action.core_density_xp_regular = 7.0
-	action.core_density_xp_elite = 9.0
-	action.core_density_xp_boss = 13.0
-	_tilemap.start_adventure_on_map(action, _map)
+	_give_core_density(_fight_choice, 7.0)
+	_give_core_density(_map[BOSS].choices[0], 13.0)
+	_start()
 
 ## Walks to FIGHT, picks its fight and answers it as a win paying 15 gold.
 func _win_the_fight() -> void:
@@ -451,17 +454,28 @@ func test_a_won_fight_pays_its_core_density_once() -> void:
 	assert_eq(CultivationManager.get_core_density_level(), 0.0, "below the level-1 cost")
 	assert_eq(_tilemap.get_core_density_xp_earned(), 7.0, "the run's total counts it once")
 
-## A rest site pays nothing, and neither does a fight picked on open ground: the
-## start tile holds no fight, so its tier is none.
-func test_only_fights_pay_core_density() -> void:
+## A choice pays Core Density only when its effects carry the reward: the rest
+## site's heal pays none.
+func test_a_choice_without_the_reward_pays_nothing() -> void:
 	_start_paying()
-	_tilemap.select_choice(_fight_choice)
-	_tilemap.handle_combat_result(true, 15)
 	await _walk_to(REST)
+
 	_tilemap.select_choice(_rest_choice)
 
 	assert_eq(CultivationManager.get_core_density_xp(), 0.0, "nothing reached the save")
 	assert_eq(_tilemap.get_core_density_xp_earned(), 0.0, "nothing in the run's total")
+
+## Any choice can carry the reward, such as an event that grants Core Density
+## for free, and the run's total counts it.
+func test_any_choice_with_the_reward_pays_it() -> void:
+	_give_core_density(_rest_choice, 9.0)
+	_start()
+	await _walk_to(REST)
+
+	_tilemap.select_choice(_rest_choice)
+
+	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "the event's reward")
+	assert_eq(_tilemap.get_core_density_xp_earned(), 9.0, "in the run's total too")
 
 ## What a kill paid is in the save at once: a lost fight after it, and the run's
 ## end, leave it there.
@@ -482,7 +496,7 @@ func test_a_new_run_starts_its_total_at_zero() -> void:
 	await _win_the_fight()
 	_tilemap.stop_adventure()
 
-	_start_paying()
+	_start()
 
 	assert_eq(_tilemap.get_core_density_xp_earned(), 0.0, "a new run's total")
 	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "the save keeps what the last run paid")
@@ -500,7 +514,7 @@ func test_a_kill_at_a_full_core_pays_nothing() -> void:
 
 	CultivationManager.lose_core_density_levels(5)
 	_tilemap.stop_adventure()
-	_start_paying()
+	_start()
 	await _win_the_fight()
 
 	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "kills pay again")

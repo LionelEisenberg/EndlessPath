@@ -1,6 +1,7 @@
 @abstract class_name EffectData
 extends Resource
 
+## Only grows at the end: .tres files store an effect's type as its number.
 enum EffectType {
 	NONE,
 	TRIGGER_EVENT,
@@ -11,6 +12,7 @@ enum EffectType {
 	AWARD_ATTRIBUTE,
 	AWARD_PATH_POINT,
 	CHANGE_VITALS,
+	AWARD_CORE_DENSITY_XP,
 }
 
 @export var effect_type: EffectType = EffectType.NONE

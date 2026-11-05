@@ -150,7 +150,7 @@ var _completed_encounter_tiles: Dictionary[Vector3i, bool] = {}
 ## The one line each resolved encounter left behind (see summary_for()), by tile.
 ## Cleared when the adventure stops.
 var _tile_summaries: Dictionary[Vector3i, String] = {}
-## The Core Density XP the run's won fights paid (get_core_density_xp_earned()).
+## The Core Density XP the run's resolved choices paid (get_core_density_xp_earned()).
 ## Zeroed when a run starts, and kept after it stops.
 var _core_density_xp_earned: float = 0.0
 
@@ -318,13 +318,12 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		
 		if _current_combat_choice:
 			# The save's play stats count the fight here, while its choice is still
-			# pending, and it pays its Core Density and runs its effects here.
+			# pending, and its effects run here: its loot and its Core Density.
 			# AdventureCombat reports a win again when its enemy takes another hit
 			# at 0 Health: the repeat finds the choice cleared (at the end of this
 			# function, or just below for the boss's), so the fight counts, pays
 			# and resolves once. The boss pays here too, before its win ends the run.
 			PersistenceManager.save_game_data.stats.count_fight_won()
-			_pay_core_density(_current_combat_choice)
 			_apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
@@ -383,8 +382,10 @@ func select_choice(choice: EncounterChoice) -> void:
 		_apply_effects(choice.success_effects)
 		_complete_current_tile(summary_for(choice, 0))
 
-## Returns the Core Density XP the run's won fights paid, each fight once. It
-## starts at 0 with each run and stays after the run stops, until the next starts.
+## Returns the Core Density XP the run's choices paid through their effects: a
+## won fight's reward, once however often the win is reported, and any other
+## choice's. It starts at 0 with each run and stays after the run stops, until the
+## next starts.
 func get_core_density_xp_earned() -> float:
 	return _core_density_xp_earned
 
@@ -590,28 +591,19 @@ func _complete_current_tile(summary: String) -> void:
 	_mark_tile_visited(_current_tile)
 	encounter_resolved.emit(_current_tile, summary)
 
-## Pays the Core Density XP a won fight over `choice` earns on the tile the player
-## stands on (AdventureActionData.get_core_density_xp_for(); a tile with no
-## encounter counts as none), into the save at once, and adds it to the run's
-## total. Returns what it paid: 0 with no run on, for a tile or choice that pays
-## nothing, and at a full core, which takes no XP.
-func _pay_core_density(choice: CombatChoice) -> float:
-	if current_adventure_action_data == null or CultivationManager.is_core_full():
-		return 0.0
-	var encounter: AdventureEncounter = get_encounter_at(_current_tile)
-	var type: AdventureEncounter.EncounterType = encounter.encounter_type if encounter != null else AdventureEncounter.EncounterType.NONE
-	var xp: float = current_adventure_action_data.get_core_density_xp_for(type, choice.is_boss)
-	if xp <= 0.0:
-		return 0.0
-	CultivationManager.add_core_density_xp(xp)
-	_core_density_xp_earned += xp
-	Log.info("AdventureTilemap: The fight paid %.0f Core Density XP (run total %.0f)" % [xp, _core_density_xp_earned])
-	return xp
-
-func _apply_effects(effects: Array[EffectData]) -> void:
+## Runs the effects. The Core Density XP they pay (AwardCoreDensityXpEffectData)
+## joins the run's total and is returned: a reward that lands in a full core
+## pays nothing, as the core takes no XP.
+func _apply_effects(effects: Array[EffectData]) -> float:
+	var core_density_xp: float = 0.0
 	for effect in effects:
 		if effect:
+			var award := effect as AwardCoreDensityXpEffectData
+			if award != null and award.amount > 0.0 and not CultivationManager.is_core_full():
+				core_density_xp += award.amount
 			effect.process() # TODO: Pass context if needed (player, etc.)
+	_core_density_xp_earned += core_density_xp
+	return core_density_xp
 
 ## Tells the boards why a walk cannot start or go on (walk_refused) and puts the
 ## reason in the player's log.
