@@ -46,7 +46,7 @@
 
 ### Stats DSL
 
-Format: `<WORD>+<N>[%], ...`, comma-separated, each word at most once.
+Format: `<WORD>+<N>[%], ...`, comma-separated, each word at most once. Words match in any case: `armor+6` reads as `ARMOR+6`.
 
 | Word | Gives | Field |
 |---|---|---|
