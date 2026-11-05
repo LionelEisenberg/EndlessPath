@@ -249,20 +249,17 @@ func test_a_capped_stats_page_has_no_next_level() -> void:
 	assert_string_contains(_label("NextLevelCaption").text, "2")
 	assert_false(_label("DetailCapSeal").visible, "the seal goes under the cap")
 
-## Added as XP, not set: set_stat_level() keeps the XP a point under the
-## threshold, so it could never stage 156 of Lv 3's 156.25.
+## A part of a cycle pays part of its XP, so XP can sit a fraction under a
+## level's whole cost: the figure floors it, never reading the cost as met.
+## Added as XP, not set: set_stat_level() keeps the XP a point under the cost.
 func test_the_xp_figure_never_shows_an_unmet_threshold_as_met() -> void:
 	CharacterManager.set_stat_level(Attribute.BODY, 3)
-	CharacterManager.add_stat_xp(Attribute.BODY, 156.0)
-	assert_eq(CharacterManager.get_stat_xp(Attribute.BODY), 156.0, "precondition: Body holds 156 XP")
-	assert_eq(CharacterManager.get_stat_level(Attribute.BODY), 3, "precondition: and is still Lv 3")
+	CharacterManager.add_stat_xp(Attribute.BODY, 155.6)
+	assert_eq(CharacterManager.get_stat_level(Attribute.BODY), 3, "precondition: Body is still Lv 3")
+	assert_eq(CharacterManager.get_stat_xp_to_next(Attribute.BODY), 156.0, "precondition: Lv 3 costs 156")
 	_view.select_attribute(Attribute.BODY)
 	_view.refresh()
-	var xp_to_next: float = CharacterManager.get_stat_xp_to_next(Attribute.BODY)
-	assert_ne(xp_to_next, floorf(xp_to_next), "precondition: Lv 3's threshold, 156.25, is not a whole number")
-	var text: String = _label("DetailXpLabel").text
-	assert_string_contains(text, "157", "the threshold is rounded up")
-	assert_false(text.contains("/ 156 "), "the threshold is rounded up, never down")
+	assert_eq(_label("DetailXpLabel").text, "155 / 156 XP", "155.6 reads 155, never 156")
 
 func test_the_page_shows_trained_plus_gear() -> void:
 	InventoryManager.equip_item(_sword(), EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
