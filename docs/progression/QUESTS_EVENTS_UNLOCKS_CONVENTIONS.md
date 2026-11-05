@@ -35,7 +35,7 @@ A moment happens in the game.
 ## Rules
 
 1. **Pattern B: chains live on NPC actions.** A quest never references another quest. The NPC action that completes quest N also starts quest N+1, with its `success_effects` in the order `TriggerEvent` (completes N and runs N's `completion_effects`) then `StartQuest(N+1)`. A quest's own `completion_effects` hold only its rewards.
-2. **Gate each "return" NPC on whatever completes the previous step.** An event step only matches an event that fires *while that step is current*, and QuestManager never re-checks a step after advancing. If an event can fire early, its step becomes uncompletable.
+2. **Gate each "return" NPC on whatever completes the previous step.** An event step only matches an event that fires *while that step is current*, and QuestManager never re-checks a step after advancing. If an event can fire early, its step becomes uncompletable. The Foundation chain follows this: each return NPC also gates on the previous NPC's talk, through that talk's registered condition, beside its own goal, so no NPC shows before the one before it.
 3. **One criterion per step.** If a step sets both, the event wins; if it sets neither, the step auto-advances. QuestManager reports both cases with `push_error` at boot.
 4. **Register every condition that a zone or action gates on.** An unregistered condition never latches, so the action stays hidden forever. Register condition steps too, so the step is re-checked when the condition flips.
 5. **Inline one-off effects and conditions** as sub-resources. Promote them to their own `.tres` only when several owners share them. Don't duplicate a registered condition inline: reference the file.
@@ -54,12 +54,12 @@ A moment happens in the game.
 
 | Moment / state | Event | Condition | Why |
 |---|---|---|---|
-| NPC 1 talked | `celestial_intervener_dialogue_1` | `celestial_intervener_dialogue_1` (EVENT_TRIGGERED, registered) | Wilderness Cycling and the Test Zone tile gate on it |
+| NPC 1 talked | `celestial_intervener_dialogue_1` | `celestial_intervener_dialogue_1` (EVENT_TRIGGERED, registered) | Wilderness Cycling, the Test Zone tile and NPC 2 gate on it |
 | Madra reaches 100 | *(none: a state)* | `q_fill_core_madra_full` (RESOURCE_AMOUNT ≥ 100, registered) | Quest step and NPC 2 visibility share one predicate |
-| NPC 2 talked | `celestial_intervener_dialogue_2` | *(none)* | Only `q_fill_core` step 1 consumes it |
+| NPC 2 talked | `celestial_intervener_dialogue_2` | `celestial_intervener_dialogue_2` (EVENT_TRIGGERED, registered) | `q_fill_core` step 1 advances on the event; NPC 3 gates on the condition (latched) |
 | `q_fill_core` completes | `q_fill_core_completed` (from `completion_effects`) | `q_fill_core_completed` (registered) | Adventure and Foraging gate on it |
 | First combat won | `q_first_steps_enemy_defeated` (code, `AdventureCombat`) | `q_first_steps_enemy_defeated` (registered) | Quest step 0 advances on the event; NPC 3 gates on the condition |
-| NPC 3 talked | `celestial_intervener_dialogue_3` | *(none)* | Only `q_first_steps`' `return_to_npc` step consumes it |
+| NPC 3 talked | `celestial_intervener_dialogue_3` | `celestial_intervener_dialogue_3` (EVENT_TRIGGERED, registered) | `q_first_steps`' `return_to_npc` step advances on the event; NPC 4 gates on the condition (latched) |
 | NPC 4 talked | `celestial_intervener_dialogue_4` | `celestial_intervener_dialogue_4` (EVENT_TRIGGERED, registered) | `q_reach_core_density_10`'s `return_to_npc` step advances on the event; Foundation's `breakthrough_goal_condition` puts the Breakthrough on the Goals board (latched) |
 | Core Density reaches 10 | *(none: a state)* | `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10, registered) | Quest step 0 and NPC 4 visibility |
 | Core Density reaches 100 (the core is full) | *(none: a state)* | `core_density_full` (CULTIVATION_LEVEL ≥ 100, registered) | Gates the Tribulation card (latched, so the card stays after a failure costs levels) |

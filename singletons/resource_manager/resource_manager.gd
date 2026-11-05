@@ -35,16 +35,21 @@ func _ready() -> void:
 		_update_resources()
 	else:
 		Log.critical("ResourceManager: Could not get save_game_data from PersistenceManager on ready!")
-	
-	if not CultivationManager:
-		Log.critical("ResourceManager: CultivationManager is missing!")
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 
+## Binds the live save, at start and after each save reset. A pool above the
+## max (a save from before the one max, or from more Mind gear) loads at the
+## max. Both resources are announced each time, cut or not: the screens and the
+## unlock sweep re-read them on these signals.
 func _update_resources() -> void:
 	live_save_data = PersistenceManager.save_game_data
 	if live_save_data == null:
 		Log.critical("ResourceManager: live_save_data is null in _update_resources!")
 		return
-	
+
+	if _clamp_to_max():
+		Log.info("ResourceManager: Madra was past its max of %d. Loaded at the max" % int(get_max_madra()))
+
 	# Emit signals to update UI
 	madra_changed.emit(live_save_data.madra)
 	gold_changed.emit(live_save_data.gold)
@@ -67,14 +72,12 @@ func award_resource(resource_type: ResourceType, amount: float, quiet: bool = fa
 # MADRA MANAGEMENT
 #-----------------------------------------------------------------------------
 
-## Adds Madra, capped to [0, max Madra], and returns the amount actually added
-## (0 at the cap). A pool already above the cap (the cap can drop when Core
-## Density falls) is kept: a gain is lost, but a negative amount still lowers it.
-## Logs "Gained N Madra" with that amount, unless quiet or less than 1 was added
-## (so a capped add is silent).
+## Adds Madra, held to [0, max], and returns the amount actually added (0 at the
+## max). Logs "Gained N Madra" with that amount, unless quiet or less than 1 was
+## added (so an add at the max is silent).
 func add_madra(amount: float, quiet: bool = false) -> float:
 	var before: float = live_save_data.madra
-	live_save_data.madra = clampf(before + amount, 0.0, maxf(CultivationManager.get_max_madra(), before))
+	live_save_data.madra = clampf(before + amount, 0.0, get_max_madra())
 	madra_changed.emit(live_save_data.madra)
 
 	# Snapped: (63.1 + 1.0) - 63.1 is 0.99999... in floating point.
@@ -83,6 +86,8 @@ func add_madra(amount: float, quiet: bool = false) -> float:
 		LogManager.log_message("[color=cyan]Gained %d Madra[/color]" % int(added))
 	return added
 
+## Spends `amount` of Madra and returns true when the pool holds that much.
+## Otherwise it spends nothing and returns false. Logs nothing.
 func spend_madra(amount: float) -> bool:
 	if live_save_data.madra >= amount:
 		live_save_data.madra -= amount
@@ -90,30 +95,45 @@ func spend_madra(amount: float) -> bool:
 		return true
 	return false
 
+## Sets the pool to `amount`, held to [0, max]. Logs nothing.
 func set_madra(amount: float) -> void:
-	live_save_data.madra = max(0.0, amount)
+	live_save_data.madra = clampf(amount, 0.0, get_max_madra())
 	madra_changed.emit(live_save_data.madra)
 
+## The Madra in the pool.
 func get_madra() -> float:
 	return live_save_data.madra
 
-## Get the maximum Madra the player can bring into an adventure: the player's
-## max Madra stat (Foundation x 10, then its modifiers), the same number the
-## adventure's Madra bar fills to.
-func get_adventure_madra_capacity() -> float:
+## The most Madra the pool holds: the max Madra stat (Mind x 10, then its
+## modifiers). Every Madra readout shows the pool against it.
+func get_max_madra() -> float:
 	return CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA)
 
-## Get the actual Madra budget for an adventure (limited by current pool).
-func get_adventure_madra_budget() -> float:
-	return min(get_adventure_madra_capacity(), get_madra())
-
-## Get the minimum Madra required to start an adventure (50% of capacity).
+## The Madra a run needs to start: half the max, so Mind and gear move it.
 func get_adventure_madra_threshold() -> float:
-	return get_adventure_madra_capacity() * 0.5
+	return get_max_madra() * 0.5
 
-## Check if the player has enough Madra to start an adventure.
+## True when the pool holds at least the adventure threshold.
 func can_start_adventure() -> bool:
 	return get_madra() >= get_adventure_madra_threshold()
+
+## Lowers a pool above the max to the max, emitting nothing. Returns whether
+## it did.
+func _clamp_to_max() -> bool:
+	var max_madra: float = get_max_madra()
+	if live_save_data.madra <= max_madra:
+		return false
+	live_save_data.madra = max_madra
+	return true
+
+## A max that drops brings the pool down. On a save reset CharacterManager
+## announces the new save's stats before this binds it: skip, as
+## _update_resources() clamps once it has.
+func _on_stats_changed() -> void:
+	if live_save_data == null or CharacterManager.live_save_data != live_save_data:
+		return
+	if _clamp_to_max():
+		madra_changed.emit(live_save_data.madra)
 
 #-----------------------------------------------------------------------------
 # GOLD MANAGEMENT
@@ -130,6 +150,9 @@ func add_gold(amount: float, quiet: bool = false) -> void:
 	if LogManager and not quiet:
 		LogManager.log_message("[color=gold]Gained %d Gold[/color]" % int(amount))
 
+## Spends `amount` of gold and returns true when the purse holds that much,
+## logging "Spent N Gold". Otherwise it spends nothing, logs nothing and
+## returns false.
 func spend_gold(amount: float) -> bool:
 	if live_save_data.gold >= amount:
 		live_save_data.gold -= amount
@@ -140,13 +163,16 @@ func spend_gold(amount: float) -> bool:
 			
 		return true
 	return false
-	
+
+## Sets the purse to `amount`, never below 0. Logs nothing.
 func set_gold(amount: float) -> void:
 	live_save_data.set("gold", max(0.0, amount))
 	gold_changed.emit(live_save_data.gold)
 
+## The gold in the purse.
 func get_gold() -> float:
 	return live_save_data.gold
 
+## True when the purse holds at least `amount`.
 func can_afford_gold(amount: float) -> bool:
 	return get_gold() >= amount

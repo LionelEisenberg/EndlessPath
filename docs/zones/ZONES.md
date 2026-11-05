@@ -703,10 +703,10 @@ Dev demo zones, `resources/zones/dev/` (never in the list, shown by the dev pane
 | 2 | `celestial_intervener_dialogue_1` | `Talk to the [INTERVENER]` | NPC_DIALOGUE | None | 1 | `celestial_intervener_introduction_1` @ `dialogue_1` | Event `celestial_intervener_dialogue_1`; start `q_fill_core` |
 | 3 | `sprint_forest_foraging_action` | `Spring Forest Foraging` | FORAGE | `q_fill_core_completed` | 0 | 5.0 s interval, 0 Madra/s, `loot_table/test_loot_table_foraging.tres` | — |
 | 4 | `shallow_woods_adventure_action` | `The Shallow Woods` | ADVENTURE | `q_fill_core_completed` | 0 | `resources/adventure/data/shallow_woods.tres`, 300 s limit, other modifiers at defaults | — |
-| 5 | `celestial_intervener_dialogue_2` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_fill_core_madra_full` | 1 | Label `dialogue_2` | Event `celestial_intervener_dialogue_2`; start `q_first_steps` |
+| 5 | `celestial_intervener_dialogue_2` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_fill_core_madra_full`, `celestial_intervener_dialogue_1` | 1 | Label `dialogue_2` | Event `celestial_intervener_dialogue_2`; start `q_first_steps` |
 | 6 | `aura_well_training` | `Aura Well` | TRAIN_STATS | `aura_well_discovered` | 0 | 1.0 s ticks, `[60, 300, 600, 1200]`, tail 2.0; +1.5 Madra per tick (quiet); +1 Spirit per level | — |
-| 7 | `celestial_intervener_dialogue_3` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_first_steps_enemy_defeated` | 1 | Label `dialogue_3` | Event `celestial_intervener_dialogue_3`; start `q_reach_core_density_10` |
-| 8 | `celestial_intervener_dialogue_4` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_reach_cd_10` | 1 | Label `dialogue_4` | Event `celestial_intervener_dialogue_4` |
+| 7 | `celestial_intervener_dialogue_3` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_first_steps_enemy_defeated`, `celestial_intervener_dialogue_2` | 1 | Label `dialogue_3` | Event `celestial_intervener_dialogue_3`; start `q_reach_core_density_10` |
+| 8 | `celestial_intervener_dialogue_4` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_reach_cd_10`, `celestial_intervener_dialogue_3` | 1 | Label `dialogue_4` | Event `celestial_intervener_dialogue_4` |
 | 9 | `spirit_valley_merchant` | `Traveling Merchant` | MERCHANT | `merchant_discovered` | 0 | `MerchantActionData`: `resources/merchants/spirit_valley_merchant_stock.tres` (7 entries), `spirit_valley_merchant_theme.tres` | — |
 | 10 | `spirit_valley_tribulation` | `The Tribulation` | TRIBULATION | `core_density_full` | 0 | `TribulationActionData`: `resources/tribulation/foundation_tribulation.tres` (target Copper), icon `lacquer_ic_core_ai.png`; the description "With a full core and Strength and Spirit at the cap, face the Tribulation and break through to Copper." is not shown (the presenter's ready line stands in) | — (the board applies the result) |
 
@@ -750,6 +750,8 @@ All of these live in `resources/unlocks/` and are registered in `unlock_conditio
 | `condition_id` | Type | Check | Latched by |
 |---|---|---|---|
 | `celestial_intervener_dialogue_1` | EVENT_TRIGGERED | Event `celestial_intervener_dialogue_1` | Dialogue 1 success effect |
+| `celestial_intervener_dialogue_2` | EVENT_TRIGGERED | Event `celestial_intervener_dialogue_2` | Dialogue 2 success effect. Gates Dialogue 3 |
+| `celestial_intervener_dialogue_3` | EVENT_TRIGGERED | Event `celestial_intervener_dialogue_3` | Dialogue 3 success effect. Gates Dialogue 4 |
 | `q_fill_core_madra_full` | RESOURCE_AMOUNT | Madra ≥ 100 | Cycling (filling the Madra pool) |
 | `q_fill_core_completed` | EVENT_TRIGGERED | Event `q_fill_core_completed` | The `q_fill_core` ("Awaken Your Core") completion effect, after dialogue 2 |
 | `q_first_steps_enemy_defeated` | EVENT_TRIGGERED | Event `q_first_steps_enemy_defeated` | `AdventureCombat`, on any enemy kill |
@@ -765,13 +767,13 @@ All of these live in `resources/unlocks/` and are registered in `unlock_conditio
 ```
 Fresh save             → only "Talk to the [INTERVENER]"; Test Zone locked and hidden
 Dialogue 1             → event celestial_intervener_dialogue_1 → Wilderness Cycling (+ Test Zone, still hidden); q_fill_core starts
-Madra ≥ 100            → q_fill_core_madra_full → Dialogue 2 card
+Madra ≥ 100            → q_fill_core_madra_full → Dialogue 2 card (once Dialogue 1 is done)
 Dialogue 2             → q_fill_core completes → event q_fill_core_completed → Spring Forest Foraging + The Shallow Woods; q_first_steps starts
                          (the dialogue's end resumes the first idle action: foraging starts, "Resumed Spring Forest Foraging")
-First combat win       → q_first_steps_enemy_defeated → Dialogue 3 card
+First combat win       → q_first_steps_enemy_defeated → Dialogue 3 card (once Dialogue 2 is done)
 Aura Well encounter    → aura_well_discovered → Aura Well card (any time after adventuring starts)
 Dialogue 3             → q_first_steps completes (path point); q_reach_core_density_10 starts
-Core Density ≥ 10      → q_reach_cd_10 → Dialogue 4 card
+Core Density ≥ 10      → q_reach_cd_10 → Dialogue 4 card (once Dialogue 3 is done)
 Dialogue 4             → q_reach_core_density_10 completes → Refugee Camp Map item
 Refugee Camp encounter → merchant_discovered → Traveling Merchant card
 Core Density 100       → core_density_full → The Tribulation card (NEW); the log says the core is full
@@ -829,7 +831,6 @@ Tests: `tests/unit/test_zone_*.gd` and `tests/integration/test_zone_*.gd`, among
 
 ### Bugs
 
-- `[MEDIUM]` Dialogue 4 can appear out of order. `celestial_intervener_dialogue_4.tres` is gated only by `q_reach_cd_10` (Core Density ≥ 10). A player who reaches CD 10 before finishing dialogue 3 sees two `Return to the [INTERVENER]` cards, and can play `dialogue_4` before `q_reach_core_density_10` has started. Fix: add a second condition on the `celestial_intervener_dialogue_3` event, registered in `unlock_condition_list.tres`.
 - `[MEDIUM]` `max_completions` counts attempts, not successes. `ActionManager` adds to `action_completion_count` on every stop but a cancel (`cancel_current_action()`), including `stop_action(false)` and replacement by another action. A failed run would use up a one-shot adventure. The Tribulation sets `max_completions` 0 for this reason: a failure, Not yet and Escape each count a completion that never hides the card.
 
 ### Missing Functionality

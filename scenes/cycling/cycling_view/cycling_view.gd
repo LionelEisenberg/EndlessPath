@@ -39,7 +39,7 @@ const READY_AGAIN: String = "Click the ball for another cycle."
 const CYCLING_FORMAT: String = "Cycling · %d / %d s"
 const FOLLOW_SUFFIX: String = " · follow the ball"
 
-## The status line while a cycle runs with Madra at the cap: no Madra is drawn.
+## The status line while a cycle runs with Madra at its max: no Madra is drawn.
 ## MADRA_FULL_ZONES is for a technique whose zones still pay XP: it has zones and
 ## the core has room for the XP (a full core takes none).
 const MADRA_FULL: String = "Madra full"
@@ -151,7 +151,7 @@ func _process(_delta: float) -> void:
 ## READY_FIRST, or READY_AGAIN once a cycle has ended. While one runs it is
 ## "Cycling · 9 / 15 s" (the whole seconds gone, floored, and the cycle's
 ## length), with FOLLOW_SUFFIX added while the cursor is off the ball. With
-## Madra at the cap it says so instead (MADRA_FULL_ZONES when `zones_pay_xp`,
+## Madra at its max it says so instead (MADRA_FULL_ZONES when `zones_pay_xp`,
 ## MADRA_FULL when not), whether or not the cursor follows. `zones_pay_xp` is
 ## true for a technique with zones while the core is not full: a full core takes
 ## no XP, so then its zones pay none and the line must not say they do.
@@ -205,7 +205,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## Shows the status line for the technique's state this frame, and lays the
 ## board out again when the line changes.
 func _update_status() -> void:
-	var madra_full: bool = ResourceManager.get_madra() >= CultivationManager.get_max_madra()
+	var madra_full: bool = ResourceManager.get_madra() >= ResourceManager.get_max_madra()
 	var zones_pay_xp: bool = not _technique.cycling_zones.is_empty() and not CultivationManager.is_core_full()
 	var line: String = status_line(
 		_cycled_before,

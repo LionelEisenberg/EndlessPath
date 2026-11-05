@@ -152,7 +152,7 @@ var _madra_timer: float = 0.0
 ## The frames the Madra rate is measured over, oldest first: the newest frames that
 ## cover RATE_WINDOW seconds of the cycle. x is the frame's seconds and y the Madra
 ## the cursor drew in it: the technique's Madra per second times those seconds while
-## the cursor followed the ball with room under the cap, otherwise 0. It carries into
+## the cursor followed the ball with room under the max, otherwise 0. It carries into
 ## an auto cycle and is empty after any other ending.
 var _rate_window: Array[Vector2] = []
 ## The ball's centre as the player sees it: the true one snapped to even px.
@@ -238,7 +238,7 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	_draw_ball()
 	_tracking = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
 	_ball_ring.visible = _tracking
-	# Whether the frame draws is judged before its steps can fill the cap.
+	# Whether the frame draws is judged before its steps can fill the pool.
 	var drawing: bool = _tracking and not _madra_full()
 	if _tracking:
 		_set_ring_frame(_RING_TRACKING)
@@ -333,13 +333,13 @@ func _draw_madra(delta: float) -> void:
 		_madra_timer -= MADRA_PARTICLE_INTERVAL
 		_draw_madra_step()
 
-## Returns true when Madra is at or over the cap, so the cursor adds nothing.
+## Returns true when the pool is at its max, so the cursor adds nothing.
 func _madra_full() -> bool:
-	return ResourceManager.get_madra() >= CultivationManager.get_max_madra()
+	return ResourceManager.get_madra() >= ResourceManager.get_max_madra()
 
-## Draws one step of Madra. Nothing is added or requested at the cap, and Madra
-## already over it is left alone. The step counts only for the Madra it really
-## added, which is less than a full step when the cap cuts it short.
+## Draws one step of Madra. Nothing is added or requested at the max. The step
+## counts only for the Madra it really added, which is less than a full step
+## when the max cuts it short.
 func _draw_madra_step() -> void:
 	if _madra_full():
 		return
@@ -403,9 +403,9 @@ func _record_rate(delta: float, drawing: bool) -> void:
 
 ## Writes the session snapshot: the time elapsed and the Madra rate, which is the
 ## Madra drawn over the rate window divided by the time it covers (0 with nothing
-## in it). Steady tracking with room under the cap reads the technique's Madra per
+## in it). Steady tracking with room under the max reads the technique's Madra per
 ## second, base_madra_per_cycle / cycle_duration, at any frame rate. Within
-## RATE_WINDOW seconds of the cursor starting or stopping, or of the cap being
+## RATE_WINDOW seconds of the cursor starting or stopping, or of the max being
 ## met, the rate rises to that or falls to 0.
 func _update_session() -> void:
 	var covered: float = 0.0

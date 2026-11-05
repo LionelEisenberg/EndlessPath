@@ -74,10 +74,13 @@ static func reach_core_density(level: int) -> String:
 		return refusal
 	return _succeed("Raised Core Density to level %d" % int(CultivationManager.get_core_density_level()))
 
-## Sets Madra to exactly the value. Refuses a negative value.
+## Sets Madra to exactly the value. Refuses a negative value or one above the
+## max.
 static func set_madra(value: float) -> String:
 	if value < 0.0:
 		return "Madra can't be negative"
+	if value > ResourceManager.get_max_madra():
+		return "Madra can't pass its max of %d" % int(ResourceManager.get_max_madra())
 	_while_paused(ResourceManager.set_madra.bind(value))
 	return _succeed("Set Madra to %d" % int(value))
 

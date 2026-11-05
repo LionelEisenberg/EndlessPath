@@ -82,7 +82,7 @@ func _zoom_controller() -> CameraZoomController:
 
 ## Pours the adventure drain to its end: the camera is on the adventure zoom.
 func _zoom_into_an_adventure() -> void:
-	ResourceManager.set_madra(ResourceManager.get_adventure_madra_capacity())
+	ResourceManager.set_madra(ResourceManager.get_max_madra())
 	var adventure: AdventureActionData = ZoneManager.get_action_by_id(ADVENTURE_ID) as AdventureActionData
 	ActionManager.adventure_start_requested.emit(adventure)
 	await wait_for_signal(ActionManager.start_adventure, 4.0)

@@ -236,7 +236,7 @@ Quest `description` values, which only the Journal shows (on a quest item's ques
 | `q_reach_core_density_10` | 0 | `reach_cd_10` | Reach Core Density level 10 | Condition `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) |
 | `q_reach_core_density_10` | 1 | `return_to_npc` | Return to the Celestial [INTERVENER] | Event `celestial_intervener_dialogue_4` |
 
-Every "return" step is completed by an NPC action that only becomes visible once the previous step's condition or event has latched. This ordering keeps the "event already fired" limitation from triggering in normal play.
+Every "return" step is completed by an NPC action that only becomes visible once the previous step's condition or event has latched. Each return NPC also needs the previous NPC's talk (NPC 2 needs NPC 1's, NPC 3 needs NPC 2's, NPC 4 needs NPC 3's), so it never shows before the quest it completes has started, even when its own goal was met first. This ordering keeps the "event already fired" limitation from triggering in normal play: "Harden Your Core", started at Core Density 10, waits on NPC 4's talk instead of completing at once.
 
 ### Authoring a quest
 

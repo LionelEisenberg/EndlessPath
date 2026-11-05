@@ -10,6 +10,4 @@ core_density_base_xp_cost = 20.0
 core_xp_scaling_factor = 1.02
 max_core_density_level = 100
 stat_level_cap = 20
-max_madra_base = 600.0
-max_madra_per_core_density_level = 10.0
 metadata/_custom_type_script = "uid://civ7jgpmmaoro"
