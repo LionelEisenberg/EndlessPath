@@ -52,6 +52,8 @@
 
 ## How this plan is organised
 
+> **Phases 2 to 6 run as chunks.** After phase 1 merged, phases 2 to 6 were cut into the chunks tracked in #85, each one issue, one PR and its own plan file under `docs/superpowers/plans/`. Their designs below are the starting point each chunk checks against `main`; #85 holds the order and the merge rules.
+
 - **Six phases, six PRs:** 1 Stats, 2 One Madra pool, 3 Cycling, 4 Core Density, 5 Body refining and Health, 6 Quests and story. Each phase is one focused unit on its own branch. `main` may be broken between phases (Lionel). No itch build until phase 5 lands.
 - **A mock-up gate opens every phase** (Task N.0). A new Design canvas for that phase's screens is shown to Lionel and approved before any of the phase's UI is built. Phase 1's mock-ups come right after this plan; phase N+1's come after phase N lands.
 - **How detailed each phase is:** phases 1 and 2 are written as full tasks. Phases 3 to 6 are outlines, because their designs settle at their mock-up step. After each of those phases' mock-ups are approved, its outline is replaced in this file by full tasks in the same format.
