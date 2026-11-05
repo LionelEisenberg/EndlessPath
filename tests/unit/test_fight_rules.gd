@@ -1,8 +1,9 @@
 extends GutTest
 
-## The two rules a fight runs on: an enemy's max Health
-## (CharacterAttributesData.get_max_health(), Body x 10) and what a win pays
-## (AdventureCombat.gold_reward_for()). The chest's Here tray and choice drawers
+## The rules a fight runs on: an enemy's max Health
+## (CharacterAttributesData.get_max_health(), Body x 10), the gold a win pays
+## (AdventureCombat.gold_reward_for()) and the Core Density XP it pays by its tier
+## (AdventureActionData.get_core_density_xp_for()). The chest's Here tray and choice drawers
 ## no longer quote either figure (the developer asked for less in the chest), but
 ## the rules stay for what may bring them back: the Health as an unlockable, the
 ## gold on the opponent page's reward row. The last test runs a real
@@ -155,6 +156,44 @@ func test_gold_reward_asks_the_first_enemy() -> void:
 	var pool: Array[CombatantData] = [_enemy(10), _enemy(500)]
 	choice.enemy_pool = pool
 	assert_eq(AdventureCombat.gold_reward_for(choice, null), 10)
+
+#-----------------------------------------------------------------------------
+# CORE DENSITY REWARD
+#-----------------------------------------------------------------------------
+
+## An action paying 7 for a regular fight, 9 for an elite and 13 for the boss.
+func _paying_action() -> AdventureActionData:
+	var action := AdventureActionData.new()
+	action.core_density_xp_regular = 7.0
+	action.core_density_xp_elite = 9.0
+	action.core_density_xp_boss = 13.0
+	return action
+
+## The tier is the tile's encounter type, and the combat choice's boss flag marks
+## the boss wherever it stands. Only fights pay.
+func test_core_density_reward_by_encounter_type() -> void:
+	var action: AdventureActionData = _paying_action()
+	var cases: Array[Dictionary] = [
+		{"name": "a regular fight", "type": AdventureEncounter.EncounterType.COMBAT_REGULAR, "is_boss": false, "xp": 7.0},
+		{"name": "an ambush pays as a regular fight", "type": AdventureEncounter.EncounterType.COMBAT_AMBUSH, "is_boss": false, "xp": 7.0},
+		{"name": "an elite", "type": AdventureEncounter.EncounterType.COMBAT_ELITE, "is_boss": false, "xp": 9.0},
+		{"name": "the boss's tile", "type": AdventureEncounter.EncounterType.COMBAT_BOSS, "is_boss": false, "xp": 13.0},
+		{"name": "the boss's choice on a regular tile", "type": AdventureEncounter.EncounterType.COMBAT_REGULAR, "is_boss": true, "xp": 13.0},
+		{"name": "the boss's choice on open ground", "type": AdventureEncounter.EncounterType.NONE, "is_boss": true, "xp": 13.0},
+		{"name": "a rest site", "type": AdventureEncounter.EncounterType.REST_SITE, "is_boss": false, "xp": 0.0},
+		{"name": "a trap", "type": AdventureEncounter.EncounterType.TRAP, "is_boss": false, "xp": 0.0},
+		{"name": "a treasure", "type": AdventureEncounter.EncounterType.TREASURE, "is_boss": false, "xp": 0.0},
+		{"name": "open ground", "type": AdventureEncounter.EncounterType.NONE, "is_boss": false, "xp": 0.0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(action.get_core_density_xp_for(case.type, case.is_boss), case.xp, case.name)
+
+## The class pays nothing: an adventure action's file writes its amounts out.
+func test_an_action_pays_nothing_unless_its_file_says_so() -> void:
+	var action := AdventureActionData.new()
+	assert_eq(action.get_core_density_xp_for(AdventureEncounter.EncounterType.COMBAT_REGULAR, false), 0.0, "regular")
+	assert_eq(action.get_core_density_xp_for(AdventureEncounter.EncounterType.COMBAT_ELITE, false), 0.0, "elite")
+	assert_eq(action.get_core_density_xp_for(AdventureEncounter.EncounterType.COMBAT_BOSS, true), 0.0, "boss")
 
 ## A real fight won over a x1.5 choice pays what the rule says, with an action
 ## of x2 (15 x 1.5 x 2.0 = 45) and with no action (15 x 1.5 = 22.5, floored).
