@@ -9,12 +9,12 @@
 **Tech Stack:** Godot 4.7.2, GDScript, GUT 9.7.1.
 
 **Design:** the master plan's Phase 3 outline, Tasks 3.1 and 3.2 (`2026-11-04-stats-rework.md`), checked against `main` after #86, and issue #91. The issue's Decided list wins where the two differ:
-- The roster is settled on the canvas before the drawers or the strip change; the multiplier and the content check change no screen and ran first.
+- The roster is settled on the canvas before the drawers or the strip change; the multiplier and the content check change no screen and ran first (Tasks 1 to 3, before the approval).
 - The zones' tier XP is rebalanced in #99 with the presses' switch, not here.
 - Nothing pays Spirit, Mind or Control XP in this chunk.
 - DM-02: the stat curve test's helper and path move under section headers.
 
-**Canvas:** "Cycling roster", https://claude.ai/artifact/MNxJ6biuwxZLCGBH8p5wq7. **Awaiting Lionel's approval.** Proposed, as drawn:
+**Canvas:** "Cycling roster", https://claude.ai/artifact/MNxJ6biuwxZLCGBH8p5wq7. **Approved 2026-11-05, as drawn,** with one addition from Lionel: wherever a screen names a stat, show the stat's icon where possible (#99's drawers naming what a technique trains). Recorded on #91. The answers:
 - The roster: all three techniques stay, no id changes. The Foundational Technique trains Spirit only and stays the new save's start; Smooth Flow (Pure Core Awakening) trains Spirit + Control; Torrential Flow (its path node) trains Spirit + Mind.
 - Mini-games: timed presses train Control; unbroken following (a streak on the ball) trains Mind. Torrential Flow's one zone goes in #99.
 - Combining: each technique combines Spirit with its one other stat; one technique at a time. No equip model change.
@@ -65,10 +65,10 @@ The master plan's Global Constraints hold. In short: explicit types and return t
 - Modify: the three technique `.tres` (`base_madra_per_cycle`, and the training values if the canvas changed them), `scripts/resource_definitions/character/stat_progression_data.gd` (if costs become whole: `get_xp_to_next()` rounds)
 - Test: `tests/integration/test_cycling_technique.gd` (`MADRA_STEP`, `MADRA_RATE`, the Foundational 50-a-cycle pins), `tests/unit/test_stat_progression_data.gd` (156.25 becomes 156, a whole-cost table), `tests/integration/test_character_book.gd` (the 156.25 precondition test), and the rest of `git grep -n -e "200.0" -e "50.0" -e "250.0" -- tests` that reads a shipped technique's Madra
 
-- [ ] **Step 1: Update the pins to the approved numbers; run them and see them fail.**
-- [ ] **Step 2: Implement.**
-- [ ] **Step 3: Run the task's tests: PASS.**
-- [ ] **Step 4: Commit:** `feat(cycling): set Madra per cycle against the one pool`, and separately `feat(stats): make level costs whole numbers` if approved.
+- [x] **Step 1: Update the pins to the approved numbers; run them and see them fail.**
+- [x] **Step 2: Implement.**
+- [x] **Step 3: Run the task's tests: PASS.**
+- [x] **Step 4: Commit:** `feat(cycling): set Madra per cycle against the one pool`, and separately `feat(stats): make level costs whole numbers` if approved.
 
 ### Task 5: The drawers and the Now strip follow Spirit (after the canvas is approved)
 
@@ -76,14 +76,20 @@ The master plan's Global Constraints hold. In short: explicit types and return t
 - Modify: `scenes/cycling/technique_drawer/technique_drawer.gd` (`detail_text(data, madra_multiplier)`, `refresh_detail()`), `scenes/zones/zone_panel/technique_list/technique_list.gd` (hears `CharacterManager.stats_changed`, refreshes every drawer's detail), `scenes/zones/zone_panel/now_strip/now_strip.gd` (`_update_technique()` sizes the rate slot at Spirit's multiplier; hears `stats_changed` while cycling)
 - Test: `tests/integration/test_technique_drawer.gd` (`test_detail_text` at a multiplier), `tests/integration/test_zone_panel.gd` (`test_drawers_follow_a_spirit_level`, `test_the_rate_slot_follows_a_spirit_level`)
 
-- [ ] **Step 1: Write the failing tests.**
-- [ ] **Step 2: Run them and see them fail.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's tests: PASS.**
-- [ ] **Step 5: Commit:** `feat(cycling): show Madra per cycle at the player's Spirit`.
+- [x] **Step 1: Write the failing tests.**
+- [x] **Step 2: Run them and see them fail.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's tests: PASS.**
+- [x] **Step 5: Commit:** `feat(cycling): show Madra per cycle at the player's Spirit`.
 
 ### Task 6: Wrap
 
-- [ ] **Step 1:** The full suite: PASS (a parallel-run failure is confirmed in one process first).
-- [ ] **Step 2:** The issue's Done-when checks on `-- --save=user://dev/runs/cycling-training-data.tres`, plus a copy of an old save, and the `path_open` preset builds.
-- [ ] **Step 3:** Record the approved canvas answers here and on #91; open the PR that closes #91, ending with `## Docs to update`, with the cycles and minutes the Spirit cap takes for #96 and #111.
+- [x] **Step 1:** The full suite: PASS (a parallel-run failure is confirmed in one process first).
+- [x] **Step 2:** The issue's Done-when checks on `-- --save=user://dev/runs/cycling-training-data.tres`, plus a copy of an old save, and the `path_open` preset builds.
+- [x] **Step 3:** Record the approved canvas answers here and on #91; open the PR that closes #91, ending with `## Docs to update`, with the cycles and minutes the Spirit cap takes for #96 and #111.
+
+## Built differently
+
+- Two board tests in `test_cycling_view.gd` also counted on Smooth Flow's old steps (1.067 Madra) and were re-measured at 0.427; the plan's Task 4 list missed them.
+- `test_character_book.gd`'s fractional-threshold test became a floor test: XP 155.6 under Lv 3's whole 156 reads "155 / 156 XP", since part of a cycle will pay part of its XP (#94).
+- The Done-when checks ran through a scratch harness on the real main scene (dev commands, no clicks), on `user://dev/runs/cycling-training-data.tres`: a followed Foundational cycle at Spirit Lv 1 drew +30 (strip +3.7 / s halfway); raising Spirit to Lv 10 moved the drawers to 57, 152 and 95 at once; the next cycle drew +57 (+7.1 / s). A copy of an older save (Smooth Flow, Spirit Lv 6 plus 2 from gear) loaded, showed 136 a cycle, and cycled to its 120 max. The `path_open` preset built and cycled +80.
