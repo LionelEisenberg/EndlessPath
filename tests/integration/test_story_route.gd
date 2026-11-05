@@ -124,6 +124,9 @@ func _assert_took_effect(beat: StoryBeatData, step: DevStepData, completions_bef
 			assert_eq(AbilityManager.get_ability_at_slot(int(step.amount) - 1), step.target_id, "%s: the ability is in its slot" % what)
 		Kind.ADVANCE_STAGE:
 			assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER, "%s: the stage is Copper" % what)
+		Kind.RAISE_STAT_TO_CAP:
+			var stat: int = CharacterAttributesData.stat_from_key(StringName(step.target_id))
+			assert_true(CharacterManager.is_stat_capped(stat as CharacterAttributesData.AttributeType), "%s: the stat is at the cap" % what)
 		_:
 			fail_test("%s: this test has no check for step kind %d. Add one." % [what, step.kind])
 

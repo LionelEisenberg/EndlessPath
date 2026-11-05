@@ -3,10 +3,11 @@ extends ScrollContainer
 ## The dev panel's Player tab: the player's resources and progress, each set through
 ## DevCommands, which logs the change and says why it refused. Madra and gold are set
 ## to a value. Core Density is reached through real XP, so the milestones pay, and the
-## stage shows next to it with a button to break through to the next. Path Points and a
-## base attribute are added to. A cycling technique or a combat ability is unlocked, or
-## equipped (an ability in the slot picked), or all of them are unlocked. A refusal
-## shows above the controls until a command works.
+## stage shows next to it with a button to break through to the next. Path Points are
+## added to. A stat is set to a level, past the stage's cap too, and to XP toward the
+## next level. A cycling technique or a combat ability is unlocked, or equipped (an
+## ability in the slot picked), or all of them are unlocked. A refusal shows above the
+## controls until a command works.
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -23,9 +24,10 @@ extends ScrollContainer
 @onready var _advance_stage: Button = %AdvanceStage
 @onready var _points_spin: SpinBox = %PointsSpin
 @onready var _points_add: Button = %PointsAdd
-@onready var _attribute_option: OptionButton = %AttributeOption
-@onready var _attribute_spin: SpinBox = %AttributeSpin
-@onready var _attribute_add: Button = %AttributeAdd
+@onready var _stat_option: OptionButton = %StatOption
+@onready var _stat_level_spin: SpinBox = %StatLevelSpin
+@onready var _stat_xp_spin: SpinBox = %StatXpSpin
+@onready var _stat_set: Button = %StatSet
 @onready var _technique_option: OptionButton = %TechniqueOption
 @onready var _technique_unlock: Button = %TechniqueUnlock
 @onready var _technique_equip: Button = %TechniqueEquip
@@ -40,13 +42,13 @@ extends ScrollContainer
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
-## Lists the attributes, the techniques and the abilities in their pickers, each item's
-## metadata what its command takes (the attribute's enum value, the others' ids), shows
-## the stage, and keeps it showing as the core and the stage change.
+## Lists the stats, the techniques and the abilities in their pickers, each item's
+## metadata what its command takes (the stat's key, the others' ids), shows the stage,
+## and keeps it showing as the core and the stage change.
 func _ready() -> void:
-	for attribute: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
-		_attribute_option.add_item(CharacterManager.get_attribute_display_name(attribute))
-		_attribute_option.set_item_metadata(_attribute_option.item_count - 1, attribute)
+	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
+		_stat_option.add_item(CharacterManager.get_attribute_display_name(stat))
+		_stat_option.set_item_metadata(_stat_option.item_count - 1, CharacterAttributesData.stat_key(stat))
 	for technique: CyclingTechniqueData in CyclingManager.get_all_techniques():
 		_technique_option.add_item(technique.technique_name)
 		_technique_option.set_item_metadata(_technique_option.item_count - 1, technique.id)
@@ -59,7 +61,7 @@ func _ready() -> void:
 	_level_reach.pressed.connect(_on_level_reach_pressed)
 	_advance_stage.pressed.connect(_on_advance_stage_pressed)
 	_points_add.pressed.connect(_on_points_add_pressed)
-	_attribute_add.pressed.connect(_on_attribute_add_pressed)
+	_stat_set.pressed.connect(_on_stat_set_pressed)
 	_technique_unlock.pressed.connect(_on_technique_unlock_pressed)
 	_technique_equip.pressed.connect(_on_technique_equip_pressed)
 	_unlock_all_techniques.pressed.connect(_on_unlock_all_techniques_pressed)
@@ -88,9 +90,8 @@ func _on_advance_stage_pressed() -> void:
 func _on_points_add_pressed() -> void:
 	_show_result(DevCommands.add_path_points(int(_points_spin.value)))
 
-func _on_attribute_add_pressed() -> void:
-	var attribute: CharacterAttributesData.AttributeType = _attribute_option.get_item_metadata(_attribute_option.selected)
-	_show_result(DevCommands.add_attribute(attribute, _attribute_spin.value))
+func _on_stat_set_pressed() -> void:
+	_show_result(DevCommands.set_stat_level(StringName(_picked_id(_stat_option)), int(_stat_level_spin.value), _stat_xp_spin.value))
 
 func _on_technique_unlock_pressed() -> void:
 	_show_result(DevCommands.unlock_technique(_picked_id(_technique_option)))

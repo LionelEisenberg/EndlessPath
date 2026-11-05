@@ -93,15 +93,39 @@ static func add_path_points(amount: int) -> String:
 	_while_paused(PathManager.add_points.bind(amount))
 	return _succeed("Granted %d Path Points" % amount)
 
-## Adds whole levels to one stat, up to the stage's cap. Returns "" with nothing
-## done at the cap. Refuses a value that is not a stat.
-static func add_attribute(attribute: CharacterAttributesData.AttributeType, amount: float) -> String:
-	if not CharacterAttributesData.AttributeType.values().has(attribute):
-		return "Unknown attribute: %d" % attribute
-	if CharacterManager.is_stat_capped(attribute):
+## Puts one stat at the level, past the stage's cap too, with `xp` toward the next
+## level. CharacterManager keeps the XP below what the next level costs, and the line
+## logged says the XP the stat holds. Refuses a key that names no stat, a level below
+## 1 and negative XP.
+static func set_stat_level(stat_key: StringName, level: int, xp: float = 0.0) -> String:
+	var stat: int = CharacterAttributesData.stat_from_key(stat_key)
+	if stat == -1:
+		return "Unknown stat: %s" % stat_key
+	if level < 1:
+		return "The level must be at least 1"
+	if xp < 0.0:
+		return "XP can't be negative"
+	var attribute := stat as CharacterAttributesData.AttributeType
+	_while_paused(CharacterManager.set_stat_level.bind(attribute, level, xp))
+	return _succeed("Set %s to Lv %d with %s XP" % [
+		CharacterManager.get_attribute_display_name(attribute),
+		level,
+		String.num(CharacterManager.get_stat_xp(attribute)),
+	])
+
+## Raises one stat to the stage's cap. Returns "" with nothing done at or past the
+## cap, so a stat the dev tools set past it is never lowered. Refuses a key that names
+## no stat.
+static func raise_stat_to_cap(stat_key: StringName) -> String:
+	var stat: int = CharacterAttributesData.stat_from_key(stat_key)
+	if stat == -1:
+		return "Unknown stat: %s" % stat_key
+	var attribute := stat as CharacterAttributesData.AttributeType
+	var cap: int = CharacterManager.get_stat_level_cap()
+	if CharacterManager.get_stat_level(attribute) >= cap:
 		return ""
-	_while_paused(CharacterManager.add_stat_levels.bind(attribute, roundi(amount)))
-	return _succeed("Raised %s to Lv %d" % [CharacterManager.get_attribute_display_name(attribute), CharacterManager.get_stat_level(attribute)])
+	_while_paused(CharacterManager.set_stat_level.bind(attribute, cap))
+	return _succeed("Raised %s to Lv %d, the stage cap" % [CharacterManager.get_attribute_display_name(attribute), cap])
 
 ## Breaks through to the next stage, as a passed Tribulation does. Refuses when the
 ## stage has no next stage.

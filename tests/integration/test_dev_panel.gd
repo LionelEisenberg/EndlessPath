@@ -10,9 +10,9 @@ extends GutTest
 ## to the Adventure tab.
 ##
 ## The World tab travels through DevCommands and shows a refusal, and its zone-map
-## checks start from ZoneManager. The Player tab reaches a level through its command
-## and shows why a command refused. The Adventure tab follows the run and shows why a
-## command refused.
+## checks start from ZoneManager. The Player tab reaches a level through its command,
+## shows why a command refused, lists the six stats and sets one's level and XP. The
+## Adventure tab follows the run and shows why a command refused.
 ##
 ## Each panel is built inside a 1920x1080 Control, as MainView holds it in the
 ## game. Each test binds a fresh save and gives back what it changed: the save and
@@ -458,6 +458,20 @@ func test_player_tab_shows_a_refusal() -> void:
 	assert_false(AbilityManager.is_ability_unlocked(ABILITY), "equipping never unlocks")
 	_press(player, "AbilityUnlock")
 	assert_false(status.visible, "a command that works clears the refusal")
+
+## Each item's metadata is the stat key the command takes.
+func test_player_tab_lists_the_six_stats() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	assert_eq(_item_metadata(player.get_node("%StatOption")), ["strength", "body", "agility", "spirit", "mind", "control"] as Array[String], "the six stats, by key")
+
+func test_player_tab_sets_a_stats_level_and_xp() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	_pick_item(player.get_node("%StatOption"), &"spirit")
+	_enter(player, "StatLevelSpin", 4.0)
+	_enter(player, "StatXpSpin", 12.0)
+	_press(player, "StatSet")
+	assert_eq(CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.SPIRIT), 4, "Spirit is Lv 4")
+	assert_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 12.0, "with 12 XP")
 
 #-----------------------------------------------------------------------------
 # ADVENTURE TAB

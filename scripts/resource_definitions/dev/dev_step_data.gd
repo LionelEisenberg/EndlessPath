@@ -24,6 +24,7 @@ class_name DevStepData extends Resource
 ##   AWARD_ITEM           target_id: an item resource path; amount: the quantity
 ##   ADVANCE_STAGE        nothing
 ##   TRAVEL               target_id: a zone id
+##   RAISE_STAT_TO_CAP    target_id: a stat key (strength, body, agility, spirit, mind, control)
 ## A kind is stored as an int in .tres files: append a kind, never insert or reorder one.
 enum Kind {
 	COMPLETE_ACTION,
@@ -39,6 +40,7 @@ enum Kind {
 	AWARD_ITEM,
 	ADVANCE_STAGE,
 	TRAVEL,
+	RAISE_STAT_TO_CAP,
 }
 
 @export var kind: Kind = Kind.COMPLETE_ACTION
@@ -82,6 +84,8 @@ func apply() -> String:
 			return DevCommands.advance_stage()
 		Kind.TRAVEL:
 			return DevCommands.travel_to_zone(target_id)
+		Kind.RAISE_STAT_TO_CAP:
+			return DevCommands.raise_stat_to_cap(StringName(target_id))
 	return "Unknown step kind: %d" % kind
 
 #-----------------------------------------------------------------------------
@@ -119,6 +123,8 @@ func describe() -> String:
 			return "Advance to the next stage"
 		Kind.TRAVEL:
 			return "Travel to %s" % target_id
+		Kind.RAISE_STAT_TO_CAP:
+			return "Raise %s to the stage cap" % target_id
 	return "Unknown step kind %d" % kind
 
 ## Everything wrong with the step, one line each; empty when it is sound. A line starts
@@ -176,6 +182,9 @@ func _problem_with_target() -> String:
 		Kind.TRAVEL:
 			if not ZoneManager.has_zone(target_id):
 				return "unknown zone"
+		Kind.RAISE_STAT_TO_CAP:
+			if CharacterAttributesData.stat_from_key(StringName(target_id)) == -1:
+				return "unknown stat"
 		Kind.REACH_CORE_DENSITY, Kind.SET_MADRA, Kind.SET_GOLD, Kind.ADVANCE_STAGE:
 			pass
 		_:

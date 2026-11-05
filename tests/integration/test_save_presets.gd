@@ -20,6 +20,7 @@ extends GutTest
 #-----------------------------------------------------------------------------
 
 const Stage := CultivationManager.AdvancementStage
+const Attribute := CharacterAttributesData.AttributeType
 
 const PURE_MADRA_TREE: String = "res://resources/path_progression/pure_madra/pure_madra_tree.tres"
 const QUEST_LIST: String = "res://resources/quests/quest_list.tres"
@@ -217,11 +218,30 @@ func test_tribulation_ready_has_a_full_core() -> void:
 	assert_true(CultivationManager.is_core_full(), "the core is full")
 	assert_true(_is_available(TRIBULATION_ACTION), "the Tribulation waits")
 
+## The preset is where a developer faces the trial: Strength and Spirit stand at the
+## cap with the core full, so the trial can be attempted at once.
+func test_tribulation_ready_can_face_the_trial() -> void:
+	if not _build_shipped("tribulation_ready"):
+		return
+	assert_true(CharacterManager.is_stat_capped(Attribute.STRENGTH), "Strength is at the cap")
+	assert_true(CharacterManager.is_stat_capped(Attribute.SPIRIT), "and so is Spirit")
+	var trial: TribulationActionData = ZoneManager.get_action_by_id(TRIBULATION_ACTION) as TribulationActionData
+	assert_true(trial.can_attempt(), "the trial can be attempted")
+
 func test_copper_is_copper() -> void:
 	if not _build_shipped("copper"):
 		return
 	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER, "the stage is Copper")
 	assert_false(_is_available(TRIBULATION_ACTION), "the Tribulation is passed, so it is not offered again")
+
+## Levels carry across stages: Copper's Strength and Spirit stand where Foundation's
+## cap took them before the breakthrough.
+func test_copper_keeps_the_levels_it_broke_through_with() -> void:
+	if not _build_shipped("copper"):
+		return
+	var foundation_cap: int = (load(FOUNDATION_STAGE) as AdvancementStageResource).stat_level_cap
+	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), foundation_cap, "Strength keeps Foundation's cap")
+	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), foundation_cap, "and so does Spirit")
 
 func test_merchant_open_has_the_merchant_and_700_gold() -> void:
 	if not _build_shipped("merchant_open"):
