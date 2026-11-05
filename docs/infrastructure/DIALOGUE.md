@@ -136,7 +136,7 @@ Timelines contain only `label`, `join`, `leave`, text lines, and `[end_timeline]
 |---|---|
 | ActionManager | Runs NPC dialogue actions and applies their effects on `dialogue_ended` |
 | ZoneManager | Counts completions; `max_completions = 1` makes each Intervener talk one-shot |
-| UnlockManager | Each Intervener action after the first is gated by a latched condition. See [UNLOCKS.md](UNLOCKS.md). |
+| UnlockManager | Each Intervener action after the first is gated by latched conditions: its own goal and the previous talk's event, so the talks always come in order. See [UNLOCKS.md](UNLOCKS.md). |
 | EventManager / QuestManager | The effects fire `celestial_intervener_dialogue_N` events and start quests. See [EVENTS.md](EVENTS.md) and [QUESTS.md](../progression/QUESTS.md). |
 | AdventureTilemap | `DialogueChoice` path; supported but unused |
 
@@ -167,9 +167,9 @@ Each label joins the Intervener at center, plays two lines, leaves, and ends wit
 | action_id | `action_name` | Label | Gate | `max_completions` | `success_effects` |
 |---|---|---|---|---|---|
 | `celestial_intervener_dialogue_1` | Talk to the [INTERVENER] | `dialogue_1` | None | 1 | TriggerEvent `celestial_intervener_dialogue_1`, StartQuest `q_fill_core` |
-| `celestial_intervener_dialogue_2` | Return to the [INTERVENER] | `dialogue_2` | `q_fill_core_madra_full` | 1 | TriggerEvent `celestial_intervener_dialogue_2`, StartQuest `q_first_steps` |
-| `celestial_intervener_dialogue_3` | Return to the [INTERVENER] | `dialogue_3` | `q_first_steps_enemy_defeated` | 1 | TriggerEvent `celestial_intervener_dialogue_3`, StartQuest `q_reach_core_density_10` |
-| `celestial_intervener_dialogue_4` | Return to the [INTERVENER] | `dialogue_4` | `q_reach_cd_10` | 1 | TriggerEvent `celestial_intervener_dialogue_4` |
+| `celestial_intervener_dialogue_2` | Return to the [INTERVENER] | `dialogue_2` | `q_fill_core_madra_full`, `celestial_intervener_dialogue_1` | 1 | TriggerEvent `celestial_intervener_dialogue_2`, StartQuest `q_first_steps` |
+| `celestial_intervener_dialogue_3` | Return to the [INTERVENER] | `dialogue_3` | `q_first_steps_enemy_defeated`, `celestial_intervener_dialogue_2` | 1 | TriggerEvent `celestial_intervener_dialogue_3`, StartQuest `q_reach_core_density_10` |
+| `celestial_intervener_dialogue_4` | Return to the [INTERVENER] | `dialogue_4` | `q_reach_cd_10`, `celestial_intervener_dialogue_3` | 1 | TriggerEvent `celestial_intervener_dialogue_4` |
 
 Action descriptions, shown on the action card:
 - NPC 1: "As you get your bearings, a being of impossible power (and beauty) is waiting for you."

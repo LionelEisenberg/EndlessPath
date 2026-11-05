@@ -52,17 +52,17 @@
 START  Spirit Valley: only "Talk to the [INTERVENER]"
   │ NPC 1 (dialogue_1) ─ event celestial_intervener_dialogue_1 ─► Wilderness Cycling, Test Zone (hidden)
   │                    ─ start q_fill_core
-BEAT 1  cycle to 100 Madra ─ cond q_fill_core_madra_full ─► step 0 done, NPC 2 visible
+BEAT 1  cycle to 100 Madra ─ cond q_fill_core_madra_full ─► step 0 done, NPC 2 visible (it also needs NPC 1's talk)
   │ NPC 2 (dialogue_2) ─ event celestial_intervener_dialogue_2 ─► q_fill_core complete
   │                    ─ event q_fill_core_completed ─► The Shallow Woods, Spring Forest Foraging
   │                    ─ start q_first_steps; the dialogue's end starts foraging (the zone's idle action)
-BEAT 2  win any combat ─ event q_first_steps_enemy_defeated ─► step 0 done, NPC 3 visible
+BEAT 2  win any combat ─ event q_first_steps_enemy_defeated ─► step 0 done, NPC 3 visible (it also needs NPC 2's talk)
   │ NPC 3 (dialogue_3) ─ event celestial_intervener_dialogue_3 ─► q_first_steps complete ─► +1 path point
   │                    ─ start q_reach_core_density_10
   │ (player buys Pure Core Awakening; equips Smooth Flow and Empty Palm)
 BEAT 3a (any Shallow Woods run) Aura Well tile ─ "Mark down the location"
   │                    ─ event aura_well_discovered ─► Aura Well training action
-BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible   (+1 path point from CD milestone)
+BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible (it also needs NPC 3's talk)   (+1 path point from CD milestone)
   │ NPC 4 (dialogue_4) ─ event celestial_intervener_dialogue_4 ─► q_reach_core_density_10 complete
   │                    ─► Refugee Camp Map
   │                    ─ cond celestial_intervener_dialogue_4 ─► the Goals board's Breakthrough milestone
@@ -86,7 +86,7 @@ END OF AUTHORED CONTENT
 | 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears (with a NEW seal), and the **Test Zone** unlocks. The Test Zone has no actions and stays hidden on the map. | Event and condition `celestial_intervener_dialogue_1` |
 | 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". The Goals board appears, with the quest alone on it. | Quest `q_fill_core`, step 0 `reach_max_madra` |
 | 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, paid in 0.08 s steps while the cursor is on the ball. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
-| 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0) |
+| 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0); NPC 2 also needs `celestial_intervener_dialogue_1`, NPC 1's talk |
 | 6 | Clicks NPC 2 | Label `dialogue_2` plays, then the event fires and `q_fill_core` completes ("Quest Complete: Awaken Your Core") | Action and event `celestial_intervener_dialogue_2` |
 | 7 | — | `q_fill_core.completion_effects` fires an event, the condition latches, and **The Shallow Woods** and **Spring Forest Foraging** appear | Event and condition `q_fill_core_completed`; actions `shallow_woods_adventure_action`, `sprint_forest_foraging_action` |
 | 8 | — | NPC 2's second effect starts Beat 2 ("Quest Started: First Steps Out") | Quest `q_first_steps` |
@@ -112,7 +112,7 @@ Deviations from the original design:
 | # | Player does | What happens | Ids |
 |---|---|---|---|
 | 1 | Starts **The Shallow Woods** | Requires Madra ≥ 50% of the adventure capacity, Mind × 10 ([RESOURCES.md](../infrastructure/RESOURCES.md#madra-caps)): 50 at Lv 1 Mind. The run has a 300 s limit. The map comes from `shallow_woods.tres` (see [ADVENTURING.md](../adventuring/ADVENTURING.md)): Starving Dreadbeast ×3 and Amorphous Spirit ×4 regular fights, Coalescing Spirit ×2 and Ravenous Dreadbeast ×2 elites, a Manifested Spirit boss (the regular `amorphous_spirit` enemy), one Aura Well, and the Refugee Camp when eligible. Enemy stats are in [COMBAT.md](../combat/COMBAT.md). | Adventure `shallow_woods` |
-| 2 | Wins any combat | On the first enemy death `AdventureCombat._on_enemy_health_changed()` fires the event. Step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), the condition latches, and NPC 3 appears in Spirit Valley. | Event and condition `q_first_steps_enemy_defeated` |
+| 2 | Wins any combat | On the first enemy death `AdventureCombat._on_enemy_health_changed()` fires the event. Step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), the condition latches, and NPC 3 appears in Spirit Valley. | Event and condition `q_first_steps_enemy_defeated`; NPC 3 also needs `celestial_intervener_dialogue_2`, NPC 2's talk |
 | 3 | Clicks NPC 3 | Label `dialogue_3` plays, then the event fires and `q_first_steps` completes. `AwardPathPointEffectData(1)` adds the first path point ("Quest Complete: First Steps Out"), and the dock's Path button shows its count seal. | Action and event `celestial_intervener_dialogue_3` |
 | 4 | — | NPC 3's second effect starts Beat 3b's quest ("Quest Started: Harden Your Core") | Quest `q_reach_core_density_10`, step 0 `reach_cd_10` |
 | 5 | Opens the Path tree and buys **Pure Core Awakening** | The keystone costs 1 point and is the only root, so it is the only purchase possible. It unlocks the ability `empty_palm` and the technique `smooth_flow` (see [ABILITIES.md](../abilities/ABILITIES.md)). The dock's Abilities button shows a ring until Empty Palm is equipped, and the Path button's seal clears with the spent point. Smooth Flow has to be equipped by hand in the cycling view, with no notification. | Node `pure_core_awakening` |
@@ -148,7 +148,7 @@ Deviations from the original design:
 | # | Player does | What happens | Ids |
 |---|---|---|---|
 | 1 | Cycles with **Smooth Flow** | 15 s cycle, 200 base Madra, and 4 cycling zones that give Core Density XP per click (perfect / good / ok): 25/15/5, 25/15/5, 50/25/10, 25/15/5. CD 10 needs about 110 cumulative XP, roughly one perfect cycle. | `smooth_flow` |
-| 2 | Reaches CD 10 | `CultivationManager` adds +1 path point (the milestone award). The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and NPC 4 appears. | Condition `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) |
+| 2 | Reaches CD 10 | `CultivationManager` adds +1 path point (the milestone award). The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and NPC 4 appears. NPC 4 also needs NPC 3's talk, so Core Density 10 reached before that talk shows no card until it; "Harden Your Core", started then, skips straight to its `return_to_npc` step. | Conditions `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) and `celestial_intervener_dialogue_3` |
 | 3 | Optionally buys **Power Font** (Keystone #2) | It requires Pure Core Awakening and unlocks the `power_font` ability. The alternatives are Torrential Flow (MAJOR: a technique) and Expanded Core (MINOR: +25 Madra capacity). Nothing requires the keystone. | Node `power_font` |
 | 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. The event's condition latches, and the Goals board's Breakthrough milestone takes the finished quest's place, with a line for each requirement still missing ("Raise Core Density to 100", then each of Strength and Spirit below the stage's cap, such as "Strength Lv 1 / 10"): Foundation names it as its `breakthrough_goal_condition`, so the climb to 100 has a goal once the quests run out. | Action, event and condition `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
 | 5 | Starts another Shallow Woods run | The **Refugee Camp** anchor is placed: count 1, `min_distance_from_origin` 3, REST_SITE icon. Its live gate is `refugee_camp_map_owned` (ITEM_OWNED) = true and `merchant_discovered` = false. | Encounter `refugee_camp` |
