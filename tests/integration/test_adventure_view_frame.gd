@@ -428,8 +428,7 @@ func test_gear_equipped_before_the_run_raises_the_cabinets_max_health() -> void:
 	_start_run()
 	await wait_process_frames(1)
 
-	var body: float = 10.0 + REINFORCED_ROBES.attribute_bonuses[CharacterAttributesData.AttributeType.BODY]
-	var max_health: int = floori(body * 10.0)
+	var max_health: int = floori(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))
 	assert_eq(_plate_text("HealthMaxLabel"), "/ %d" % max_health, "the run's max Health counts the robes' Body")
 	assert_eq(_plate_text("HealthValueLabel"), str(max_health), "and the run starts at that maximum")
 

@@ -111,6 +111,16 @@ func get_total_attributes_data() -> CharacterAttributesData:
 	totals.ward = get_stat(Stat.WARD)
 	return totals
 
+## The points the worn gear adds to the stat, exactly the flat amount get_stat()
+## adds for gear: each equipped item's and accessory's get_stat_bonus() on the
+## stat's trained value, summed.
+func get_gear_bonus(stat: AttributeType) -> float:
+	var trained_value: float = get_trained_value(stat)
+	var bonus: float = 0.0
+	for equipment: EquipmentDefinitionData in _equipped_gear():
+		bonus += equipment.get_stat_bonus(stat, trained_value)
+	return bonus
+
 ## Adds a modifier source, or replaces the one under that name. The provider
 ## takes no arguments and returns Array[StatModifierData]; it is asked each
 ## time a stat is read. "gear" is taken by the equipped gear.
@@ -297,19 +307,31 @@ func _raise_stat_level(stat: AttributeType, level: int) -> void:
 	stat_level_changed.emit(stat, level)
 	LogManager.log_message("[b]%s[/b] reached Lv %d" % [get_attribute_display_name(stat), level])
 
-## The gear source: the bonuses of every equipped item and accessory. It
-## reads this manager's own save, not InventoryManager's, so during a save
-## reset it already sees the new save (CharacterManager hears the reset
-## first).
-func _gear_modifiers() -> Array[StatModifierData]:
-	var modifiers: Array[StatModifierData] = []
+## The definitions of every equipped item and accessory. It reads this
+## manager's own save, not InventoryManager's, so during a save reset it
+## already sees the new save (CharacterManager hears the reset first). No save
+## or inventory gives none; empty slots and items that are not equipment are
+## skipped.
+func _equipped_gear() -> Array[EquipmentDefinitionData]:
+	var gear: Array[EquipmentDefinitionData] = []
 	if live_save_data == null or live_save_data.inventory == null:
-		return modifiers
+		return gear
 	var inventory: InventoryData = live_save_data.inventory
 	for instance: ItemInstanceData in inventory.equipped_gear.values() + inventory.equipped_accessories.values():
 		if instance == null:
 			continue
 		var equipment := instance.item_definition as EquipmentDefinitionData
 		if equipment != null:
-			modifiers.append_array(equipment.get_stat_modifiers())
+			gear.append(equipment)
+	return gear
+
+## The gear source: the modifiers of every equipped item and accessory, their
+## stat percents counted on the trained values. It reads the training record,
+## never get_stat(): get_stat() asks this source, so calling it here would
+## recurse.
+func _gear_modifiers() -> Array[StatModifierData]:
+	var modifiers: Array[StatModifierData] = []
+	var trained_values: Dictionary = get_trained_values()
+	for equipment: EquipmentDefinitionData in _equipped_gear():
+		modifiers.append_array(equipment.get_stat_modifiers(trained_values))
 	return modifiers

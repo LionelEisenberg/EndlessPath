@@ -13,7 +13,8 @@ extends GutTest
 ## Stub stage: the pool cap is 100 at Core Density level 0, +10 per level.
 const STAGE_MAX_MADRA_BASE: float = 100.0
 const STAGE_MAX_MADRA_PER_LEVEL: float = 10.0
-## Mind granted by the test helmet.
+## Mind granted by the test helmet at Mind Lv 1: its percent is MIND_BONUS / 10
+## of the trained Mind.
 const MIND_BONUS: float = 5.0
 
 var _save: SaveGameData
@@ -89,13 +90,13 @@ func _base_capacity() -> float:
 func _set_mind_level(level: int) -> void:
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, level)
 
-## Equips a helmet that grants MIND_BONUS Mind.
+## Equips a helmet that grants MIND_BONUS Mind at Mind Lv 1.
 func _equip_mind_helmet() -> void:
 	var helmet := EquipmentDefinitionData.new()
 	helmet.item_id = "test_mind_helmet"
 	helmet.item_name = "Test Mind Helmet"
 	helmet.slot_type = EquipmentDefinitionData.EquipmentSlot.HEAD
-	helmet.attribute_bonuses = {CharacterAttributesData.AttributeType.MIND: MIND_BONUS}
+	helmet.stat_percent_bonuses[&"mind"] = MIND_BONUS / 10.0
 	var instance := ItemInstanceData.new()
 	instance.item_definition = helmet
 	_save.inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.HEAD] = instance

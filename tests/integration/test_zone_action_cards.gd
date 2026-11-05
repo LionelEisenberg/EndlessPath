@@ -97,14 +97,14 @@ func _run_aura_well() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 
-## Equips a fixture ring that adds this much Mind: 10 Madra of capacity
-## per point.
+## Equips a fixture ring that adds this much Mind at Mind Lv 1 (a percent of
+## mind / 10 of the trained Mind): 10 Madra of capacity per point.
 func _equip_mind_ring(mind: float) -> void:
 	var ring := EquipmentDefinitionData.new()
 	ring.item_id = "test_zone_action_cards_ring"
 	ring.item_name = "Fixture Ring"
 	ring.slot_type = EquipmentDefinitionData.EquipmentSlot.ACCESSORY
-	ring.attribute_bonuses = {CharacterAttributesData.AttributeType.MIND: mind}
+	ring.stat_percent_bonuses[&"mind"] = mind / 10.0
 	var instance := ItemInstanceData.new()
 	instance.item_definition = ring
 	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.ACCESSORY, -1, 0)

@@ -1,7 +1,12 @@
 extends GutTest
 
 ## Unit tests for EquipmentDefinitionData
-## Tests slot enum, attribute bonuses, BBCode effects, and initialization
+## Tests slot enum, attribute bonuses, BBCode effects, initialization, and the
+## gear rule: stat bonuses as floored percents of the trained value, then armor
+## and Ward, as flat modifiers
+
+const AttributeType = CharacterAttributesData.AttributeType
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
 
 #-----------------------------------------------------------------------------
 # EQUIPMENT SLOT ENUM
@@ -136,22 +141,37 @@ func test_extends_item_definition_data() -> void:
 	assert_true(equip is ItemDefinitionData, "should extend ItemDefinitionData")
 
 #-----------------------------------------------------------------------------
-# STAT MODIFIERS
+# STAT BONUSES AND MODIFIERS
 #-----------------------------------------------------------------------------
 
-func test_get_stat_modifiers_turns_bonuses_into_flat_modifiers() -> void:
-	var equip := EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {
-		CharacterAttributesData.AttributeType.BODY: 4.0,
-		CharacterAttributesData.AttributeType.SPIRIT: 2.0,
-	}
-	var values: Dictionary = {}
-	for modifier: StatModifierData in equip.get_stat_modifiers():
-		assert_eq(modifier.kind, StatModifierData.Kind.FLAT)
-		values[modifier.stat] = modifier.value
-	assert_eq(values.size(), 2)
-	assert_eq(values.get(StatModifierData.Stat.BODY), 4.0)
-	assert_eq(values.get(StatModifierData.Stat.SPIRIT), 2.0)
+func test_stat_bonus_is_the_rounded_down_percent_with_the_item_floor() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "the floor at a low value", "percent": 0.1, "floor": 2, "trained": 10.0, "expected": 2.0},
+		{"name": "the percent above the floor", "percent": 0.25, "floor": 2, "trained": 20.0, "expected": 5.0},
+		{"name": "rounded down", "percent": 0.25, "floor": 1, "trained": 18.0, "expected": 4.0},
+		{"name": "a floor of 1 under a small percent", "percent": 0.05, "floor": 1, "trained": 10.0, "expected": 1.0},
+	]
+	for case: Dictionary in cases:
+		var item := GearFixture.item({&"strength": case.percent}, case.floor)
+		assert_eq(item.get_stat_bonus(AttributeType.STRENGTH, case.trained), case.expected, case.name)
 
-func test_get_stat_modifiers_without_bonuses_is_empty() -> void:
-	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers().size(), 0)
+func test_stat_bonus_without_a_percent_is_zero() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "another stat's percent", "percents": {&"agility": 0.5}},
+		{"name": "a 0% entry", "percents": {&"strength": 0.0}},
+	]
+	for case: Dictionary in cases:
+		assert_eq(GearFixture.item(case.percents, 3).get_stat_bonus(AttributeType.STRENGTH, 10.0), 0.0, case.name)
+
+func test_stat_modifiers_are_flat_bonuses_with_armor_and_ward() -> void:
+	var item := GearFixture.item({&"strength": 0.5, &"mind": 0.25}, 1, 6.0, 4.0)
+	var trained: Dictionary = {AttributeType.STRENGTH: 10.0, AttributeType.MIND: 20.0}
+	var values: Dictionary = {}
+	for modifier: StatModifierData in item.get_stat_modifiers(trained):
+		assert_eq(modifier.kind, StatModifierData.Kind.FLAT, "%s is flat" % StatModifierData.Stat.keys()[modifier.stat])
+		values[modifier.stat] = modifier.value
+	assert_eq(values, {StatModifierData.Stat.STRENGTH: 5.0, StatModifierData.Stat.MIND: 5.0,
+		StatModifierData.Stat.ARMOR: 6.0, StatModifierData.Stat.WARD: 4.0})
+
+func test_a_bare_item_gives_no_modifiers() -> void:
+	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers({}).size(), 0)

@@ -1,10 +1,11 @@
 extends GutTest
 
 ## Unit tests for CharacterManager and CharacterAttributesData: the default stat
-## block, total attributes (trained values + equipment bonuses from equipped
-## gear and both accessory slots) through the real CharacterManager, get_stat()
-## and the modifier sources, the derived stats (regen, dodge, the cuts, armor
-## and Ward), the training API (levels and XP up to the stage's cap:
+## block, total attributes (trained values + the bonuses of equipped gear and
+## both accessory slots, where each item adds floored percents of the trained
+## values, armor and Ward) through the real CharacterManager, get_gear_bonus(),
+## get_stat() and the modifier sources, the derived stats (regen, dodge, the
+## cuts, armor and Ward), the training API (levels and XP up to the stage's cap:
 ## add_stat_xp(), add_stat_levels(), set_stat_level() and their signals), and
 ## stats_changed.
 ##
@@ -17,11 +18,14 @@ const AttributeType = CharacterAttributesData.AttributeType
 const EquipmentSlot = EquipmentDefinitionData.EquipmentSlot
 const Stat = StatModifierData.Stat
 const Kind = StatModifierData.Kind
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
 
 ## The modifier source these tests set; after_each() removes it.
 const TEST_SOURCE: StringName = &"test"
 ## The stat level cap of the test stage.
 const TEST_CAP: int = 5
+## A stat's value at Lv 1.
+const BASELINE: float = CharacterAttributesData.STAT_BASELINE
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -58,11 +62,12 @@ func after_each() -> void:
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 
-func _make_gear(slot: EquipmentSlot, bonuses: Dictionary) -> ItemInstanceData:
-	var definition := EquipmentDefinitionData.new()
+## An instance of GearFixture's item for the slot: stat key to percent, the
+## floor, armor and Ward.
+func _make_gear(slot: EquipmentSlot, percents: Dictionary, bonus_floor: int = 1, armor: float = 0.0, ward: float = 0.0) -> ItemInstanceData:
+	var definition: EquipmentDefinitionData = GearFixture.item(percents, bonus_floor, armor, ward)
 	definition.item_id = "test_gear_%d" % slot
 	definition.slot_type = slot
-	definition.attribute_bonuses = bonuses
 	var instance := ItemInstanceData.new()
 	instance.item_definition = definition
 	return instance
@@ -78,7 +83,7 @@ func _source(modifiers: Array[StatModifierData]) -> Callable:
 	return func() -> Array[StatModifierData]: return modifiers
 
 func _robes() -> ItemInstanceData:
-	return _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
+	return _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4})
 
 #-----------------------------------------------------------------------------
 # ATTRIBUTES DATA INITIALIZATION
@@ -272,45 +277,73 @@ func test_totals_equal_base_with_nothing_equipped() -> void:
 			"%s total with no gear" % AttributeType.keys()[attr_type])
 
 #-----------------------------------------------------------------------------
+# GEAR: FLOORED PERCENTS OF THE TRAINED VALUE, ARMOR AND WARD
+#-----------------------------------------------------------------------------
+
+func test_worn_gear_adds_its_floored_bonus_to_the_trained_value() -> void:
+	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.1}, 3)
+	assert_eq(CharacterManager.get_gear_bonus(AttributeType.STRENGTH), 3.0, "the floor beats 10% of 10")
+	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), BASELINE + 3.0)
+	assert_eq(CharacterManager.get_gear_bonus(AttributeType.AGILITY), 0.0, "no Agility percent")
+	assert_eq(CharacterManager.get_stat(Stat.AGILITY), BASELINE)
+
+## Each percent counts the trained value, never a total that holds another
+## item's bonus (a gear source reading get_stat() would also recurse).
+func test_gear_percents_count_the_trained_value_not_the_total() -> void:
+	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.5})
+	_inventory().equipped_accessories[0] = _make_gear(EquipmentSlot.ACCESSORY, {&"strength": 0.5})
+	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), BASELINE * 2.0, "10 + 5 + 5, not 10 + 5 + 7")
+
+func test_gear_lifts_a_capped_stat_past_the_cap() -> void:
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, TEST_CAP)
+	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.5})
+	assert_eq(CharacterManager.get_gear_bonus(AttributeType.STRENGTH), 7.0, "50% of 14, the value at the test cap")
+	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), 21.0, "the total passes the capped value")
+	assert_eq(CharacterManager.get_stat_level(AttributeType.STRENGTH), TEST_CAP, "training stays at the cap")
+	assert_true(CharacterManager.is_stat_capped(AttributeType.STRENGTH))
+
+func test_unequipping_gear_removes_its_bonus_and_armor() -> void:
+	var robes: ItemInstanceData = _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4}, 1, 6.0)
+	_inventory().equipment[0] = robes
+	InventoryManager.equip_item(robes, EquipmentSlot.ARMOR, 0)
+	assert_eq(CharacterManager.get_stat(Stat.BODY), BASELINE + 4.0, "precondition: worn")
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 6.0, "precondition: worn")
+	InventoryManager.unequip_item(EquipmentSlot.ARMOR)
+	assert_eq(CharacterManager.get_stat(Stat.BODY), BASELINE)
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 0.0)
+
+func test_armor_and_ward_come_from_gear_into_the_fight_block() -> void:
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 0.0, "no armor without gear")
+	assert_eq(CharacterManager.get_stat(Stat.WARD), 0.0, "no Ward without gear")
+	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {}, 1, 6.0)
+	_inventory().equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {}, 1, 0.0, 4.0)
+	var block: CharacterAttributesData = CharacterManager.get_total_attributes_data()
+	assert_eq(block.armor, 6.0, "armor reaches the fight snapshot")
+	assert_eq(block.ward, 4.0, "Ward reaches the fight snapshot")
+
+#-----------------------------------------------------------------------------
 # TOTAL ATTRIBUTES: EQUIPPED GEAR
 #-----------------------------------------------------------------------------
 
-func test_gear_bonus_adds_to_matching_attributes_only() -> void:
-	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {
-		AttributeType.STRENGTH: 5.0,
-		AttributeType.AGILITY: 3.0,
-	})
-	assert_eq(_total(AttributeType.STRENGTH), 15.0)
-	assert_eq(_total(AttributeType.AGILITY), 13.0)
-	assert_eq(_total(AttributeType.BODY), 10.0, "no BODY bonus on the item")
-
 func test_bonuses_stack_across_gear_slots() -> void:
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {
-		AttributeType.STRENGTH: 5.0,
+		&"strength": 0.5,
 	})
 	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {
-		AttributeType.STRENGTH: 3.0,
-		AttributeType.BODY: 10.0,
+		&"strength": 0.3,
+		&"body": 1.0,
 	})
 	assert_eq(_total(AttributeType.STRENGTH), 18.0, "10 base + 5 weapon + 3 armor")
 	assert_eq(_total(AttributeType.BODY), 20.0)
 
-func test_negative_bonus_lowers_total() -> void:
-	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {
-		AttributeType.STRENGTH: 10.0,
-		AttributeType.AGILITY: -2.0,
-	})
-	assert_eq(_total(AttributeType.STRENGTH), 20.0)
-	assert_eq(_total(AttributeType.AGILITY), 8.0)
-
 func test_each_attribute_receives_its_own_bonus() -> void:
 	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {
-		AttributeType.STRENGTH: 1.0,
-		AttributeType.BODY: 2.0,
-		AttributeType.AGILITY: 3.0,
-		AttributeType.SPIRIT: 4.0,
-		AttributeType.MIND: 5.0,
-		AttributeType.CONTROL: 6.0,
+		&"strength": 0.1,
+		&"body": 0.2,
+		&"agility": 0.3,
+		&"spirit": 0.4,
+		&"mind": 0.5,
+		&"control": 0.6,
 	})
 	var expected: Dictionary = {
 		AttributeType.STRENGTH: 11.0,
@@ -334,7 +367,7 @@ func test_items_without_equipment_definition_are_ignored() -> void:
 	_inventory().equipped_accessories[0] = no_definition
 	_inventory().equipped_accessories[1] = material
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {
-		AttributeType.STRENGTH: 2.0,
+		&"strength": 0.2,
 	})
 	assert_eq(_total(AttributeType.STRENGTH), 12.0, "only the real equipment counts")
 
@@ -344,14 +377,14 @@ func test_items_without_equipment_definition_are_ignored() -> void:
 
 func test_gear_and_both_accessories_stack() -> void:
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {
-		AttributeType.STRENGTH: 5.0,
+		&"strength": 0.5,
 	})
 	_inventory().equipped_accessories[0] = _make_gear(EquipmentSlot.ACCESSORY, {
-		AttributeType.STRENGTH: 2.0,
+		&"strength": 0.2,
 	})
 	_inventory().equipped_accessories[1] = _make_gear(EquipmentSlot.ACCESSORY, {
-		AttributeType.STRENGTH: 1.0,
-		AttributeType.CONTROL: 3.0,
+		&"strength": 0.1,
+		&"control": 0.3,
 	})
 	assert_eq(_total(AttributeType.STRENGTH), 18.0, "10 base + 5 weapon + 2 + 1 accessories")
 	assert_eq(_total(AttributeType.CONTROL), 13.0)
@@ -360,19 +393,8 @@ func test_gear_and_both_accessories_stack() -> void:
 # TOTAL ATTRIBUTES: EQUIPPING THROUGH INVENTORY MANAGER
 #-----------------------------------------------------------------------------
 
-func test_equip_and_unequip_gear_updates_totals() -> void:
-	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
-	_inventory().equipment[0] = armor
-
-	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
-	assert_eq(_total(AttributeType.BODY), 14.0, "equipped armor adds its bonus")
-	assert_eq(CharacterManager.get_trained_value(AttributeType.BODY), 10.0, "the bonus never touches the base")
-
-	InventoryManager.unequip_item(EquipmentSlot.ARMOR)
-	assert_eq(_total(AttributeType.BODY), 10.0, "the bonus goes away with the armor")
-
 func test_equip_and_unequip_accessory_updates_totals() -> void:
-	var ring := _make_gear(EquipmentSlot.ACCESSORY, {AttributeType.MIND: 3.0})
+	var ring := _make_gear(EquipmentSlot.ACCESSORY, {&"mind": 0.3})
 	_inventory().equipment[0] = ring
 
 	InventoryManager.equip_item(ring, EquipmentSlot.ACCESSORY, 0, 1)
@@ -386,14 +408,14 @@ func test_equip_and_unequip_accessory_updates_totals() -> void:
 #-----------------------------------------------------------------------------
 
 func test_equipping_gear_emits_stats_changed() -> void:
-	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
+	var armor := _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4})
 	_inventory().equipment[0] = armor
 	watch_signals(CharacterManager)
 	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
 	assert_signal_emitted(CharacterManager, "stats_changed")
 
 func test_unequipping_gear_emits_stats_changed() -> void:
-	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
+	var armor := _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4})
 	_inventory().equipment[0] = armor
 	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
 	watch_signals(CharacterManager)
@@ -411,7 +433,7 @@ func test_a_listener_during_save_reset_sees_the_new_saves_gear() -> void:
 	var record := func() -> void: bodies.append(CharacterManager.get_stat(Stat.BODY))
 	CharacterManager.stats_changed.connect(record)
 	var next_save := SaveGameData.new()
-	next_save.inventory.equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {AttributeType.BODY: 2.0})
+	next_save.inventory.equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {&"body": 0.2})
 	PersistenceManager.save_game_data = next_save
 	PersistenceManager.save_data_reset.emit()
 	CharacterManager.stats_changed.disconnect(record)
