@@ -150,6 +150,9 @@ var _completed_encounter_tiles: Dictionary[Vector3i, bool] = {}
 ## The one line each resolved encounter left behind (see summary_for()), by tile.
 ## Cleared when the adventure stops.
 var _tile_summaries: Dictionary[Vector3i, String] = {}
+## The Core Density XP the run's won fights paid (get_core_density_xp_earned()).
+## Zeroed when a run starts, and kept after it stops.
+var _core_density_xp_earned: float = 0.0
 
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue: Array[Vector3i] = []
@@ -250,6 +253,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 ## caller's alone.
 func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictionary[Vector3i, AdventureEncounter]) -> void:
 	current_adventure_action_data = action_data
+	_core_density_xp_earned = 0.0
 	_reset_camera_zoom()
 	_encounter_tile_dictionary = encounters.duplicate()
 	# A new run has no fight or talk under way, whatever the last one ended in, so
@@ -302,22 +306,25 @@ func stop_adventure() -> void:
 ## Handles the result of a combat encounter. Every report of a win pays the gold it
 ## carries. The rest of a win is handled once: AdventureCombat can report a win
 ## again (see the comments below), and the repeat finds the fight's choice already
-## cleared, so the fight counts, runs its effects and resolves its tile once.
+## cleared, so the fight counts, pays its Core Density, runs its effects and
+## resolves its tile once.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
-	
+
 	if successful:
 		# Award gold alongside other effects
 		if gold_earned > 0:
 			ResourceManager.add_gold(gold_earned)
-		
+
 		if _current_combat_choice:
 			# The save's play stats count the fight here, while its choice is still
-			# pending, and its effects run here. AdventureCombat reports a win again
-			# when its enemy takes another hit at 0 Health: the repeat finds the
-			# choice cleared (at the end of this function, or just below for the
-			# boss's), so the fight counts and resolves once.
+			# pending, and it pays its Core Density and runs its effects here.
+			# AdventureCombat reports a win again when its enemy takes another hit
+			# at 0 Health: the repeat finds the choice cleared (at the end of this
+			# function, or just below for the boss's), so the fight counts, pays
+			# and resolves once. The boss pays here too, before its win ends the run.
 			PersistenceManager.save_game_data.stats.count_fight_won()
+			_pay_core_density(_current_combat_choice)
 			_apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
@@ -375,6 +382,11 @@ func select_choice(choice: EncounterChoice) -> void:
 		# Standard choice (e.g. Loot, Leave)
 		_apply_effects(choice.success_effects)
 		_complete_current_tile(summary_for(choice, 0))
+
+## Returns the Core Density XP the run's won fights paid, each fight once. It
+## starts at 0 with each run and stays after the run stops, until the next starts.
+func get_core_density_xp_earned() -> float:
+	return _core_density_xp_earned
 
 ## Returns the number of tiles the player has visited.
 func get_visited_tile_count() -> int:
@@ -577,6 +589,24 @@ func _complete_current_tile(summary: String) -> void:
 	_tile_summaries[_current_tile] = summary
 	_mark_tile_visited(_current_tile)
 	encounter_resolved.emit(_current_tile, summary)
+
+## Pays the Core Density XP a won fight over `choice` earns on the tile the player
+## stands on (AdventureActionData.get_core_density_xp_for(); a tile with no
+## encounter counts as none), into the save at once, and adds it to the run's
+## total. Returns what it paid: 0 with no run on, for a tile or choice that pays
+## nothing, and at a full core, which takes no XP.
+func _pay_core_density(choice: CombatChoice) -> float:
+	if current_adventure_action_data == null or CultivationManager.is_core_full():
+		return 0.0
+	var encounter: AdventureEncounter = get_encounter_at(_current_tile)
+	var type: AdventureEncounter.EncounterType = encounter.encounter_type if encounter != null else AdventureEncounter.EncounterType.NONE
+	var xp: float = current_adventure_action_data.get_core_density_xp_for(type, choice.is_boss)
+	if xp <= 0.0:
+		return 0.0
+	CultivationManager.add_core_density_xp(xp)
+	_core_density_xp_earned += xp
+	Log.info("AdventureTilemap: The fight paid %.0f Core Density XP (run total %.0f)" % [xp, _core_density_xp_earned])
+	return xp
 
 func _apply_effects(effects: Array[EffectData]) -> void:
 	for effect in effects:

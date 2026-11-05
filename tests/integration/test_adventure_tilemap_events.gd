@@ -2,7 +2,8 @@ extends GutTest
 
 ## What AdventureTilemap tells the boards (arrivals, resolutions, refused walks,
 ## the boss reveal, redraws), the getters they read, the picks it takes from
-## them and how a stop mid-walk ends the walk. Drives the real tilemap
+## them, the Core Density a won fight pays (once, by its tier, kept however the
+## run ends) and how a stop mid-walk ends the walk. Drives the real tilemap
 ## scene on the six-tile fixture map (AdventureMapFixture) and walks it by
 ## clicking tiles, the way the player does. A fight is not started: the tests
 ## answer it with handle_combat_result(), as AdventureView does when one ends.
@@ -137,6 +138,23 @@ func _wait_for_hop(toward: Vector3i) -> void:
 func _walk_to(coord: Vector3i) -> void:
 	_click(coord)
 	await _wait_for_hop(coord)
+
+## Starts the run on the fixture map with an action paying 7 Core Density XP for
+## a regular fight, 9 for an elite and 13 for the boss. 7 and 9 are under
+## Foundation's level-1 cost of 10, so one fight's XP stays in the save's
+## core_density_xp at level 0.
+func _start_paying() -> void:
+	var action: AdventureActionData = AdventureMapFixture.ADVENTURE_ACTION.duplicate()
+	action.core_density_xp_regular = 7.0
+	action.core_density_xp_elite = 9.0
+	action.core_density_xp_boss = 13.0
+	_tilemap.start_adventure_on_map(action, _map)
+
+## Walks to FIGHT, picks its fight and answers it as a win paying 15 gold.
+func _win_the_fight() -> void:
+	await _walk_to(FIGHT)
+	_tilemap.select_choice(_fight_choice)
+	_tilemap.handle_combat_result(true, 15)
 
 ## Notes the order of the tilemap's announcements in _events, and whether each
 ## tile counted as visited when it was announced in _visited_when_entered.
@@ -414,6 +432,93 @@ func test_revisit_carries_the_summary() -> void:
 	await _walk_to(START)
 	assert_signal_not_emitted(_tilemap, "walk_refused")
 	assert_eq(_tilemap.get_current_tile(), START)
+
+#-----------------------------------------------------------------------------
+# CORE DENSITY
+#-----------------------------------------------------------------------------
+
+## AdventureCombat reports a win again on each hit at 0 Health: the fight pays
+## its Core Density once, and the run's total counts it once.
+func test_a_won_fight_pays_its_core_density_once() -> void:
+	_start_paying()
+	await _walk_to(FIGHT)
+	_tilemap.select_choice(_fight_choice)
+
+	_tilemap.handle_combat_result(true, 15)
+	_tilemap.handle_combat_result(true, 15)
+
+	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "the regular amount, once")
+	assert_eq(CultivationManager.get_core_density_level(), 0.0, "below the level-1 cost")
+	assert_eq(_tilemap.get_core_density_xp_earned(), 7.0, "the run's total counts it once")
+
+## A rest site pays nothing, and neither does a fight picked on open ground: the
+## start tile holds no fight, so its tier is none.
+func test_only_fights_pay_core_density() -> void:
+	_start_paying()
+	_tilemap.select_choice(_fight_choice)
+	_tilemap.handle_combat_result(true, 15)
+	await _walk_to(REST)
+	_tilemap.select_choice(_rest_choice)
+
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0, "nothing reached the save")
+	assert_eq(_tilemap.get_core_density_xp_earned(), 0.0, "nothing in the run's total")
+
+## What a kill paid is in the save at once: a lost fight after it, and the run's
+## end, leave it there.
+func test_core_density_is_kept_when_a_later_fight_is_lost() -> void:
+	_start_paying()
+	await _win_the_fight()
+	await _walk_to(BOSS)
+	_tilemap.select_choice(_map[BOSS].choices[0])
+
+	_tilemap.handle_combat_result(false)
+	_tilemap.stop_adventure()
+
+	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "the won fight's XP stays")
+	assert_eq(_tilemap.get_core_density_xp_earned(), 7.0, "the total stays until the next run")
+
+func test_a_new_run_starts_its_total_at_zero() -> void:
+	_start_paying()
+	await _win_the_fight()
+	_tilemap.stop_adventure()
+
+	_start_paying()
+
+	assert_eq(_tilemap.get_core_density_xp_earned(), 0.0, "a new run's total")
+	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "the save keeps what the last run paid")
+
+## A full core takes no XP, so a kill there pays nothing. Once a failed
+## Tribulation takes levels away, kills pay again.
+func test_a_kill_at_a_full_core_pays_nothing() -> void:
+	var cap: int = CultivationManager.get_core_density_cap()
+	PersistenceManager.save_game_data.core_density_level = cap
+	_start_paying()
+	await _win_the_fight()
+
+	assert_eq(_tilemap.get_core_density_xp_earned(), 0.0, "nothing paid into a full core")
+	assert_eq(CultivationManager.get_core_density_level(), float(cap), "the core stays full")
+
+	CultivationManager.lose_core_density_levels(5)
+	_tilemap.stop_adventure()
+	_start_paying()
+	await _win_the_fight()
+
+	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "kills pay again")
+	assert_eq(_tilemap.get_core_density_xp_earned(), 7.0)
+
+## The boss pays the boss amount, once, though its win is reported again.
+func test_a_boss_win_pays_the_boss_amount() -> void:
+	_start_paying()
+	await _win_the_fight()
+	await _walk_to(BOSS)
+	_tilemap.select_choice(_map[BOSS].choices[0])
+
+	_tilemap.handle_combat_result(true, 0)
+	_tilemap.handle_combat_result(true, 0)
+
+	assert_eq(_tilemap.get_core_density_xp_earned(), 20.0, "7 for the fight and 13 for the boss")
+	assert_eq(CultivationManager.get_core_density_level(), 1.0, "20 XP pays the level-1 cost of 10")
+	assert_eq(CultivationManager.get_core_density_xp(), 10.0, "and leaves 10, short of level 2's 10.2")
 
 #-----------------------------------------------------------------------------
 # BOSS REVEAL

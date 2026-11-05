@@ -83,6 +83,29 @@ func test_boss_win_ends_the_adventure_once_as_a_victory() -> void:
 	assert_eq(stats.adventures_won, 1, "and so is the win")
 	assert_eq(_view.adventure_tilemap.get_visited_tile_count(), 0, "the repeat marked nothing on the cleared map")
 
+## The boss's win ends the run in the same frame. Its Core Density is already in
+## the save when the run ends, and a repeat of the win pays nothing more.
+func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
+	_start_adventure(300)
+	# The run's own copy of the action. 9 is under Foundation's level-1 cost of
+	# 10, so the boss's XP stays in the save's core_density_xp at level 0.
+	_view.adventure_tilemap.current_adventure_action_data.core_density_xp_boss = 9.0
+	var xp_when_the_run_ended: Array[float] = []
+	_view.adventure_completed.connect(func(_result: AdventureResultData) -> void:
+		xp_when_the_run_ended.append(CultivationManager.get_core_density_xp()))
+	var boss_choice := _boss_choice(RecordingEffect.new())
+	_view.adventure_tilemap._current_combat_choice = boss_choice
+	_view._on_start_combat(boss_choice)
+
+	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.combat.trigger_combat_end.emit(true, 0)
+
+	assert_eq(xp_when_the_run_ended.size(), 1, "the run ended once")
+	if xp_when_the_run_ended.size() == 1:
+		assert_eq(xp_when_the_run_ended[0], 9.0, "with the boss's XP already in the save")
+	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "a repeat of the win pays nothing more")
+	assert_eq(_view.adventure_tilemap.get_core_density_xp_earned(), 9.0, "and the run's total keeps it")
+
 #-----------------------------------------------------------------------------
 # HOW A STOP COUNTS
 #-----------------------------------------------------------------------------
