@@ -310,12 +310,12 @@ func stop_adventure() -> void:
 ## resolves its tile once.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
-
+	
 	if successful:
 		# Award gold alongside other effects
 		if gold_earned > 0:
 			ResourceManager.add_gold(gold_earned)
-
+		
 		if _current_combat_choice:
 			# The save's play stats count the fight here, while its choice is still
 			# pending, and it pays its Core Density and runs its effects here.
