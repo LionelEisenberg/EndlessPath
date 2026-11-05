@@ -6,7 +6,7 @@ extends GutTest
 ## and result) and CyclingZone (the states that can still score). A cycle is stepped by
 ## calling advance() with a chosen cursor, as _process() calls it with the
 ## mouse. The technique under test is smooth_flow unless a test says otherwise:
-## a 15 s cycle of 200 Madra with 4 zones, on a fresh save (25 Madra, cap 100).
+## a 15 s cycle of 200 Madra with 4 zones, on a fresh save (25 Madra, max 100).
 
 const TECHNIQUE_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique/cycling_technique.tscn")
 const SMOOTH_FLOW_PATH: String = "res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres"
@@ -30,6 +30,9 @@ const MADRA_RATE: float = 200.0 / 15.0
 ## Where the ball waits: the first point of smooth_path.tres, on even px.
 const START: Vector2 = Vector2(320.0, 464.0)
 
+## The modifier source _make_room() raises the max Madra stat under.
+const ROOM_SOURCE: StringName = &"test_cycling_technique_room"
+
 var _technique: CyclingTechnique = null
 
 #-----------------------------------------------------------------------------
@@ -50,6 +53,7 @@ func after_each() -> void:
 		ActionManager.stop_action()
 	# A cycle session left running would leak into later files.
 	CyclingManager.end_cycle_session()
+	CharacterManager.remove_modifier_source(ROOM_SOURCE)
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -69,6 +73,16 @@ func _step_until(done: Callable, limit: float = 20.0) -> bool:
 			break
 		_technique.advance(FRAME, FAR)
 	return done.call()
+
+## A modifier source that adds `amount` to the max Madra stat.
+func _max_madra_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)]
+		return modifiers
+
+## Raises the max Madra stat by `amount`, so a cycle's Madra has room under it.
+func _make_room(amount: float) -> void:
+	CharacterManager.set_modifier_source(ROOM_SOURCE, _max_madra_source(amount))
 
 func _zone(index: int) -> CyclingZone:
 	return _technique.cycling_zones[index]
@@ -251,20 +265,11 @@ func test_madra_steps_carry_their_remainder() -> void:
 func test_no_madra_or_pellets_at_the_cap() -> void:
 	watch_signals(_technique)
 	ResourceManager.set_madra(100.0)
-	assert_eq(CultivationManager.get_max_madra(), 100.0, "precondition: the cap is 100")
+	assert_eq(ResourceManager.get_max_madra(), 100.0, "precondition: the max is 100")
 	_technique.start_cycle()
 	_run(1.0, 60.0, true)
 	assert_signal_not_emitted(_technique, "madra_particle_requested")
 	assert_eq(ResourceManager.get_madra(), 100.0)
-	assert_eq(_technique.get_current_result().madra_added, 0.0)
-
-func test_madra_above_the_cap_is_left_alone() -> void:
-	# Over the cap the technique's own _madra_full() guard skips every step, so
-	# the pool stays where it is and the result counts no Madra.
-	ResourceManager.set_madra(150.0)
-	_technique.start_cycle()
-	_run(1.0, 60.0, true)
-	assert_eq(ResourceManager.get_madra(), 150.0)
 	assert_eq(_technique.get_current_result().madra_added, 0.0)
 
 func test_a_step_that_adds_nothing_requests_no_pellet() -> void:
@@ -291,9 +296,9 @@ func test_cap_reached_mid_cycle() -> void:
 func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	# add_madra() reports each step snapped to 0.001 (1.067 for 1.0667), and a
 	# full cycle's 187 snapped steps sum to 199.53: "+200" for the 199.47 it adds.
-	PersistenceManager.save_game_data.core_density_level = 40.0
+	_make_room(200.0)
 	ResourceManager.set_madra(46.0)
-	assert_gt(CultivationManager.get_max_madra(), 46.0 + 200.0, "precondition: the cycle never meets the cap")
+	assert_gt(ResourceManager.get_max_madra(), 46.0 + 200.0, "precondition: the cycle never meets the max")
 	watch_signals(_technique)
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, true)
@@ -321,8 +326,8 @@ func test_a_hitch_through_the_end_pays_only_the_steps_left() -> void:
 	# 2 s of tracking pay 25 of the cycle's 100 steps. A 16 s frame then covers 200
 	# steps with the cursor on the ball (the path ends where it starts), but only
 	# 6 s of it, 75 steps, were left in the cycle.
-	PersistenceManager.save_game_data.core_density_level = 100.0
-	assert_eq(CultivationManager.get_max_madra(), 600.0, "precondition: the cap does not bound the hitch")
+	_make_room(500.0)
+	assert_eq(ResourceManager.get_max_madra(), 600.0, "precondition: the max does not bound the hitch")
 	_use_foundation()
 	var curve: Curve2D = _technique.technique_data.path_curve
 	assert_eq(curve.get_point_position(curve.point_count - 1), curve.get_point_position(0), "precondition: the path ends where it starts")
@@ -406,8 +411,8 @@ func test_auto_restart_keeps_the_rate() -> void:
 	# The restart happens inside the advance() that ends the cycle. The cabinet
 	# reads the rate off the session each time it announces one, so a session
 	# that read 0 until the next frame would blink the label out for a frame.
-	PersistenceManager.save_game_data.core_density_level = 100.0
-	assert_eq(CultivationManager.get_max_madra(), 600.0, "precondition: a whole cycle of Madra fits under the cap")
+	_make_room(500.0)
+	assert_eq(ResourceManager.get_max_madra(), 600.0, "precondition: a whole cycle of Madra fits under the max")
 	var completed: Array[int] = [0]
 	_technique.cycle_completed.connect(func(_result: CycleResult) -> void: completed[0] += 1)
 	_technique.auto_cycle = true
@@ -427,7 +432,7 @@ func test_auto_restart_keeps_the_rate() -> void:
 func test_a_manual_start_begins_from_an_empty_window() -> void:
 	# A cycle that ends without Auto, like one that is stopped, leaves no rate
 	# behind for the next one.
-	PersistenceManager.save_game_data.core_density_level = 100.0
+	_make_room(500.0)
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, true)
 	assert_false(_technique.is_cycling(), "precondition: the cycle ended without Auto")

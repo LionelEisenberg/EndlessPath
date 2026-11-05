@@ -118,8 +118,10 @@ func _on_adventure_start_requested(action_data: AdventureActionData) -> void:
 		return
 	_is_transitioning = true
 	_pending_adventure_data = action_data
-	_drain_budget = ResourceManager.get_adventure_madra_budget()
-	_drain_budget_ratio = clampf(_drain_budget / ResourceManager.get_adventure_madra_capacity(), 0.0, 1.0)
+	# The whole pool, which never holds more than the max
+	_drain_budget = ResourceManager.get_madra()
+	var max_madra: float = ResourceManager.get_max_madra()
+	_drain_budget_ratio = clampf(_drain_budget / max_madra, 0.0, 1.0) if max_madra > 0.0 else 0.0
 	var base_particles: int = int(lerpf(DRAIN_MIN_PARTICLES, DRAIN_MAX_PARTICLES, _drain_budget_ratio))
 	# Use whole-madra amounts per particle so the bar drains in clean integer
 	# steps. Any leftover from the floor (e.g. budget=100, base=19 -> per=5,

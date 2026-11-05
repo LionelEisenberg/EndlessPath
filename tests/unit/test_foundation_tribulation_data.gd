@@ -1,9 +1,8 @@
 extends GutTest
 
 ## Pins the Tribulation's real data wiring: the shipped .tres files, not test
-## stand-ins. Foundation's core fills at 100 and leads to Copper, a full
-## Foundation core holds as much Madra as an empty Copper one (the breakthrough
-## never costs Madra), the breakthrough raising the stats' cap, Copper is
+## stand-ins. Foundation's core fills at 100 and leads to Copper, the stats'
+## caps (Foundation 10, Copper 20: the one pin of the shipped caps), Copper is
 ## registered in CultivationManager's stages and in the stage list, the
 ## Foundation Tribulation leads to Copper, its early reach and the two lines it
 ## fills in, and Spirit Valley lists The Tribulation as an action: the action's
@@ -72,21 +71,17 @@ func test_foundation_leads_to_copper() -> void:
 		return
 	assert_eq(foundation.next_stage.stage_id, Stage.COPPER)
 
-func test_the_madra_cap_does_not_drop_at_the_breakthrough() -> void:
+## The shipped caps, the spec's Foundation 10 and Copper 20, so the breakthrough
+## raises the stats' cap. Foundation's equals the class default, so an editor
+## re-save that drops the line, then a change of the default, would retune the
+## game with nothing else noticing.
+func test_the_breakthrough_raises_the_stat_cap_from_10_to_20() -> void:
 	var foundation: AdvancementStageResource = _load_stage(FOUNDATION_PATH)
 	var copper: AdvancementStageResource = _load_stage(COPPER_PATH)
 	if foundation == null or copper == null:
 		return
-	assert_eq(foundation.get_max_madra(foundation.max_core_density_level), 600.0, "a full Foundation core holds 600 Madra")
-	assert_eq(copper.get_max_madra(0), 600.0, "and an empty Copper core starts at the same 600")
-
-func test_the_breakthrough_raises_the_stat_cap() -> void:
-	var foundation: AdvancementStageResource = _load_stage(FOUNDATION_PATH)
-	var copper: AdvancementStageResource = _load_stage(COPPER_PATH)
-	if foundation == null or copper == null:
-		return
-	assert_gt(foundation.stat_level_cap, 1, "Foundation lets the stats grow past Lv 1")
-	assert_gt(copper.stat_level_cap, foundation.stat_level_cap, "Copper's cap is above Foundation's")
+	assert_eq(foundation.stat_level_cap, 10, "Foundation caps the stats at Lv 10")
+	assert_eq(copper.stat_level_cap, 20, "Copper caps them at Lv 20")
 
 #-----------------------------------------------------------------------------
 # REGISTRATION
