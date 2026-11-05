@@ -12,14 +12,20 @@ extends Resource
 @export var icon: Texture2D
 @export var path_curve: Curve2D  # The path shape
 @export var cycle_duration: float = 10.0 # Seconds for one complete cycle
-@export var base_madra_per_cycle: float = 25.0  # Madra a cycle pays, in 0.08 s steps while the cursor is on the ball
+@export var base_madra_per_cycle: float = 25.0  # Madra a cycle pays at Spirit Lv 1, in 0.08 s steps while the cursor is on the ball
 
 @export var cycling_zones: Array[CyclingZoneData] = []
 
-## Returns the Madra a second of drawing pays: base_madra_per_cycle over
-## cycle_duration, which is the top of the rate a cycle reads. 0.0 for a cycle
-## of no length.
-func get_madra_per_second() -> float:
+## Returns the Madra a followed cycle draws at `madra_multiplier`, Spirit's
+## (CharacterAttributesData.get_cycling_madra_multiplier()):
+## base_madra_per_cycle x madra_multiplier.
+func get_madra_per_cycle(madra_multiplier: float = 1.0) -> float:
+	return base_madra_per_cycle * madra_multiplier
+
+## Returns the Madra a second of drawing pays at `madra_multiplier`: the Madra
+## per cycle over cycle_duration, which is the top of the rate a cycle reads.
+## 0.0 for a cycle of no length.
+func get_madra_per_second(madra_multiplier: float = 1.0) -> float:
 	if cycle_duration <= 0.0:
 		return 0.0
-	return base_madra_per_cycle / cycle_duration
+	return get_madra_per_cycle(madra_multiplier) / cycle_duration

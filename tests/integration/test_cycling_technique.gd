@@ -306,6 +306,25 @@ func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_almost_eq(result.madra_added, ResourceManager.get_madra() - 46.0, 0.000001, "the result holds what the pool gained")
 
+func test_spirit_raises_the_madra_a_cycle_draws() -> void:
+	# Spirit Lv 6 is 15, a multiplier of 1.5, so the Foundational Technique's
+	# cycle of 50 draws 75. The level is set after the technique is ready: it
+	# follows the stats change, not only what it read on ready.
+	_make_room(500.0)
+	ResourceManager.set_madra(0.0)
+	_use_foundation()
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
+	assert_eq(_track_one_cycle(func() -> float: return FRAME), 100, "precondition: the cycle's 100 steps")
+	assert_almost_eq(_technique.get_current_result().madra_added, 75.0, 0.01, "50 Madra at 1.5x")
+
+func test_the_rate_reads_madra_at_spirit() -> void:
+	# At Spirit 15 steady tracking reads 1.5 x base_madra_per_cycle / cycle_duration.
+	_make_room(500.0)
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
+	_technique.start_cycle()
+	_run(2.0, 60.0, true)
+	assert_almost_eq(CyclingManager.get_madra_rate(), 1.5 * MADRA_RATE, 0.001)
+
 func test_a_tracked_8_s_cycle_pays_its_last_step_at_120_fps() -> void:
 	# An 8 s cycle holds exactly 100 steps of 0.08 s, so its 100th step falls on
 	# its last instant. Float error in 960 frames of 1 / 120 s must not cost it.
