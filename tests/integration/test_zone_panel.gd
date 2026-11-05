@@ -848,6 +848,32 @@ func _header_text() -> String:
 func _count_text() -> String:
 	return (_node("CountLabel") as Label).text
 
+## A Spirit level-up moves every drawer's Madra figure with the chest open, not
+## at the next rebuild: Smooth Flow's 80 a cycle reads 152 at Spirit Lv 10.
+func test_drawers_follow_a_spirit_level() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(1)
+	var detail := _technique_list().get_drawer(SMOOTH_ID).get_node("%Detail") as Label
+	assert_eq(detail.text, "80 Madra · 15 s cycle · 4 zones", "precondition: Spirit Lv 1")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	assert_eq(detail.text, "152 Madra · 15 s cycle · 4 zones")
+
+## The rate's slot is as wide as the technique's top rate at the player's Spirit:
+## Smooth Flow tops out at +5.3 / s at Lv 1 and +10.1 / s at Lv 10, a digit wider,
+## so a Spirit level-up widens it while the tray shows the cycle.
+func test_the_rate_slot_follows_a_spirit_level() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	CyclingManager.equip_technique(SMOOTH_ID)
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(1)
+	var slot := _strip_node("RateGroup") as Control
+	var width_at_lv_1: float = slot.custom_minimum_size.x
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	assert_gt(slot.custom_minimum_size.x, width_at_lv_1, "a whole digit wider")
+
 func test_techniques_mode_lists_unlocked_techniques() -> void:
 	_unlock_all_techniques()
 	await _add_panel()

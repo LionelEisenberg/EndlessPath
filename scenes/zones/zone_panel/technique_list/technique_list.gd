@@ -8,7 +8,9 @@ extends Control
 ## header and the chest hugs it.
 ## It rebuilds when a technique unlocks, shown or not, so it is current the
 ## moment the chest turns to it. It refreshes every drawer when the equipped
-## technique changes, because the drawers do not listen to CyclingManager.
+## technique changes, and every drawer's Madra figure when the player's stats
+## change (a Spirit level, Spirit gear), because the drawers do not listen to
+## CyclingManager or CharacterManager.
 
 ## Emitted when the drawers are rebuilt or one of them changes height, which
 ## changes the list's height.
@@ -43,6 +45,7 @@ var _drawers: Array[TechniqueDrawer] = []
 func _ready() -> void:
 	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -114,3 +117,7 @@ func _on_drawer_height_changed() -> void:
 func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 	for drawer: TechniqueDrawer in _drawers:
 		drawer.refresh()
+
+func _on_stats_changed() -> void:
+	for drawer: TechniqueDrawer in _drawers:
+		drawer.refresh_detail()

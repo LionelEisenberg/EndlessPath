@@ -21,9 +21,10 @@ extends Resource
 #-----------------------------------------------------------------------------
 
 ## The XP that going from `level` to the next level costs:
-## xp_to_level_two x xp_growth^(level - 1).
+## xp_to_level_two x xp_growth^(level - 1), rounded to a whole number, so every
+## cost and every count of cycles toward it reads exactly.
 func get_xp_to_next(level: int) -> float:
-	return xp_to_level_two * pow(xp_growth, level - 1)
+	return roundf(xp_to_level_two * pow(xp_growth, level - 1))
 
 ## The stat's value at `level`: STAT_BASELINE at Lv 1, plus value_per_level for
 ## each level past it.

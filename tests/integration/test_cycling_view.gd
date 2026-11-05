@@ -10,7 +10,7 @@ extends GutTest
 ## is built the way MainView builds it: the cabinet beside it, the view shown
 ## and the cabinet handed over, and the technique stepped by hand with advance()
 ## (its own processing is off, so the real mouse never races a test). The
-## technique is smooth_flow, a 15 s cycle of 200 Madra with 4 zones, on a fresh
+## technique is smooth_flow, a 15 s cycle of 80 Madra with 4 zones, on a fresh
 ## save (25 Madra, max 100).
 
 const VIEW_SCENE_PATH: String = "res://scenes/cycling/cycling_view/cycling_view.tscn"
@@ -304,14 +304,14 @@ func test_a_tracked_cycle_reports_the_madra_it_drew() -> void:
 	watch_signals(_technique)
 	ResourceManager.set_madra(0.0)
 	_technique.start_cycle()
-	# Tracking for 6 s keeps the Madra drawn (80) under the 100 cap.
+	# Tracking for 6 s draws 32 Madra, well under the 100 cap.
 	_run(6.0, 60.0, true)
 	_run(CYCLE_SECONDS - 6.0 + FRAME, 60.0, false)
 	assert_signal_emit_count(_technique, "cycle_completed", 1)
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
-	# 6 s hold 75 whole steps of Madra. The step tolerance pays the 75th even when
-	# the float sum of the frames lands a hair under 6 s.
-	assert_almost_eq(result.madra_added, 80.0, 0.001, "precondition: the cursor drew Madra")
+	# 6 s hold 75 whole steps of 0.4267 Madra. The step tolerance pays the 75th
+	# even when the float sum of the frames lands a hair under 6 s.
+	assert_almost_eq(result.madra_added, 32.0, 0.001, "precondition: the cursor drew Madra")
 	assert_eq(_last_line(), result.result_line(), "the cycle's own line goes to the chest")
 	assert_signal_emit_count(LogManager, "message_logged", 1, "cycling writes no \"Gained N Madra\" lines")
 	assert_eq(get_signal_parameters(LogManager, "message_logged", 0), ["[color=cyan]%s[/color]" % result.log_line()])
@@ -330,12 +330,14 @@ func test_the_result_line_stays_until_the_next_cycle_ends() -> void:
 
 ## The cabinet shows each step's Madra as its pellet lands, not as it leaves.
 func test_the_madra_orb_fills_as_the_pellets_land() -> void:
+	# From 25.8, the first step of 0.4267 lands past 26.
+	ResourceManager.set_madra(25.8)
 	_technique.start_cycle()
 	_run(0.2, 60.0, true)
 	var pellets: Array[LacquerPellet] = _pellets()
 	assert_eq(pellets.size(), 2, "precondition: two steps in flight")
 	var drawn: float = ResourceManager.get_madra()
-	assert_gt(drawn, 27.0, "precondition: the cursor drew two steps of Madra")
+	assert_gt(drawn, 26.5, "precondition: the cursor drew two steps of Madra")
 	assert_eq(_plate_text("MadraValueLabel"), "25", "none of it has landed")
 	pellets[0]._process(CyclingView.MADRA_PELLET_FLIGHT)
 	assert_eq(_plate_text("MadraValueLabel"), "26", "the first step has landed")
