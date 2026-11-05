@@ -1,9 +1,14 @@
 ## State for the Adventure View. The adventure's own cabinet, chest and dock
-## stand where the zone view keeps its furniture, so the HUD boards stay where
-## the zone view hung them: Goals under the cabinet, its cords on, and the log
-## at the bottom left (adventure spec: The left column).
+## stand where the zone view keeps its furniture. The log stays where the zone
+## view hung it, at the bottom left, and the Goals board moves up under the
+## vitals cabinet with its cords on (adventure spec: The left column);
+## ZoneViewState hangs it back under the cultivator cabinet.
 class_name AdventureViewState
 extends MainViewState
+
+## Where a run hangs the Goals board: under the vitals cabinet, which shows no
+## stats and keeps the cabinet's old height, 4 px under its rings at y 272.
+const GOALS_POSITION: Vector2 = Vector2(24.0, 276.0)
 
 func _ready() -> void:
 	if ActionManager:
@@ -13,6 +18,8 @@ func _ready() -> void:
 ## Called when entering this state.
 func enter() -> void:
 	scene_root.adventure_view.visible = true
+	if scene_root.goals_panel:
+		scene_root.goals_panel.position = GOALS_POSITION
 	# Connect to adventure_completed to show end card
 	if not scene_root.adventure_view.adventure_completed.is_connected(_on_adventure_completed):
 		scene_root.adventure_view.adventure_completed.connect(_on_adventure_completed)

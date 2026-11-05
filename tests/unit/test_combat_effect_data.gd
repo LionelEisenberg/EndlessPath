@@ -4,24 +4,41 @@ extends GutTest
 ## which the menu books use to show what an ability scales with and how its
 ## value adds up.
 
-func test_get_scaling_reads_each_attribute_field() -> void:
+## No other stat has a scaling field, so no technique file can set one.
+func test_only_the_main_stats_have_a_scaling() -> void:
 	var effect := CombatEffectData.new()
-	effect.strength_scaling = 1.0
-	effect.body_scaling = 2.0
-	effect.agility_scaling = 3.0
-	effect.spirit_scaling = 4.0
-	effect.foundation_scaling = 5.0
-	effect.control_scaling = 6.0
-	effect.resilience_scaling = 7.0
-	effect.willpower_scaling = 8.0
-	var attribute_names: Array = CharacterAttributesData.AttributeType.keys()
-	for attribute: int in CharacterAttributesData.AttributeType.values():
-		assert_eq(effect.get_scaling(attribute as CharacterAttributesData.AttributeType), float(attribute + 1),
-			attribute_names[attribute])
+	for property: String in ["body_scaling", "agility_scaling", "mind_scaling", "control_scaling"]:
+		assert_false(property in effect, "%s is gone" % property)
+	assert_true("strength_scaling" in effect, "Strength scales Physical techniques")
+	assert_true("spirit_scaling" in effect, "Spirit scales Spirit techniques")
 
-func test_get_scaling_is_zero_when_unset() -> void:
+## get_scaling() reads Strength's and Spirit's scaling. Every other stat scales nothing.
+func test_get_scaling_reads_strength_and_spirit_only() -> void:
 	var effect := CombatEffectData.new()
-	assert_eq(effect.get_scaling(CharacterAttributesData.AttributeType.WILLPOWER), 0.0)
+	effect.strength_scaling = 1.5
+	effect.spirit_scaling = 2.0
+	var cases: Array[Dictionary] = [
+		{"stat": CharacterAttributesData.AttributeType.STRENGTH, "scaling": 1.5},
+		{"stat": CharacterAttributesData.AttributeType.BODY, "scaling": 0.0},
+		{"stat": CharacterAttributesData.AttributeType.AGILITY, "scaling": 0.0},
+		{"stat": CharacterAttributesData.AttributeType.SPIRIT, "scaling": 2.0},
+		{"stat": CharacterAttributesData.AttributeType.MIND, "scaling": 0.0},
+		{"stat": CharacterAttributesData.AttributeType.CONTROL, "scaling": 0.0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(effect.get_scaling(case["stat"]), case["scaling"], CharacterAttributesData.AttributeType.keys()[case["stat"]])
+
+## calculate_value() counts Strength and Spirit only, however high the other four are.
+func test_value_ignores_the_other_stats() -> void:
+	var effect := CombatEffectData.new()
+	effect.base_value = 10.0
+	effect.strength_scaling = 1.5
+	effect.spirit_scaling = 2.0
+	var mains := CharacterAttributesData.make({&"strength": 12.0, &"spirit": 14.0})
+	var all_high := CharacterAttributesData.make({&"strength": 12.0, &"spirit": 14.0,
+		&"body": 99.0, &"agility": 99.0, &"mind": 99.0, &"control": 99.0})
+	assert_eq(effect.calculate_value(mains), 56.0, "10 + 12 x 1.5 + 14 x 2")
+	assert_eq(effect.calculate_value(all_high), 56.0, "Body, Agility, Mind and Control add nothing")
 
 func test_contribution_is_the_attribute_times_its_scaling() -> void:
 	var effect := CombatEffectData.new()
@@ -35,9 +52,10 @@ func test_base_plus_contributions_is_the_calculated_value() -> void:
 	var effect := CombatEffectData.new()
 	effect.base_value = 30.0
 	effect.spirit_scaling = 1.5
-	effect.foundation_scaling = 0.5
 	effect.strength_scaling = 0.25
-	var attrs := CharacterAttributesData.new(17.0, 16.0, 14.0, 11.0, 12.0, 12.0, 12.0, 13.0)
+	var attrs := CharacterAttributesData.make({
+		&"strength": 17.0, &"body": 16.0, &"agility": 14.0, &"spirit": 11.0, &"mind": 12.0, &"control": 12.0,
+	})
 	var total: float = effect.base_value
 	for attribute: int in CharacterAttributesData.AttributeType.values():
 		total += effect.get_scaling_contribution(attribute as CharacterAttributesData.AttributeType, attrs)

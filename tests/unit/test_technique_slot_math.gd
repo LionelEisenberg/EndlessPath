@@ -2,9 +2,11 @@ extends GutTest
 
 ## The pure rules behind the technique dock: how many of the cooldown sweep's
 ## 24 steps a slot shows for the time left (TechniqueSlot.sweep_step()), the
-## whole seconds in its centre (TechniqueSlot.seconds_text()), and the damage
-## line its tooltip reads (AbilityRow.format_damage()). The dock and its tests
-## ask these statics, so the numbers here are the numbers a slot shows.
+## whole seconds in its centre (TechniqueSlot.seconds_text()), the damage line
+## its tooltip reads (AbilityRow.format_damage()), the cost lines
+## (AbilityRow.format_cost(), format_costs()) and the durations in them
+## (AbilityRow.format_seconds()). The dock and its tests ask these statics, so
+## the numbers here are the numbers a slot shows.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -33,6 +35,17 @@ func _damage(base_value: float, damage_type: CombatEffectData.DamageType) -> Com
 	effect.base_value = base_value
 	effect.damage_type = damage_type
 	return effect
+
+## Test Costed: the costs and timings given, and no effects.
+func _costed(madra_cost: float, stamina_cost: float, base_cooldown: float, cast_time: float) -> AbilityData:
+	var ability := AbilityData.new()
+	ability.ability_id = "test_costed"
+	ability.ability_name = "Test Costed"
+	ability.madra_cost = madra_cost
+	ability.stamina_cost = stamina_cost
+	ability.base_cooldown = base_cooldown
+	ability.cast_time = cast_time
+	return ability
 
 #-----------------------------------------------------------------------------
 # THE SWEEP
@@ -102,10 +115,10 @@ func test_seconds_round_up() -> void:
 ## The line gives the damage of the first effect on the target for the
 ## attributes, rounded (a half rounds up), and names its damage type.
 func test_format_damage() -> void:
-	var strong := CharacterAttributesData.new(13.0, 10.0, 7.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	var strong := CharacterAttributesData.make({&"strength": 13.0, &"agility": 7.0})
 	var plain := CharacterAttributesData.new()
 	var amount: int = roundi((BASIC_STRIKE.effects_on_target[0] as CombatEffectData).calculate_value(strong))
-	assert_eq(amount, 27, "precondition: 10 + 13 x 1 + 7 x 0.5 = 26.5, rounded")
+	assert_eq(amount, 30, "precondition: 10 + 13 x 1.5 = 29.5, rounded")
 	var palm_amount: int = roundi((EMPTY_PALM.effects_on_target[0] as CombatEffectData).calculate_value(plain))
 	var cases: Array[Dictionary] = [
 		{"name": "Basic Strike: Physical", "ability": BASIC_STRIKE, "attributes": strong, "line": "about %d Physical damage" % amount},
@@ -127,3 +140,35 @@ func test_format_damage_reads_the_first_target_effect_only() -> void:
 	interrupt_first.effects_on_target.append(_damage(20.0, CombatEffectData.DamageType.PHYSICAL))
 	assert_eq(AbilityRow.format_damage(interrupt_first, attributes), "", "an interrupt first: no damage line")
 	assert_eq(AbilityRow.format_damage(AbilityData.new(), attributes), "", "no effect at all: no damage line")
+
+#-----------------------------------------------------------------------------
+# THE COST LINES
+#-----------------------------------------------------------------------------
+
+## The cost lines after Control's cuts. Stamina and the cast time are never cut.
+func test_cost_lines_show_the_cut_values() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no cut", "ability": _costed(8.0, 0.0, 3.0, 0.0), "cost_cut": 0.0, "cooldown_cut": 0.0,
+			"cost": "8 Madra", "costs": "8 Madra · 3 s"},
+		{"name": "a quarter off 8 Madra, a fifth off 3 s", "ability": _costed(8.0, 0.0, 3.0, 0.0), "cost_cut": 0.25, "cooldown_cut": 0.2,
+			"cost": "6 Madra", "costs": "6 Madra · 2.4 s"},
+		{"name": "7.5 Madra rounds up to 8; the cast time stays", "ability": _costed(10.0, 0.0, 15.0, 1.0), "cost_cut": 0.25, "cooldown_cut": 0.2,
+			"cost": "8 Madra", "costs": "8 Madra · 12 s · 1 s cast"},
+		{"name": "Stamina is never cut", "ability": _costed(0.0, 3.0, 2.0, 0.5), "cost_cut": 0.25, "cooldown_cut": 0.2,
+			"cost": "3 Stamina", "costs": "3 Stamina · 1.6 s · 0.5 s cast"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AbilityRow.format_cost(case["ability"], case["cost_cut"]), case["cost"], "%s: the cost" % case["name"])
+		assert_eq(AbilityRow.format_costs(case["ability"], case["cost_cut"], case["cooldown_cut"]), case["costs"], "%s: costs and timings" % case["name"])
+
+## A duration reads to a tenth at most, so a cooldown Control cuts (Leeching
+## Ring at Control 12 leaves 2.892 s) never prints two decimals.
+func test_seconds_read_to_a_tenth_at_most() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "whole seconds stay whole", "seconds": 10.0, "text": "10 s"},
+		{"name": "a cut cooldown rounds to the nearest tenth", "seconds": 2.892, "text": "2.9 s"},
+		{"name": "14.46 rounds up to the nearest tenth", "seconds": 14.46, "text": "14.5 s"},
+		{"name": "a tenth stays as it is", "seconds": 1.5, "text": "1.5 s"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AbilityRow.format_seconds(case["seconds"]), case["text"], case["name"])

@@ -101,3 +101,24 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 					LogManager.log_message("[b]%s[/b]'s buffs were [color=cyan]stripped[/color]!" % owner_combatant.combatant_data.character_name)
 			else:
 				Log.error("CombatEffectManager: Cannot strip buffs - missing buff_manager")
+
+#-----------------------------------------------------------------------------
+# DODGE
+#-----------------------------------------------------------------------------
+
+## The roll a dodge is checked against, a float from 0 to 1 (randf() can return
+## 1.0, and a roll of 1.0 never dodges). Tests swap in a fixed one (the
+## TribulationView.clock_usec pattern).
+var dodge_roll: Callable = func() -> float: return randf()
+
+## Whether the owner dodges a hit: only the player can, when dodge_roll comes in
+## under the dodge chance of its fight attributes. Draws no roll at a chance of
+## 0, and is false for a manager with no owner, or an owner with no attributes.
+func try_dodge() -> bool:
+	if owner_combatant == null or owner_combatant.combatant_data == null \
+			or owner_combatant.combatant_data.attributes == null:
+		return false
+	if not owner_combatant.is_player:
+		return false
+	var chance: float = owner_combatant.combatant_data.attributes.get_dodge_chance()
+	return chance > 0.0 and float(dodge_roll.call()) < chance

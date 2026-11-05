@@ -7,9 +7,10 @@ extends DockSlot
 ## - EMPTY: the socket and the key cap; no icon, no cost.
 ## - PREVIEW (on the map): the icon, the cost and a tan key. Not usable.
 ## - ACTIVE (in a fight, bound to the player's CombatAbilityInstance): a cream
-##   key and the cost in cream, tan while it cannot be paid (checked each frame
-##   while the technique neither recharges nor casts), the cooldown sweep, a
-##   steady brass frame while it casts and one brass flash when it is ready.
+##   key and the cost the cast gate charges (after Control's cut) in cream, tan
+##   while it cannot be paid (checked each frame while the technique neither
+##   recharges nor casts), the cooldown sweep, a steady brass frame while it
+##   casts and one brass flash when it is ready.
 ## The key cap, the cooldown sweep, hover, the press and the refusal shake are
 ## DockSlot's. Every fight starts each technique on a 1.5 s cooldown, which the
 ## sweep veils as fully as the technique's own, and techniques start it before
@@ -64,7 +65,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	super(delta)
 	if _state == SlotState.ACTIVE and _vitals_manager != null and not _is_cooling and not _is_casting:
-		var affordable: bool = _ability_data.can_afford(_vitals_manager)
+		var affordable: bool = _ability_data.can_afford(_vitals_manager, _instance.get_cost_cut())
 		if affordable != _cost_affordable:
 			_set_cost_affordable(affordable)
 
@@ -110,6 +111,11 @@ func bind(instance: CombatAbilityInstance, slot_index: int, vitals_manager: Vita
 func get_ability_instance() -> CombatAbilityInstance:
 	return _instance
 
+## Returns true while the cost reads cream (it can be paid, or the slot is not in
+## a fight), false while it reads tan.
+func is_cost_affordable() -> bool:
+	return _cost_affordable
+
 ## Returns the mini icon of the resource a technique's cost line shows: its
 ## first cost in the order AbilityRow.format_cost() lists them (Health, Madra,
 ## Stamina), so a technique with two costs shows the first under its slot (its
@@ -144,13 +150,21 @@ func _needs_process() -> bool:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## The amount of the cost the cost line shows (see cost_icon()).
-static func _shown_cost(data: AbilityData) -> float:
+## The amount of the cost the cost line shows (see cost_icon()), a Madra cost
+## after cost_cut (AbilityData.get_madra_cost()).
+static func _shown_cost(data: AbilityData, cost_cut: float = 0.0) -> float:
 	if data.health_cost > 0.0:
 		return data.health_cost
 	if data.madra_cost > 0.0:
-		return data.madra_cost
+		return data.get_madra_cost(cost_cut)
 	return maxf(data.stamina_cost, 0.0)
+
+## The Madra cost cut the cost line counts: in a fight the bound instance's, the
+## one the cast gate takes off; on the map the player's own, from CharacterManager.
+func _cost_cut() -> float:
+	if is_instance_valid(_instance):
+		return _instance.get_cost_cut()
+	return CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)
 
 ## Puts the state on the nodes.
 func _refresh() -> void:
@@ -161,7 +175,7 @@ func _refresh() -> void:
 	_icon.visible = has_technique
 	var mini_icon: Texture2D = cost_icon(_ability_data) if has_technique else null
 	_cost_icon.texture = mini_icon
-	_cost_label.text = AbilityRow.format_number(_shown_cost(_ability_data)) if mini_icon != null else ""
+	_cost_label.text = AbilityRow.format_number(_shown_cost(_ability_data, _cost_cut())) if mini_icon != null else ""
 	_cost_line.visible = mini_icon != null
 	_set_cost_affordable(true)
 	_cast_frame.visible = _state == SlotState.ACTIVE and _is_casting

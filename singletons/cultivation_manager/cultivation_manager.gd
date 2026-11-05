@@ -36,7 +36,7 @@ const PATH_POINTS_PER_STAGE: Dictionary = {
 }
 const PATH_POINT_LEVEL_INTERVAL: int = 10
 ## Written to the player's log when the core fills and a next stage waits.
-const CORE_FULL_LOG: String = "Your core is full. The Tribulation waits in Spirit Valley."
+const CORE_FULL_LOG: String = "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley."
 ## The short "Core full" text the cabinet, the cycle line and the zone floaters show while the core is full.
 const CORE_FULL_TEXT: String = "Core full"
 
@@ -209,6 +209,13 @@ func get_core_density_level() -> float:
 func get_core_density_cap() -> int:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.max_core_density_level if res else 0
+
+## The highest level the six stats can be trained to in the current stage. It is
+## read from the stage each time, so the breakthrough raises it. 0 when there is
+## no save or no stage resource.
+func get_stat_level_cap() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.stat_level_cap if res else 0
 
 ## True when Core Density has reached the current stage's cap.
 func is_core_full() -> bool:

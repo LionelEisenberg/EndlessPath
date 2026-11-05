@@ -4,7 +4,8 @@ extends PanelContainer
 ## MerchantStockRow
 ## One line of the merchant shop: icon (hover shows the item description),
 ## name, effects, price and a Buy button. It only displays data: MerchantView
-## decides the status and does the buying.
+## decides the status and does the buying. A gear row reprints its effects when
+## the stats change, since each bonus follows its stat's trained value.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -53,6 +54,7 @@ func _ready() -> void:
 	_buy_button.pressed.connect(_on_buy_button_pressed)
 	_buy_button.mouse_entered.connect(_on_buy_button_mouse_entered)
 	_buy_button.mouse_exited.connect(_on_buy_button_mouse_exited)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 	_apply_theme_colours()
 
 func _notification(what: int) -> void:
@@ -99,7 +101,9 @@ func get_entry() -> MerchantStockEntry:
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## "<Slot or type>: <effects>", e.g. "Main Hand: +5 Strength, +2 Agility".
+## "<Slot or type>: <effects>", e.g. "Main Hand: +30% Strength (+3), +10%
+## Agility (+2)". The effects are the item's _get_item_effects(), already
+## inked, so the row writes no ink of its own.
 func _format_detail(item: ItemDefinitionData) -> String:
 	var kind := item._get_item_type()
 	if item is EquipmentDefinitionData:
@@ -112,6 +116,11 @@ func _format_detail(item: ItemDefinitionData) -> String:
 
 func _apply_theme_colours() -> void:
 	_slot_glow.self_modulate = get_theme_color(&"slot_glow", THEME_TYPE)
+
+## Reprints a gear row's detail, so its bonuses match the trained values.
+func _on_stats_changed() -> void:
+	if _entry != null and _entry.item is EquipmentDefinitionData:
+		_detail_label.text = _format_detail(_entry.item)
 
 func _on_buy_button_pressed() -> void:
 	if _entry:

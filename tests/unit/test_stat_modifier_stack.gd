@@ -41,8 +41,9 @@ func test_every_attribute_has_a_stat_of_the_same_name() -> void:
 		assert_eq(Stat.keys()[stat], AttributeType.keys()[attribute])
 		assert_eq(StatModifierData.attribute_of(stat), attribute)
 
-func test_derived_vitals_are_not_attributes() -> void:
-	for stat: int in [Stat.MAX_HEALTH, Stat.MAX_STAMINA, Stat.MAX_MADRA]:
+func test_derived_stats_are_not_attributes() -> void:
+	for stat: int in [Stat.MAX_HEALTH, Stat.MAX_STAMINA, Stat.MAX_MADRA, Stat.ARMOR, Stat.WARD,
+			Stat.STAMINA_REGEN, Stat.DODGE_CHANCE, Stat.MADRA_COST_CUT, Stat.COOLDOWN_CUT]:
 		assert_eq(StatModifierData.attribute_of(stat), -1, "%s is not an attribute" % Stat.keys()[stat])
 
 #-----------------------------------------------------------------------------

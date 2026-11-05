@@ -10,21 +10,26 @@ extends Resource
 # ENUMS
 #-----------------------------------------------------------------------------
 
-## What a modifier can raise: the eight attributes (named as in
-## CharacterAttributesData.AttributeType, and mapped to it by name) and the
-## derived vitals, which a modifier raises after their formula.
+## What a modifier can raise: the six stats (named as in
+## CharacterAttributesData.AttributeType, and mapped to it by name), then the
+## derived stats, which a modifier raises after their formula. Runtime only:
+## no file stores these ints.
 enum Stat {
 	STRENGTH,
 	BODY,
 	AGILITY,
 	SPIRIT,
-	FOUNDATION,
+	MIND,
 	CONTROL,
-	RESILIENCE,
-	WILLPOWER,
 	MAX_HEALTH,
 	MAX_STAMINA,
 	MAX_MADRA,
+	ARMOR,           ## From gear.
+	WARD,            ## From gear.
+	STAMINA_REGEN,   ## Per second.
+	DODGE_CHANCE,    ## A fraction, 0..1.
+	MADRA_COST_CUT,  ## A fraction, 0..1.
+	COOLDOWN_CUT,    ## A fraction, 0..1.
 }
 
 enum Kind {
@@ -57,6 +62,6 @@ func _init(p_stat: Stat = Stat.STRENGTH, p_kind: Kind = Kind.FLAT, p_value: floa
 static func for_attribute(attribute: CharacterAttributesData.AttributeType) -> Stat:
 	return Stat[CharacterAttributesData.AttributeType.keys()[attribute]]
 
-## The attribute the given stat stands for, or -1 for a derived vital.
+## The attribute the given stat stands for, or -1 for a derived stat.
 static func attribute_of(p_stat: Stat) -> int:
 	return CharacterAttributesData.AttributeType.get(Stat.keys()[p_stat], -1)

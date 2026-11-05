@@ -10,7 +10,12 @@
 script = ExtResource("3_jqnof")
 strength = 15.0
 body = 8.5
-foundation = 12.0
+agility = 10.0
+spirit = 10.0
+mind = 12.0
+control = 10.0
+armor = 10.0
+ward = 10.0
 metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
 
 [resource]

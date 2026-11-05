@@ -9,8 +9,14 @@
 
 [sub_resource type="Resource" id="Resource_ygc7y"]
 script = ExtResource("2_jrad1")
+strength = 10.0
 body = 20.0
+agility = 10.0
 spirit = 25.0
+mind = 10.0
+control = 10.0
+armor = 10.0
+ward = 25.0
 metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
 
 [resource]

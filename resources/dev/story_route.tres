@@ -66,6 +66,16 @@ script = ExtResource("3_step")
 kind = 2
 amount = 100.0
 
+[sub_resource type="Resource" id="beat_9_ready_strength_cap"]
+script = ExtResource("3_step")
+kind = 13
+target_id = "strength"
+
+[sub_resource type="Resource" id="beat_9_ready_spirit_cap"]
+script = ExtResource("3_step")
+kind = 13
+target_id = "spirit"
+
 [sub_resource type="Resource" id="beat_9_advance"]
 script = ExtResource("3_step")
 kind = 11
@@ -102,7 +112,7 @@ reached_when = "merchant_discovered"
 script = ExtResource("2_beat")
 beat_id = "beat_9_ready"
 title = "Tribulation ready"
-steps = Array[ExtResource("3_step")]([SubResource("beat_9_ready_core_density_100")])
+steps = Array[ExtResource("3_step")]([SubResource("beat_9_ready_core_density_100"), SubResource("beat_9_ready_strength_cap"), SubResource("beat_9_ready_spirit_cap")])
 reached_when = "core_density_full"
 
 [sub_resource type="Resource" id="beat_9"]

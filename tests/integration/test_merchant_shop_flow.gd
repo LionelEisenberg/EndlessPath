@@ -154,6 +154,7 @@ const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
 const DEFAULT_THEME_PATH: String = "res://assets/themes/merchant/spirit_valley_merchant_theme.tres"
 ## Repeated to be longer than one line at any font size the header could use.
 const GREETING_FILLER: String = "A long merchant greeting that goes on. "
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
 
 func _make_view() -> MerchantView:
 	var view: MerchantView = MerchantViewScene.instantiate()
@@ -169,6 +170,14 @@ func _action_selling(entries: Array[MerchantStockEntry]) -> MerchantActionData:
 	var action: MerchantActionData = _merchant_action().duplicate()
 	action.stock = stock
 	return action
+
+## The Spirit Valley merchant, selling only `item`.
+func _selling(item: EquipmentDefinitionData) -> MerchantActionData:
+	var entry := MerchantStockEntry.new()
+	entry.entry_id = item.item_id
+	entry.item = item
+	var entries: Array[MerchantStockEntry] = [entry]
+	return _action_selling(entries)
 
 func _fill_equipment() -> void:
 	var inventory := InventoryManager.get_inventory()
@@ -325,6 +334,28 @@ func test_long_greeting_wraps() -> void:
 	await get_tree().process_frame
 	var greeting: Label = view.get_node("%GreetingLabel")
 	assert_gt(greeting.get_line_count(), 1, "a long greeting wraps")
+
+func test_gear_rows_reprint_their_detail_when_a_stat_levels() -> void:
+	var view := await _make_view()
+	view.setup(_selling(GearFixture.spirit_charm()))
+	var detail: RichTextLabel = _visible_rows(view)[0].get_node("%DetailLabel")
+	assert_string_contains(detail.text, "+50% Spirit\u00a0(+5)")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
+	assert_string_contains(detail.text, "+50% Spirit\u00a0(+7)")
+
+func test_a_long_gear_detail_wraps() -> void:
+	var charm: EquipmentDefinitionData = GearFixture.spirit_charm()
+	for key: StringName in [&"strength", &"body", &"agility", &"mind", &"control"]:
+		charm.stat_percent_bonuses[key] = 0.5
+	charm.armor = 6.0
+	charm.ward = 4.0
+	var view := await _make_view()
+	view.setup(_selling(charm))
+	view.visible = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var detail: RichTextLabel = _visible_rows(view)[0].get_node("%DetailLabel")
+	assert_gt(detail.get_line_count(), 1, "a long detail wraps instead of widening the row")
 
 #-----------------------------------------------------------------------------
 # GOLD PREVIEW WHILE BUY IS HOVERED

@@ -1,7 +1,31 @@
 extends GutTest
 
 ## Unit tests for EquipmentDefinitionData
-## Tests slot enum, attribute bonuses, BBCode effects, and initialization
+## Tests the slot enum and its ints, initialization, the gear rule (stat
+## bonuses as floored percents of the trained value, then armor and Ward, as
+## flat modifiers), and _get_item_effects()'s inked gear lines.
+##
+## _get_item_effects() reads the player's training, so every test runs on a
+## fresh SaveGameData that CharacterManager is re-bound to; the original save
+## is restored in after_each().
+
+const AttributeType = CharacterAttributesData.AttributeType
+const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
+
+#-----------------------------------------------------------------------------
+# FIXTURES
+#-----------------------------------------------------------------------------
+
+var _original_save: SaveGameData
+
+func before_each() -> void:
+	_original_save = PersistenceManager.save_game_data
+	PersistenceManager.save_game_data = SaveGameData.new_current()
+	PersistenceManager.save_data_reset.emit()
+
+func after_each() -> void:
+	PersistenceManager.save_game_data = _original_save
+	PersistenceManager.save_data_reset.emit()
 
 #-----------------------------------------------------------------------------
 # EQUIPMENT SLOT ENUM
@@ -35,87 +59,25 @@ func test_init_default_slot_is_main_hand() -> void:
 	var equip = EquipmentDefinitionData.new()
 	assert_eq(equip.slot_type, EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "default slot should be MAIN_HAND")
 
-func test_init_empty_bonuses() -> void:
-	var equip = EquipmentDefinitionData.new()
-	assert_eq(equip.attribute_bonuses.size(), 0, "default bonuses should be empty")
-
-#-----------------------------------------------------------------------------
-# ATTRIBUTE BONUSES DICTIONARY
-#-----------------------------------------------------------------------------
-
-## attribute_bonuses keeps each bonus as set: two bonuses together, a negative
-## one and a fractional one.
-func test_attribute_bonuses_stores_values() -> void:
-	var cases: Array[Dictionary] = [
-		{"name": "two bonuses", "bonuses": {
-			CharacterAttributesData.AttributeType.STRENGTH: 5.0,
-			CharacterAttributesData.AttributeType.AGILITY: 3.0,
-		}},
-		{"name": "a negative bonus", "bonuses": {CharacterAttributesData.AttributeType.AGILITY: -5.0}},
-		{"name": "a fractional bonus", "bonuses": {CharacterAttributesData.AttributeType.SPIRIT: 2.5}},
-	]
-	for case: Dictionary in cases:
-		var equip = EquipmentDefinitionData.new()
-		equip.attribute_bonuses = case.bonuses
-		for attr_type: int in case.bonuses:
-			assert_almost_eq(equip.attribute_bonuses[attr_type], case.bonuses[attr_type], 0.001, "%s: attribute %d" % [case.name, attr_type])
-
-func test_attribute_bonuses_supports_all_types() -> void:
-	var equip = EquipmentDefinitionData.new()
-	for attr_type in CharacterAttributesData.AttributeType.values():
-		equip.attribute_bonuses[attr_type] = float(attr_type) + 1.0
-	assert_eq(equip.attribute_bonuses.size(), 8, "should support all 8 attribute types")
-
 #-----------------------------------------------------------------------------
 # _get_item_effects() BBCode FORMATTING
 #-----------------------------------------------------------------------------
 
-## _get_item_effects() gives one line per non-zero bonus: none for no bonuses,
-## three for three, and a zero bonus left out.
-func test_get_item_effects_one_line_per_nonzero_bonus() -> void:
+## The item tooltip and the shop print these: one per gear_bonus_lines() line,
+## for the player's trained values as they stand at each call. Each holds its
+## plain line; the ink around it is a look, checked by eye.
+func test_item_effects_are_the_gear_lines_at_the_trained_values() -> void:
+	var cowl: EquipmentDefinitionData = GearFixture.item({&"spirit": 0.15}, 1, 0.0, 4.0)
 	var cases: Array[Dictionary] = [
-		{"name": "no bonuses", "bonuses": {}, "expected": 0},
-		{"name": "three bonuses", "bonuses": {
-			CharacterAttributesData.AttributeType.STRENGTH: 5.0,
-			CharacterAttributesData.AttributeType.BODY: 3.0,
-			CharacterAttributesData.AttributeType.AGILITY: -1.0,
-		}, "expected": 3},
-		# Zero values are excluded by the > 0 and < 0 checks
-		{"name": "a zero bonus", "bonuses": {
-			CharacterAttributesData.AttributeType.STRENGTH: 5.0,
-			CharacterAttributesData.AttributeType.BODY: 0.0,
-		}, "expected": 1},
+		{"name": "Spirit Lv 1 (10)", "level": 1, "lines": ["+15% Spirit\u00a0(+1)", "Ward 4"]},
+		{"name": "Spirit Lv 5 (14)", "level": 5, "lines": ["+15% Spirit\u00a0(+2)", "Ward 4"]},
 	]
 	for case: Dictionary in cases:
-		var equip = EquipmentDefinitionData.new()
-		equip.attribute_bonuses = case.bonuses
-		assert_eq(equip._get_item_effects().size(), case.expected, "%s: one line per non-zero bonus" % case.name)
-
-## A bonus's line names its attribute and shows its value: "+" before a
-## positive one, a negative one's own "-" and no "+", a fraction's decimal, and
-## a whole number without one.
-func test_get_item_effects_formats_each_bonus() -> void:
-	var cases: Array[Dictionary] = [
-		{"name": "positive", "attr": CharacterAttributesData.AttributeType.STRENGTH, "value": 5.0,
-			"shows": ["+5", "Strength"], "hides": []},
-		{"name": "negative", "attr": CharacterAttributesData.AttributeType.AGILITY, "value": -3.0,
-			"shows": ["-3", "Agility"], "hides": ["+"]},
-		{"name": "fractional", "attr": CharacterAttributesData.AttributeType.SPIRIT, "value": 2.5,
-			"shows": ["2.5"], "hides": []},
-		{"name": "whole number", "attr": CharacterAttributesData.AttributeType.FOUNDATION, "value": 10.0,
-			"shows": ["+10"], "hides": []},
-	]
-	for case: Dictionary in cases:
-		var equip = EquipmentDefinitionData.new()
-		equip.attribute_bonuses = {case.attr: case.value}
-		var effects = equip._get_item_effects()
-		assert_eq(effects.size(), 1, "%s: one line for one bonus" % case.name)
-		if effects.size() != 1:
-			continue
-		for text: String in case.shows:
-			assert_true(effects[0].contains(text), "%s bonus should show %s: %s" % [case.name, text, effects[0]])
-		for text: String in case.hides:
-			assert_false(effects[0].contains(text), "%s bonus should not show %s: %s" % [case.name, text, effects[0]])
+		CharacterManager.set_stat_level(AttributeType.SPIRIT, case.level)
+		var effects: Array[String] = cowl._get_item_effects()
+		assert_eq(effects.size(), case.lines.size(), "%s: one effect per line" % case.name)
+		for i: int in range(mini(effects.size(), case.lines.size())):
+			assert_true(effects[i].contains(case.lines[i]), "%s: %s" % [case.name, case.lines[i]])
 
 #-----------------------------------------------------------------------------
 # SLOT TYPE ASSIGNMENT
@@ -136,22 +98,41 @@ func test_extends_item_definition_data() -> void:
 	assert_true(equip is ItemDefinitionData, "should extend ItemDefinitionData")
 
 #-----------------------------------------------------------------------------
-# STAT MODIFIERS
+# STAT BONUSES AND MODIFIERS
 #-----------------------------------------------------------------------------
 
-func test_get_stat_modifiers_turns_bonuses_into_flat_modifiers() -> void:
-	var equip := EquipmentDefinitionData.new()
-	equip.attribute_bonuses = {
-		CharacterAttributesData.AttributeType.BODY: 4.0,
-		CharacterAttributesData.AttributeType.RESILIENCE: 2.0,
-	}
-	var values: Dictionary = {}
-	for modifier: StatModifierData in equip.get_stat_modifiers():
-		assert_eq(modifier.kind, StatModifierData.Kind.FLAT)
-		values[modifier.stat] = modifier.value
-	assert_eq(values.size(), 2)
-	assert_eq(values.get(StatModifierData.Stat.BODY), 4.0)
-	assert_eq(values.get(StatModifierData.Stat.RESILIENCE), 2.0)
+func test_stat_bonus_is_the_rounded_down_percent_with_the_item_floor() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "the floor at a low value", "percent": 0.1, "floor": 2, "trained": 10.0, "expected": 2.0},
+		{"name": "the percent above the floor", "percent": 0.25, "floor": 2, "trained": 20.0, "expected": 5.0},
+		{"name": "rounded down", "percent": 0.25, "floor": 1, "trained": 18.0, "expected": 4.0},
+		{"name": "a floor of 1 under a small percent", "percent": 0.05, "floor": 1, "trained": 10.0, "expected": 1.0},
+		# Each product below is a hair under its whole number as a double.
+		{"name": "116% of 25 is 29", "percent": 1.16, "floor": 1, "trained": 25.0, "expected": 29.0},
+		{"name": "58% of 50 is 29", "percent": 0.58, "floor": 1, "trained": 50.0, "expected": 29.0},
+		{"name": "70% of 90 is 63", "percent": 0.7, "floor": 1, "trained": 90.0, "expected": 63.0},
+	]
+	for case: Dictionary in cases:
+		var item := GearFixture.item({&"strength": case.percent}, case.floor)
+		assert_eq(item.get_stat_bonus(AttributeType.STRENGTH, case.trained), case.expected, case.name)
 
-func test_get_stat_modifiers_without_bonuses_is_empty() -> void:
-	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers().size(), 0)
+func test_stat_bonus_without_a_percent_is_zero() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "another stat's percent", "percents": {&"agility": 0.5}},
+		{"name": "a 0% entry", "percents": {&"strength": 0.0}},
+	]
+	for case: Dictionary in cases:
+		assert_eq(GearFixture.item(case.percents, 3).get_stat_bonus(AttributeType.STRENGTH, 10.0), 0.0, case.name)
+
+func test_stat_modifiers_are_flat_bonuses_with_armor_and_ward() -> void:
+	var item := GearFixture.item({&"strength": 0.5, &"mind": 0.25}, 1, 6.0, 4.0)
+	var trained: Dictionary = {AttributeType.STRENGTH: 10.0, AttributeType.MIND: 20.0}
+	var values: Dictionary = {}
+	for modifier: StatModifierData in item.get_stat_modifiers(trained):
+		assert_eq(modifier.kind, StatModifierData.Kind.FLAT, "%s is flat" % StatModifierData.Stat.keys()[modifier.stat])
+		values[modifier.stat] = modifier.value
+	assert_eq(values, {StatModifierData.Stat.STRENGTH: 5.0, StatModifierData.Stat.MIND: 5.0,
+		StatModifierData.Stat.ARMOR: 6.0, StatModifierData.Stat.WARD: 4.0})
+
+func test_a_bare_item_gives_no_modifiers() -> void:
+	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers({}).size(), 0)

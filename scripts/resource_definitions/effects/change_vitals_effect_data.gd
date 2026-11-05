@@ -14,19 +14,19 @@ func _init() -> void:
 ## Defaults to 0.0 so existing flat-value resources behave identically.
 @export var body_hp_multiplier: float = 0.0
 
-## Multiplies the character's FOUNDATION attribute and adds the result to madra_change.
+## Multiplies the character's MIND and adds the result to madra_change.
 ## Defaults to 0.0 so existing flat-value resources behave identically.
-@export var foundation_madra_multiplier: float = 0.0
+@export var mind_madra_multiplier: float = 0.0
 
 ## Returns health_change plus BODY * body_hp_multiplier.
 func get_final_health_change() -> float:
 	var body: float = CharacterManager.get_total_attributes_data().get_attribute(AttributeType.BODY)
 	return health_change + body_hp_multiplier * body
 
-## Returns madra_change plus FOUNDATION * foundation_madra_multiplier.
+## Returns madra_change plus MIND * mind_madra_multiplier.
 func get_final_madra_change() -> float:
-	var foundation: float = CharacterManager.get_total_attributes_data().get_attribute(AttributeType.FOUNDATION)
-	return madra_change + foundation_madra_multiplier * foundation
+	var mind: float = CharacterManager.get_total_attributes_data().get_attribute(AttributeType.MIND)
+	return madra_change + mind_madra_multiplier * mind
 
 ## Returns stamina_change (not scaled by any attribute).
 func get_final_stamina_change() -> float:
@@ -43,8 +43,8 @@ func process() -> void:
 		Log.error("ChangeVitalsEffectData: No vitals manager found")
 
 func _to_string() -> String:
-	return "ChangeVitalsEffectData: {\n HealthChanged: %s, \n StaminaChanged: %s, \n MadraChanged: %s, \n BodyHPMul: %s, \n FoundationMadraMul: %s }" % [
-		health_change, stamina_change, madra_change, body_hp_multiplier, foundation_madra_multiplier
+	return "ChangeVitalsEffectData: {\n HealthChanged: %s, \n StaminaChanged: %s, \n MadraChanged: %s, \n BodyHPMul: %s, \n MindMadraMul: %s }" % [
+		health_change, stamina_change, madra_change, body_hp_multiplier, mind_madra_multiplier
 	]
 
 ## Human-readable summary of the non-zero changes only, for item tooltips.
@@ -59,8 +59,8 @@ func describe() -> String:
 		parts.append("%s Madra" % _format_signed(madra_change))
 	if body_hp_multiplier != 0.0:
 		parts.append("%s%% Body as Health" % _format_signed(body_hp_multiplier * 100.0))
-	if foundation_madra_multiplier != 0.0:
-		parts.append("%s%% Foundation as Madra" % _format_signed(foundation_madra_multiplier * 100.0))
+	if mind_madra_multiplier != 0.0:
+		parts.append("%s%% Mind as Madra" % _format_signed(mind_madra_multiplier * 100.0))
 	if parts.is_empty():
 		return "No effect"
 	return ", ".join(parts)

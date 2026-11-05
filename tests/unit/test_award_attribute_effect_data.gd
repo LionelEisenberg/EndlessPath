@@ -1,31 +1,52 @@
 extends GutTest
 
-var _save_data: SaveGameData
-var _original_live_save: SaveGameData
+## process() raises a stat by whole levels, up to the stage's cap.
+##
+## Each test binds a new save through PersistenceManager, so CharacterManager
+## and CultivationManager (whose save gives the stage the cap is read from)
+## share it, on a test Foundation stage whose stat cap is 5. The original save
+## and stages are restored in after_each().
+
+const AttributeType = CharacterAttributesData.AttributeType
+
+var _original_save: SaveGameData
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
-	_original_live_save = CharacterManager.live_save_data
-	_save_data = SaveGameData.new()
-	_save_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
-	CharacterManager.live_save_data = _save_data
+	_original_save = PersistenceManager.save_game_data
+	_original_stages = CultivationManager.advancement_stage_resources
+	var stage := AdvancementStageResource.new()
+	stage.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	stage.stat_level_cap = 5
+	var stages: Array[AdvancementStageResource] = [stage]
+	CultivationManager.advancement_stage_resources = stages
+	PersistenceManager.save_game_data = SaveGameData.new_current()
+	PersistenceManager.save_data_reset.emit()
 
 func after_each() -> void:
-	CharacterManager.live_save_data = _original_live_save
+	CultivationManager.advancement_stage_resources = _original_stages
+	PersistenceManager.save_game_data = _original_save
+	PersistenceManager.save_data_reset.emit()
 
-## process() adds the amount to the attribute's base 10: a whole +1.0 to
-## Spirit and a fractional +2.5 to Body.
-func test_process_adds_amount_to_the_attribute() -> void:
-	var cases: Array[Array] = [
-		[CharacterAttributesData.AttributeType.SPIRIT, 1.0, 11.0],
-		[CharacterAttributesData.AttributeType.BODY, 2.5, 12.5],
+## Each award adds its amount as whole levels to its stat's Lv 1.
+func test_process_raises_the_stat_by_whole_levels() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "the Aura Well's +1 Spirit", "stat": AttributeType.SPIRIT, "amount": 1.0, "level": 2},
+		{"name": "+2 Body", "stat": AttributeType.BODY, "amount": 2.0, "level": 3},
 	]
-	for case: Array in cases:
+	for case: Dictionary in cases:
 		var effect := AwardAttributeEffectData.new()
-		effect.attribute_type = case[0]
-		effect.amount = case[1]
+		effect.attribute_type = case.stat
+		effect.amount = case.amount
 		effect.process()
-		assert_eq(_save_data.character_attributes.get_attribute(case[0]), case[2],
-			"%s should go from 10.0 to %.1f after a +%.1f award" % [CharacterAttributesData.AttributeType.keys()[case[0]], case[2], case[1]])
+		assert_eq(CharacterManager.get_stat_level(case.stat), case.level, case.name)
+
+func test_a_level_past_the_cap_is_lost() -> void:
+	CharacterManager.set_stat_level(AttributeType.SPIRIT, 5)
+	var effect := AwardAttributeEffectData.new()
+	effect.attribute_type = AttributeType.SPIRIT
+	effect.process()
+	assert_eq(CharacterManager.get_stat_level(AttributeType.SPIRIT), 5, "the award past the cap of 5 is lost")
 
 func test_process_sets_effect_type() -> void:
 	var effect := AwardAttributeEffectData.new()

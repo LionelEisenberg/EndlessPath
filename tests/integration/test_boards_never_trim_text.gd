@@ -20,7 +20,8 @@ extends GutTest
 
 ## The adventure's chest (its title, its expedition page with its Here tray, hint
 ## row and choice drawers), the technique dock's cast tray and tooltip, the Goals
-## board and the zone chest's Now strip.
+## board, the zone chest's Now strip, the Character book with its stat tile, and
+## the cultivator cabinet with its stat cells.
 const BOARD_SCENES: Array[String] = [
 	"res://scenes/adventure/adventure_chest/adventure_chest.tscn",
 	"res://scenes/adventure/adventure_chest/expedition_page/expedition_page.tscn",
@@ -30,6 +31,10 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn",
 	"res://scenes/ui/goals_panel/goals_panel.tscn",
 	"res://scenes/zones/zone_panel/now_strip/now_strip.tscn",
+	"res://scenes/character/character_view.tscn",
+	"res://scenes/character/attribute_tile/attribute_tile.tscn",
+	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
+	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
 ]
 
 ## Where the whole-scene walk reads.
@@ -140,16 +145,19 @@ func test_no_board_scene_file_sets_an_ellipsis() -> void:
 
 ## A Label that holds a name, a line or a hint wraps by word where it could run past
 ## its board: the wrapping ones are the labels of the two rows that carry long
-## texts, and each is told how wide it may be.
+## texts, and each is told how wide it may be. Each shows every line it wraps to:
+## none caps its lines with max_lines_visible.
 func test_the_labels_that_can_run_long_wrap() -> void:
 	var wrapping: Dictionary[String, Array] = {
 		"res://scenes/adventure/adventure_chest/adventure_chest.tscn": ["TitleLabel"],
 		"res://scenes/adventure/adventure_chest/expedition_page/expedition_page.tscn": ["NameLabel", "LineLabel", "LoreLabel", "WalkHint", "LockLine"],
 		"res://scenes/adventure/adventure_chest/choice_drawer/choice_drawer.tscn": ["Title", "Detail"],
+		"res://scenes/inventory/inventory_view/equipment_tab/equipment_details/bonus_row.tscn": ["LeftBonus", "RightBonus"],
 		"res://scenes/ui/combat/technique_dock/cast_tray/cast_tray.tscn": ["NameLabel"],
 		"res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn": ["NameLabel", "EffectsLabel", "DescriptionLabel"],
 		"res://scenes/ui/goals_panel/goals_panel.tscn": ["QuestNameLabel", "QuestStepLabel", "MilestoneNameLabel", "MilestoneTextLabel"],
 		"res://scenes/zones/zone_panel/now_strip/now_strip.tscn": ["TrainingName", "LevelLabel", "ForageName", "EmptyLabel"],
+		"res://scenes/character/character_view.tscn": ["DetailDescription"],
 	}
 	for path: String in wrapping:
 		var board: Node = (load(path) as PackedScene).instantiate()
@@ -159,6 +167,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 			assert_not_null(label, "%s has %s" % [path.get_file(), label_name])
 			if label != null:
 				assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s in %s wraps by word" % [label_name, path.get_file()])
+				assert_eq(label.max_lines_visible, -1, "%s in %s shows every line" % [label_name, path.get_file()])
 
 ## The rule holds under res://scenes, not just on the boards above: no scene saves a
 ## trimming overrun behaviour or clip_text, and no script sets one, except the

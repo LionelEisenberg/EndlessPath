@@ -4,7 +4,7 @@ extends Node2D
 ## CombatantVisual
 ## On-stage body of a combatant. The node origin is the combatant's feet.
 ## Normalizes any sprite to a common on-screen height and plays the
-## enter / attack / hit / buff reactions plus floating damage numbers.
+## enter / attack / hit / dodge / buff reactions plus floating damage numbers.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -16,6 +16,9 @@ const COLOR_DAMAGE: Color = Color("#f2ece0")
 const COLOR_DAMAGE_TAKEN_PLAYER: Color = Color("#e86a5c")
 const COLOR_HEAL: Color = Color("#7fd18b")
 const COLOR_BUFF_FLASH: Color = Color("#d4a84a")
+## A dodge is Agility's, so its floater is Agility's Stamina green.
+const COLOR_DODGE: Color = ThemeConstants.LACQUER_STAMINA
+const DODGED_TEXT: String = "Dodged"
 const SHADOW_TEXTURE_SIZE: float = 128.0
 
 #-----------------------------------------------------------------------------
@@ -115,6 +118,11 @@ func play_hit(amount: float) -> void:
 func play_heal(amount: float) -> void:
 	_flash(COLOR_HEAL, 0.45, 0.3)
 	_spawn_number("+%d" % roundi(amount), COLOR_HEAL)
+
+## Floats "Dodged" as the numbers float, with no flash and no recoil: the hit
+## never landed.
+func play_dodge() -> void:
+	_spawn_number(DODGED_TEXT, COLOR_DODGE)
 
 ## Gold pulse used when the combatant empowers itself.
 func play_buff() -> void:

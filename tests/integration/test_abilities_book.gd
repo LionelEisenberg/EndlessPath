@@ -6,9 +6,11 @@ extends GutTest
 ## swapped in and restored around each test.
 
 const AbilitiesViewScene := preload("res://scenes/abilities/abilities_view.tscn")
+const StatSources := preload("res://tests/helpers/stat_sources.gd")
 const EXTRA_ID: String = "test_extra_ability"
-const STRENGTH_ICON: Texture2D = preload("res://assets/sprites/ui/attribute_icons/strength_icon.png")
-const AGILITY_ICON: Texture2D = preload("res://assets/sprites/ui/attribute_icons/agility_icon.png")
+## The modifier source a test raises the player's Control under, removed after
+## each test.
+const TEST_SOURCE: StringName = &"test_control"
 
 ## A damage effect that counts its previews, so tests can tell when the book
 ## recomputes one.
@@ -36,6 +38,7 @@ func before_each() -> void:
 	_view.refresh()
 
 func after_each() -> void:
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	AbilityManager._live_save_data = _previous_save
 	AbilityManager._abilities_by_id.erase(EXTRA_ID)
 
@@ -145,20 +148,30 @@ func test_opening_selects_the_first_row() -> void:
 	_view.animate_open()
 	assert_eq(_view.get_selected_ability_id(), _view.get_rows()[0].get_ability_data().ability_id)
 
+## Each damage ability shows its total and its base, then what its one scaling
+## stat adds, under that stat's icon.
 func test_damage_shows_the_total_and_each_attributes_part() -> void:
-	_view.select_ability("basic_strike")
-	var effect: CombatEffectData = (load("res://resources/abilities/basic_strike.tres") as AbilityData).effects_on_target[0]
+	var cases: Array[Dictionary] = [
+		{"name": "Basic Strike", "id": "basic_strike", "path": "res://resources/abilities/basic_strike.tres",
+			"stat": CharacterAttributesData.AttributeType.STRENGTH},
+		{"name": "Empty Palm", "id": "empty_palm", "path": "res://resources/abilities/empty_palm.tres",
+			"stat": CharacterAttributesData.AttributeType.SPIRIT},
+	]
 	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	assert_eq(_label("PrimaryValue").text, AbilityRow.format_number(effect.calculate_value(attrs)))
-	assert_eq(_label("ExplainText").text, "%s base" % AbilityRow.format_number(effect.base_value))
-	var strength_part: ScalingPart = _view.find_child("ScalingPart1", true, false) as ScalingPart
-	var agility_part: ScalingPart = _view.find_child("ScalingPart2", true, false) as ScalingPart
-	assert_true(strength_part.visible and agility_part.visible)
-	assert_false((_view.find_child("ScalingPart3", true, false) as Control).visible, "basic strike scales with two attributes")
-	assert_eq(strength_part.get_icon(), STRENGTH_ICON)
-	assert_eq(strength_part.get_value_text(),
-		"+%s" % AbilityRow.format_number(effect.get_scaling_contribution(CharacterAttributesData.AttributeType.STRENGTH, attrs)))
-	assert_eq(agility_part.get_icon(), AGILITY_ICON)
+	for case: Dictionary in cases:
+		_view.select_ability(case.id)
+		var effect: CombatEffectData = (load(case.path) as AbilityData).effects_on_target[0]
+		assert_eq(_label("PrimaryValue").text, AbilityRow.format_number(effect.calculate_value(attrs)),
+			"%s's damage" % case.name)
+		assert_eq(_label("ExplainText").text, "%s base" % AbilityRow.format_number(effect.base_value),
+			"%s's base" % case.name)
+		var part: ScalingPart = _view.find_child("ScalingPart1", true, false) as ScalingPart
+		assert_true(part.visible, "%s shows its stat's part" % case.name)
+		assert_eq(part.get_icon(), StatDisplay.icon_of(case.stat), "%s's part shows its stat's icon" % case.name)
+		assert_eq(part.get_value_text(), "+%s" % AbilityRow.format_number(effect.get_scaling_contribution(case.stat, attrs)),
+			"%s's part shows what its stat adds" % case.name)
+		assert_false((_view.find_child("ScalingPart2", true, false) as Control).visible,
+			"%s scales with one stat alone" % case.name)
 
 func test_buffs_say_what_they_do() -> void:
 	# Enforce: the next attack deals 1.5x damage.
@@ -171,6 +184,21 @@ func test_details_show_timing_and_cost() -> void:
 	assert_eq(_label("CooldownValue").text, "15 s")
 	assert_eq(_label("CastValue").text, "1 s")
 	assert_eq(_label("CostValue").text, "10 Madra")
+
+## With Control raised, the details and the row show the cut cost and cooldown.
+func test_details_and_rows_show_the_control_cut_values() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, StatSources.flat(StatModifierData.Stat.CONTROL, 20.0))
+	var cost_cut: float = CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)
+	var cooldown_cut: float = CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)
+	assert_gt(cooldown_cut, 0.0, "precondition: 20 more Control shortens cooldowns")
+	var enforce: AbilityData = load("res://resources/abilities/enforce.tres")
+	_view.refresh()
+	_view.select_ability("enforce")
+	assert_eq(_label("CooldownValue").text, AbilityRow.format_seconds(enforce.get_cooldown(cooldown_cut)), "the cut cooldown")
+	assert_eq(_label("CostValue").text, AbilityRow.format_cost(enforce, cost_cut), "the cut Madra cost")
+	assert_eq(_label("CastValue").text, "1 s", "Control leaves the cast time alone")
+	var row_cost: Label = _row_for("enforce").find_child("CostLabel", true, false) as Label
+	assert_eq(row_cost.text, AbilityRow.format_costs(enforce, cost_cut, cooldown_cut), "the row's line too")
 
 func test_hovering_back_and_forth_previews_damage_once() -> void:
 	var effect: CountingEffect = _add_counting_ability()
@@ -186,3 +214,12 @@ func test_reopening_previews_damage_again() -> void:
 	_view.animate_open()
 	_view.select_ability(EXTRA_ID)
 	assert_eq(effect.calls, 2)
+
+## A level can be gained while the book is open.
+func test_a_stat_change_previews_damage_again() -> void:
+	var effect: CountingEffect = _add_counting_ability()
+	_view.select_ability(EXTRA_ID)
+	CharacterManager.stats_changed.emit()
+	_hover("enforce")
+	_hover(EXTRA_ID)
+	assert_eq(effect.calls, 2, "the preview is worked out again after a stat change")

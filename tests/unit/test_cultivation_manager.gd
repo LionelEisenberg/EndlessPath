@@ -7,9 +7,11 @@ extends GutTest
 ## (levels and XP stop at the stage's cap, core_filled, the full-core log line,
 ## losing levels), the breakthrough (advance_to_next_stage(): the stage, level
 ## and XP it sets, its signals and log line, the new stage's own Madra cap and
-## milestones), what loading a save does (a level past the cap is clamped to
-## it, a save with no milestone ledger is seeded from its level), the stage-name
-## lookups, and the AdvancementStageResource XP curve it reads.
+## milestones), the stats' level cap read live from the current stage (and the
+## caps the shipped stage files hold), what
+## loading a save does (a level past the cap is clamped to it, a save with no
+## milestone ledger is seeded from its level), the stage-name lookups, and the
+## AdvancementStageResource XP curve it reads.
 ##
 ## Each test runs on a fresh SaveGameData that every manager is re-bound to,
 ## with CultivationManager's stage list swapped for deterministic test stages.
@@ -17,6 +19,8 @@ extends GutTest
 
 const Stage := CultivationManager.AdvancementStage
 const TMP_SAVE_PATH: String = "user://test_cultivation_manager_save.tres"
+const FOUNDATION_STAGE_PATH: String = "res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres"
+const COPPER_STAGE_PATH: String = "res://resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres"
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -428,6 +432,39 @@ func test_the_new_stage_pays_its_own_milestones() -> void:
 	CultivationManager.add_core_density_xp(10.0)
 	assert_eq(CultivationManager.get_core_density_level(), 10.0)
 	assert_eq(PathManager.get_point_balance(), 2, "level 10 at Copper is worth 2 points")
+
+#-----------------------------------------------------------------------------
+# STAT LEVEL CAP
+#-----------------------------------------------------------------------------
+
+## The cap is read from the current stage each time, so the breakthrough raises it.
+func test_stat_level_cap_follows_the_current_stage() -> void:
+	_stage_resource.stat_level_cap = 4
+	var copper := _with_copper()
+	copper.stat_level_cap = 9
+	assert_eq(CultivationManager.get_stat_level_cap(), 4, "the stage's own cap")
+	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough lands")
+	assert_eq(CultivationManager.get_stat_level_cap(), 9, "Copper's cap once reached")
+
+func test_no_stage_resource_means_no_stat_cap() -> void:
+	var no_stages: Array[AdvancementStageResource] = []
+	_use_stages(no_stages)
+	assert_eq(CultivationManager.get_stat_level_cap(), 0, "no stage resource, no cap")
+
+## The shipped caps, the spec's Foundation 10 and Copper 20. Foundation's equals
+## the class default, so an editor re-save that drops the line, then a change of
+## the default, would retune the game with nothing else noticing.
+func test_the_shipped_stages_cap_stats_at_10_and_20() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Foundation", "path": FOUNDATION_STAGE_PATH, "cap": 10},
+		{"name": "Copper", "path": COPPER_STAGE_PATH, "cap": 20},
+	]
+	for case: Dictionary in cases:
+		var stage := load(case.path) as AdvancementStageResource
+		assert_not_null(stage, "%s's stage file loads" % case.name)
+		if stage == null:
+			continue
+		assert_eq(stage.stat_level_cap, case.cap, "%s caps the stats at Lv %d" % [case.name, case.cap])
 
 #-----------------------------------------------------------------------------
 # SAVE DATA

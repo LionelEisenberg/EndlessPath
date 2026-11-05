@@ -41,9 +41,12 @@ const MAX_LINES: int = 5
 ## Board height: 74 px of title and margins plus 26 px per line (kit §0).
 const BOARD_BASE_HEIGHT: float = 74.0
 const LINE_HEIGHT: float = 26.0
-## The full log's board: from the bottom line up to just under the Goals board
-## in the zone view (1056 − 560 = 496).
-const FULL_LOG_HEIGHT: float = 560.0
+## The full log's board: from the bottom line up to the lowered Goals board's
+## top in the zone view (1056 − 532 = 524), where the grown cabinet's board
+## ends, so it never covers the cabinet. It opens over the Goals board, which it
+## covers until it closes (LogWindow is GoalsPanel's later sibling in
+## main_game.tscn).
+const FULL_LOG_HEIGHT: float = 532.0
 ## Kit §5.3: a line's bullet at x 44 and its text at x 62. In the full log
 ## every line of an entry, wrapped ones too, starts this far into the text.
 const FULL_LOG_TEXT_INDENT: float = 18.0

@@ -16,7 +16,7 @@ const PLACES: Dictionary = {
 	"MainView/ZoneView/ZonePanel": Vector2(1456, 24),
 	"MainView/ZoneView/Dock": Vector2(722, 976),
 	"MainView/LogWindow": Vector2(24, 852),
-	"MainView/GoalsPanel": Vector2(24, 276),
+	"MainView/GoalsPanel": Vector2(24, 524),
 }
 
 #-----------------------------------------------------------------------------

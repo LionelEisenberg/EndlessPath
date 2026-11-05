@@ -25,24 +25,12 @@ const _KIND_ICONS: Dictionary = {
 	AbilityKind.DEBUFF: preload("res://assets/sprites/ui/book/type_debuff_ai.png"),
 }
 
-## The Character book's attribute icons, for the damage breakdown.
-const _ATTRIBUTE_ICONS: Dictionary = {
-	CharacterAttributesData.AttributeType.STRENGTH: preload("res://assets/sprites/ui/attribute_icons/strength_icon.png"),
-	CharacterAttributesData.AttributeType.BODY: preload("res://assets/sprites/ui/attribute_icons/body_icon.png"),
-	CharacterAttributesData.AttributeType.AGILITY: preload("res://assets/sprites/ui/attribute_icons/agility_icon.png"),
-	CharacterAttributesData.AttributeType.SPIRIT: preload("res://assets/sprites/ui/attribute_icons/spirit_icon.png"),
-	CharacterAttributesData.AttributeType.FOUNDATION: preload("res://assets/sprites/ui/attribute_icons/foundation_icon.png"),
-	CharacterAttributesData.AttributeType.CONTROL: preload("res://assets/sprites/ui/attribute_icons/control_icon_ai.png"),
-	CharacterAttributesData.AttributeType.RESILIENCE: preload("res://assets/sprites/ui/attribute_icons/resilience_icon.png"),
-	CharacterAttributesData.AttributeType.WILLPOWER: preload("res://assets/sprites/ui/attribute_icons/willpower_icon.png"),
-}
-
 var _filter_mode: FilterMode = FilterMode.ALL
 var _rows: Array[AbilityRow] = []
 ## The ability the right page describes.
 var _selected_id: String = ""
 ## Damage and heal previews by ability id, so pointing back and forth doesn't
-## redo them. Cleared on each opening and whenever a base attribute changes.
+## redo them. Cleared on each opening and whenever a stat changes.
 var _value_previews: Dictionary[String, float] = {}
 
 @onready var _filter_selector: SortSubBanner = %FilterSelector
@@ -71,7 +59,7 @@ func _ready() -> void:
 	for i: int in range(_equip_slots.size()):
 		_equip_slots[i].setup(i)
 		_equip_slots[i].ability_dropped.connect(_on_ability_dropped)
-	CharacterManager.base_attribute_changed.connect(_on_base_attribute_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -211,9 +199,11 @@ func _show_details(ability: AbilityData) -> void:
 	_detail_tags.text = " · ".join(_describe_tags(ability, kind))
 	_type_icon.texture = _KIND_ICONS.get(kind)
 	_show_primary_stat(ability, kind)
-	_cooldown_value.text = AbilityRow.format_seconds(ability.base_cooldown)
+	# The cooldown and the Madra cost after the player's Control cuts; the cast
+	# time is never cut
+	_cooldown_value.text = AbilityRow.format_seconds(ability.get_cooldown(CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)))
 	_cast_value.text = AbilityRow.format_seconds(ability.cast_time) if ability.cast_time > 0.0 else "Instant"
-	var cost: String = AbilityRow.format_cost(ability)
+	var cost: String = AbilityRow.format_cost(ability, CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT))
 	_cost_value.text = cost if not cost.is_empty() else "Free"
 	_detail_description.text = ability.description
 
@@ -252,7 +242,7 @@ func _show_primary_stat(ability: AbilityData, kind: AbilityKind) -> void:
 			_primary_value.text = "—"
 
 ## The value with the player's attributes now, then its base and what each
-## attribute adds, for example "10 base" then Strength "+17" and Agility "+7".
+## attribute adds, for example "10 base" then Strength "+15".
 func _show_value_breakdown(ability_id: String, effect: CombatEffectData) -> void:
 	_primary_value.text = AbilityRow.format_number(_get_value_preview(ability_id, effect))
 	if effect.base_value != 0.0:
@@ -264,7 +254,7 @@ func _show_value_breakdown(ability_id: String, effect: CombatEffectData) -> void
 		if effect.get_scaling(attribute_type) == 0.0 or part_index >= _scaling_parts.size():
 			continue
 		var part: ScalingPart = _scaling_parts[part_index]
-		part.setup(_ATTRIBUTE_ICONS[attribute_type], effect.get_scaling_contribution(attribute_type, attrs))
+		part.setup(StatDisplay.icon_of(attribute_type), effect.get_scaling_contribution(attribute_type, attrs))
 		part.visible = true
 		part_index += 1
 
@@ -368,8 +358,8 @@ func _on_ability_dropped(ability_id: String, slot_index: int, from_slot: int) ->
 		AbilityManager.equip_ability_at_slot(ability_id, slot_index)
 	refresh()
 
-## A training tick can raise an attribute while the book is open.
-func _on_base_attribute_changed(_attribute_type: CharacterAttributesData.AttributeType, _new_value: float) -> void:
+## A stat can change while the book is open.
+func _on_stats_changed() -> void:
 	_value_previews.clear()
 	if _detail_card.is_visible_in_tree():
 		_show_details(_find_ability(_selected_id))

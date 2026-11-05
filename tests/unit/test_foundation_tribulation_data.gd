@@ -3,11 +3,12 @@ extends GutTest
 ## Pins the Tribulation's real data wiring: the shipped .tres files, not test
 ## stand-ins. Foundation's core fills at 100 and leads to Copper, a full
 ## Foundation core holds as much Madra as an empty Copper one (the breakthrough
-## never costs Madra), Copper is registered in CultivationManager's stages and
-## in the stage list, the Foundation Tribulation leads to Copper, its early reach
-## and the two lines it fills in, and Spirit Valley lists The Tribulation as an
-## action: the action's type and wiring, the "core_density_full" condition that
-## reveals it, and that condition's place in the unlock list.
+## never costs Madra), the breakthrough raising the stats' cap, Copper is
+## registered in CultivationManager's stages and in the stage list, the
+## Foundation Tribulation leads to Copper, its early reach and the two lines it
+## fills in, and Spirit Valley lists The Tribulation as an action: the action's
+## type and wiring, the "core_density_full" condition that reveals it, and that
+## condition's place in the unlock list.
 ##
 ## A change to one of these numbers is a design change: edit it here too.
 
@@ -78,6 +79,14 @@ func test_the_madra_cap_does_not_drop_at_the_breakthrough() -> void:
 		return
 	assert_eq(foundation.get_max_madra(foundation.max_core_density_level), 600.0, "a full Foundation core holds 600 Madra")
 	assert_eq(copper.get_max_madra(0), 600.0, "and an empty Copper core starts at the same 600")
+
+func test_the_breakthrough_raises_the_stat_cap() -> void:
+	var foundation: AdvancementStageResource = _load_stage(FOUNDATION_PATH)
+	var copper: AdvancementStageResource = _load_stage(COPPER_PATH)
+	if foundation == null or copper == null:
+		return
+	assert_gt(foundation.stat_level_cap, 1, "Foundation lets the stats grow past Lv 1")
+	assert_gt(copper.stat_level_cap, foundation.stat_level_cap, "Copper's cap is above Foundation's")
 
 #-----------------------------------------------------------------------------
 # REGISTRATION

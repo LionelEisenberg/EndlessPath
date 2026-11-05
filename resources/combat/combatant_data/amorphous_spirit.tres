@@ -8,6 +8,14 @@
 
 [sub_resource type="Resource" id="Resource_wrvmu"]
 script = ExtResource("3_vg6m5")
+strength = 10.0
+body = 10.0
+agility = 10.0
+spirit = 10.0
+mind = 10.0
+control = 10.0
+armor = 10.0
+ward = 10.0
 metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
 
 [resource]

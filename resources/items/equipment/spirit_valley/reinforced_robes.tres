@@ -6,10 +6,10 @@
 [resource]
 script = ExtResource("2_xlglq")
 slot_type = 3
-attribute_bonuses = {
-1: 4.0,
-6: 2.0
-}
+stat_percent_bonuses = Dictionary[StringName, float]({
+&"body": 0.4
+})
+armor = 6.0
 item_id = "reinforced_robes"
 item_name = "Reinforced Robes"
 description = "Padded robes lined with light scripted plates."

@@ -17,6 +17,7 @@ extends GutTest
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
+const StatSources := preload("res://tests/helpers/stat_sources.gd")
 const DOCK_SCENE_PATH: String = "res://scenes/ui/combat/technique_dock/technique_dock.tscn"
 const COMBATANT_SCENE_PATH: String = "res://scenes/combat/combatant/combatant_node.tscn"
 const PLAYER_TEXTURE_PATH: String = "res://assets/sprites/combat/test_character_sprite.png"
@@ -30,6 +31,9 @@ const SLOT_ACTIONS: Array[StringName] = [&"ability_slot_1", &"ability_slot_2", &
 ## A technique's name that needs three lines in the cast tray's 150 px and in the
 ## tooltip's 268.
 const LONG_TECHNIQUE: String = "Flowing River Strike of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And The Hundred Silent Stars Above"
+## The modifier source a test raises the player's Control under, removed after
+## each test.
+const TEST_SOURCE: StringName = &"test_control"
 
 var _dock: TechniqueDock = null
 var _player: CombatantNode = null
@@ -68,6 +72,7 @@ func after_each() -> void:
 		_player.free()
 	if is_instance_valid(_enemy):
 		_enemy.free()
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	_set_vitals.callv(_original_vitals)
 	for action: StringName in SLOT_ACTIONS:
 		Input.action_release(action)
@@ -459,6 +464,44 @@ func test_tooltip_content() -> void:
 	_slot(1).mouse_entered.emit()
 	assert_eq(timing.get_parsed_text(), "Cast 1 s · Cooldown 15 s", "whole seconds without a point")
 	assert_false(damage.visible, "a self-buff has no damage line")
+
+#-----------------------------------------------------------------------------
+# CONTROL'S CUTS
+#-----------------------------------------------------------------------------
+
+## On the map, the slot's cost line and the tooltip show the cut values.
+func test_the_preview_and_tooltip_show_the_cut_values() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, StatSources.flat(StatModifierData.Stat.CONTROL, 20.0))
+	var cost_cut: float = CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)
+	var cooldown_cut: float = CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)
+	assert_lt(EMPTY_PALM.get_madra_cost(cost_cut), EMPTY_PALM.madra_cost, "precondition: Control 30 cuts Empty Palm's cost")
+	_equip("empty_palm", 2)
+	_dock.show_loadout()
+	assert_eq((_slot_node(2, "CostLabel") as Label).text, AbilityRow.format_number(EMPTY_PALM.get_madra_cost(cost_cut)), "the cost line")
+	_slot(2).mouse_entered.emit()
+	assert_eq((_tooltip_node("CostLabel") as Label).text, AbilityRow.format_cost(EMPTY_PALM, cost_cut), "the tooltip's cost")
+	assert_eq((_tooltip_node("TimingText") as RichTextLabel).get_parsed_text(),
+		TechniqueTooltip.INSTANT_TIMING_FORMAT % AbilityRow.format_seconds(EMPTY_PALM.get_cooldown(cooldown_cut)), "the tooltip's cooldown")
+
+## In a fight the cost line shows the cut cost and reads affordable exactly when
+## the cast gate lets the technique cast.
+func test_the_cost_line_agrees_with_the_gate_under_a_cost_cut() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, StatSources.flat(StatModifierData.Stat.CONTROL, 20.0))
+	_equip("empty_palm", 2)
+	_start_fight()
+	var palm: CombatAbilityInstance = _slot(2).get_ability_instance()
+	await _finish_cooldown(palm)
+	var cost: float = EMPTY_PALM.get_madra_cost(palm.get_cost_cut())
+	assert_lt(cost, EMPTY_PALM.madra_cost, "precondition: the fight's Control cuts Empty Palm's cost")
+	assert_eq((_slot_node(2, "CostLabel") as Label).text, AbilityRow.format_number(cost), "the cost line shows the cut cost")
+	_vitals.current_madra = cost
+	await wait_process_frames(1)
+	assert_true(_player.ability_manager.can_cast_ability_instance(palm, null), "the cut cost is enough to cast")
+	assert_true(_slot(2).is_cost_affordable(), "and the cost line reads affordable")
+	_vitals.current_madra = cost - 1.0
+	await wait_process_frames(1)
+	assert_false(_player.ability_manager.can_cast_ability_instance(palm, null), "one Madra short can't cast")
+	assert_false(_slot(2).is_cost_affordable(), "and the cost line reads unaffordable")
 
 #-----------------------------------------------------------------------------
 # RESET

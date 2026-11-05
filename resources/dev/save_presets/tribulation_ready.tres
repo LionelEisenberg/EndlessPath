@@ -6,5 +6,5 @@
 script = ExtResource("1_preset")
 preset_id = "tribulation_ready"
 title = "Tribulation ready"
-description = "Every quest done and the core full. The Tribulation waits."
+description = "Every quest done, the core full, Strength and Spirit at the cap. The Tribulation waits."
 story_through = "beat_9_ready"

@@ -97,14 +97,14 @@ func _run_aura_well() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 
-## Equips a fixture ring that adds this much Foundation: 10 Madra of capacity
-## per point.
-func _equip_foundation_ring(foundation: float) -> void:
+## Equips a fixture ring that adds this much Mind at Mind Lv 1 (a percent of
+## mind / 10 of the trained Mind): 10 Madra of capacity per point.
+func _equip_mind_ring(mind: float) -> void:
 	var ring := EquipmentDefinitionData.new()
 	ring.item_id = "test_zone_action_cards_ring"
 	ring.item_name = "Fixture Ring"
 	ring.slot_type = EquipmentDefinitionData.EquipmentSlot.ACCESSORY
-	ring.attribute_bonuses = {CharacterAttributesData.AttributeType.FOUNDATION: foundation}
+	ring.stat_percent_bonuses[&"mind"] = mind / 10.0
 	var instance := ItemInstanceData.new()
 	instance.item_definition = ring
 	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.ACCESSORY, -1, 0)
@@ -310,12 +310,12 @@ func test_ellipsize_words_cuts_a_long_word() -> void:
 #-----------------------------------------------------------------------------
 
 func test_adventure_follows_equipment_capacity() -> void:
-	# Capacity is max Madra (Foundation x 10) and the threshold half of it, so
-	# gear that adds Foundation moves both without any Madra change.
+	# Capacity is max Madra (Mind x 10) and the threshold half of it, so
+	# gear that adds Mind moves both without any Madra change.
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	ResourceManager.set_madra(60.0)
 	assert_eq(_tag_text(card), "ENTER", "precondition: 60 of 50 Madra is ready")
-	_equip_foundation_ring(5.0)
+	_equip_mind_ring(5.0)
 	assert_eq(_tag_text(card), "ACTIVE", "the threshold is now 75")
 	assert_true(_has_text_containing(card, "60 / 75"))
 	ResourceManager.set_madra(80.0)

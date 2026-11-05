@@ -27,13 +27,13 @@ func before_each() -> void:
 
 	var combatant_data := CombatantData.new()
 	combatant_data.character_name = "Dummy"
-	combatant_data.attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+	combatant_data.attributes = CharacterAttributesData.make()
 	_target.combatant_data = combatant_data
 	vitals_manager.character_attributes_data = combatant_data.attributes
 	vitals_manager.initialize_current_values()
 	effect_manager.setup(_target)
 
-	_source_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 20.0, 10.0, 10.0, 10.0)
+	_source_attributes = CharacterAttributesData.make({&"mind": 20.0})
 
 	# Seed two buffs on the target
 	var b1 := BuffEffectData.new()
@@ -49,7 +49,7 @@ func before_each() -> void:
 	b2.effect_name = "Armor Buff"
 	b2.duration = 30.0
 	b2.buff_type = BuffEffectData.BuffType.ATTRIBUTE_MODIFIER_MULTIPLICATIVE
-	b2.attribute_modifiers = {CharacterAttributesData.AttributeType.RESILIENCE: 2.0}
+	b2.attribute_modifiers = {CharacterAttributesData.AttributeType.BODY: 2.0}
 	buff_manager.apply_buff(b2)
 
 	assert_eq(buff_manager.active_buffs.size(), 2, "setup: 2 buffs seeded")

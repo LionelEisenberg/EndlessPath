@@ -6,10 +6,10 @@
 [resource]
 script = ExtResource("2_3h1wa")
 slot_type = 4
-attribute_bonuses = {
-0: 2.0,
-2: 2.0
-}
+stat_percent_bonuses = Dictionary[StringName, float]({
+&"agility": 0.2,
+&"strength": 0.2
+})
 item_id = "dreadbeast_tooth_necklace"
 item_name = "Dreadbeast Tooth Necklace"
 description = "A small dreadbeast tooth, fashioned around a leather strap."

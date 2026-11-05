@@ -208,12 +208,12 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 1
 
-[node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
+[node name="GoalsPanel" parent="MainView" unique_id=1374701200 instance=ExtResource("27_goals")]
 unique_name_in_owner = true
 z_index = 1
 layout_mode = 1
 
-[node name="GoalsPanel" parent="MainView" unique_id=1374701200 instance=ExtResource("27_goals")]
+[node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
 unique_name_in_owner = true
 z_index = 1
 layout_mode = 1

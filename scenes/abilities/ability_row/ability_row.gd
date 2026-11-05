@@ -29,11 +29,14 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Shows the ability. slot_index is its loadout slot, or -1 when unequipped.
+## Its costs line counts the player's Control cuts.
 func setup(ability_data: AbilityData, slot_index: int) -> void:
 	_ability_data = ability_data
 	_icon.texture = ability_data.icon
 	_name_label.text = ability_data.ability_name
-	_cost_label.text = format_costs(ability_data)
+	_cost_label.text = format_costs(ability_data,
+		CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT),
+		CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT))
 	var has_key: bool = slot_index >= 0 and slot_index < KEY_LABELS.size()
 	_key_chip.visible = has_key
 	if has_key:
@@ -52,32 +55,37 @@ func is_selected() -> bool:
 	return theme_type_variation == _STYLE_SELECTED
 
 ## The ability's costs and timings in one short line, for example
-## "8 Madra · 3 s" or "10 Madra · 15 s · 1 s cast".
-static func format_costs(ability_data: AbilityData) -> String:
+## "8 Madra · 3 s" or "10 Madra · 15 s · 1 s cast": the Madra cost after
+## cost_cut and the cooldown after cooldown_cut (Control's cuts). The cast time
+## is never cut.
+static func format_costs(ability_data: AbilityData, cost_cut: float = 0.0, cooldown_cut: float = 0.0) -> String:
 	var parts: PackedStringArray = []
-	var cost: String = format_cost(ability_data)
+	var cost: String = format_cost(ability_data, cost_cut)
 	if not cost.is_empty():
 		parts.append(cost)
-	parts.append(format_seconds(ability_data.base_cooldown))
+	parts.append(format_seconds(ability_data.get_cooldown(cooldown_cut)))
 	if ability_data.cast_time > 0.0:
 		parts.append("%s cast" % format_seconds(ability_data.cast_time))
 	return " · ".join(parts)
 
 ## What casting the ability costs, for example "10 Madra" or
-## "8 Madra · 5 Stamina"; "" when it is free.
-static func format_cost(ability_data: AbilityData) -> String:
+## "8 Madra · 5 Stamina", the Madra cost after cost_cut (Control's cut; Health
+## and Stamina are never cut); "" when it is free.
+static func format_cost(ability_data: AbilityData, cost_cut: float = 0.0) -> String:
 	var parts: PackedStringArray = []
 	if ability_data.health_cost > 0.0:
 		parts.append("%s Health" % format_number(ability_data.health_cost))
 	if ability_data.madra_cost > 0.0:
-		parts.append("%s Madra" % format_number(ability_data.madra_cost))
+		parts.append("%s Madra" % format_number(ability_data.get_madra_cost(cost_cut)))
 	if ability_data.stamina_cost > 0.0:
 		parts.append("%s Stamina" % format_number(ability_data.stamina_cost))
 	return " · ".join(parts)
 
-## A duration, for example "15 s" or "0.5 s".
+## A duration to a tenth at most, for example "15 s" or "0.5 s": the seconds
+## are snapped to the nearest 0.1 first, so a cooldown Control cuts to 2.892 s
+## reads "2.9 s" and whole seconds stay whole.
 static func format_seconds(seconds: float) -> String:
-	return "%s s" % format_number(seconds)
+	return "%s s" % format_number(snappedf(seconds, 0.1))
 
 ## Roughly what the ability hits for, for example "about 25 Physical damage":
 ## its first effect on the target, valued for the caster's attributes

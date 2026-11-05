@@ -10,6 +10,8 @@ extends GutTest
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
+const Attribute := CharacterAttributesData.AttributeType
+
 const ZONE_ID: String = "SpiritValley"
 const OTHER_ZONE_ID: String = "TestZone"
 
@@ -469,18 +471,53 @@ func test_grant_equipment_page_adds_a_page() -> void:
 	assert_eq(InventoryManager.get_inventory().unlocked_equipment_pages, pages + 1)
 
 #-----------------------------------------------------------------------------
-# ATTRIBUTES AND STAGE
+# STATS AND STAGE
 #-----------------------------------------------------------------------------
 
-func test_add_attribute_adds_to_the_base_value() -> void:
-	var attributes: CharacterAttributesData = PersistenceManager.save_game_data.character_attributes
-	var before: float = attributes.strength
-	assert_eq(DevCommands.add_attribute(CharacterAttributesData.AttributeType.STRENGTH, 5.0), "")
-	assert_eq(attributes.strength, before + 5.0)
+func test_set_stat_level_sets_the_level_and_xp() -> void:
+	assert_eq(DevCommands.set_stat_level(&"strength", 7, 30.0), "")
+	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), 7, "Strength is Lv 7")
+	assert_eq(CharacterManager.get_stat_xp(Attribute.STRENGTH), 30.0, "with 30 XP toward Lv 8")
 
-func test_add_attribute_refuses_an_unknown_attribute() -> void:
-	var unknown: CharacterAttributesData.AttributeType = 99 as CharacterAttributesData.AttributeType
-	assert_ne(DevCommands.add_attribute(unknown, 5.0), "")
+## A refusal changes nothing and logs nothing.
+func test_set_stat_level_refuses_a_bad_stat_level_or_xp() -> void:
+	watch_signals(LogManager)
+	var cases: Array[Dictionary] = [
+		{"name": "a removed stat", "stat_key": &"willpower", "level": 3, "xp": 0.0},
+		{"name": "level 0", "stat_key": &"strength", "level": 0, "xp": 0.0},
+		{"name": "negative XP", "stat_key": &"strength", "level": 3, "xp": -1.0},
+	]
+	for case: Dictionary in cases:
+		assert_ne(DevCommands.set_stat_level(case.stat_key, case.level, case.xp), "", "%s is refused" % case.name)
+	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), 1, "Strength is still Lv 1")
+	assert_eq(_dev_lines().size(), 0, "nothing was done, so nothing is logged")
+
+func test_raise_stat_to_cap_raises_a_stat_to_the_stage_cap() -> void:
+	assert_lt(CharacterManager.get_stat_level(Attribute.SPIRIT), CharacterManager.get_stat_level_cap(), "precondition: Spirit starts below the cap")
+	assert_eq(DevCommands.raise_stat_to_cap(&"spirit"), "")
+	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), CharacterManager.get_stat_level_cap(), "Spirit is at the stage cap")
+
+## The dev tools may set a stat past the cap. Raising it to the cap leaves it there.
+func test_raise_stat_to_cap_never_lowers_a_stat() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	assert_eq(DevCommands.set_stat_level(&"spirit", cap + 2), "", "precondition: the dev tools may pass the cap")
+	watch_signals(LogManager)
+	assert_eq(DevCommands.raise_stat_to_cap(&"spirit"), "", "a stat past the cap is no failure")
+	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), cap + 2, "Spirit stays past the cap")
+	assert_eq(_dev_lines().size(), 0, "nothing was done, so nothing is logged")
+
+## A stat exactly at the cap has nothing to raise: no failure, nothing logged.
+func test_raise_stat_to_cap_at_the_cap_does_nothing() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
+	watch_signals(LogManager)
+	assert_eq(DevCommands.raise_stat_to_cap(&"spirit"), "", "a stat at the cap is no failure")
+	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), cap, "Spirit stays at the cap")
+	assert_eq(_logged_lines().size(), 0, "nothing was done, so nothing is logged")
+
+## Foundation names the stage now, not a stat.
+func test_raise_stat_to_cap_refuses_an_unknown_stat() -> void:
+	assert_ne(DevCommands.raise_stat_to_cap(&"foundation"), "")
 
 func test_advance_stage_refuses_at_copper() -> void:
 	assert_eq(DevCommands.advance_stage(), "", "Foundation has Copper after it")
@@ -567,14 +604,18 @@ func test_a_command_pauses_recording_for_its_own_duration() -> void:
 	var during_madra: Array[bool] = _note_recording_on(ResourceManager.madra_changed, 1)
 	var during_award: Array[bool] = _note_recording_on(InventoryManager.item_awarded, 2)
 	var during_completion: Array[bool] = _note_recording_on(QuestManager.quest_started, 1)
+	var during_level: Array[bool] = _note_recording_on(CharacterManager.stat_level_changed, 2)
 	DevCommands.trigger_event(AURA_WELL_EVENT)
 	DevCommands.set_madra(10.0)
 	DevCommands.award_item(CRUDE_SCALE, 1)
 	DevCommands.complete_action(NPC_1)
+	DevCommands.set_stat_level(&"mind", 3)
+	DevCommands.raise_stat_to_cap(&"spirit")
 	assert_eq(during_event, [true, true] as Array[bool], "the aura event, then NPC 1's event")
 	assert_eq(during_madra, [true] as Array[bool], "set_madra")
 	assert_eq(during_award, [true] as Array[bool], "award_item")
 	assert_eq(during_completion, [true] as Array[bool], "complete_action: the quest NPC 1 starts")
+	assert_eq(during_level, [true, true] as Array[bool], "set_stat_level, then raise_stat_to_cap")
 	assert_false(_stats().recording_paused, "and recording is on again after them")
 
 ## A holder further out (a preset build, say) keeps its pause across a command.
@@ -610,7 +651,8 @@ func test_successful_commands_log_a_dev_line() -> void:
 		["set_madra", func() -> String: return DevCommands.set_madra(100.0)],
 		["set_gold", func() -> String: return DevCommands.set_gold(700.0)],
 		["add_path_points", func() -> String: return DevCommands.add_path_points(2)],
-		["add_attribute", func() -> String: return DevCommands.add_attribute(CharacterAttributesData.AttributeType.STRENGTH, 5.0)],
+		["set_stat_level", func() -> String: return DevCommands.set_stat_level(&"strength", 5, 20.0)],
+		["raise_stat_to_cap", func() -> String: return DevCommands.raise_stat_to_cap(&"spirit")],
 		["grant_equipment_page", func() -> String: return DevCommands.grant_equipment_page()],
 		["trigger_event", func() -> String: return DevCommands.trigger_event(AURA_WELL_EVENT)],
 		["complete_action", func() -> String: return DevCommands.complete_action(NPC_1)],

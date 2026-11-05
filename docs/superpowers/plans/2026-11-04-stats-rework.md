@@ -1,0 +1,3211 @@
+# Stats Rework Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rework EndlessPath's stats into six trained stats with levels, XP and a per-stage cap, give home and runs one Madra pool and one Health pool, move Core Density to fights, and rebuild cycling, body refining, Core Density's look and the quest line around that loop, in six phases of one PR each.
+
+**Architecture:** `CharacterAttributesData` becomes the combat stat block shared by the player's fight snapshot and every enemy. The player's progress moves to a new saved `StatTrainingData` (a level and XP per stat) owned by `CharacterManager`, with the cap read live from the current `AdvancementStageResource`. Bonuses keep flowing through `StatModifierStack`: gear as floored percents plus armor and Ward. `ResourceManager` becomes the single owner of the saved Madra pool (and, in phase 5, of Health), and the player's `VitalsManager` becomes a façade over it.
+
+**Tech Stack:** Godot 4.7.2, GDScript, GUT 9.7.1, Dialogic 2 (story), Design canvases for the mock-ups.
+
+**Spec:** `docs/superpowers/specs/2026-11-04-stats-rework-design.md` (who decided what: `docs/superpowers/specs/2026-11-04-stats-rework-decisions.md`).
+
+## Global Constraints
+
+- Godot 4.7.2, GDScript. Console binary for tests: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe"`.
+- Explicit return types and typed class variables. Public functions have a `##` doc comment and no leading `_`; private helpers and signal handlers start with `_`. Node references use `%UniqueName`. Use `#----` section headers like the neighbouring files.
+- No `print()`. Use `Log.info/warn/error` for diagnostics and `LogManager.log_message()` only for lines the player reads.
+- Never modify `addons/`.
+- Data-driven: classes live in `scripts/resource_definitions/` and instances in `resources/`; change both together. Write values explicitly in `.tres`. Godot's text saver omits values equal to the script default, so a later default change would silently rewrite them.
+- Enums stored as ints in `.tres` files or saves only grow at the end, with a comment saying so and a test pinning their numbers.
+- UI:
+  - Never create UI nodes in code. Build scenes with theme variants, scripts set data, and lists instance PackedScenes.
+  - No text is ever cut off. A Label that can run long wraps, and its board grows. No ellipsis, `clip_text`, `text_overrun_behavior` or `max_lines_visible` cut-offs (`tests/integration/test_boards_never_trim_text.gd`).
+  - Read `docs/UI_STYLING.md` before adding label overrides and `docs/STYLE_GUIDE.md` before building a screen.
+  - Screens build what the phase's approved mock-ups show.
+- Any new art file gets an `_ai` suffix. Never edit an art file without the suffix: it is Lionel's.
+- Tests:
+  - GUT 9.7.1, `extends GutTest`, `func test_<behaviour>() -> void`, a `##` header, and table tests as `Array[Dictionary]` cases with an assert message naming the case.
+  - Tests call production code, never re-implement it.
+  - Don't test how a screen looks. Test rules, state, saves, migrations and what each control does.
+  - Swap and restore global state (`PersistenceManager.save_game_data = SaveGameData.new_current(); PersistenceManager.save_data_reset.emit()` in `before_each`, restored in `after_each`). Never null an autoload's state, and remove any modifier source a test sets.
+  - No GUT doubles. Use injectable Callables (the `TribulationView.clock_usec` pattern) and hand-written fakes.
+- Commands:
+  - One test file: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_<name>.gd -gexit` (integration files under `res://tests/integration/`).
+  - Full suite: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`. It also fails scripts that don't parse or run no tests.
+  - Agent game runs add `-- --save=user://dev/runs/<name>.tres`.
+- Before implementing a system, invoke the matching `godot-prompter:*` skill: `resource-pattern`, `save-load`, `godot-ui`, `hud-system`, `godot-testing`. The project's versioned Resource `.tres` save stays; CLAUDE.md wins over the save-load skill's JSON advice.
+- Git:
+  - Each phase is one PR on its own feature branch. Commit after each task with a conventional message (`feat(stats): …`), staging specific files and ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+  - Never merge. Feature PRs don't edit living docs; each PR description ends with `## Docs to update`.
+- Copy:
+  - The stats are Strength, Body and Agility (Physical) and Spirit, Mind and Control (Spiritual). Magic resist shows as "Ward". Screens never print "minor".
+  - The level-up log line reads "[b]Spirit[/b] reached Lv 6".
+
+## Review Focus
+
+1. **A version-1 save** with Aura Well Spirit (`spirit = 13.0`), dev-raised stats and worn gear loads and migrates to the right levels. Nothing else is lost, and the save is never set aside as unreadable (Task 1.4).
+2. **Training at the cap:** XP or an Aura Well level that arrives at the cap is lost, and the level never passes the cap. The breakthrough reads trained levels, never totals that include gear (Tasks 1.3 and 1.13).
+3. **Gear's "(+N)"** always equals the bonus actually applied: at Lv 1 (the floor), past the cap, and after a level-up while the inventory is open. The item tooltip, whose code is left for Lionel's rework, shows it as it stands when the tooltip opens (Tasks 1.6 and 1.8).
+4. **A dodged hit** lands no target effect, including riders such as CANCEL_CAST. The attacker's own self effects still apply, and enemies never dodge (Task 1.10).
+5. **The one Madra pool** behaves when its max drops (Mind gear removed), when a run is quit midway, and when a run starts at exactly half Madra (Tasks 2.1 to 2.3).
+
+## How this plan is organised
+
+- **Six phases, six PRs:** 1 Stats, 2 One Madra pool, 3 Cycling, 4 Core Density, 5 Body refining and Health, 6 Quests and story. Each phase is one focused unit on its own branch. `main` may be broken between phases (Lionel). No itch build until phase 5 lands.
+- **A mock-up gate opens every phase** (Task N.0). A new Design canvas for that phase's screens is shown to Lionel and approved before any of the phase's UI is built. Phase 1's mock-ups come right after this plan; phase N+1's come after phase N lands.
+- **How detailed each phase is:** phases 1 and 2 are written as full tasks. Phases 3 to 6 are outlines, because their designs settle at their mock-up step. After each of those phases' mock-ups are approved, its outline is replaced in this file by full tasks in the same format.
+- **Task numbering:** tasks are numbered `N.M` within phase `N`. Each task ends with a commit, and each phase ends with a wrap task: the full suite green, a dev run of the game, and the PR.
+
+---
+
+## File structure
+
+Phases 1 and 2 mostly change existing files. Each task's **Files** list is exact; this map shows where each responsibility lives.
+
+**New files**
+
+| File | Responsibility | Task |
+|---|---|---|
+| `scripts/resource_definitions/character/stat_training_data.gd` | `StatTrainingData`: the player's saved level and XP per stat | 1.2 |
+| `scripts/resource_definitions/character/stat_progression_data.gd`, `resources/character/stat_progression.tres` | `StatProgressionData`: the level curve (XP to the next level, a level's value), held only by `CharacterManager.stat_progression` | 1.2 |
+| `scripts/utils/stat_display.gd` | `StatDisplay`: each stat's name, icon and side on screen | 1.15 |
+| Pressed XP bar textures (`_ai`) in `assets/sprites/ui/book/pressed/` | The Character book's XP bar, as the approved canvas draws it | 1.16 |
+| `scenes/zones/cultivator_plate/stat_cell/stat_cell.gd`, `stat_cell.tscn` | `StatCell`: one stat on the zone view's cabinet | 1.17 |
+| `assets/ui/lacquer/lacquer_cult_stats_ai.png`, `assets/ui/lacquer/lacquer_stat_ring_strip_ai.png` | The cabinet grown for the stats, and its 80 px XP ring | 1.17 |
+| `tests/unit/test_stat_training_data.gd`, `tests/unit/test_stat_progression_data.gd` | The training record and the level curve | 1.2 |
+| `tests/unit/test_combat_content.gd` | The shipped techniques' and enemies' Lv 1 numbers | 1.9 |
+| `tests/unit/test_combat_dodge.gd` | Dodge | 1.10 |
+| `tests/unit/test_ability_data.gd`, `tests/unit/test_control_cuts.gd` | Control's Madra cost and cooldown cuts | 1.11 |
+| `tests/unit/test_stat_display.gd` | `StatDisplay` | 1.15 |
+| `tests/integration/test_adventure_end_card.gd`, `tests/integration/test_character_book_madra.gd` | The end card's and the Character book's Madra lines | 2.3, 2.4 |
+
+**Deleted:** `scenes/abilities/ability_stats_display/`, `scenes/abilities/stat_label/` and `scenes/abilities/stat_tooltip/`, which nothing uses (Task 1.1).
+
+**Where the existing responsibilities go**
+
+| Area | Files | Tasks |
+|---|---|---|
+| Stat identity and the combat stat block | `character_attributes_data.gd` (six stats, armor, Ward, the derived values), `stat_modifier_data.gd` | 1.1 |
+| Training, the cap and the save | `character_manager.gd`, `save_game_data.gd`, `advancement_stage.gd` and both stage `.tres`, `cultivation_manager.gd` | 1.2–1.5 |
+| Gear | `equipment_definition_data.gd`; `docs/inventory/ITEMS.md` with `items_md_parser.gd`, `items_md_to_resources.gd` and the regenerated Spirit Valley items; `book_text.gd`, `equipment_details`, `bonus_row`, `merchant_stock_row.gd` | 1.6–1.8 |
+| Combat | `combat_effect_data.gd` and the technique and enemy `.tres`; `combat_effect_manager.gd`, `combatant_visual.gd`; `ability_data.gd`, `combat_ability_instance.gd`, `combat_ability_manager.gd`, the dock's slot and tooltip, `ability_row.gd`; `adventure_view.gd` | 1.9–1.12 |
+| The breakthrough | `tribulation_action_data.gd`, `tribulation_presenter`, `goals_panel.gd`, `action_manager.gd`, the Tribulation's copy | 1.13 |
+| Dev tools | `dev_commands.gd`, `dev_step_data.gd`, the dev panel's Player tab, `story_route.tres` | 1.14 |
+| Stat screens | `abilities_view.gd`; `character_view` and `attribute_tile` | 1.15, 1.16 |
+| Stats on the zone view | `cultivator_plate.gd` and `.tscn`, `zone_view_state.gd`, `adventure_view_state.gd`, `goals_panel.tscn`, `main_game.tscn` (the log after the Goals board), `log_window.gd` | 1.17 |
+| One Madra pool | `resource_manager.gd` (the pool and its max); `vitals_manager.gd` and `player_manager.gd` (the player's façade); `action_manager.gd`, `adventure_view.gd`, `zone_transition.gd`, `adventure_result_data.gd`, `adventure_end_card` (runs); `cultivator_plate.gd`, `adventure_presenter.gd`, `character_view.gd` and cycling's two callers (readouts) | 2.1–2.4 |
+
+**Phases 3 to 6:** each outline lists its files. The new code is phase 5's: `BodyRefiningActionData`, `DrillData` and `DrillList`, the `BodyRefiningManager` autoload, the drill scenes, and `BodyRefiningView` with its view state. Phase 6 adds quest, unlock and preset `.tres` files.
+
+---
+
+## Shared interfaces
+
+These names and signatures cross tasks and phases. Every task uses them as written here.
+
+**Stat identity** (`scripts/resource_definitions/character/character_attributes_data.gd`)
+- `enum AttributeType { STRENGTH = 0, BODY = 1, AGILITY = 2, SPIRIT = 3, MIND = 4, CONTROL = 5 }`. FOUNDATION is renamed MIND in place (int 4); RESILIENCE (6) and WILLPOWER (7) are removed. The enum only grows at the end from now on.
+- `static func stat_key(stat: AttributeType) -> StringName` returns `&"strength"`, `&"body"`, `&"agility"`, `&"spirit"`, `&"mind"` or `&"control"`. `static func stat_from_key(key: StringName) -> int` returns the stat, or -1 for an unknown key.
+
+**The combat stat block: `CharacterAttributesData`** (same path and class name, because old saves and the enemy files reference it by path)
+- `strength`, `body`, `agility`, `spirit`, `mind`, `control: float = 10.0`; `armor: float = 0.0`; `ward: float = 0.0`. There is no positional constructor; `static func make(values: Dictionary = {}) -> CharacterAttributesData` takes stat keys plus `&"armor"` and `&"ward"`.
+- Derived values, the one home every caller uses:
+  - `get_max_health()` (Body × 10), `get_max_stamina()` (Agility × 5), `get_max_madra()` (Mind × 10) and `get_stamina_regen()` (Agility × 0.1 per second).
+  - `get_dodge_chance()`, `get_madra_cost_cut()` and `get_cooldown_cut()`, all from `static func flattening_curve(points_above_baseline: float, ceiling: float, half_point: float) -> float`. That function returns `ceiling * x / (x + half_point)` with `x = maxf(0.0, points_above_baseline)`, and each of the three is 0 at Lv 1.
+  - Starting constants: `STAT_BASELINE = 10.0`, `DODGE_CEILING = 0.35`, `DODGE_HALF_POINT = 15.0`, `MADRA_COST_CUT_CEILING = 0.5`, `MADRA_COST_CUT_HALF_POINT = 20.0`, `COOLDOWN_CUT_CEILING = 0.4`, `COOLDOWN_CUT_HALF_POINT = 20.0`.
+
+**Player progress**
+- `StatTrainingData` (`scripts/resource_definitions/character/stat_training_data.gd`): `levels: Dictionary[StringName, int]` and `xp: Dictionary[StringName, float]`, keyed by stat key. Functions: `new_default()`, `get_level(stat)` (1 when missing), `set_level(stat, level)`, `get_xp(stat)` and `set_xp(stat, value)`.
+- `StatProgressionData` (`scripts/resource_definitions/character/stat_progression_data.gd`, instance `resources/character/stat_progression.tres`): `xp_to_level_two = 100.0`, `xp_growth = 1.25` and `value_per_level = 1.0`. Functions: `get_xp_to_next(level) -> float` and `get_value_for_level(level) -> float` (Lv 1 gives 10.0).
+- `AdvancementStageResource.stat_level_cap: int` (Foundation 10, Copper 20), read live through `CultivationManager.get_stat_level_cap() -> int`.
+- `SaveGameData.stat_training: StatTrainingData`, never null: `SaveGameData.new()` carries an empty record (every read gives Lv 1 and 0 XP; the first write adds the key), and `new_current()` seeds `StatTrainingData.new_default()`. `CURRENT_VERSION = 2`. `character_attributes` stays as the legacy version-1 field, read once by `_migrate_to_v2()`.
+
+**`CharacterManager`**
+- Signals: `stats_changed`, `stat_xp_changed(stat, xp: float, xp_to_next: float)` and `stat_level_changed(stat, level: int)`. `base_attribute_changed` is removed.
+- Level and XP: `get_stat_level(stat) -> int`, `get_stat_xp(stat) -> float`, `get_stat_xp_to_next(stat) -> float`, `get_stat_level_cap() -> int`, `is_stat_capped(stat) -> bool`, `add_stat_xp(stat, amount: float) -> void`, `add_stat_levels(stat, count: int) -> void`, and `set_stat_level(stat, level: int, xp: float = 0.0) -> void` (dev).
+- Signals, as Task 1.3 fires them: `add_stat_xp()` and `add_stat_levels()` emit one `stat_level_changed` and one player log line per level gained, `stat_xp_changed` once per call, and `stats_changed` once per call only when a level changed. `set_stat_level()` emits each signal once and logs nothing. A save reset emits `stats_changed` only.
+- `@export var stat_progression: StatProgressionData` (preloads `res://resources/character/stat_progression.tres`) is the level curve's one holder: a level's value is `CharacterManager.stat_progression.get_value_for_level(level)`, and no other script preloads the curve.
+- Values and totals: `get_trained_value(stat) -> float`, `get_trained_values() -> Dictionary`, `get_gear_bonus(stat) -> float`, `get_stat(stat: StatModifierData.Stat) -> float`, and `get_total_attributes_data() -> CharacterAttributesData` (which also carries armor and Ward).
+- `StatModifierData.Stat` (runtime only): `STRENGTH, BODY, AGILITY, SPIRIT, MIND, CONTROL, MAX_HEALTH, MAX_STAMINA, MAX_MADRA, ARMOR, WARD, STAMINA_REGEN, DODGE_CHANCE, MADRA_COST_CUT, COOLDOWN_CUT`.
+
+**Gear** (`EquipmentDefinitionData`)
+- Fields: `stat_percent_bonuses: Dictionary[StringName, float]` (0.10 is +10%), `stat_bonus_floor: int = 1`, `armor: float` and `ward: float`.
+- `get_stat_bonus(stat, trained_value: float) -> float` returns `maxf(stat_bonus_floor, floorf(trained_value * percent + 1e-6))`, or 0 when the item has no percent for that stat. `get_stat_modifiers(trained_values: Dictionary) -> Array[StatModifierData]` returns FLAT modifiers.
+- Text: `BookText.gear_bonus_lines(def, trained_values) -> Array[String]` gives "+10% Strength (+1)" (a no-break space before the parenthesis), the number in parentheses being what `get_stat_bonus()` gives, then "Armor 6", then "Ward 4". `_get_item_effects()` returns those lines for `CharacterManager.get_trained_values()`, each as `"[color=#a89070]%s[/color]"` (today's effect ink), for the item tooltip and the shop.
+
+**Combat**
+- `CombatEffectData` keeps only `strength_scaling` and `spirit_scaling`.
+- Defence: PHYSICAL uses the target's armor, SPIRIT its Ward, MIXED their average, and TRUE nothing. Damage is multiplied by `100 / (100 + defence)`.
+- Dodge: `CombatEffectManager.try_dodge() -> bool` (player only, with an injectable `dodge_roll: Callable`, by default `func() -> float: return randf()`), plus `CombatantVisual.play_dodge()`.
+- Control: `AbilityData.get_madra_cost(cost_cut := 0.0) -> float` (rounded), `get_cooldown(cooldown_cut := 0.0) -> float`, and `can_afford(vitals, cost_cut := 0.0)` / `consume_costs(vitals, cost_cut := 0.0)`. `CombatAbilityInstance.get_cost_cut()` and `get_cooldown_cut()` return the player's cuts, or 0 for anyone else.
+
+**Display and the breakthrough**
+- `StatDisplay` (`scripts/utils/stat_display.gd`): `PHYSICAL`, `SPIRITUAL`, `name_of(stat)`, `icon_of(stat)` and `side_name(stat)`.
+- `TribulationActionData.can_attempt()` requires a full core plus Strength and Spirit at the cap, comparing trained levels. `static func get_missing_requirements(include_core: bool = true) -> Array[String]` lists what is still missing, in the order Core Density, Strength, Spirit ("Core Density 95 / 100", "Strength Lv 3 / 10"); `false` leaves the core out for screens whose rod already shows it.
+
+**Dev tools**
+- `DevCommands.set_stat_level(stat_key: StringName, level: int, xp: float = 0.0) -> String` and `DevCommands.raise_stat_to_cap(stat_key: StringName) -> String`, each returning "" or the refusal.
+- `DevStepData.Kind.RAISE_STAT_TO_CAP = 13`.
+
+**Phase 2**
+- `ResourceManager.get_max_madra() -> float` replaces `get_adventure_madra_capacity()` and `get_adventure_madra_budget()`.
+- The player's `VitalsManager` is a façade for Madra over `ResourceManager`.
+- `ActionManager.start_adventure(action)` and `confirm_adventure_start(action)` lose the budget parameter.
+- `AdventureResultData.madra_left` and `madra_max` replace `madra_spent`.
+
+---
+
+## Phase 1: Stats
+
+**Goal:** six trained stats with levels, XP and the stage cap; what each stat does in a fight; armor and Ward; gear as floored percents; enemy values; the breakthrough's stat requirement; the version-2 save migration; dev tools; the stat screens (design, "Phase 1: Stats").
+
+**Branch and PR:** `feat/game-stats-rework-e6a4b4`, this worktree's branch, which already holds the spec and this plan; one PR, opened in Task 1.18.
+
+**Order:** tasks run in number order, except where noted. Task 1.0's approval (Lionel, 2026-11-04) gates Tasks 1.8, 1.10, 1.13, 1.15, 1.16 and 1.17; Tasks 1.1 to 1.7 need no approval and can start while the canvas is in review. Tasks 1.9, 1.12 and 1.14 also run before the approval, because none of them depends on a gated task: Task 1.12 creates the shared test helper Task 1.11 reuses, and Task 1.14's preset test holds before and after Task 1.13 adds the stat requirement.
+
+**Shared notes:** The `-s` test command imports nothing (TESTING.md). After a `class_name` script is added or deleted, `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` refreshes the class cache (Tasks 1.1 and 1.2 run it). It writes a `.gd.uid` beside each new script, committed with it, and `git status --short project.godot` must then print nothing (CLAUDE.md, the Dialogic patch). Tasks 1.1 to 1.5 and 1.13 to 1.17 give their tests as name, setup and assertions with their exact values; where a test gives no assert message, write one that names what it checks, and every table test's message names its case. Tasks 1.6 to 1.12 give them as GDScript. Table tests are `Array[Dictionary]` cases named in the assert message.
+
+---
+
+### Task 1.0: Phase 1 mock-ups
+
+A design gate, not a TDD task: done when Lionel approves the canvas. Tasks 1.8, 1.10, 1.13, 1.15, 1.16 and 1.17 build what it shows and start only after the approval; they fix the binding and the behaviour, the canvas the look and the copy.
+
+**Files:**
+- Create: the Design canvas "Stats rework · Phase 1" (a claude.ai artifact, not a repository file)
+- Modify: `docs/superpowers/plans/2026-11-04-stats-rework.md` (this task's `Approved canvas:` line and the answers under it)
+
+**Interfaces:**
+- Consumes: the design's "Phase 1: Stats" Screens list, the starting numbers (Shared interfaces), the gear values Task 1.7 ships.
+- Produces: the approved canvas link, an answer to each Step 4 question and the approved wording of board 10, recorded under this task.
+
+Approved canvas: https://claude.ai/artifact/CPpaTZbP71MyqW811K1RHa (Lionel, 2026-11-04), version 21
+
+The answers, Step 4's questions first, then the boards. Lionel's words are quoted; "Claude's pick, left standing" marks a pick his approval left as proposed.
+- The Character book's pages: pressed paper, the Inventory's look ("Pressed paper inventory look"): `TableRow` rows and a `LabelBookSeal` seal.
+- Stats on the zone view: in phase 1 ("add stats to the zone view, make them 20% smaller and in side by side triangular positions"; "yes"): two triangles side by side on the cultivator cabinet, Physical left and Spiritual right, each cell an 80 px ring, as board 8 draws them. Task 1.17 builds them.
+- The cap: both ("both"): the bar fills and a seal reading CAPPED stamps across it, on the tile and on the stat's page.
+- A stat's detail: on the right page ("correct").
+- Mind's icon: today's `foundation_icon.png` ("Correct"); no `mind_icon_ai.png`.
+- The tile's big number: the level, "Lv N" under the name; the total small, on a paper tag at the slot's corner ("correct").
+- "In a fight": under the two sides on the left page, in two columns of four ("correct"), as boards 1 and 3 draw it.
+- The XP bar on paper: new pressed `_ai` textures, a groove pressed into the page with an ink fill ("Why not keep using the circles? but yes pressed is fine for now"). The circles are the cabinet's bead rings; a later rework may give the book rings too.
+- Trainers: none. The stat page has no "What trains it" section, and nothing lists a stat's trainers ("remove its too much logic nuke it entirely"; "WHAT TRAINS IT remove").
+- The next-level preview may read one point low where a floored gear percent steps up at the next level: accepted for phase 1 ("okay").
+- The captions: "WHAT IT DOES" with "NOW → LV N" at its right (N the next level, hidden at the cap), "WHERE IT COMES FROM", "IN A FIGHT", and the left page's title "Character", as boards 1 to 3 draw them.
+- The breakthrough, boards 5, 6 and 10: as drawn ("tribulation is fine for now"). The refusal logs one line per missing requirement, such as "The Tribulation needs Strength Lv 9 / 10.", because the whole list on one line (583 px) runs past the Log board's 384 px (Claude's pick, left standing).
+- Board 4, the gear text: every stat line reads "+N% Stat (+M)", with a no-break space before "(" so a wrapping row never parts the figure from its stat. The shop keeps today's slot words and ", " between bonuses ("Main Hand: +50% Strength (+5), +10% Agility (+2)"), and the item tooltip keeps its code (Lionel's to rework). No gear value changed.
+- Board 8, the zone view: the cells use the game's own stat icons at 32 px, not the board's 40 px `_ai` redraws, so no new icon art ("My icons at 32 px"). The full log opens over the lowered Goals board, covering it until it closes (Claude's pick, left standing). Its board is 440×532, its top flush with the Goals board's at y 524 and never over the cabinet: Claude's pick after the approval, because today's 440×560 board, from y 496, would have covered the grown cabinet's foot and its gold row. A run's vitals cabinet keeps its height and shows no stats, and the cells don't react to the mouse.
+- Board 9: the "Dodged" floater in `ThemeConstants.LACQUER_STAMINA` and its log line, as drawn.
+- Board 10's approved wording, Claude's proposal unchanged:
+  - `CultivationManager.CORE_FULL_LOG`: "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley."
+  - `foundation_tribulation.tres` `intro_text`: "Your core is full, your Strength and Spirit at their peak. Breathe with the aura as it gathers, and let it pour into you."
+  - `tribulation_action.tres` `description`: "With a full core and Strength and Spirit at the cap, face the Tribulation and break through to Copper."
+  - the `tribulation_ready` preset's `description`: "Every quest done, the core full, Strength and Spirit at the cap. The Tribulation waits."
+
+- [x] **Step 1: Read the rules and find the old pieces.** `docs/STYLE_GUIDE.md`: rule 14, "Pressed paper (the books)", K-Q1, rows K1, K10 and K11. `docs/UI_STYLING.md`: the book theme's pressed variants (`LabelBookCaps`, `LabelBookSeal`, `RichTextBookValue`, `PanelPressed`). Find the "Cultivator Stats" canvas (`Artifact` `action: "list"`, `type: "Design"`) and reuse its pieces (stat cells, XP beads, the Character book spread), not its eight stats or its numbers.
+- [x] **Step 2: Start a new canvas.** `Artifact` `action: "quickstart"` with `intent: "design"`, then publish from the Design type's `type_url` with `title: "Stats rework · Phase 1"`. Never add boards to "Cultivator Stats" or "Body Refining" (one canvas per topic). Expected: an empty private canvas and its link.
+- [x] **Step 3: Draw one board per screen, in these states.** The numbers: Lv 1 is 10 points and each level adds 1; Lv 2 costs 100 XP and each later level 1.25× the last; the cap is 10 in Foundation, 20 in Copper. Health = Body × 10, Stamina = Agility × 5 (regen Agility × 0.1 a second), Madra = Mind × 10: 100 / 50 / 1.0 / 100 at Lv 1. Dodge is 8.8% at Agility Lv 6; at Control Lv 6 techniques cost 10% less Madra and cooldowns are 8% shorter. Basic Strike 25, Empty Palm 28, Power Font 50. Task 1.7's gear at Lv 1: Iron Shortsword "+50% Strength (+5)", "+10% Agility (+2)"; Reinforced Robes "+40% Body (+4)", "Armor 6"; Cultivator's Cowl "+15% Spirit (+1)", "Ward 4".
+  1. **Character book, left page** (`CharacterView`, `AttributeTile`): Physical (Strength, Body, Agility), Spiritual (Spirit, Mind, Control); a tile shows an icon, the name, "Lv N", an XP bar and the total. States: a new character (all Lv 1); Spirit Lv 6, bar part-filled; Spirit at the cap; Strength at the cap with the Iron Shortsword lifting its total past it (Lv 10, total 28); the selected tile and the hover.
+  2. **A stat's detail page:** Lv N / cap, the XP figure, a description, what it does now → next, where it comes from, what trains it. States: Body (Max Health 100 → 110); Agility (Max Stamina, Stamina regen, Dodge chance); Control (Technique cost cut, Cooldown cut); Spirit Lv 6 wearing the cowl (Trained (Lv 6) 15, Gear +2), trained by the Aura Well; Strength ("Nothing trains this yet"); a capped stat (no next column); a long description wrapping.
+  3. **The "In a fight" block:** Health, Madra, Stamina, Dodge chance, Technique cost cut, Cooldown cut, Armor, Ward; for a new character, and wearing the robes and the cowl (Health 140, Armor 6, Ward 4).
+  4. **Gear text** in `EquipmentDetails` and `MerchantStockRow` (its separators between bonuses): the three items, a long line wrapping, and the robes' slot word (BODY in the book, Armor in the shop) beside "Armor 6". `ItemDescriptionPanel` (the item tooltip) is Lionel's to rework later: its column shows today's panel with the new lines, marked as his.
+  5. **Goals board milestone** (`GoalsPanel`): "Raise Core Density to 100" over "Strength Lv 1 / 10" and "Spirit Lv 4 / 10"; a full core with Strength short; everything met, "Face the Tribulation".
+  6. **Tribulation card** (`TribulationPresenter`): core 95 with the stats short (TRIAL); core 100 with Strength short (TRIAL, with a second line); ready (ENTER); and the refusal log line, naming every missing requirement.
+  7. **Abilities book breakdown:** Basic Strike "25" = "10 base" plus one Strength part, "+15".
+  8. **Zone view:** the cultivator cabinet with and without the six stats.
+  9. **"Dodged" floater** over the player in a fight (`CombatantVisual.play_dodge()`, Task 1.10; its colour defaults to `ThemeConstants.LACQUER_STAMINA`) and its log line "[b]Player[/b] dodged <ability name>".
+  10. **Breakthrough copy** the stat requirement makes false, today's text beside Claude's proposal:
+      - `CultivationManager.CORE_FULL_LOG`: "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley."
+      - `foundation_tribulation.tres` `intro_text`: "Your core is full, your Strength and Spirit at their peak. Breathe with the aura as it gathers, and let it pour into you."
+      - `tribulation_action.tres` `description`: "With a full core and Strength and Spirit at the cap, face the Tribulation and break through to Copper."
+      - the `tribulation_ready` preset's `description`: "Every quest done, the core full, Strength and Spirit at the cap. The Tribulation waits."
+- [x] **Step 4: Put the open look questions on a board of their own,** each with Claude's recommendation:
+  - The Character book's pages: pressed paper (K-Q1) or today's book cards? Recommend pressed paper: `TableRow` rows, a `LabelBookSeal` seal.
+  - Stats on the zone view too? The cabinet is a fixed 444×256 board: new `_ai` art, and the Goals board moves (`ZoneViewState.GOALS_POSITION`). Recommend not in phase 1; revisit in phase 3, when cycling's stat XP pellets need a target. If Lionel wants them in phase 1, add a task between Tasks 1.16 and 1.17 that builds them (`CultivatorPlate` and its scene, new `_ai` board art, `ZoneViewState.GOALS_POSITION`, and a test in `test_cultivator_plate.gd`); otherwise Task 3.0 asks again.
+  - How the cap shows (a word seal, a full bar, or both), and the seal's word (never "minor")? Recommend both.
+  - A stat's detail on the right page (pointing, as today) or a page of its own (`BookFrame.turn_page()`, as in the Path and Inventory books)? Recommend the right page, if it fits uncut.
+  - Mind's icon: today's `foundation_icon.png` or a new `mind_icon_ai.png`? Recommend `foundation_icon.png`.
+  - The tile's big number: the level, the total, or both? Recommend the level big, the total small.
+  - "In a fight": under the two sides on the left page, or on the right page before a stat is pointed at? Recommend under the sides.
+  - The XP bar on paper: a `LacquerRod` with new pressed `_ai` textures, or the lacquer jade rod? Recommend new pressed `_ai` textures.
+  - Trainers the player hasn't found yet: `trainer_names()` lists every training action in the content, so the Aura Well shows under Spirit before the player reaches it. Recommend listing it anyway, as a pointer to what to look for. Hiding it means Task 1.16 keeps only actions that some zone's `ZoneManager.get_available_actions()` returns.
+  - The next-level preview adds one level's value to today's total and keeps every bonus as it is, so where a floored gear percent would step up at the next level it reads one point low. Recommend accepting that in phase 1: exact figures need a "total at a given level" read in `CharacterManager`.
+- [x] **Step 5: Show Lionel and iterate until he approves.** Send the link and the questions, read his canvas comments (`ArtifactComments`) and replies, revise and show again. Expected: in chat, Lionel approves the canvas, answers every question and approves board 10's wording. Only his own message counts.
+- [x] **Step 6: Record the approval and commit.** Replace the `Approved canvas:` line with `Approved canvas: <link> (Lionel, <date>)`. Then add a line per question with its answer, a line per board 10 item with its approved wording, and a line for each gear value Lionel changed on board 4, naming the item and its new ITEMS.md stats cell. `git add docs/superpowers/plans/2026-11-04-stats-rework.md`, then `git commit -m "docs(stats): record the approved phase 1 mock-ups"` (+ Co-Authored-By line).
+
+---
+
+### Task 1.1: The six-stat combat block
+
+Before Step 1, invoke `godot-prompter:resource-pattern` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scripts/resource_definitions/character/character_attributes_data.gd`, `scripts/resource_definitions/character/stat_modifier_data.gd`, `scripts/resource_definitions/combat/combat_effect_data.gd`, `scripts/resource_definitions/effects/change_vitals_effect_data.gd`.
+- Modify (renamed keys, stale int keys): `resources/abilities/power_font.tres`, `resources/adventure/encounters/shallow_woods/special_encounters/aura_well_encounter.tres`, `resources/combat/combatant_data/starving_dreadbeast.tres`, `resources/combat/combatant_data/ravenous_dreadbeast.tres`, `resources/items/equipment/spirit_valley/cultivators_cowl.tres`, `resources/items/equipment/spirit_valley/reinforced_robes.tres`.
+- Modify (interim, until Tasks 1.15 and 1.16): `scenes/abilities/abilities_view.gd`, `scenes/character/character_view.gd`, `scenes/character/character_view.tscn`.
+- Delete (unused, and they stop parsing once the old fields go): `scenes/abilities/ability_stats_display/`, `scenes/abilities/stat_label/`, `scenes/abilities/stat_tooltip/`.
+- Test: `tests/unit/test_character_attributes_data.gd` (rewritten), `tests/unit/test_combat_damage.gd`, `tests/unit/test_stat_modifier_stack.gd`, and the 20 files of Step 7.
+- Checked, no edit (they read `AttributeType` through `values()`, `keys()` or `find_key()`, or store only ints 0–5): `character_manager.gd`, `dev_commands.gd`, `player_tab.gd`, `unlock_condition_data.gd` (its content file stores 1, BODY), `award_attribute_effect_data.gd` (the Aura Well stores 3, SPIRIT), `buff_effect_data.gd`, `combat_buff_manager.gd`, `combat_ability_instance.gd` (its `_get_modified_attributes()` copy is only the caster's offence, so it needs no armor or Ward), `path_node_effect_data.gd` and `path_details_card.gd` (no `.tres` stores `attribute_type`), `equipment_definition_data.gd`, `book_text.gd`, `items_md_parser.gd`, `attribute_tile.gd` (its STRENGTH default stays for StrengthTile).
+- Never run `scripts/tools/items_md_to_resources.gd` before Task 1.7 rewrites the stat words in `docs/inventory/ITEMS.md`.
+
+**Interfaces:**
+- Consumes: none.
+- Produces:
+  - `CharacterAttributesData`: `AttributeType { STRENGTH = 0, BODY = 1, AGILITY = 2, SPIRIT = 3, MIND = 4, CONTROL = 5 }`; `strength/body/agility/spirit/mind/control: float = 10.0`, `armor: float = 0.0`, `ward: float = 0.0`; `static func make(values: Dictionary = {}) -> CharacterAttributesData`; `static func stat_key(stat: AttributeType) -> StringName`; `static func stat_from_key(key: StringName) -> int`; `get_attribute(stat: AttributeType) -> float`; `set_attribute(stat: AttributeType, value: float) -> void`; `get_max_health()`, `get_max_stamina()`, `get_max_madra()`, `get_stamina_regen()`, `get_dodge_chance()`, `get_madra_cost_cut()`, `get_cooldown_cut()`, each `-> float`; `static func flattening_curve(points_above_baseline: float, ceiling: float, half_point: float) -> float`.
+  - Its `float` constants (starting values): `STAT_BASELINE = 10.0` (Lv 1), `HEALTH_PER_BODY = 10.0`, `STAMINA_PER_AGILITY = 5.0`, `MADRA_PER_MIND = 10.0`, `STAMINA_REGEN_PER_AGILITY = 0.1`, `DODGE_CEILING = 0.35`, `DODGE_HALF_POINT = 15.0`, `MADRA_COST_CUT_CEILING = 0.5`, `MADRA_COST_CUT_HALF_POINT = 20.0`, `COOLDOWN_CUT_CEILING = 0.4`, `COOLDOWN_CUT_HALF_POINT = 20.0`.
+  - `StatModifierData.Stat { STRENGTH, BODY, AGILITY, SPIRIT, MIND, CONTROL, MAX_HEALTH, MAX_STAMINA, MAX_MADRA, ARMOR, WARD, STAMINA_REGEN, DODGE_CHANCE, MADRA_COST_CUT, COOLDOWN_CUT }`.
+  - `CombatEffectData.calculate_damage()` defended by armor or Ward; `CombatEffectData.mind_scaling` (Task 1.9 removes it); `ChangeVitalsEffectData.mind_madra_multiplier`.
+
+- [x] **Step 1: Write the failing tests.**
+  `tests/unit/test_character_attributes_data.gd`, a whole new file. Header doc: "Unit tests for CharacterAttributesData, a combatant's stat block: the ints AttributeType is stored as, the stat keys, make(), and the derived formulas (Health, Stamina, regen, Madra, dodge, Control's cuts) the game reads." It has `const AttributeType = CharacterAttributesData.AttributeType`, `const KEYS: Array[StringName] = [&"strength", &"body", &"agility", &"spirit", &"mind", &"control"]`, and `_derived(block) -> Dictionary`, the seven derived values under `max_health`, `max_stamina`, `stamina_regen`, `max_madra`, `dodge_chance`, `madra_cost_cut` and `cooldown_cut`.
+  - `test_attribute_type_ints_never_change`: `AttributeType` equals `{"STRENGTH": 0, "BODY": 1, "AGILITY": 2, "SPIRIT": 3, "MIND": 4, "CONTROL": 5}`, "a stat is stored as an int: append only".
+  - `test_each_stat_has_a_key`: for each stat, `stat_key(stat) == KEYS[stat]` and `stat_from_key(KEYS[stat]) == stat`; `stat_from_key()` of `&"foundation"`, `&"armor"` and `&""` is -1.
+  - `test_make_sets_each_named_stat`: for each stat, `make({KEYS[stat]: 15.0})` reads 15.0 there and `STAT_BASELINE` in the other five.
+  - `test_armor_and_ward_start_at_zero_and_make_sets_them`: `make()` has armor and Ward 0.0; `make({&"armor": 6.0, &"ward": 4.0})` has 6.0 and 4.0.
+  - `test_make_skips_an_unknown_key`: `make({&"foundation": 50.0}).mind == STAT_BASELINE`.
+  - `test_set_attribute_writes_the_stat`: `set_attribute(AttributeType.MIND, 14.0)` makes `mind` 14.0.
+  - `test_a_level_one_block_keeps_todays_numbers`: `_derived(make())` is max_health 100.0, max_stamina 50.0, stamina_regen 1.0, max_madra 100.0, and 0.0 for dodge_chance and both cuts.
+  - `test_each_derived_value_reads_only_its_stat`: against `_derived(make())`, `make({key: 15.0})` raises (`assert_gt`) exactly these and leaves (`assert_eq`) the rest: body → max_health; agility → max_stamina, stamina_regen, dodge_chance; mind → max_madra; control → madra_cost_cut, cooldown_cut; strength and spirit → none.
+  - `test_flattening_curve`, within 0.000001, (points, ceiling, half_point) → expected: "no points" (0.0, 0.35, 15.0) → 0.0; "below the baseline" (-5.0, 0.35, 15.0) → 0.0; "a third of the half point" (5.0, 0.35, 15.0) → 0.0875; "the half point gives half" (15.0, 0.35, 15.0) → 0.175; "far past it, just under" (1000000.0, 0.4, 20.0) → 0.399992.
+  - `test_curves_stay_under_their_ceilings`: in `make({&"agility": 100000.0, &"control": 100000.0})`, dodge, the Madra cost cut and the cooldown cut each stay below their ceiling constant ("%s stays under its ceiling") and above 0.99 × it ("%s comes close").
+
+  In `tests/unit/test_combat_damage.gd`:
+  - Add `const DamageType = CombatEffectData.DamageType`. `test_damage_type_picks_its_defense` becomes a table over the fixture's `_effect` (base 50) and `_caster`, each case's target `CharacterAttributesData.make(case.target)`, within 0.01, with the doc "calculate_damage() cuts the value by 100 / (100 + defence): Physical reads the target's armor, Spirit its Ward, Mixed their average, True neither. The target's own Spirit no longer defends.": "physical, armor 10" → 50 × 100 / 110; "physical, armor 100 halves" (and Ward 30) → 25.0; "physical ignores Ward" (Ward 100) → 50.0; "spirit, Ward 10" → 50 × 100 / 110; "spirit ignores armor and the target's Spirit" (armor 100, Spirit 200) → 50.0; "mixed, armor 20 and Ward 40" → 50 × 100 / 130; "true ignores both" (armor and Ward 100) → 50.0.
+  - `before_each` builds `_caster` and `_target` with `make()`. `test_value_adds_each_attribute_times_its_scaling` drops "resilience" and "willpower", its "foundation" case becomes `{"name": "mind", "base": 50.0, "scaling": {"mind_scaling": 1.0}, "expected": 60.0}`, "strength at 50" takes the caster `make({&"strength": 50.0})`, and its doc says "six". `test_high_defense_doesnt_go_negative` uses `make({&"armor": 10000.0})`.
+
+  In `tests/unit/test_stat_modifier_stack.gd`, `test_derived_vitals_are_not_attributes` becomes `test_derived_stats_are_not_attributes`: `attribute_of()` is -1 ("%s is not an attribute") for MAX_HEALTH, MAX_STAMINA, MAX_MADRA, ARMOR, WARD, STAMINA_REGEN, DODGE_CHANCE, MADRA_COST_CUT and COOLDOWN_CUT.
+
+- [x] **Step 2: Run them and see them fail.**
+  `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_character_attributes_data.gd,res://tests/unit/test_combat_damage.gd,res://tests/unit/test_stat_modifier_stack.gd -gexit`
+  Expected: FAIL: the three scripts don't parse (no `make`, `AttributeType.MIND` or `Stat.ARMOR`), so GUT runs none of their tests and can still exit 0.
+
+- [x] **Step 3: Rewrite `CharacterAttributesData`.**
+  - Class doc: "The stat block of one combatant: an enemy's authored block, or the player's fight snapshot from `CharacterManager.get_total_attributes_data()`. It is not the player's saved progress. Old saves and the enemy `.tres` files name this script by path, so never move or rename it."
+  - Delete the 8-argument `_init()`, `foundation`, `resilience`, `willpower`, `STAMINA_PER_BODY` and `MADRA_PER_FOUNDATION`. `add_to_attribute()` stays until Task 1.3.
+  - The enum's comment: "stored as ints: append only (MIND was FOUNDATION, int 4)". Value docs: STRENGTH "Physical technique damage", BODY "Max Health", AGILITY "Max Stamina, Stamina regen and dodge", SPIRIT "Spirit technique damage", MIND "Max Madra", CONTROL "Cheaper techniques and shorter cooldowns". `armor`: "Cuts physical damage taken." `ward`: "Cuts Spirit damage taken."
+  - Max Health = body × `HEALTH_PER_BODY`, max Stamina = agility × `STAMINA_PER_AGILITY`, regen = agility × `STAMINA_REGEN_PER_AGILITY` a second, max Madra = mind × `MADRA_PER_MIND`. Dodge = `flattening_curve(agility - STAT_BASELINE, DODGE_CEILING, DODGE_HALF_POINT)`; each cut is the same curve over `control - STAT_BASELINE` with its own ceiling and half point. `flattening_curve()` = `ceiling * x / (x + half_point)`, `x = maxf(0.0, points_above_baseline)`.
+  - `make()` starts from `new()`, sets `&"armor"` and `&"ward"` directly and each stat key through `set_attribute(stat_from_key(key), value)`; an unknown key logs `Log.error` and is skipped. `stat_key()` is the enum key in lower case (`&""` and a `Log.error` for no stat); `stat_from_key()` returns the stat with that key, else -1. `get_attribute()` and `set_attribute()` keep six match arms. `_to_string()` prints the six stats, armor and Ward.
+
+- [x] **Step 4: Reshape `StatModifierData.Stat`** to the Interfaces' list (runtime only, so its ints are free). Enum doc: "the six stats (named as in AttributeType and mapped to it by name), then the derived stats". New members' docs: armor and Ward come from gear, regen is per second, dodge and the cuts are fractions 0..1. `for_attribute()` and `attribute_of()` stay.
+
+- [x] **Step 5: Switch `CombatEffectData` to armor and Ward.**
+  - Delete `resilience_scaling` and `willpower_scaling`. Rename `foundation_scaling` to `mind_scaling` ("Scales with caster's Mind"); in `power_font.tres` (`Resource_damage`), `foundation_scaling = 0.5` becomes `mind_scaling = 0.5`. `get_scaling()` has six arms.
+  - `calculate_damage()`'s defence: PHYSICAL `target_attributes.armor`, SPIRIT `target_attributes.ward`, MIXED `(armor + ward) / 2.0`, TRUE none. The `damage * (100.0 / (100.0 + defence))` line and the null-target branch stay; the log names become "Armor", "Ward" and "Mixed (Armor+Ward)/2".
+  - `DamageType` docs: PHYSICAL "Cut by the target's armor", SPIRIT "Cut by the target's Ward", MIXED "Cut by the average of armor and Ward".
+
+- [x] **Step 6: Update the other references and delete the dead scripts.**
+
+  | File | Change |
+  |---|---|
+  | `change_vitals_effect_data.gd` | `foundation_madra_multiplier` becomes `mind_madra_multiplier` ("Multiplies the character's MIND"); `get_final_madra_change()` reads `AttributeType.MIND`, `describe()` prints `"%s%% Mind as Madra"`, `_to_string()` `MindMadraMul`. |
+  | `aura_well_encounter.tres` | In `Resource_rest_effect`, `foundation_madra_multiplier = 2.0` becomes `mind_madra_multiplier = 2.0`. |
+  | `starving_dreadbeast.tres`, `ravenous_dreadbeast.tres` | `foundation = 12.0` becomes `mind = 12.0` (the loader would silently drop the old key). Task 1.9 writes the other stats, armor and Ward. |
+  | `cultivators_cowl.tres` | `attribute_bonuses = { 3: 1.0 }`, dropping `7: 3.0`, which would index past the enum. |
+  | `reinforced_robes.tres` | `attribute_bonuses = { 1: 4.0 }`, dropping `6: 2.0`. `leeching_ring.tres` keeps `4: 2.0`, now Mind. |
+  | `abilities_view.gd` | `_ATTRIBUTE_ICONS` loses RESILIENCE and WILLPOWER; FOUNDATION becomes MIND, keeping `foundation_icon.png`. |
+  | `character_view.gd` | `ATTRIBUTE_DETAILS` loses RESILIENCE and WILLPOWER. BODY: "Physical constitution. Determines your Health.", `["Max Health = Body × %d" % CharacterAttributesData.HEALTH_PER_BODY]`. AGILITY: "Speed and footwork. Determines your Stamina.", `["Max Stamina = Agility × %d" % CharacterAttributesData.STAMINA_PER_AGILITY]`. SPIRIT: "Spiritual awareness and power. Scales Madra-based abilities.", `[]`. FOUNDATION becomes MIND, keeping its description, with `["Max Madra = Mind × %d" % CharacterAttributesData.MADRA_PER_MIND]`. The class doc says "six". |
+  | `character_view.tscn` | Delete `ResilienceTile`, `WillpowerTile` and their ext_resources `7_res` and `11_wil`. `FoundationTile` becomes `MindTile`, `attribute_name = "Mind"`, keeping `attribute_type = 4` and `icon_texture = ExtResource("9_fnd")`. Both grids keep `columns = 4` until Task 1.16. |
+  | Dead scripts | `git rm -r scenes/abilities/ability_stats_display scenes/abilities/stat_label scenes/abilities/stat_tooltip` |
+
+- [x] **Step 7: Move the remaining tests to `make()` and the new names.**
+  `CharacterAttributesData.new()` with all eight positional values at 10.0 becomes `make()` at `test_combat_effect_types.gd:37`, `test_award_attribute_effect_data.gd:9`, `test_player_vitals_manager.gd:29`, `test_resource_manager.gd:35`, `test_training_flow.gd:23`, `test_adventure_flow.gd:36`, `test_power_font_buff_strip.gd:30` and `test_empty_palm_interrupt.gd:43`. Then:
+
+  | Test file | Change |
+  |---|---|
+  | `test_combat_effect_data.gd` | The field list sets `strength_scaling` 1, body 2, agility 3, spirit 4, `mind_scaling` 5 and `control_scaling` 6 (no resilience or willpower), so each stat still reads `attribute + 1`; the unset case reads CONTROL; the breakdown test uses `mind_scaling = 0.5` and `make({&"strength": 17.0, &"body": 16.0, &"agility": 14.0, &"spirit": 11.0, &"mind": 12.0, &"control": 12.0})`. |
+  | `test_character_manager.gd` | The fixture's `_attributes` and `_save.character_attributes` use `make()`. Delete `test_custom_attribute_values` and `test_attribute_count`. `test_totals_equal_base_with_nothing_equipped` uses `make({&"strength": 5.0, &"body": 15.0, &"agility": 20.0, &"spirit": 8.0, &"mind": 12.0, &"control": 3.0})` and expects those values. `test_each_attribute_receives_its_own_bonus` keeps six entries (MIND 5.0 gives 15.0); `test_equip_and_unequip_accessory_updates_totals` uses MIND. |
+  | `test_change_vitals_effect_data.gd` | Foundation becomes Mind: `attrs.mind`, `mind_madra_multiplier`, the keys `"mind"` and `"mind_mult"`, the case names. |
+  | `test_player_vitals_manager.gd` | `test_equipping_body_gear_raises_max_health_and_stamina` becomes `test_equipping_body_gear_raises_max_health`, without `max_stamina`. New `test_equipping_agility_gear_raises_max_stamina`: `{AttributeType.AGILITY: 4.0}` gives `_vitals.max_stamina == 70.0`, "14 Agility x 5". The Foundation accessory test becomes `test_equipping_a_mind_accessory_raises_max_madra`: `{AttributeType.MIND: 2.0}` gives 120.0, "12 Mind x 10". |
+  | `test_resource_manager.gd` | Line 324: `_save.character_attributes.mind = 12.0`, in the test renamed `test_adventure_capacity_follows_mind_not_stage_cap`. |
+  | `test_save_round_trip.gd` | Line 52: `make({&"strength": 12.0, &"body": 13.0, &"agility": 14.0, &"spirit": 15.0, &"mind": 16.0, &"control": 17.0, &"armor": 18.0, &"ward": 19.0})`, no field at its default. |
+  | `test_technique_slot_math.gd` | Line 105: `make({&"strength": 13.0, &"agility": 7.0})`; the precondition of 27 holds. |
+  | `test_fight_rules.gd` | Line 102: `make({&"strength": 99.0, &"body": 7.5, &"agility": 99.0, &"spirit": 99.0, &"mind": 99.0, &"control": 99.0})`. |
+  | `test_equipment.gd` | Line 67 expects 6, "all six stats"; line 105 uses MIND; lines 146 and 154 use SPIRIT for RESILIENCE (`Stat.SPIRIT` is 2.0). |
+  | `test_book_text.gd` | WILLPOWER 1.5 becomes CONTROL 1.5: `["+4 Strength", "-2 Body", "+1.5 Control"]`, comment "Strength, Body, Control". |
+  | `test_items_md_parser.gd` | The negative case is `"CONTROL-2"` → `{AT.CONTROL: -2.0}`; the section markdown's `WILLPOWER+1` becomes `MIND+1`. |
+  | `test_adventure_flow.gd` | The stat Foundation becomes Mind (the stage keeps its name): `MIND_BONUS`, `_set_mind()`, `_equip_mind_helmet()`, `test_higher_mind_raises_threshold`, `test_higher_mind_raises_budget_ceiling`, `test_equipment_mind_bonus_raises_capacity`, the header doc, the section header and the messages. Lines 184–185: `var total := CharacterAttributesData.make({&"mind": _save.character_attributes.mind + MIND_BONUS})`. |
+  | `test_power_font_buff_strip.gd` | Line 36: `make({&"mind": 20.0})`; line 52 uses BODY for RESILIENCE. |
+  | `test_empty_palm_interrupt.gd` | Line 49: `make({&"mind": 15.0})`. |
+  | `test_character_book.gd` | `"WillpowerTile"` becomes `"MindTile"` and WILLPOWER becomes MIND (`test_values_come_from_character_manager`, `test_opening_shows_strength`). |
+  | `test_vitals_plate.gd` | Line 388 uses MIND. |
+  | `test_zone_action_cards.gd` | `_equip_foundation_ring(foundation)` becomes `_equip_mind_ring(mind)` with MIND; the comments at lines 100 and 313–314 say Mind. |
+
+- [x] **Step 8: Refresh the class cache** with the shared notes' `--import`. Expected: no parse errors; `git status --short project.godot` prints nothing.
+
+- [x] **Step 9: Run the Step 2 command, then `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.** Expected: PASS for both, with no script running zero tests.
+
+- [x] **Step 10: Commit** the Modify files and the 23 test files by name (`git rm` staged the deletions): `git commit -m "refactor(stats): six stats with armor and Ward"`. Body: "Mind replaces Foundation in place (int 4); Resilience and Willpower leave the end of the enum. The stat block gains armor, Ward and the derived formulas: Stamina comes from Agility, armor cuts physical damage, Ward cuts Spirit damage and Mixed takes their average. The unused stat-pill scripts no longer parse, so they go." (+ Co-Authored-By line)
+
+---
+
+### Task 1.2: The training record, the level curve and the stage cap
+
+Before Step 1, invoke `godot-prompter:resource-pattern` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Create: `scripts/resource_definitions/character/stat_training_data.gd`, `scripts/resource_definitions/character/stat_progression_data.gd`, `resources/character/stat_progression.tres` (a new folder).
+- Modify: `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd`, `resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres`, `resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres`, `singletons/cultivation_manager/cultivation_manager.gd`.
+- Test: `tests/unit/test_stat_training_data.gd` (new), `tests/unit/test_stat_progression_data.gd` (new), `tests/unit/test_cultivation_manager.gd`, `tests/unit/test_foundation_tribulation_data.gd`.
+
+**Interfaces:**
+- Consumes: `CharacterAttributesData.stat_key()`, `AttributeType`, `STAT_BASELINE` (Task 1.1).
+- Produces:
+  - `StatTrainingData`: `levels: Dictionary[StringName, int]`, `xp: Dictionary[StringName, float]`, `static func new_default() -> StatTrainingData`, `get_level(stat: CharacterAttributesData.AttributeType) -> int`, `set_level(stat, level: int) -> void`, `get_xp(stat) -> float`, `set_xp(stat, value: float) -> void`.
+  - `StatProgressionData`: `xp_to_level_two`, `xp_growth`, `value_per_level` (`float`), `get_xp_to_next(level: int) -> float`, `get_value_for_level(level: int) -> float`.
+  - `AdvancementStageResource.stat_level_cap: int`; `CultivationManager.get_stat_level_cap() -> int`.
+
+- [x] **Step 1: Write the failing tests.**
+  `tests/unit/test_stat_training_data.gd`, new, header doc "Unit tests for StatTrainingData, the player's saved training record: a level and the XP toward the next one for each stat, keyed by stat key.":
+  - `test_new_default_writes_every_stat_at_level_one`: `new_default()` holds six levels and six XP entries ("one level and one XP per stat"), each stat key at level 1 ("%s starts at Lv 1") and XP 0.0 ("%s starts with no XP").
+  - `test_a_missing_stat_reads_as_level_one_with_no_xp`: on `StatTrainingData.new()`, `get_level(SPIRIT)` is 1 and `get_xp(SPIRIT)` 0.0.
+  - `test_set_level_and_xp_store_under_the_stat_key`: `set_level(MIND, 4)` and `set_xp(MIND, 12.5)` store 4 and 12.5 under `&"mind"`, and the getters read them back.
+
+  `tests/unit/test_stat_progression_data.gd`, new, header doc "Unit tests for StatProgressionData: the XP each stat level costs and the value each level gives, on curves built here and on the shipped one.", with `_curve(xp_to_level_two: float, growth: float, value_per_level: float) -> StatProgressionData`:
+  - `test_each_level_costs_more_than_the_last`: on `_curve(100.0, 1.25, 1.0)`, `get_xp_to_next()` of levels 1, 2 and 3 is 100.0, 125.0 and 156.25, within 0.0001 ("Lv %d to %d").
+  - `test_value_for_level`, on `_curve(100.0, 1.25, per_level)`: "Lv 1 is the baseline" (1.0 a level, Lv 1) → `STAT_BASELINE`; "Lv 6 at 1 a level" → `STAT_BASELINE + 5.0`; "Lv 3 at 2 a level" → `STAT_BASELINE + 4.0`.
+  - `test_the_shipped_curve_starts_at_the_baseline_and_grows`: `res://resources/character/stat_progression.tres` loads as a StatProgressionData ("%s loads as a StatProgressionData"; return if not), `get_value_for_level(1) == STAT_BASELINE`, and `get_xp_to_next(2) > get_xp_to_next(1)` ("each level costs more").
+  - `test_the_shipped_curve_holds_the_specs_numbers` (doc: the class defaults are the same numbers, so an editor re-save that drops a line, then a change of that default, would retune the game with nothing else noticing): the shipped curve loads as above, and its `xp_to_level_two` is 100.0 ("Lv 2 costs 100 XP"), `xp_growth` 1.25 ("each later level costs 1.25 times the last") and `value_per_level` 1.0 ("each level adds 1 point").
+
+  In `tests/unit/test_cultivation_manager.gd`, a `# STAT LEVEL CAP` section (the header doc also names the caps the shipped stage files hold):
+  - `test_stat_level_cap_follows_the_current_stage` (doc: "The cap is read from the current stage each time, so the breakthrough raises it."): with `_stage_resource.stat_level_cap = 4` and `_with_copper()`'s stage at 9, the cap is 4 ("the stage's own cap"); `advance_to_next_stage()` is true ("precondition: the breakthrough lands"); then the cap is 9 ("Copper's cap once reached").
+  - `test_no_stage_resource_means_no_stat_cap`: after `_use_stages()` with an empty typed array, the cap is 0.
+  - `test_the_shipped_stages_cap_stats_at_10_and_20` (doc: Foundation's cap equals the class default, so a re-save that drops the line, then a change of the default, would retune the game unnoticed), a table over `FOUNDATION_STAGE_PATH` and `COPPER_STAGE_PATH`, two new consts naming the two stage files: each loads as an `AdvancementStageResource` ("%s's stage file loads"; skip the case if not), and its `stat_level_cap` is 10 for Foundation and 20 for Copper ("%s caps the stats at Lv %d").
+
+  In `tests/unit/test_foundation_tribulation_data.gd`, under FOUNDATION TO COPPER (and "the breakthrough raising the stats' cap" in the header doc), `test_the_breakthrough_raises_the_stat_cap`: with `_load_stage(FOUNDATION_PATH)` and `_load_stage(COPPER_PATH)` (return if either is null), Foundation's cap is above 1 ("Foundation lets the stats grow past Lv 1") and Copper's above Foundation's ("Copper's cap is above Foundation's").
+
+- [x] **Step 2: Run them and see them fail.**
+  `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_stat_training_data.gd,res://tests/unit/test_stat_progression_data.gd,res://tests/unit/test_cultivation_manager.gd,res://tests/unit/test_foundation_tribulation_data.gd -gexit`
+  Expected: FAIL: the scripts don't parse (no `StatTrainingData`, `StatProgressionData`, `stat_level_cap` or `get_stat_level_cap`).
+
+- [x] **Step 3: Create `StatTrainingData`** (`class_name StatTrainingData extends Resource`).
+  - Doc: "The player's training record: a level and the XP toward the next level for each of the six stats, keyed by `CharacterAttributesData.stat_key()`. Saved as `SaveGameData.stat_training`. In play, CharacterManager is its only reader and writer; SaveGameData seeds it (`new_current()`) and rewrites it when a save loads (the version 2 migration and `repair()`)."
+  - `@export var levels: Dictionary[StringName, int] = {}` and `@export var xp: Dictionary[StringName, float] = {}`. `get_level()` returns `levels.get(key, 1)`, `get_xp()` `xp.get(key, 0.0)`; the setters write under the key without clamping (CharacterManager enforces the rules); `new_default()` writes level 1 and XP 0.0 for every stat through them.
+
+- [x] **Step 4: Create `StatProgressionData`** (`class_name StatProgressionData extends Resource`) **and its instance.**
+  - Doc: "How stat levels grow: the XP each level costs and the value each level gives. Lv 1 is `CharacterAttributesData.STAT_BASELINE`."
+  - Exports `xp_to_level_two: float = 100.0`, `xp_growth: float = 1.25` and `value_per_level: float = 1.0` (starting values). `get_xp_to_next(level)` = `xp_to_level_two * pow(xp_growth, level - 1)`; `get_value_for_level(level)` = `CharacterAttributesData.STAT_BASELINE + (level - 1) * value_per_level`.
+  - `resources/character/stat_progression.tres`, every value explicit:
+  ```
+  [gd_resource type="Resource" script_class="StatProgressionData" format=3]
+
+  [ext_resource type="Script" path="res://scripts/resource_definitions/character/stat_progression_data.gd" id="1_curve"]
+
+  [resource]
+  script = ExtResource("1_curve")
+  xp_to_level_two = 100.0
+  xp_growth = 1.25
+  value_per_level = 1.0
+  ```
+
+- [x] **Step 5: Add the cap to the stages.** In `advancement_stage.gd`, after `max_core_density_level`: `## The highest level each of the six stats can be trained to in this stage. Training past it is lost; gear can still lift a total above it.` and `@export var stat_level_cap: int = 10`. Write `stat_level_cap = 10` in `foundation_advancement_stage.tres` after `core_xp_scaling_factor`, and `stat_level_cap = 20` in `copper_advancement_stage.tres` after `max_core_density_level` (starting values).
+
+- [x] **Step 6: Add `func get_stat_level_cap() -> int` to `cultivation_manager.gd`**, in PUBLIC LOGIC FUNCTIONS after `get_core_density_cap()`: `_get_current_stage_resource().stat_level_cap`, or 0 with no stage resource, read live like `get_core_density_cap()`. Doc: "The highest level the six stats can be trained to in the current stage. It is read from the stage each time, so the breakthrough raises it. 0 when there is no save or no stage resource."
+
+- [x] **Step 7: Register the class names** with the `--import`. Expected: `.gd.uid` files beside the two new scripts and the two new tests; `git status --short project.godot` prints nothing.
+
+- [x] **Step 8: Run the Step 2 command, then `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.** Expected: PASS for both.
+
+- [x] **Step 9: Commit** the files above and the four `.gd.uid` files by name: `git commit -m "feat(stats): add the training record and stage cap"`. Body: "Levels and XP get a saved record keyed by stat name, the level curve becomes data, and each stage gets a stat cap, read live so the breakthrough raises it with nothing stored." (+ Co-Authored-By line)
+
+---
+
+### Task 1.3: Train stats by level and XP up to the cap
+
+Before Step 1, invoke `godot-prompter:save-load` (the versioned `.tres` save stays; CLAUDE.md overrides the skill's JSON advice) and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `singletons/persistence_manager/save_game_data.gd`, `singletons/character_manager/character_manager.gd`, `scripts/resource_definitions/character/character_attributes_data.gd`, `scripts/resource_definitions/effects/award_attribute_effect_data.gd`, `singletons/dev_manager/dev_commands.gd`, `scenes/abilities/abilities_view.gd`.
+- Test: `tests/unit/test_character_manager.gd`, `tests/unit/test_award_attribute_effect_data.gd`, `tests/integration/test_dev_commands.gd`, `tests/integration/test_abilities_book.gd`, `tests/unit/test_save_migration.gd`, `tests/unit/test_save_round_trip.gd`; Step 6 moves `tests/unit/test_player_vitals_manager.gd`, `tests/unit/test_change_vitals_effect_data.gd`, `tests/unit/test_resource_manager.gd`, `tests/integration/test_training_flow.gd`, `tests/integration/test_adventure_flow.gd` to levels.
+
+**Interfaces:**
+- Consumes: `StatTrainingData`, `StatProgressionData`, `stat_progression.tres`, `CultivationManager.get_stat_level_cap()` (Task 1.2); `CharacterAttributesData.STAT_BASELINE` (Task 1.1).
+- Produces:
+  - `SaveGameData.stat_training: StatTrainingData`. `SaveGameData.new()` holds an empty record (never null) that reads Lv 1 and 0 XP everywhere and gains a key on its first write; `new_current()` holds `StatTrainingData.new_default()`.
+  - `CharacterManager.stat_progression: StatProgressionData`, the curve's one holder: anything needing a level's value reads `CharacterManager.stat_progression.get_value_for_level(level)`.
+  - Signals `stat_xp_changed(stat: AttributeType, xp: float, xp_to_next: float)` and `stat_level_changed(stat: AttributeType, level: int)`. `add_stat_xp()` and `add_stat_levels()` emit one `stat_level_changed` and one log line per level gained, `stat_xp_changed` once per call, and `stats_changed` once per call only when a level changed. `set_stat_level()` emits each signal once and logs nothing. A save reset emits `stats_changed` only.
+  - `get_stat_level(stat) -> int`, `get_stat_xp(stat) -> float`, `get_stat_xp_to_next(stat) -> float`, `get_stat_level_cap() -> int`, `is_stat_capped(stat) -> bool`, `get_trained_value(stat) -> float`, `get_trained_values() -> Dictionary` (AttributeType → float), `add_stat_xp(stat, amount: float) -> void`, `add_stat_levels(stat, count: int) -> void`, `set_stat_level(stat, level: int, xp: float = 0.0) -> void`.
+  - Removed: `base_attribute_changed`, `add_base_attribute()`, `CharacterAttributesData.add_to_attribute()`.
+
+- [x] **Step 1: Write the failing tests.**
+  `tests/unit/test_character_manager.gd`'s fixture gains `const TEST_CAP: int = 5` and the vars `_original_stages` and `_original_progression`: `before_each` saves `CultivationManager.advancement_stage_resources` and `CharacterManager.stat_progression` (`after_each` restores both), installs one `AdvancementStageResource.new()` with `stat_level_cap = TEST_CAP` and the curve `StatProgressionData.new()` with `xp_to_level_two = 10.0`, `xp_growth = 2.0`, `value_per_level = 1.0` (levels cost 10, 20, 40, 80), and binds `SaveGameData.new_current()` with `save_data_reset`. Drop `_attributes` and the `_save.character_attributes` line. Then, in `test_each_level_gained_signals_and_logs_once`, replace "and logs two lines containing \"reached Lv\" (\"one log line a level\")" with: "and, after `watch_signals(LogManager)`, emits `LogManager.message_logged` twice (`assert_signal_emit_count`, \"one log line a level\"), the line at index 0 and the line at index 1 (`get_signal_parameters(LogManager, \"message_logged\", i)[0]`) each containing \"reached Lv\"." New tests:
+  - `test_a_new_save_starts_every_stat_at_level_one`: every stat is Lv 1 with 0.0 XP, a trained value of `STAT_BASELINE`, and not capped.
+  - `test_levels_come_from_the_bound_save`: binding a `new_current()` save whose Spirit is Lv 6 (`save_data_reset`) gives `get_stat_level(SPIRIT) == 6` and `get_stat(Stat.SPIRIT) == 15.0` ("Lv 6 on the test curve").
+  - `test_trained_values_list_every_stat`: with Strength Lv 3 and Mind Lv 2, `get_trained_values()` is `{STRENGTH: 12.0, BODY: 10.0, AGILITY: 10.0, SPIRIT: 10.0, MIND: 11.0, CONTROL: 10.0}`.
+  - `test_capped_reads_the_trained_level_not_the_total` (doc: "The cap counts trained levels only: gear can lift the total past it."): Strength at `TEST_CAP - 1` with a FLAT +10 Strength under `TEST_SOURCE` is not capped ("gear does not cap it"); at `TEST_CAP` it is, and `get_stat_level_cap() == TEST_CAP`.
+  - `test_stat_xp_buys_levels_and_keeps_the_remainder`, each case from Spirit Lv 1, XP → level, XP left: "5 of 10, short of Lv 2" 5.0 → 1, 5.0; "the exact cost of Lv 2" 10.0 → 2, 0.0; "Lv 2 and 3 over" 13.0 → 2, 3.0; "Lv 3 and 5 over" 35.0 → 3, 5.0.
+  - `test_the_level_that_reaches_the_cap_drops_the_leftover`: 1000.0 Spirit XP gives Lv `TEST_CAP` with 0.0 XP.
+  - `test_xp_at_the_cap_is_lost`: Spirit at `TEST_CAP` holding 3.0 XP gets 50.0 more; XP is 0.0 ("the 3 held and the 50 earned are both lost"), no `stat_level_changed`, and `stat_xp_changed` carries `[SPIRIT, 0.0, get_stat_xp_to_next(SPIRIT)]`.
+  - `test_each_level_gained_signals_and_logs_once`: 35.0 Spirit XP emits `stat_level_changed` twice, `[SPIRIT, 2]` then `[SPIRIT, 3]`, and `stats_changed` once, and logs two lines containing "reached Lv" ("one log line a level").
+  - `test_xp_alone_leaves_the_stats_alone`: 5.0 Spirit XP emits no `stats_changed`, and `stat_xp_changed` with `[SPIRIT, 5.0, 10.0]`.
+  - `test_a_free_level_does_not_level`: with `CharacterManager.stat_progression.xp_to_level_two = 0.0`, 5.0 XP leaves Spirit at Lv 1.
+  - `test_add_stat_levels_stops_at_the_cap`, Body from → plus → level: "two from Lv 1" 1, 2 → 3; "three from Lv 4 stop at the cap" 4, 3 → `TEST_CAP`; "none at the cap" `TEST_CAP`, 1 → `TEST_CAP`; "none past the cap" `TEST_CAP + 2`, 1 → `TEST_CAP + 2`.
+  - `test_add_stat_levels_keeps_the_xp_until_the_cap`: Body Lv 2 holding 7.0 XP keeps 7.0 after one level, and has 0.0 after five more ("reaching the cap drops it").
+  - `test_add_stat_levels_signals_each_level`: two Body levels emit `stat_level_changed` twice, `stat_xp_changed` once and `stats_changed` once.
+  - `test_set_stat_level_sets_level_and_xp` (doc: "The dev setter: any level from 1, past the cap too, with its XP held inside the level, at most one point short of the next level's cost."), Agility (level, xp) → stored: "a level and XP" (3, 15.0) → (3, 15.0); "past the cap" (`TEST_CAP + 2`, 0.0) → unchanged; "below Lv 1" (0, 0.0) → (1, 0.0); "negative XP" (2, -4.0) → (2, 0.0); "XP at the cost of Lv 3 (20)" (2, 20.0) → (2, 19.0).
+  - `test_set_stat_level_signals_once_and_logs_nothing`: `set_stat_level(AGILITY, 4, 5.0)` emits `stat_level_changed` `[AGILITY, 4]`, `stat_xp_changed` `[AGILITY, 5.0, 80.0]` and `stats_changed` once, and no `LogManager.message_logged` ("a dev set is no level reached").
+
+  `tests/unit/test_award_attribute_effect_data.gd`: header doc "process() raises a stat by whole levels, up to the stage's cap". `before_each` saves `PersistenceManager.save_game_data` and `CultivationManager.advancement_stage_resources`, installs one `AdvancementStageResource.new()` (stage Foundation) with `stat_level_cap = 5`, then binds `SaveGameData.new_current()` with `PersistenceManager.save_game_data = …` and `PersistenceManager.save_data_reset.emit()`, so CharacterManager and CultivationManager (whose save gives the stage the cap is read from) share it. `after_each` restores the stages, then the original save, and emits `save_data_reset`. `test_process_sets_effect_type` stays; `test_process_adds_amount_to_the_attribute` gives way to:
+  - `test_process_raises_the_stat_by_whole_levels`: "the Aura Well's +1 Spirit" (SPIRIT, amount 1.0) → Lv 2; "+2 Body" (BODY, 2.0) → Lv 3.
+  - `test_a_level_past_the_cap_is_lost`: with Spirit at Lv 5, a Spirit award at its default amount leaves Lv 5.
+
+  `tests/integration/test_dev_commands.gd`: `test_add_attribute_adds_to_the_base_value` gives way to two tests, which Task 1.14 deletes with `add_attribute()`:
+  - `test_add_attribute_adds_levels`: `DevCommands.add_attribute(STRENGTH, 5.0)` returns "" and Strength is Lv `mini(6, CharacterManager.get_stat_level_cap())`.
+  - `test_add_attribute_does_nothing_at_the_cap`: with Strength at the cap (`CharacterManager.set_stat_level(STRENGTH, CharacterManager.get_stat_level_cap())`), call `watch_signals(LogManager)`. Then `add_attribute(STRENGTH, 1.0)` returns "" ("a capped stat is no failure"), the level stays at the cap, and `_dev_lines()` is empty ("nothing was done, so nothing is logged").
+
+  `tests/integration/test_abilities_book.gd`, `test_a_stat_change_previews_damage_again` (a level can be gained while the book is open): `_add_counting_ability()`, `_view.select_ability(EXTRA_ID)`, `CharacterManager.stats_changed.emit()`, `_hover("enforce")`, `_hover(EXTRA_ID)`; then `effect.calls == 2` ("the preview is worked out again after a stat change").
+
+  `tests/unit/test_save_migration.gd`: `test_reset_matches_a_fresh_save` also asserts the reset leaves a new `stat_training` (`assert_not_same` with the old one); new `test_a_new_save_holds_every_stat_at_level_one`: for every stat key, `SaveGameData.new_current().stat_training.levels.get(key)` is 1 ("%s is written at Lv 1") and `.xp.get(key)` is 0.0 ("%s is written with no XP"). Read the dictionaries, not `get_level()`/`get_xp()`, which give 1 and 0.0 for a missing key.
+
+  `tests/unit/test_save_round_trip.gd`'s `_full_save()`, after `character_attributes` (its "no field left at its default" guard fails as soon as the field exists):
+  ```gdscript
+  save.stat_training = StatTrainingData.new_default()
+  save.stat_training.set_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
+  save.stat_training.set_xp(CharacterAttributesData.AttributeType.SPIRIT, 37.5)
+  save.stat_training.set_level(CharacterAttributesData.AttributeType.STRENGTH, 3)
+  ```
+
+- [x] **Step 2: Run them and see them fail.**
+  `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_character_manager.gd,res://tests/unit/test_award_attribute_effect_data.gd,res://tests/integration/test_dev_commands.gd,res://tests/integration/test_abilities_book.gd,res://tests/unit/test_save_migration.gd,res://tests/unit/test_save_round_trip.gd -gexit`
+  Expected: FAIL. All but `test_abilities_book.gd` fail to parse (no `get_stat_level`, `set_stat_level`, `stat_progression` or `stat_training`); `test_a_stat_change_previews_damage_again` sees `calls` at 1, because the book still listens to `base_attribute_changed`.
+
+- [x] **Step 3: Add the record to `SaveGameData`.** In CHARACTER MANAGER, above `character_attributes`: `## The player's trained stats: a level and XP for each of the six. A stat missing from it reads as Lv 1.` and `@export var stat_training: StatTrainingData = StatTrainingData.new()`. `new_current()` also sets `save.stat_training = StatTrainingData.new_default()`, and `reset()` sets `stat_training = StatTrainingData.new_default()` after its copy loop (it stamps CURRENT_VERSION, so no migration would ever fill an empty record), so every new or reset save writes all six. In Step 1, `test_reset_matches_a_fresh_save` also asserts the reset's `stat_training.levels` holds every stat key.
+
+- [x] **Step 4: Build the training API in `CharacterManager`.** It emits the signals as the Interfaces say.
+  - `## The level curve: the XP each level costs and the value each level gives.` `@export var stat_progression: StatProgressionData = preload("res://resources/character/stat_progression.tres")`, and the two signals with `##` docs. Delete `base_attribute_changed` and `add_base_attribute()`. `_update_resources()` re-binds `live_save_data` and emits `stats_changed` once, with no per-attribute loop. The class doc and the `stats_changed` doc say "trained levels" for "base attributes".
+  - Readers: `get_stat_level()` and `get_stat_xp()` read `live_save_data.stat_training`; `get_stat_xp_to_next(stat)` = `stat_progression.get_xp_to_next(get_stat_level(stat))`; `get_stat_level_cap()` = `CultivationManager.get_stat_level_cap()`; `is_stat_capped(stat)` = `get_stat_level(stat) >= get_stat_level_cap()`; `get_trained_value(stat)` = `stat_progression.get_value_for_level(get_stat_level(stat))`, and `get_trained_values()` maps the six stats to it. Those two never call `get_stat()`: Task 1.6's gear source calls them from inside it. `_get_base_stat()` keeps its three `MAX_*` arms; any other stat returns `get_trained_value(StatModifierData.attribute_of(stat))`.
+  - `add_stat_xp(stat, amount)` follows `CultivationManager.add_core_density_xp()`: no save logs `Log.error`; a capped stat's XP becomes 0.0; otherwise the amount is added and each level the XP covers is paid for and raised, a cost of 0.0 or less logs `Log.error` and stops, and the level-up that reaches the cap sets the XP to 0.0 and stops.
+  - `add_stat_levels(stat, count)` raises one level at a time to `maxi(level, mini(level + count, cap))` (levels past the cap are lost) and keeps the XP inside the level, unless the call reaches the cap, which sets it to 0.0.
+  - One private helper raises a level for both: it writes the level, emits `stat_level_changed(stat, level)` and logs `LogManager.log_message("[b]%s[/b] reached Lv %d" % [get_attribute_display_name(stat), level])`.
+  - `set_stat_level(stat, level, xp = 0.0)`, the dev setter, stores `maxi(level, 1)` (it may exceed the cap) and `minf(maxf(xp, 0.0), maxf(cost - 1.0, 0.0))`, `cost` being the new level's `get_xp_to_next()`.
+  - Delete `add_to_attribute()` from `character_attributes_data.gd`; nothing calls it now.
+
+- [x] **Step 5: Point the callers at the new API.**
+  - `award_attribute_effect_data.gd`: `process()` calls `CharacterManager.add_stat_levels(attribute_type, roundi(amount))` and its `Log.info` says "levels". Class doc: "Raises one stat by `amount` whole levels (the Aura Well's +1 Spirit per training level), up to the stage's cap; levels past the cap are lost." The field names stay: `aura_well_spirit_award_effect.tres` stores `attribute_type = 3`.
+  - `dev_commands.gd`, until Task 1.14: `add_attribute()` keeps its stat check, returns `""` when `CharacterManager.is_stat_capped(attribute)`, else runs `_while_paused(CharacterManager.add_stat_levels.bind(attribute, roundi(amount)))` and returns `_succeed("Raised %s to Lv %d" % [CharacterManager.get_attribute_display_name(attribute), CharacterManager.get_stat_level(attribute)])`. Doc: "Adds whole levels to one stat, up to the stage's cap. Returns "" with nothing done at the cap. Refuses a value that is not a stat."
+  - `abilities_view.gd`: `_ready()` connects `CharacterManager.stats_changed` to `_on_stats_changed() -> void`, the renamed `_on_base_attribute_changed` (same body; doc "A stat can change while the book is open."). The `_value_previews` doc says "whenever a stat changes".
+
+- [x] **Step 6: Move the tests that set base values through `save.character_attributes` to levels.**
+
+  | Test file | Change |
+  |---|---|
+  | `test_character_manager.gd` | Delete `test_add_to_attribute_increases_value`, `test_add_to_multiple_attributes`, the three `test_add_base_attribute_*` tests and the section headers they empty. `test_totals_equal_base_with_nothing_equipped` sets STRENGTH 3, BODY 6, AGILITY 11, SPIRIT 1, MIND 4, CONTROL 2 with `set_stat_level()` and expects `STAT_BASELINE + level - 1` each. `test_equip_and_unequip_gear_updates_totals` checks `CharacterManager.get_trained_value(AttributeType.BODY) == 10.0` as the base. `test_a_listener_during_save_reset_sees_the_new_saves_gear` drops `next_save.character_attributes`. The header doc names the training API for `add_base_attribute()`. |
+  | `test_player_vitals_manager.gd` | Drop line 29. `test_base_attribute_change_still_moves_the_maxima` becomes `test_a_level_gained_moves_the_maxima`: after `add_stat_levels(AttributeType.BODY, 2)`, `_vitals.max_health == CharacterManager.get_stat(Stat.MAX_HEALTH)` and `> 100.0`. `test_gear_and_base_add_up` becomes `test_gear_and_levels_add_up`: the same equality and `> 140.0`. |
+  | `test_change_vitals_effect_data.gd` | `_set_attrs(body, mind)` becomes `_set_totals(body, mind)`: the source `&"test"` holds FLAT `body - STAT_BASELINE` on `Stat.BODY` and FLAT `mind - STAT_BASELINE` on `Stat.MIND`, removed in `after_each`. The table stays. |
+  | `test_resource_manager.gd` | Drop line 35. `_adventure_capacity()` returns `CharacterManager.get_total_attributes_data().get_max_madra()`; the Mind test calls `CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, 3)` instead of writing `.mind`. |
+  | `test_training_flow.gd` | Drop line 23. `_get_spirit()` becomes `_spirit_level() -> int` (`CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.SPIRIT)`); the asserts expect 2, "Lv 1 + one level", then 3. |
+  | `test_adventure_flow.gd` | Drop line 36. `_base_capacity()` returns `CharacterAttributesData.make({&"mind": CharacterManager.get_trained_value(CharacterAttributesData.AttributeType.MIND)}).get_max_madra()`. `_set_mind(value)` becomes `_set_mind_level(level)` (`CharacterManager.set_stat_level(MIND, level)`); the two "higher Mind" tests use level 11. The helmet test's `total` is `make({&"mind": CharacterManager.get_trained_value(MIND) + MIND_BONUS})`. |
+
+- [x] **Step 7: Run the Step 2 command with the five Step 6 files added to `-gtest` (`res://tests/unit/test_player_vitals_manager.gd,res://tests/unit/test_change_vitals_effect_data.gd,res://tests/unit/test_resource_manager.gd,res://tests/integration/test_training_flow.gd,res://tests/integration/test_adventure_flow.gd`), then `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.** Expected: PASS for both.
+
+- [x] **Step 8: Commit** the six Modify files and the 11 test files by name: `git commit -m "feat(stats): train stats by level and XP to the cap"`. Body: "The player's stats become levels with XP in a saved record, capped by the stage. XP and levels past the cap are lost, each level is logged, and the Aura Well and the dev command add levels." (+ Co-Authored-By line)
+
+---
+
+### Task 1.4: The version-2 save migration
+
+Before Step 1, invoke `godot-prompter:save-load` (CLAUDE.md's versioned `.tres` wins) and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `singletons/persistence_manager/save_game_data.gd`; `scenes/ui/dev_panel/tabs/saves_tab.gd` and `scenes/ui/dev_panel/tabs/saves_tab.tscn` (the session text's doc example and the scene's placeholder say "Version 1").
+- Test: `tests/unit/test_save_migration.gd`; `tests/integration/test_dev_panel_saves_tab.gd` (line 304 pins "Version 1").
+
+**Interfaces:**
+- Consumes: `StatTrainingData` (Task 1.2), `AdvancementStageResource.stat_level_cap`, `CultivationManager.advancement_stage_resources`, `CharacterAttributesData.STAT_BASELINE`, `AttributeType`, `get_attribute()`.
+- Produces: `SaveGameData.CURRENT_VERSION == 2`. Every v1 save loads with a complete `stat_training` and `character_attributes == null`. For a record missing a stat, `verify()` is false and `repair()` returns `"stat_training"`.
+
+- [x] **Step 1: Write the failing tests in `tests/unit/test_save_migration.gd`.**
+  - Add `const AttributeType = CharacterAttributesData.AttributeType`, `const Stage := CultivationManager.AdvancementStage`, and `var _original_stages: Array[AdvancementStageResource]`, saved in a new `before_each` and restored in `after_each` before the temp-file cleanup; the header doc names version 2's stat levels.
+  - Helpers: `_use_stat_caps(caps: Dictionary) -> void` installs one `AdvancementStageResource.new()` per entry (`stage_id` the key, `stat_level_cap` the value); `_levels(data: SaveGameData) -> Dictionary` returns `{stat: data.stat_training.get_level(stat)}` for the six.
+  - `test_repair_clears_an_unknown_zone` and `test_repair_keeps_a_known_zone` build `new_current()` (a bare `new()` now holds an incomplete record). `test_reset_matches_a_fresh_save` loses its two `character_attributes` lines; both values are now null.
+  - `test_v2_turns_old_stat_values_into_levels` (doc: "A v1 save's stat values become levels: one per point above the Lv 1 value, rounded down, from Lv 1, up to the cap of the save's own stage (no cap for a stage with no resource), with no XP. The old values are cleared."): `_use_stat_caps({Stage.FOUNDATION: 5, Stage.COPPER: 8})`. Each case is a `SaveGameData.new()` with `save_version = 1`, `current_advancement_stage` the case's stage and `character_attributes = make(values)`, then `migrate()`; every stat holds the case's level (1 when unlisted) and 0.0 XP, and `character_attributes` is null ("the old values are cleared"), each message naming the case. Cases, stage and values → levels: "Aura Well Spirit 13 is Lv 4" Foundation, Spirit 13.0 → Spirit 4; "Spirit past the cap stops at it" Foundation, Spirit 25.0 → 5; "the save's own stage's cap" Copper, Spirit 25.0 → 8; "a fraction rounds down" Foundation, Strength 12.5 → Strength 3; "below the Lv 1 value is Lv 1" Foundation, Body 8.0 → none above 1; "no stage resource, no cap" `Stage.IRON`, Spirit 25.0 → 16.
+  - `test_v2_with_no_old_stats_writes_every_stat_at_level_one`: a v1 `SaveGameData.new()`, migrated, holds level 1 under every stat key and passes `verify()` ("the record is whole").
+  - `test_v2_skips_a_current_save`: a `new_current()` save with Spirit Lv 3 and `character_attributes = make({&"spirit": 20.0})` still has Lv 3 after `migrate()` ("a version 2 step, which this save has had") and keeps `character_attributes`.
+  - `test_repair_fills_a_missing_stat`: a `new_current()` record with Spirit Lv 4 and `&"mind"` erased from `levels` fails `verify()` ("a record missing a stat is invalid"); `repair()` returns `PackedStringArray(["stat_training"])` ("repair() names what it changed"), writes `&"mind"` ("written out at Lv 1, not left to the default") and keeps Spirit Lv 4 ("the rest is kept"); `verify()` then passes.
+  - `test_repair_makes_a_missing_record`: with `stat_training = null`, `verify()` fails, `repair()` returns `PackedStringArray(["stat_training"])`, and `verify()` passes ("every stat is written at Lv 1").
+  - `test_repair_fills_a_missing_xp_entry`: a `new_current()` record with Spirit at 40.0 XP and `&"mind"` erased from `xp` (precondition: Mind's level is still there) fails `verify()`; `repair()` returns `PackedStringArray(["stat_training"])`, writes Mind's XP as 0.0 ("Mind's XP is written out at 0, not left to the default") and keeps Spirit's 40.0 ("the rest is kept"); `verify()` then passes.
+  - `test_repair_fixes_the_zone_and_the_record_together` (doc: each check runs on its own, so a save faulty in both is repaired in both): a `new_current()` save with `current_selected_zone_id = "NoSuchZone"` and `&"body"` erased from `levels` fails `verify()`; `repair()` returns `PackedStringArray(["current_selected_zone_id", "stat_training"])` ("repair() names both"), the zone is "" and Body's level is 1; `verify()` then passes.
+  - `test_to_string_lists_the_stat_levels`: `str()` of a `new_current()` save with Spirit Lv 6 contains `"%s: %d"` of each stat's key and level ("%s's level") and no "CharacterAttributes" ("the legacy field is gone from the dump").
+  - And this file as an older build wrote it:
+  ```gdscript
+  ## A v1 file as an older build wrote it. The Aura Well's Spirit becomes levels, and
+  ## the loader drops the stats this build no longer has (Foundation, Resilience,
+  ## Willpower).
+  func test_an_old_file_keeps_its_aura_well_spirit() -> void:
+  	_use_stat_caps({Stage.FOUNDATION: 5})
+  	var loaded := _load_hand_written_save("""[gd_resource type="Resource" script_class="SaveGameData" load_steps=3 format=3]
+
+  [ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
+  [ext_resource type="Script" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="2_attrs"]
+
+  [sub_resource type="Resource" id="Resource_attrs"]
+  script = ExtResource("2_attrs")
+  strength = 12.5
+  spirit = 13.0
+  foundation = 15.0
+  resilience = 12.0
+  willpower = 11.0
+
+  [resource]
+  script = ExtResource("1_save")
+  save_version = 1
+  character_attributes = SubResource("Resource_attrs")
+  """)
+  	assert_not_null(loaded)
+  	if loaded == null:
+  		return
+  	loaded.migrate()
+  	assert_eq(loaded.save_version, SaveGameData.CURRENT_VERSION)
+  	assert_eq(_levels(loaded), {AttributeType.STRENGTH: 3, AttributeType.BODY: 1, AttributeType.AGILITY: 1,
+  		AttributeType.SPIRIT: 4, AttributeType.MIND: 1, AttributeType.CONTROL: 1})
+  	assert_null(loaded.character_attributes)
+  ```
+
+- [x] **Step 2: Run it and see it fail.**
+  `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_save_migration.gd -gexit`
+  Expected: FAIL: with no version 2 step, the levels stay at 1, `character_attributes` stays set, `verify()` ignores the record and the dump prints the legacy field.
+
+- [x] **Step 3: Implement the step in `save_game_data.gd`.**
+  - `CURRENT_VERSION = 2`. `@export var character_attributes: CharacterAttributesData = null`, doc "Legacy (version 1): the stats as values, before levels. Read only by `_migrate_to_v2()`, which clears it." `migrate()` runs `if save_version < 2: _migrate_to_v2()` after the v1 line.
+  - `_migrate_to_v2() -> void`, a version step in place like `_migrate_to_v1()`: create `stat_training` if null; for each stat, `level = maxi(1, 1 + floori(old - CharacterAttributesData.STAT_BASELINE))`, `old` being `character_attributes.get_attribute(stat)` (or `STAT_BASELINE` with no legacy block), then `mini(level, cap)` when `cap > 0`; write the level and XP 0.0 for every stat; set `character_attributes = null`. Its doc: the step keeps the Aura Well's Spirit, and the loader has already dropped `foundation`, `resilience` and `willpower`.
+  - `_stat_level_cap_of_save_stage() -> int`: the `stat_level_cap` of the `CultivationManager.advancement_stage_resources` entry whose `stage_id == current_advancement_stage`, or 0. The managers haven't bound when `migrate()` runs, but their preloaded member defaults are set. It reads the list as `CultivationManager.get(&"advancement_stage_resources")` into an untyped `Array`, each entry a `Variant`, with a comment saying why: a typed read (of the property, or through the `AdvancementStageResource` class) makes this script depend on the stage script, which then compiles at boot before CultivationManager, whose preloaded stage files then fail to load.
+  - `_to_string()` prints `StatLevels: {strength: 1, body: 1, ...}` in place of the legacy `CharacterAttributes` entry, from a private `_stat_levels_string()` that reads each stat through `stat_training.get_level()` (a stat the record lacks shows Lv 1), "None" with no record. `saves_tab.gd`'s doc example of the session text and `saves_tab.tscn`'s placeholder read "Version 2".
+  - `_verify_stat_training() -> bool`: `stat_training` is not null and `levels` and `xp` both hold every stat key. `verify()` returns `_verify_current_selected_zone_id() and _verify_stat_training()`. `repair()` checks `if not _verify_stat_training():` on its own, after the zone check and independently of it. When it is false, it creates a missing record, writes level 1 for each missing level key and XP 0.0 for each missing XP key, and appends `"stat_training"`. A save whose only fault is the zone still returns `["current_selected_zone_id"]` alone.
+  - `test_dev_panel_saves_tab.gd` line 304 expects `"Your save · %s\nVersion %d · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold" % [MAIN_SAVE_PATH, SaveGameData.CURRENT_VERSION]` (the v1 temp save is migrated when it opens).
+
+- [x] **Step 4: Run the Step 2 command with `-gtest=res://tests/unit/test_save_migration.gd,res://tests/integration/test_dev_panel_saves_tab.gd`, then `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`** (every save path migrates now). Expected: PASS for both.
+
+- [x] **Step 5: Commit:** `git add singletons/persistence_manager/save_game_data.gd scenes/ui/dev_panel/tabs/saves_tab.gd scenes/ui/dev_panel/tabs/saves_tab.tscn tests/unit/test_save_migration.gd tests/integration/test_dev_panel_saves_tab.gd`, then `git commit -m "feat(save): migrate v1 stat values to trained levels"`. Body: "Version 2 turns the stats a v1 save kept as values into levels, capped by the save's own stage, so the Aura Well's Spirit carries over. Every stat is written explicitly, and repair() refills a record missing one." (+ Co-Authored-By line)
+
+---
+
+### Task 1.5: Derived stats in CharacterManager
+
+Before Step 1, invoke `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `singletons/character_manager/character_manager.gd`.
+- Test: `tests/unit/test_character_manager.gd`.
+- Checked, no edit: `scenes/combat/combatant/vitals_manager/vitals_manager.gd`, whose `_on_stats_changed()` already reads the three maxima through `CharacterManager.get_stat()` (`test_player_vitals_manager.gd` covers it).
+
+**Interfaces:**
+- Consumes: the block's derived functions (Task 1.1); `get_trained_value()`, `set_stat_level()` (Task 1.3).
+- Produces:
+  - `CharacterManager.get_stat(Stat.ARMOR / WARD)`: base 0, raised by flat modifiers (gear from Task 1.6).
+  - `get_stat(Stat.STAMINA_REGEN / DODGE_CHANCE / MADRA_COST_CUT / COOLDOWN_CUT)`: the block's formula over the total stats (trained levels plus modifiers, so a test may raise Agility or Control with a FLAT modifier source), then the stat's own modifiers.
+  - `get_total_attributes_data()` carrying `armor` and `ward`: the fight snapshot Tasks 1.9 and 1.10 read for defence and dodge.
+
+- [x] **Step 1: Write the failing tests** in a `# DERIVED STATS` section of `tests/unit/test_character_manager.gd`:
+  - `test_derived_stats_at_level_one` (doc: "At Lv 1: today's regen, no dodge, no cuts, no armor or Ward."): `get_stat()` is 1.0 for STAMINA_REGEN and 0.0 for DODGE_CHANCE, MADRA_COST_CUT, COOLDOWN_CUT, ARMOR and WARD.
+  - `test_derived_stats_follow_the_trained_totals` (doc: "Each derived stat is its CharacterAttributesData formula over the trained totals."): with Agility Lv 6 and Control Lv 11, `get_stat()` of MAX_STAMINA, STAMINA_REGEN, DODGE_CHANCE, MADRA_COST_CUT and COOLDOWN_CUT equals, within 0.000001, the matching function of `make({&"agility": 15.0, &"control": 20.0})`, and exceeds that of `make()` ("%s moved with its stat").
+  - `test_derived_stats_count_stat_modifiers` (doc: "The formulas read the total stats, so a stat modifier moves them too."): a FLAT +5 Agility under `TEST_SOURCE` makes `get_stat(Stat.DODGE_CHANCE)` equal `make({&"agility": 15.0}).get_dodge_chance()` within 0.000001.
+  - `test_armor_and_ward_come_from_modifiers_into_the_snapshot`: FLAT ARMOR 6.0 and WARD 4.0 under `TEST_SOURCE` give `get_stat()` 6.0 and 4.0, and `get_total_attributes_data()` holds armor 6.0 and Ward 4.0 ("the snapshot a fight starts with").
+  - `test_a_derived_stat_takes_its_own_modifiers`: a FLAT +0.5 STAMINA_REGEN under `TEST_SOURCE` gives 1.5.
+
+- [x] **Step 2: Run it and see it fail.**
+  `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_character_manager.gd -gexit`
+  Expected: FAIL: the derived stats, ARMOR and WARD fall through to a stat level and read 10.0, and the snapshot's armor is 0.0.
+
+- [x] **Step 3: Implement it in `character_manager.gd`.**
+  - `_get_base_stat()` gets arms reading `get_total_attributes_data()`'s `get_stamina_regen()`, `get_dodge_chance()`, `get_madra_cost_cut()` and `get_cooldown_cut()` for the matching stats; `Stat.ARMOR, Stat.WARD` return 0.0. Its doc gains "armor and Ward start at 0".
+  - `get_total_attributes_data()` also sets `totals.armor = get_stat(Stat.ARMOR)` and `totals.ward = get_stat(Stat.WARD)`. Doc: "the six stats, armor and Ward (base + modifiers) as one block, a snapshot that does not follow later changes".
+
+- [x] **Step 4: Run the Step 2 command with `-gtest=res://tests/unit/test_character_manager.gd,res://tests/unit/test_player_vitals_manager.gd`, then `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.** Expected: PASS for both.
+
+- [x] **Step 5: Commit:** `git add singletons/character_manager/character_manager.gd tests/unit/test_character_manager.gd`, then `git commit -m "feat(stats): derive armor, Ward, regen, dodge, cuts"`. Body: "CharacterManager answers every derived stat through the stat block's formulas, so the UI and combat read one number. Armor and Ward start at 0 for gear to raise, and the fight snapshot carries them." (+ Co-Authored-By line)
+
+---
+
+### Task 1.6: Gear bonuses as floored percents, armor and Ward
+
+Before Step 1, invoke `godot-prompter:resource-pattern` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scripts/resource_definitions/items/equipment/equipment_definition_data.gd`, `singletons/character_manager/character_manager.gd`
+- Modify (gear fixtures): `tests/unit/test_player_vitals_manager.gd`, `tests/integration/test_adventure_flow.gd`, `tests/integration/test_zone_action_cards.gd`, `tests/integration/test_adventure_view_frame.gd`
+- Create: `tests/helpers/gear_fixture.gd` and its `.gd.uid`
+- Test: `tests/unit/test_equipment.gd`, `tests/unit/test_character_manager.gd`
+
+**Interfaces:**
+- Consumes: Task 1.1's `CharacterAttributesData.stat_key()`, `stat_from_key()`, `STAT_BASELINE`, `armor`, `ward` and `StatModifierData.Stat.ARMOR` / `WARD`. Task 1.3's `CharacterManager.get_trained_value()`, `get_trained_values()` (from the training record, never `get_stat()`), `set_stat_level()`, `get_stat_level()`, `get_stat_level_cap()`, `is_stat_capped()`, and `test_character_manager.gd`'s fixture (`TEST_CAP` 5; Lv 1 is 10, +1 a level). Task 1.5's 0 base for ARMOR and WARD, copied by `get_total_attributes_data()`.
+- Produces: `EquipmentDefinitionData.stat_percent_bonuses: Dictionary[StringName, float]`, `stat_bonus_floor: int`, `armor: float`, `ward: float`, `get_stat_bonus(stat: CharacterAttributesData.AttributeType, trained_value: float) -> float`, `get_stat_modifiers(trained_values: Dictionary) -> Array[StatModifierData]`; `CharacterManager.get_gear_bonus(stat: CharacterAttributesData.AttributeType) -> float`.
+
+`attribute_bonuses` stays declared but reaches no stat: the ITEMS.md tools read it until Task 1.7, and the gear text until Task 1.8 deletes it. Until Task 1.7 regenerates the Spirit Valley files, the shipped gear raises no stat. Don't run `items_md_to_resources.gd` in this task.
+
+- [x] **Step 1: Write the failing tests**
+
+Create `tests/helpers/gear_fixture.gd` (`extends RefCounted`, no class_name, like `adventure_map_fixture.gd`; `##` header: "Gear for tests: equipment with stat percents, a floor, armor and Ward. Preload it: const GearFixture := preload("res://tests/helpers/gear_fixture.gd").") with `static func item(percents: Dictionary, bonus_floor: int = 1, armor: float = 0.0, ward: float = 0.0) -> EquipmentDefinitionData`, a new item with those fields (`percents`, stat key → fraction, copied key by key: the typed Dictionary refuses an untyped one). In `tests/unit/test_equipment.gd`, add `const AttributeType = CharacterAttributesData.AttributeType` and `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")`; the tests below call `GearFixture.item(...)` where they write `_item(...)`. test_character_manager.gd's `_make_gear(slot, percents, bonus_floor, armor, ward)` and test_player_vitals_manager.gd's `_make_gear(slot, percents)` set `item_id` and `slot_type` on `GearFixture.item(...)` and wrap it in an ItemInstanceData instead of copying the loop. After Step 3, run the shared notes' `--import` (expected: `git status --short project.godot` prints nothing). Replace `test_get_stat_modifiers_turns_bonuses_into_flat_modifiers` and `test_get_stat_modifiers_without_bonuses_is_empty` with:
+
+```gdscript
+func test_stat_bonus_is_the_rounded_down_percent_with_the_item_floor() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "the floor at a low value", "percent": 0.1, "floor": 2, "trained": 10.0, "expected": 2.0},
+		{"name": "the percent above the floor", "percent": 0.25, "floor": 2, "trained": 20.0, "expected": 5.0},
+		{"name": "rounded down", "percent": 0.25, "floor": 1, "trained": 18.0, "expected": 4.0},
+		{"name": "a floor of 1 under a small percent", "percent": 0.05, "floor": 1, "trained": 10.0, "expected": 1.0},
+		# Each product below is a hair under its whole number as a double.
+		{"name": "116% of 25 is 29", "percent": 1.16, "floor": 1, "trained": 25.0, "expected": 29.0},
+		{"name": "58% of 50 is 29", "percent": 0.58, "floor": 1, "trained": 50.0, "expected": 29.0},
+		{"name": "70% of 90 is 63", "percent": 0.7, "floor": 1, "trained": 90.0, "expected": 63.0},
+	]
+	for case: Dictionary in cases:
+		var item := _item({&"strength": case.percent}, case.floor)
+		assert_eq(item.get_stat_bonus(AttributeType.STRENGTH, case.trained), case.expected, case.name)
+
+func test_stat_bonus_without_a_percent_is_zero() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "another stat's percent", "percents": {&"agility": 0.5}},
+		{"name": "a 0% entry", "percents": {&"strength": 0.0}},
+	]
+	for case: Dictionary in cases:
+		assert_eq(_item(case.percents, 3).get_stat_bonus(AttributeType.STRENGTH, 10.0), 0.0, case.name)
+
+func test_stat_modifiers_are_flat_bonuses_with_armor_and_ward() -> void:
+	var item := _item({&"strength": 0.5, &"mind": 0.25}, 1, 6.0, 4.0)
+	var trained: Dictionary = {AttributeType.STRENGTH: 10.0, AttributeType.MIND: 20.0}
+	var values: Dictionary = {}
+	for modifier: StatModifierData in item.get_stat_modifiers(trained):
+		assert_eq(modifier.kind, StatModifierData.Kind.FLAT, "%s is flat" % StatModifierData.Stat.keys()[modifier.stat])
+		values[modifier.stat] = modifier.value
+	assert_eq(values, {StatModifierData.Stat.STRENGTH: 5.0, StatModifierData.Stat.MIND: 5.0,
+		StatModifierData.Stat.ARMOR: 6.0, StatModifierData.Stat.WARD: 4.0})
+
+func test_a_bare_item_gives_no_modifiers() -> void:
+	assert_eq(EquipmentDefinitionData.new().get_stat_modifiers({}).size(), 0)
+```
+
+In `tests/unit/test_character_manager.gd`:
+- `_make_gear(slot: EquipmentSlot, percents: Dictionary, bonus_floor: int = 1, armor: float = 0.0, ward: float = 0.0) -> ItemInstanceData` replaces `_make_gear()`: an instance of an item built as `test_equipment.gd`'s `_item()` builds one, with `item_id = "test_gear_%d" % slot` and `slot_type = slot`.
+- Every other gear fixture, `_robes()` included, goes from `{AttributeType.X: N}` to `{&"x": N / 10.0}` (`{AttributeType.STRENGTH: 5.0}` becomes `{&"strength": 0.5}`): the same +N at Lv 1, so their expected totals stand.
+- Delete `test_negative_bonus_lowers_total` (percents are never negative), `test_gear_bonus_adds_to_matching_attributes_only` and `test_equip_and_unequip_gear_updates_totals` (covered below). The `##` header says gear adds floored percents of the trained value, armor and Ward.
+- Add:
+
+```gdscript
+const BASELINE: float = CharacterAttributesData.STAT_BASELINE
+
+#-----------------------------------------------------------------------------
+# GEAR: FLOORED PERCENTS OF THE TRAINED VALUE, ARMOR AND WARD
+#-----------------------------------------------------------------------------
+
+func test_worn_gear_adds_its_floored_bonus_to_the_trained_value() -> void:
+	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.1}, 3)
+	assert_eq(CharacterManager.get_gear_bonus(AttributeType.STRENGTH), 3.0, "the floor beats 10% of 10")
+	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), BASELINE + 3.0)
+	assert_eq(CharacterManager.get_gear_bonus(AttributeType.AGILITY), 0.0, "no Agility percent")
+	assert_eq(CharacterManager.get_stat(Stat.AGILITY), BASELINE)
+
+## Each percent counts the trained value, never a total that holds another
+## item's bonus (a gear source reading get_stat() would also recurse).
+func test_gear_percents_count_the_trained_value_not_the_total() -> void:
+	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.5})
+	_inventory().equipped_accessories[0] = _make_gear(EquipmentSlot.ACCESSORY, {&"strength": 0.5})
+	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), BASELINE * 2.0, "10 + 5 + 5, not 10 + 5 + 7")
+
+func test_gear_lifts_a_capped_stat_past_the_cap() -> void:
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, TEST_CAP)
+	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.5})
+	assert_eq(CharacterManager.get_gear_bonus(AttributeType.STRENGTH), 7.0, "50% of 14, the value at the test cap")
+	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), 21.0, "the total passes the capped value")
+	assert_eq(CharacterManager.get_stat_level(AttributeType.STRENGTH), TEST_CAP, "training stays at the cap")
+	assert_true(CharacterManager.is_stat_capped(AttributeType.STRENGTH))
+
+func test_unequipping_gear_removes_its_bonus_and_armor() -> void:
+	var robes: ItemInstanceData = _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4}, 1, 6.0)
+	_inventory().equipment[0] = robes
+	InventoryManager.equip_item(robes, EquipmentSlot.ARMOR, 0)
+	assert_eq(CharacterManager.get_stat(Stat.BODY), BASELINE + 4.0, "precondition: worn")
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 6.0, "precondition: worn")
+	InventoryManager.unequip_item(EquipmentSlot.ARMOR)
+	assert_eq(CharacterManager.get_stat(Stat.BODY), BASELINE)
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 0.0)
+
+func test_armor_and_ward_come_from_gear_into_the_fight_block() -> void:
+	assert_eq(CharacterManager.get_stat(Stat.ARMOR), 0.0, "no armor without gear")
+	assert_eq(CharacterManager.get_stat(Stat.WARD), 0.0, "no Ward without gear")
+	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {}, 1, 6.0)
+	_inventory().equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {}, 1, 0.0, 4.0)
+	var block: CharacterAttributesData = CharacterManager.get_total_attributes_data()
+	assert_eq(block.armor, 6.0, "armor reaches the fight snapshot")
+	assert_eq(block.ward, 4.0, "Ward reaches the fight snapshot")
+```
+
+- [x] **Step 2: Run them and see them fail.** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_equipment.gd,res://tests/unit/test_character_manager.gd -gexit`
+  Expected: FAIL: neither script parses (no `stat_percent_bonuses`, `get_stat_bonus()` or `get_gear_bonus()` yet).
+
+- [x] **Step 3: Implement the gear rule and the gear source, and move the other gear fixtures**
+  - EXPORTS in `equipment_definition_data.gd`: the four fields above, defaulting to `{}`, `1`, `0.0` and `0.0`, with `##` docs (stat key → fraction of the trained value; the least each percent gives, in whole points; flat, cuts physical damage; flat, cuts Spirit damage). `attribute_bonuses`' doc: "Legacy: reaches no stat; read only by the gear text and the ITEMS.md tools until Task 1.8 deletes it." Class doc: "The slot decides where the item is worn; its stat percents (never below the floor), armor and Ward decide what it gives."
+  - `get_stat_bonus()`: 0.0 when the percent under `CharacterAttributesData.stat_key(stat)` is missing or not above 0, else `maxf(stat_bonus_floor, floorf(trained_value * percent + 1e-6))`, with a one-line comment: the 1e-6 lifts a product a double stores a hair under its whole number (25 × 1.16 is 28.999999999999996) back onto it. No clamp to the cap: the cap limits training only.
+  - `get_stat_modifiers()`: each key of `stat_percent_bonuses` goes through `CharacterAttributesData.stat_from_key()`; a -1 gets a `Log.error` naming `item_id` and the key, and is skipped. A known stat adds a FLAT modifier on `StatModifierData.for_attribute(stat)` worth `get_stat_bonus(stat, trained_values.get(stat, CharacterAttributesData.STAT_BASELINE))` when above 0, then FLAT `Stat.ARMOR` and `Stat.WARD` modifiers, each when above 0.
+  - `CharacterManager._equipped_gear() -> Array[EquipmentDefinitionData]`: the definitions `_gear_modifiers()` walks today, with its guards (this manager's own save; no save or inventory gives `[]`; nulls and non-equipment skipped).
+  - `_gear_modifiers()`: each `_equipped_gear()` item's `get_stat_modifiers(get_trained_values())`. Its doc says why it reads the training record: `get_stat()` asks this source, so calling `get_stat()` here would recurse.
+  - `get_gear_bonus(stat)`: the sum of `get_stat_bonus(stat, get_trained_value(stat))` over `_equipped_gear()`. Doc: the flat points the worn gear adds to the stat, gear's FLAT amount before any PERCENT modifier, which `StatModifierStack` applies after every FLAT one.
+  - The other gear fixtures keep today's numbers at Lv 1:
+    - `test_player_vitals_manager.gd`: `_make_gear(slot, percents: Dictionary)` copies `percents` key by key into `stat_percent_bonuses`; its calls follow the ÷ 10 rule (`{&"body": 0.4}`, `{&"agility": 0.4}`, `{&"mind": 0.2}`). `test_unequipping_body_gear_lowers_max_health_again` drops its `max_stamina == 50.0` assert, since Body gear no longer moves Stamina (Task 1.1 put Stamina on Agility), and its Health assert says "back to 10 Body x 10".
+    - `test_adventure_flow.gd`'s `_equip_mind_helmet()` (Task 1.1's name): `helmet.stat_percent_bonuses[&"mind"] = MIND_BONUS / 10.0` replaces the `attribute_bonuses` line; `test_zone_action_cards.gd`'s `_equip_mind_ring(mind)` likewise sets `mind / 10.0`.
+    - `test_adventure_view_frame.gd`, `test_gear_equipped_before_the_run_raises_the_cabinets_max_health`: the two lines that rebuild the maximum from `attribute_bonuses` become `var max_health: int = floori(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))`. Task 1.7 adds the precondition that the robes raise Body.
+
+- [x] **Step 4: Run them and see them pass.** The Step 2 command with `res://tests/unit/test_player_vitals_manager.gd`, `res://tests/integration/test_adventure_flow.gd`, `res://tests/integration/test_zone_action_cards.gd` and `res://tests/integration/test_adventure_view_frame.gd` added to `-gtest`.
+  Expected: PASS.
+
+- [x] **Step 5: Commit.** Stage the ten files under **Files**, then `git commit -m "feat(stats): make gear bonuses floored percents"`. Body: "Gear adds a percent of the trained value, never below the item's floor, so a first sword matters at Lv 1 and keeps up as stats climb. Armor and Ward come only from gear. The gear source reads the training record: get_stat() would recurse." (+ Co-Authored-By line)
+
+---
+
+### Task 1.7: ITEMS.md gear stats and the regenerated Spirit Valley items
+
+Before Step 1, invoke `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scripts/tools/items_md_parser.gd`, `scripts/tools/items_md_to_resources.gd`
+- Modify: `docs/inventory/ITEMS.md`. Code reads this doc, so it changes in this PR.
+- Modify (written by the generator, never by hand): the seven `resources/items/equipment/spirit_valley/*.tres`
+- Modify: `tests/integration/test_adventure_view_frame.gd` (one precondition)
+- Test: `tests/unit/test_items_md_parser.gd`
+
+**Interfaces:**
+- Consumes: the four gear fields and `CharacterManager.get_gear_bonus()` (Task 1.6); `CharacterAttributesData.stat_key()` / `stat_from_key()` (Task 1.1).
+- Produces: `ItemsMdParser.parse_stats(s: String) -> EquipmentDefinitionData` (only the four stat fields set; null after a `push_error` for a bad token); `ItemsMdParser.build_equipment(row: Dictionary) -> EquipmentDefinitionData` (null for a bad stats cell); `ItemsMdParser.GENERATED_FIELDS: Array[StringName]`; `ItemsMdParser.generated_fields_equal(a: EquipmentDefinitionData, b: EquipmentDefinitionData) -> bool`; the seven items in the new fields, with these starting values:
+
+| # | Item | stats cell | Gives at Lv 1 |
+|---|---|---|---|
+| E1 | Makeshift Dagger | `STRENGTH+30%, AGILITY+10%, FLOOR+2` | +3 Strength, +2 Agility |
+| E2 | Iron Shortsword | `STRENGTH+50%, AGILITY+10%, FLOOR+2` | +5 Strength, +2 Agility |
+| E3 | Cultivator's Cowl | `SPIRIT+15%, WARD+4` | +1 Spirit (+2 from Spirit Lv 5), Ward 4 |
+| E4 | Reinforced Robes | `BODY+40%, ARMOR+6` | +4 Body, Armor 6 |
+| E5 | Dreadbeast Tooth Necklace | `STRENGTH+20%, AGILITY+20%` | +2 Strength, +2 Agility |
+| E6 | Leeching Ring | `MIND+20%, CONTROL+20%` | +2 Mind, +2 Control |
+| E7 | Scripted Bark | `BODY+20%` | +2 Body |
+
+Why: each percent is today's flat bonus ÷ 10 (the ring's Foundation now Mind), so Lv 1 numbers and the Lv 1 combat retune hold. `FLOOR+2` keeps the blades' Agility at +2 under a secondary 10%. The cowl's 15% gives +2 from Spirit Lv 5, so Aura Well training visibly lifts gear inside Foundation. Armor 6 and Ward 4 (the design's examples) replace the robes' Resilience+2 and the cowl's Willpower+3. Retune the Physical percents in phase 5, when those stats first train (at the Foundation cap the sword gives +9).
+
+- [x] **Step 1: Write the failing tests**
+
+In `tests/unit/test_items_md_parser.gd`, delete `const AT`; `test_build_equipment_populates_all_fields` gets `"stats": "STRENGTH+30%, AGILITY+10%, FLOOR+2"` and, for its two `attribute_bonuses` asserts, `assert_eq(eq.stat_percent_bonuses, {&"strength": 0.3, &"agility": 0.1})` and `assert_eq(eq.stat_bonus_floor, 2)`; `test_build_equipment_empty_stats_yields_empty_bonuses` asserts `eq.stat_percent_bonuses.size() == 0` and `eq.stat_bonus_floor == 1`. `test_parse_equipment_sections_groups_by_zone` never parses its stats cells: leave it. The first two tests below replace `test_parse_stats_reads_each_pair` and `test_parse_stats_unknown_attr_returns_empty`:
+
+```gdscript
+## STAT+N% is a fraction, ARMOR+N and WARD+N flat, FLOOR+N the floor. A case
+## leaves out a field at its default (floor 1, armor 0, Ward 0).
+func test_parse_stats_reads_each_token() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "one percent", "text": "STRENGTH+30%", "percents": {&"strength": 0.3}},
+		{"name": "two percents and a floor", "text": "STRENGTH+30%, AGILITY+10%, FLOOR+2",
+			"percents": {&"strength": 0.3, &"agility": 0.1}, "floor": 2},
+		{"name": "a percent and armor", "text": "BODY+40%, ARMOR+6", "percents": {&"body": 0.4}, "armor": 6.0},
+		{"name": "a percent and Ward", "text": "SPIRIT+15%, WARD+4", "percents": {&"spirit": 0.15}, "ward": 4.0},
+		{"name": "Mind and Control", "text": "MIND+20%, CONTROL+20%", "percents": {&"mind": 0.2, &"control": 0.2}},
+		{"name": "a fractional percent", "text": "SPIRIT+12.5%", "percents": {&"spirit": 0.125}},
+		{"name": "armor in mixed case", "text": "Armor+6", "percents": {}, "armor": 6.0},
+		{"name": "the floor in lower case", "text": "floor+2", "percents": {}, "floor": 2},
+		{"name": "Ward in lower case", "text": "ward+4", "percents": {}, "ward": 4.0},
+		{"name": "empty", "text": "", "percents": {}},
+		{"name": "spaces only", "text": "   ", "percents": {}},
+	]
+	for case: Dictionary in cases:
+		var stats: EquipmentDefinitionData = ItemsMdParser.parse_stats(case.text)
+		assert_not_null(stats, case.name)
+		if stats == null:
+			continue
+		assert_eq(stats.stat_percent_bonuses, case.percents, "%s: percents" % case.name)
+		assert_eq(stats.stat_bonus_floor, case.get("floor", 1), "%s: floor" % case.name)
+		assert_eq(stats.armor, case.get("armor", 0.0), "%s: armor" % case.name)
+		assert_eq(stats.ward, case.get("ward", 0.0), "%s: Ward" % case.name)
+
+func test_parse_stats_refuses_a_bad_token() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "unknown word", "text": "BOGUS+5%", "error": "unknown stat word 'BOGUS'"},
+		{"name": "no sign", "text": "STRENGTH30%", "error": "missing + in 'STRENGTH30%'"},
+		{"name": "a negative bonus", "text": "AGILITY-10%", "error": "no negative bonuses: 'AGILITY-10%'"},
+		{"name": "a stat without %", "text": "STRENGTH+3", "error": "'STRENGTH+3' needs a %"},
+		{"name": "armor with %", "text": "ARMOR+6%", "error": "'ARMOR+6%' is flat"},
+		{"name": "not a number", "text": "SPIRIT+ten%", "error": "'SPIRIT+ten%' has no number"},
+		{"name": "a zero percent", "text": "SPIRIT+0%", "error": "'SPIRIT+0%' must be above 0"},
+		{"name": "a floor below 1", "text": "BODY+20%, FLOOR+0", "error": "'FLOOR+0' must be a whole number of at least 1"},
+		{"name": "a fractional floor", "text": "BODY+20%, FLOOR+1.5", "error": "'FLOOR+1.5' must be a whole number of at least 1"},
+		{"name": "a word twice", "text": "BODY+20%, BODY+10%", "error": "'BODY' appears twice"},
+	]
+	for case: Dictionary in cases:
+		assert_null(ItemsMdParser.parse_stats(case.text), case.name)
+		assert_push_error(case.error, case.name)
+
+func test_build_equipment_refuses_a_bad_stats_cell() -> void:
+	var row: Dictionary = {
+		"id": "flat_dagger", "name": "Flat Dagger", "slot": "MAIN_HAND",
+		"stats": "STRENGTH+3", "cost": "0", "description": "Old notation.",
+	}
+	assert_null(ItemsMdParser.build_equipment(row))
+	assert_push_error("needs a %")
+
+## The generator rewrites a file only when a generated field differs.
+func test_generated_fields_equal_notices_each_stat_field() -> void:
+	var base_cell: String = "STRENGTH+30%, ARMOR+6, WARD+4, FLOOR+2"
+	var base: EquipmentDefinitionData = ItemsMdParser.parse_stats(base_cell)
+	assert_true(ItemsMdParser.generated_fields_equal(base, ItemsMdParser.parse_stats(base_cell)), "the same cell")
+	var cases: Array[Dictionary] = [
+		{"name": "a percent", "text": "STRENGTH+50%, ARMOR+6, WARD+4, FLOOR+2"},
+		{"name": "the floor", "text": "STRENGTH+30%, ARMOR+6, WARD+4, FLOOR+3"},
+		{"name": "armor", "text": "STRENGTH+30%, ARMOR+5, WARD+4, FLOOR+2"},
+		{"name": "Ward", "text": "STRENGTH+30%, ARMOR+6, WARD+5, FLOOR+2"},
+	]
+	for case: Dictionary in cases:
+		assert_false(ItemsMdParser.generated_fields_equal(base, ItemsMdParser.parse_stats(case.text)), case.name)
+
+#-----------------------------------------------------------------------------
+# THE SHIPPED GEAR
+#-----------------------------------------------------------------------------
+
+## Catches a row edited without a generator run, and a class default changing
+## under a value the saver left out of a file.
+func test_the_shipped_gear_matches_items_md() -> void:
+	var sections: Dictionary = ItemsMdParser.parse_equipment_sections(FileAccess.get_file_as_string("res://docs/inventory/ITEMS.md"))
+	var rows: Array = sections.get("Spirit Valley", [])
+	assert_gt(rows.size(), 0, "precondition: ITEMS.md lists Spirit Valley gear")
+	for row: Dictionary in rows:
+		var built: EquipmentDefinitionData = ItemsMdParser.build_equipment(row)
+		var shipped := load("res://resources/items/equipment/spirit_valley/%s.tres" % row["id"]) as EquipmentDefinitionData
+		assert_not_null(built, "%s builds" % row["id"])
+		assert_not_null(shipped, "%s has a file" % row["id"])
+		if built == null or shipped == null:
+			continue
+		built.icon = shipped.icon  # the generator takes the icon from the PNG, not from the row
+		assert_true(ItemsMdParser.generated_fields_equal(built, shipped), "%s matches its row" % row["id"])
+```
+
+- [x] **Step 2: Run it and see it fail.** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_items_md_parser.gd -gexit`
+  Expected: FAIL: the script doesn't parse (no `generated_fields_equal()`, and `parse_stats()` still returns a Dictionary).
+
+- [x] **Step 3: Implement the parser, the generator and the doc, then regenerate**
+  - `parse_stats()` starts from `EquipmentDefinitionData.new()` and sets `stat_bonus_floor = 1`, `armor = 0.0` and `ward = 0.0` itself, so a later class-default change shows up in the shipped-gear test. It splits on commas, skips blank tokens, and checks each token in this order; a failure is `push_error("ItemsMdParser.parse_stats: " + message)` and `return null`:
+    1. No `+` or `-` (`_find_sign_index()`): `missing + in '<token>'`.
+    2. A `-`: `no negative bonuses: '<token>'`.
+    3. A repeated word: `'<WORD>' appears twice`.
+    4. `FLOOR` with a `%`, or a number that fails `is_valid_int()` or is below 1: `'<token>' must be a whole number of at least 1`.
+    5. `ARMOR` or `WARD` with a `%`: `'<token>' is flat: drop the %`.
+    6. Another word that `CharacterAttributesData.stat_from_key(StringName(word.to_lower()))` doesn't know: `unknown stat word '<WORD>'`.
+    7. A stat without `%`: `'<token>' needs a %: stat bonuses are percents`.
+    8. The number (`%` trimmed) fails `is_valid_float()`: `'<token>' has no number`.
+    9. The number is not above 0: `'<token>' must be above 0`.
+
+    A stat stores `number / 100.0` under `stat_key(stat)`; `ARMOR` and `WARD` store the number; `FLOOR` stores `to_int()`. Every word matches in any case: checks 3, 4 and 5 compare the word upper-cased and check 6 looks it up lower-cased, so `Armor+6` and `floor+2` read as `ARMOR+6` and `FLOOR+2`; the messages quote the word as written.
+  - `build_equipment()` keeps its required-field and slot checks, returns null when `parse_stats(row["stats"])` does (adding no second error), and otherwise sets `item_id`, `item_name`, `description`, `slot_type` and `base_value` on that result. It no longer touches `attribute_bonuses`.
+  - `const GENERATED_FIELDS: Array[StringName] = [&"item_id", &"item_name", &"description", &"slot_type", &"stat_percent_bonuses", &"stat_bonus_floor", &"armor", &"ward", &"base_value", &"icon"]`; `generated_fields_equal(a, b)` is true when `a.get(field) == b.get(field)` for each.
+  - `items_md_to_resources.gd`: after the icon pre-flight, `run()` builds every row with `ItemsMdParser.build_equipment()`; on the first null it calls `push_error("ItemsMdGenerator: row '%s' is invalid; nothing written" % row.get("id", "?"))` and returns 1. `_write_one()` replaces its seven copy lines with `for field: StringName in ItemsMdParser.GENERATED_FIELDS: existing.set(field, eq.get(field))` and skips the file when `ItemsMdParser.generated_fields_equal(existing as EquipmentDefinitionData, eq)`. An update keeps the file's own UID: `_write_one()` reads it with `ResourceLoader.get_resource_uid()` before the save and writes it back into the header after it, as it already does a new file's, because a headless `ResourceSaver.save()` writes no `uid=` and the merchant stock and the Ravenous Dreadbeast encounter reference this gear by UID. Delete `_resources_equal()`.
+  - `docs/inventory/ITEMS.md`:
+    - The generated-field lists, in the intro and in the sentence after the Behavior table, become the `GENERATED_FIELDS` names.
+    - The Schema `stats` row maps to "`stat_percent_bonuses` (Dictionary[StringName, float]), `stat_bonus_floor`, `armor`, `ward`".
+    - "### Stats DSL" up to "### Spirit Valley" becomes the block below.
+    - Each Spirit Valley row's `stats` cell becomes its "stats cell" above; no other cell changes.
+    - In the Behavior table, delete the "Invalid stats DSL" row; the slot row reads "| Unknown `slot` literal, an empty `id` / `name` / `slot` / `description`, or a bad stats token | Run aborts before anything is written, naming the row |".
+
+```markdown
+### Stats DSL
+
+Format: `<WORD>+<N>[%], ...`, comma-separated, each word at most once. Words match in any case: `armor+6` reads as `ARMOR+6`.
+
+| Word | Gives | Field |
+|---|---|---|
+| `STRENGTH`, `BODY`, `AGILITY`, `SPIRIT`, `MIND`, `CONTROL` | A percent of the player's trained value of that stat, always with `%` (`STRENGTH+30%`), rounded down and never below the item's floor | `stat_percent_bonuses`, a fraction under the stat's key (`&"strength": 0.3`) |
+| `ARMOR` | Flat armor, which cuts physical damage. No `%` | `armor` |
+| `WARD` | Flat Ward, which cuts Spirit damage. No `%` | `ward` |
+| `FLOOR` | The least each stat percent gives, a whole number of at least 1 (1 when absent) | `stat_bonus_floor` |
+
+- Every number is above 0. An empty stats cell is an item with no bonuses.
+- A bad token stops the generator before it writes anything, naming the token, and the run exits with 1: an unknown word, a missing `+`, a `-`, a stat without `%`, a `%` on `ARMOR`, `WARD` or `FLOOR`, a number that isn't one or isn't above 0, or a word written twice.
+
+**Foundation tier authoring guidelines** (per [EQUIPMENT_DESIGN.md](EQUIPMENT_DESIGN.md)):
+- 1-2 stat percents per item. Body and head pieces may add `ARMOR` or `WARD`.
+- Every stat is 10 at Lv 1, where a percent gives `max(FLOOR, percent of 10, rounded down)`: `STRENGTH+30%` gives +3. Strength, Body and Agility stay at Lv 1 until body refining exists, so that is all Physical gear gives for now. Pick the percent for what the item should give at Lv 1; `FLOOR` lifts a second stat with a smaller percent (`AGILITY+10%, FLOOR+2` gives +2).
+- Simple, clear identity: a sword gives `STRENGTH`, a cowl gives `SPIRIT` and `WARD`.
+```
+
+  - Regenerate: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s scripts/tools/items_md_to_resources.gd`. Expected: `ItemsMdGenerator: created=0 updated=7 skipped=0 orphans=0`, exit code 0. `git diff resources/items/equipment/spirit_valley/` shows only a `stat_percent_bonuses` line per file, `stat_bonus_floor = 2` on both blades, `armor = 6.0` on the robes, `ward = 4.0` on the cowl, and maybe a `uid=` on the cowl's header (it has none) or on `ext_resource` lines. `attribute_bonuses` stays until Task 1.8.
+  - In `test_gear_equipped_before_the_run_raises_the_cabinets_max_health`, add after `_start_run()`: `assert_gt(CharacterManager.get_gear_bonus(CharacterAttributesData.AttributeType.BODY), 0.0, "precondition: the robes raise Body")`.
+
+- [x] **Step 4: Run it and see it pass.** The Step 2 command with `res://tests/integration/test_adventure_view_frame.gd`, `res://tests/integration/test_equipment_page.gd` and `res://tests/integration/test_merchant_shop_flow.gd` added to `-gtest`.
+  Expected: PASS. `test_equipment_page.gd` still prints the legacy flat text, which Task 1.8 replaces.
+
+- [x] **Step 5: Commit.** Stage the files under **Files** (git expands the `*.tres` pathspec itself), then `git commit -m "feat(items): convert Spirit Valley gear to percents"`. Body: "ITEMS.md writes stat bonuses as percents (STRENGTH+30%) with flat ARMOR and WARD and a per-item FLOOR; a bad token stops the generator before it writes anything. Each percent is today's flat bonus / 10, so Lv 1 numbers don't change. A test locks the generated files to their rows." (+ Co-Authored-By line)
+
+---
+
+### Task 1.8: Gear text with what it gives now, reprinted on level-up
+
+Before Step 1, invoke `godot-prompter:godot-ui` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scripts/utils/book_text.gd`, `scripts/resource_definitions/items/equipment/equipment_definition_data.gd`
+- Modify, in `scenes/inventory/inventory_view/equipment_tab/equipment_details/`: `equipment_details.gd`, `bonus_row.gd`, `bonus_row.tscn`, and `equipment_details.tscn` only if the approved layout needs it
+- Modify: `scenes/merchant/merchant_stock_row/merchant_stock_row.gd` and `.tscn`. Not `ItemDescriptionPanel` or `ItemDisplaySlot`: Lionel reworks the item tooltip later, and it prints the new lines through `_get_item_effects()`.
+- Modify: the seven `resources/items/equipment/spirit_valley/*.tres` (the dead `attribute_bonuses` block)
+- Modify: `scripts/tools/items_md_to_resources.gd`; Create: `scripts/tools/items_md_generator.gd` and its `.gd.uid` (the generator's split, committed on its own in Step 3)
+- Modify: `docs/inventory/ITEMS.md`: its intro and Generator section with the split; a stats cell only if Before Step 1 applies
+- Modify: `tests/helpers/gear_fixture.gd` (`spirit_charm()`)
+- Test: `tests/unit/test_book_text.gd`, `tests/unit/test_equipment.gd`, `tests/integration/test_equipment_page.gd`, `tests/integration/test_merchant_shop_flow.gd`, `tests/integration/test_boards_never_trim_text.gd`
+
+**Interfaces:**
+- Consumes: Task 1.6's gear fields, `get_stat_bonus()` and `CharacterManager.get_gear_bonus()`; Task 1.3's `CharacterManager.get_trained_values()` and `set_stat_level()` (emits `stats_changed`); `CharacterManager.get_attribute_display_name()`; Task 1.1's `stat_key()` and `STAT_BASELINE`; Task 1.0's approved gear-text board.
+- Produces: `BookText.gear_bonus_lines(def: EquipmentDefinitionData, trained_values: Dictionary) -> Array[String]`, which EquipmentDetails prints; `EquipmentDefinitionData._get_item_effects()` returning each of those lines for `CharacterManager.get_trained_values()` as `"[color=#a89070]%s[/color]"` (today's effect ink), which MerchantStockRow and the untouched ItemDescriptionPanel print. EquipmentDetails and MerchantStockRow reprint gear on `CharacterManager.stats_changed`; the item tooltip shows the lines as they stand when it opens. The generator's command is unchanged: `items_md_to_resources.gd` is its `-s` entry, naming no game class, and loads `items_md_generator.gd`, the worker, once the autoloads exist. Gone: `attribute_bonuses` and `BookText.bonus_lines()`.
+
+**Before Step 1:** if Task 1.0 recorded a gear value Lionel changed on board 4, edit that item's stats cell in `docs/inventory/ITEMS.md`, rerun Task 1.7's generator command, and stage the regenerated `.tres` with this task (Task 1.7 may already have shipped the old value).
+
+- [x] **Step 1: Write the failing tests**
+
+In `tests/unit/test_book_text.gd`, add `const AttributeType = CharacterAttributesData.AttributeType` and `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")` (Task 1.6's shared fixture), and replace `test_bonus_lines_skip_zero_and_set_fractions_to_one_decimal` with:
+
+```gdscript
+func test_gear_bonus_lines_word_each_bonus_with_its_value_now() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a stat at its floor", "item": GearFixture.item({&"strength": 0.1}, 2),
+			"trained": {AttributeType.STRENGTH: 10.0}, "lines": ["+10% Strength\u00a0(+2)"]},
+		{"name": "stats in stat order, then armor, then Ward",
+			"item": GearFixture.item({&"control": 0.2, &"strength": 0.5}, 1, 6.0, 4.0),
+			"trained": {AttributeType.STRENGTH: 10.0, AttributeType.CONTROL: 15.0},
+			"lines": ["+50% Strength\u00a0(+5)", "+20% Control\u00a0(+3)", "Armor 6", "Ward 4"]},
+		{"name": "a fractional percent", "item": GearFixture.item({&"spirit": 0.125}),
+			"trained": {AttributeType.SPIRIT: 16.0}, "lines": ["+12.5% Spirit\u00a0(+2)"]},
+		{"name": "no bonuses", "item": GearFixture.item({}), "trained": {}, "lines": []},
+	]
+	for case: Dictionary in cases:
+		var expected: Array[String] = []
+		expected.assign(case.lines)
+		assert_eq(BookText.gear_bonus_lines(case.item, case.trained), expected, case.name)
+```
+
+In `tests/unit/test_equipment.gd`, delete `test_init_empty_bonuses`, `test_attribute_bonuses_stores_values`, `test_attribute_bonuses_supports_all_types`, `test_get_item_effects_one_line_per_nonzero_bonus` and `test_get_item_effects_formats_each_bonus`, and the "ATTRIBUTE BONUSES DICTIONARY" header. `_get_item_effects()` now reads the player's training, so the file gets the save swap from Global Constraints: `var _original_save: SaveGameData`, a `before_each()` that stashes `PersistenceManager.save_game_data`, installs `SaveGameData.new_current()` and emits `save_data_reset`, and an `after_each()` that puts the original back and emits it again. Under the "_get_item_effects() BBCode FORMATTING" header, add the test below; the `##` header names the slot enum and its ints, initialization, the gear rule, and `_get_item_effects()`'s inked gear lines.
+
+```gdscript
+## The item tooltip and the shop print these: one per gear_bonus_lines() line,
+## for the player's trained values as they stand at each call. Each holds its
+## plain line; the ink around it is a look, checked by eye.
+func test_item_effects_are_the_gear_lines_at_the_trained_values() -> void:
+	var cowl: EquipmentDefinitionData = GearFixture.item({&"spirit": 0.15}, 1, 0.0, 4.0)
+	var cases: Array[Dictionary] = [
+		{"name": "Spirit Lv 1 (10)", "level": 1, "lines": ["+15% Spirit\u00a0(+1)", "Ward 4"]},
+		{"name": "Spirit Lv 5 (14)", "level": 5, "lines": ["+15% Spirit\u00a0(+2)", "Ward 4"]},
+	]
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(AttributeType.SPIRIT, case.level)
+		var effects: Array[String] = cowl._get_item_effects()
+		assert_eq(effects.size(), case.lines.size(), "%s: one effect per line" % case.name)
+		for i: int in range(mini(effects.size(), case.lines.size())):
+			assert_true(effects[i].contains(case.lines[i]), "%s: %s" % [case.name, case.lines[i]])
+```
+
+Add `static func spirit_charm() -> EquipmentDefinitionData` to `tests/helpers/gear_fixture.gd`: `item_id = "test_spirit_charm"`, `item_name = "Spirit Charm"`, HEAD slot, `stat_percent_bonuses[&"spirit"] = 0.5` (the Aura Well levels Spirit while a book or the shop is open; it gives +5 at Spirit Lv 1 and +7 at Lv 5). The two files below call it as `GearFixture.spirit_charm()`.
+
+In `tests/integration/test_equipment_page.gd`, the fixture also stashes `PersistenceManager.save_game_data.stat_training` in `var _saved_training: StatTrainingData`, installs `StatTrainingData.new_default()` in `before_each()`, and restores it after the frame wait in `after_each()`. Add `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")` and `_bonus_texts(details: EquipmentDetails) -> Array[String]` (each `%Bonuses` row's `%LeftBonus` text, then its `%RightBonus` text when visible), replace `test_details_print_the_slot_and_the_bonuses`, and add the reprint test:
+
+```gdscript
+func test_details_print_the_slot_and_the_bonuses() -> void:
+	var tab: Control = _tab()
+	InventoryManager.award_items(DAGGER, 1)
+	tab.open_page()
+	var details: EquipmentDetails = _details(tab)
+	assert_eq((details.get_node("%SlotLabel") as Label).text, "MAIN HAND")
+	assert_eq((details.get_node("%Icon") as TextureRect).texture, DAGGER.icon)
+	var lines: Array[String] = BookText.gear_bonus_lines(DAGGER, CharacterManager.get_trained_values())
+	assert_gt(lines.size(), 0, "precondition: the dagger has bonuses")
+	assert_eq(_bonus_texts(details), lines, "every bonus line, in order")
+	assert_eq((details.get_node("%Description") as Label).text, DAGGER.description)
+
+## The details reprint the item they already show, and the bonus they print in
+## parentheses is the one the total gets.
+func test_details_reprint_when_a_stat_levels() -> void:
+	var tab: Control = _tab()
+	var charm: EquipmentDefinitionData = GearFixture.spirit_charm()
+	InventoryManager.award_items(charm, 1)
+	InventoryManager.equip_item(InventoryManager.get_inventory().equipment[0], charm.slot_type, 0)
+	tab.open_page()
+	var details: EquipmentDetails = _details(tab)
+	assert_eq(_bonus_texts(details), ["+50% Spirit\u00a0(+5)"] as Array[String], "Spirit Lv 1 (10)")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
+	assert_eq(_bonus_texts(details), ["+50% Spirit\u00a0(+7)"] as Array[String], "reprinted at Spirit Lv 5 (14)")
+	assert_eq(CharacterManager.get_gear_bonus(CharacterAttributesData.AttributeType.SPIRIT), 7.0, "the +7 printed is the bonus the total gets")
+```
+
+In `tests/integration/test_merchant_shop_flow.gd`, under `# SHOP VIEW`, add `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")`, `_selling(item: EquipmentDefinitionData) -> MerchantActionData` (`_action_selling()` over a typed `Array[MerchantStockEntry]` holding one new entry with `entry_id = item.item_id` and `item = item`), and the two tests below. They read the row's own `%DetailLabel`, never its icon's hover tooltip, and look for the gear line itself, since the slot word and the separator around it come from the approved board:
+
+```gdscript
+func test_gear_rows_reprint_their_detail_when_a_stat_levels() -> void:
+	var view := await _make_view()
+	view.setup(_selling(GearFixture.spirit_charm()))
+	var detail: RichTextLabel = _visible_rows(view)[0].get_node("%DetailLabel")
+	assert_string_contains(detail.text, "+50% Spirit\u00a0(+5)")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
+	assert_string_contains(detail.text, "+50% Spirit\u00a0(+7)")
+
+func test_a_long_gear_detail_wraps() -> void:
+	var charm: EquipmentDefinitionData = GearFixture.spirit_charm()
+	for key: StringName in [&"strength", &"body", &"agility", &"mind", &"control"]:
+		charm.stat_percent_bonuses[key] = 0.5
+	charm.armor = 6.0
+	charm.ward = 4.0
+	var view := await _make_view()
+	view.setup(_selling(charm))
+	view.visible = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var detail: RichTextLabel = _visible_rows(view)[0].get_node("%DetailLabel")
+	assert_gt(detail.get_line_count(), 1, "a long detail wraps instead of widening the row")
+```
+
+In `tests/integration/test_boards_never_trim_text.gd`, add `"res://scenes/inventory/inventory_view/equipment_tab/equipment_details/bonus_row.tscn": ["LeftBonus", "RightBonus"],` to the `wrapping` dictionary in `test_the_labels_that_can_run_long_wrap`.
+
+- [x] **Step 2: Run them and see them fail.** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_book_text.gd,res://tests/unit/test_equipment.gd,res://tests/integration/test_equipment_page.gd,res://tests/integration/test_merchant_shop_flow.gd,res://tests/integration/test_boards_never_trim_text.gd -gexit`
+  Expected: FAIL: `test_book_text.gd` and `test_equipment_page.gd` don't parse (no `BookText.gear_bonus_lines()`); `test_item_effects_are_the_gear_lines_at_the_trained_values` and the two new shop tests fail, because equipment's effect lines still walk `attribute_bonuses`, which the fixtures leave empty; and `test_the_labels_that_can_run_long_wrap` fails because LeftBonus doesn't wrap.
+
+- [x] **Step 3: Implement `gear_bonus_lines()`, `_get_item_effects()` and the two readers that reprint**
+  - `BookText.gear_bonus_lines()` walks `CharacterAttributesData.AttributeType.values()` in order. Each stat with a percent above 0 under `stat_key(stat)` gives `"%s%% %s\u00a0(%s)" % [_signed(percent * 100.0), CharacterManager.get_attribute_display_name(stat), _signed(bonus)]`, where `bonus` is `def.get_stat_bonus(stat, trained_values.get(stat, CharacterAttributesData.STAT_BASELINE))`. The space before "(" is a no-break space, so a wrapping row never parts the figure from its stat (Task 1.0's answer for board 4); the tests write it `\u00a0`, and docs and messages show a plain space. Then `"Armor %s"` and `"Ward %s"`, each when above 0, through a new `_plain(value: float) -> String` ("6", "6.5"). Its doc: the number in parentheses comes from `get_stat_bonus()`, as the totals' bonus does, so card and total can't disagree. Delete `bonus_lines()`; the class doc says "gear bonus lines".
+  - `EquipmentDefinitionData`: delete `attribute_bonuses` with its legacy doc. `_get_item_effects()` keeps its place under TOOLTIP but returns each `BookText.gear_bonus_lines(self, CharacterManager.get_trained_values())` line as `"[color=#a89070]%s[/color]"` (today's effect ink) instead of walking `attribute_bonuses`. Its doc: the item tooltip (`ItemDescriptionPanel`) and the shop (`MerchantStockRow`) print these, and every call reads the training afresh, so a reader that calls it again prints the bonus as it stands.
+  - `EquipmentDetails`: `_ready()` connects `CharacterManager.stats_changed` to `_on_stats_changed()`, which calls `_print_item(_item.item_definition)` while `_item` is set, deliberately bypassing `show_item()`'s same-item return and `EquipmentTab._show_slot()`'s same-slot return. `_print_item()` takes its bonuses from `BookText.gear_bonus_lines(equipment, CharacterManager.get_trained_values())`. Its class doc and `BonusRow`'s say "+10% Strength (+1)" for "+2 Strength", and `BonusRow.setup()`'s doc names `gear_bonus_lines()`.
+  - Layout per the approved gear-text board: `_BONUSES_PER_ROW`, BonusRow's label widths, and `equipment_details.tscn` if the panel must grow with its rows. Either way `%LeftBonus` and `%RightBonus` get `autowrap_mode = 3`, and `test_long_names_wrap_inside_the_panel` stays green.
+  - `ItemDescriptionPanel` and `ItemDisplaySlot` stay as they are: Lionel reworks the item tooltip later. The slot calls `setup()` on each hover and `setup()` prints `_get_item_effects()`, so the tooltip shows the new lines as they stand when it opens, with no reprint while it is open.
+  - `MerchantStockRow`: for equipment, `_format_detail()` keeps joining `item._get_item_effects()` (already inked: the row writes no ink itself) after the slot word, with the separator the approved gear-text board shows. Today's slot word and `", "` stay when the board keeps them, with the doc example "Main Hand: +30% Strength (+3), +10% Agility (+2)". `_ready()` also connects `stats_changed` to `_on_stats_changed()`, which sets `_detail_label.text = _format_detail(_entry.item)` while `_entry` sells equipment. In `merchant_stock_row.tscn`, delete `%DetailLabel`'s `autowrap_mode = 0` (a RichTextLabel wraps by word by default, growing the row down).
+  - Split the generator before its next run. `EquipmentDefinitionData` now names `CharacterManager` and `BookText`, and Godot compiles a `-s` script, with every class it names, before it registers the autoloads, so the generator would fail to compile ("Identifier not found: CharacterManager") and write nothing.
+    - `scripts/tools/items_md_to_resources.gd` keeps its command and its output and becomes the `-s` entry, naming no game class: `const GENERATOR_PATH := "res://scripts/tools/items_md_generator.gd"`, and `_initialize()` loads that script once the autoloads exist, as GUT's `gut_cmdln.gd` loads its CLI, then calls `quit(generator.run())`. When the load gives null or the script can't be instantiated (`can_instantiate()`), it calls `push_error("ItemsMdGenerator: failed to load the generator at %s" % GENERATOR_PATH)` and `quit(1)`: an error raised there would skip `quit()` and leave the headless process running. Its class doc says why.
+    - Its constants, `run()` and helpers move unchanged into `scripts/tools/items_md_generator.gd` (`extends RefCounted`, no `class_name`), where `run() -> int` still returns the exit code. Godot writes its `.gd.uid`; if it is missing, run the shared notes' `--import` once.
+    - In `docs/inventory/ITEMS.md`, the intro and the Generator section say the command runs the entry, which loads the worker once the autoloads exist (a `-s` script names no game class), and the worker parses the tables with `ItemsMdParser`; the command and its output are unchanged.
+    - Commit the split on its own, so it reverts alone: `git add scripts/tools/items_md_to_resources.gd scripts/tools/items_md_generator.gd scripts/tools/items_md_generator.gd.uid docs/inventory/ITEMS.md`, then `git commit -m "refactor(tools): load the items generator at run start"` (+ Co-Authored-By line).
+  - Delete the `attribute_bonuses = { … }` block from the seven Spirit Valley `.tres` files (the loader would skip the undeclared property silently), then rerun Task 1.7's generator command. Expected: `ItemsMdGenerator: created=0 updated=0 skipped=7 orphans=0`.
+
+- [x] **Step 4: Run them and see them pass.** The Step 2 command with `res://tests/unit/test_items_md_parser.gd` added to `-gtest`.
+  Expected: PASS.
+
+- [x] **Step 5: Commit.** Stage the files under **Files** that the split's commit didn't take (`equipment_details.tscn` only if the layout step changed it), then `git commit -m "feat(inventory): print gear percents and what they give"`. Body: "The book, the item tooltip and the shop print '+30% Strength (+3)', 'Armor 6' and 'Ward 4' from one builder that uses the stat totals' own per-item bonus. The tooltip and the shop take them inked from _get_item_effects(), so the tooltip's own code is left for Lionel's rework. The book and the shop reprint on stats_changed, so a Spirit level gained with either open shows at once. attribute_bonuses and its dead file entries go." (+ Co-Authored-By line)
+
+---
+
+### Task 1.9: Main-stat-only technique scaling and enemy defences
+
+Before Step 1, invoke `godot-prompter:resource-pattern` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scripts/resource_definitions/combat/combat_effect_data.gd` (the scaling exports, `get_scaling()`, `calculate_value()`)
+- Modify: `resources/abilities/basic_strike.tres`, `resources/abilities/empty_palm.tres`, `resources/abilities/power_font.tres`, `resources/combat/combatant_data/enemy_abilities/famishing_bite.tres`, `resources/combat/combatant_data/enemy_abilities/madra_lash.tres`, `resources/combat/combatant_data/amorphous_spirit.tres`, `resources/combat/combatant_data/coalescing_spirit.tres`, `resources/combat/combatant_data/starving_dreadbeast.tres`, `resources/combat/combatant_data/ravenous_dreadbeast.tres`
+- Modify: `scenes/abilities/abilities_view.gd` (the doc of `_show_value_breakdown()`)
+- Create: `tests/unit/test_combat_content.gd`
+- Test: `tests/unit/test_combat_effect_data.gd`, `tests/unit/test_combat_damage.gd`, `tests/unit/test_technique_slot_math.gd`, `tests/integration/test_abilities_book.gd`, `tests/integration/test_character_book.gd`
+
+**Interfaces:**
+- Consumes (Task 1.1): `CharacterAttributesData.make()` with its `armor` and `ward` fields; `CombatEffectData.calculate_damage()` defended by armor and Ward; the export `CombatEffectData.mind_scaling` (removed here).
+- Produces: `CombatEffectData` scales through `strength_scaling` and `spirit_scaling` only. `get_scaling(attribute: CharacterAttributesData.AttributeType) -> float` is 0.0 for Body, Agility, Mind and Control. `calculate_value(caster_attributes: CharacterAttributesData) -> float` = `base_value + strength_scaling * caster_attributes.strength + spirit_scaling * caster_attributes.spirit`. The four enemy stat blocks carry armor and Ward, every value written out.
+
+- [x] **Step 1: Write the content lock.** Create `tests/unit/test_combat_content.gd`, under `#----` CONSTANTS, HELPERS and TESTS headers:
+
+```gdscript
+extends GutTest
+
+## Content lock: a Lv 1 fight (every stat 10, no gear) keeps its numbers. The
+## techniques, the enemy blocks with armor and Ward, and the hits after defence.
+
+const BASIC_STRIKE: AbilityData = preload("res://resources/abilities/basic_strike.tres")
+const EMPTY_PALM: AbilityData = preload("res://resources/abilities/empty_palm.tres")
+const POWER_FONT: AbilityData = preload("res://resources/abilities/power_font.tres")
+const FAMISHING_BITE: AbilityData = preload("res://resources/combat/combatant_data/enemy_abilities/famishing_bite.tres")
+const MADRA_LASH: AbilityData = preload("res://resources/combat/combatant_data/enemy_abilities/madra_lash.tres")
+const COALESCE: AbilityData = preload("res://resources/combat/combatant_data/enemy_abilities/coalesce.tres")
+const AMORPHOUS_SPIRIT: CombatantData = preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
+const COALESCING_SPIRIT: CombatantData = preload("res://resources/combat/combatant_data/coalescing_spirit.tres")
+const STARVING_DREADBEAST: CombatantData = preload("res://resources/combat/combatant_data/starving_dreadbeast.tres")
+const RAVENOUS_DREADBEAST: CombatantData = preload("res://resources/combat/combatant_data/ravenous_dreadbeast.tres")
+
+## The damage effect of an ability: its first effect on the target.
+func _damage_of(ability: AbilityData) -> CombatEffectData:
+	return ability.effects_on_target[0]
+
+## Armor 10 and Ward 10 cut the player's hits as Resilience 10 and Spirit 10
+## did; Ward 25 as the Coalescing Spirit's Spirit 25 did.
+func test_enemy_stat_blocks() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Amorphous Spirit", "enemy": AMORPHOUS_SPIRIT, "block": {&"strength": 10.0, &"body": 10.0, &"agility": 10.0,
+			&"spirit": 10.0, &"mind": 10.0, &"control": 10.0, &"armor": 10.0, &"ward": 10.0}},
+		{"name": "Coalescing Spirit", "enemy": COALESCING_SPIRIT, "block": {&"strength": 10.0, &"body": 20.0, &"agility": 10.0,
+			&"spirit": 25.0, &"mind": 10.0, &"control": 10.0, &"armor": 10.0, &"ward": 25.0}},
+		{"name": "Starving Dreadbeast", "enemy": STARVING_DREADBEAST, "block": {&"strength": 10.0, &"body": 8.5, &"agility": 10.0,
+			&"spirit": 10.0, &"mind": 12.0, &"control": 10.0, &"armor": 10.0, &"ward": 10.0}},
+		{"name": "Ravenous Dreadbeast", "enemy": RAVENOUS_DREADBEAST, "block": {&"strength": 15.0, &"body": 8.5, &"agility": 10.0,
+			&"spirit": 10.0, &"mind": 12.0, &"control": 10.0, &"armor": 10.0, &"ward": 10.0}},
+	]
+	for case: Dictionary in cases:
+		var attributes: CharacterAttributesData = (case["enemy"] as CombatantData).attributes
+		for key: StringName in case["block"]:
+			assert_eq(attributes.get(key), case["block"][key], "%s: %s" % [case["name"], key])
+
+## Each technique scales from its side's main stat only and keeps its Lv 1 hit.
+func test_player_techniques_at_lv_1() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Basic Strike", "ability": BASIC_STRIKE, "type": CombatEffectData.DamageType.PHYSICAL, "strength": 1.5, "spirit": 0.0, "value": 25.0},
+		{"name": "Empty Palm", "ability": EMPTY_PALM, "type": CombatEffectData.DamageType.SPIRIT, "strength": 0.0, "spirit": 1.3, "value": 28.0},
+		{"name": "Power Font", "ability": POWER_FONT, "type": CombatEffectData.DamageType.SPIRIT, "strength": 0.0, "spirit": 2.0, "value": 50.0},
+	]
+	for case: Dictionary in cases:
+		var effect: CombatEffectData = _damage_of(case["ability"])
+		assert_eq(effect.damage_type, case["type"], "%s: damage type" % case["name"])
+		assert_almost_eq(effect.strength_scaling, case["strength"], 0.0001, "%s: per Strength" % case["name"])
+		assert_almost_eq(effect.spirit_scaling, case["spirit"], 0.0001, "%s: per Spirit" % case["name"])
+		assert_almost_eq(effect.calculate_value(CharacterAttributesData.make()), case["value"], 0.001, "%s: at Lv 1" % case["name"])
+
+## Lv 1 hits after defence: x 100 / (100 + armor), with Ward for Spirit damage.
+func test_player_hits_after_enemy_defence() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Basic Strike on the Amorphous Spirit", "ability": BASIC_STRIKE, "enemy": AMORPHOUS_SPIRIT, "damage": 25.0 * 100.0 / 110.0},
+		{"name": "Basic Strike on the Coalescing Spirit", "ability": BASIC_STRIKE, "enemy": COALESCING_SPIRIT, "damage": 25.0 * 100.0 / 110.0},
+		{"name": "Basic Strike on a Ravenous Dreadbeast", "ability": BASIC_STRIKE, "enemy": RAVENOUS_DREADBEAST, "damage": 25.0 * 100.0 / 110.0},
+		{"name": "Empty Palm on a Starving Dreadbeast", "ability": EMPTY_PALM, "enemy": STARVING_DREADBEAST, "damage": 28.0 * 100.0 / 110.0},
+		{"name": "Empty Palm on the Coalescing Spirit", "ability": EMPTY_PALM, "enemy": COALESCING_SPIRIT, "damage": 22.4},
+		{"name": "Power Font on the Amorphous Spirit", "ability": POWER_FONT, "enemy": AMORPHOUS_SPIRIT, "damage": 50.0 * 100.0 / 110.0},
+		{"name": "Power Font on the Coalescing Spirit", "ability": POWER_FONT, "enemy": COALESCING_SPIRIT, "damage": 40.0},
+	]
+	for case: Dictionary in cases:
+		var enemy: CombatantData = case["enemy"]
+		assert_almost_eq(_damage_of(case["ability"]).calculate_damage(CharacterAttributesData.make(), enemy.attributes),
+			case["damage"], 0.001, case["name"])
+
+## At 0.91 per point, enemy hits on a Lv 1 player (no armor or Ward) land what
+## Resilience 10 and Spirit 10 let through before.
+func test_enemy_techniques_on_a_lv_1_player() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Famishing Bite from a Starving Dreadbeast", "ability": FAMISHING_BITE, "enemy": STARVING_DREADBEAST, "damage": 9.1},
+		{"name": "Famishing Bite from a Ravenous Dreadbeast", "ability": FAMISHING_BITE, "enemy": RAVENOUS_DREADBEAST, "damage": 13.65},
+		{"name": "Madra Lash from the Amorphous Spirit", "ability": MADRA_LASH, "enemy": AMORPHOUS_SPIRIT, "damage": 9.1},
+		{"name": "Madra Lash from the Coalescing Spirit", "ability": MADRA_LASH, "enemy": COALESCING_SPIRIT, "damage": 22.75},
+	]
+	for case: Dictionary in cases:
+		var enemy: CombatantData = case["enemy"]
+		assert_almost_eq(_damage_of(case["ability"]).calculate_damage(enemy.attributes, CharacterAttributesData.make()),
+			case["damage"], 0.001, case["name"])
+
+## Coalesce heals 3 per Spirit: 75 for the Coalescing Spirit, with no defence.
+func test_coalesce_heals_from_spirit() -> void:
+	assert_almost_eq(COALESCE.get_total_self_heal(COALESCING_SPIRIT.attributes), 75.0, 0.001)
+```
+
+- [x] **Step 2: Move the scaling unit tests to the main stats.**
+  - **`tests/unit/test_combat_effect_data.gd`:** replace `test_get_scaling_reads_each_attribute_field` and `test_get_scaling_is_zero_when_unset` with the three tests below, keep `test_contribution_is_the_attribute_times_its_scaling`, and delete the `mind_scaling = 0.5` line of `test_base_plus_contributions_is_the_calculated_value`.
+
+```gdscript
+## No other stat has a scaling field, so no technique file can set one.
+func test_only_the_main_stats_have_a_scaling() -> void:
+	var effect := CombatEffectData.new()
+	for property: String in ["body_scaling", "agility_scaling", "mind_scaling", "control_scaling"]:
+		assert_false(property in effect, "%s is gone" % property)
+	assert_true("strength_scaling" in effect, "Strength scales Physical techniques")
+	assert_true("spirit_scaling" in effect, "Spirit scales Spirit techniques")
+
+## get_scaling() reads Strength's and Spirit's scaling. Every other stat scales nothing.
+func test_get_scaling_reads_strength_and_spirit_only() -> void:
+	var effect := CombatEffectData.new()
+	effect.strength_scaling = 1.5
+	effect.spirit_scaling = 2.0
+	var cases: Array[Dictionary] = [
+		{"stat": CharacterAttributesData.AttributeType.STRENGTH, "scaling": 1.5},
+		{"stat": CharacterAttributesData.AttributeType.BODY, "scaling": 0.0},
+		{"stat": CharacterAttributesData.AttributeType.AGILITY, "scaling": 0.0},
+		{"stat": CharacterAttributesData.AttributeType.SPIRIT, "scaling": 2.0},
+		{"stat": CharacterAttributesData.AttributeType.MIND, "scaling": 0.0},
+		{"stat": CharacterAttributesData.AttributeType.CONTROL, "scaling": 0.0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(effect.get_scaling(case["stat"]), case["scaling"], CharacterAttributesData.AttributeType.keys()[case["stat"]])
+
+## calculate_value() counts Strength and Spirit only, however high the other four are.
+func test_value_ignores_the_other_stats() -> void:
+	var effect := CombatEffectData.new()
+	effect.base_value = 10.0
+	effect.strength_scaling = 1.5
+	effect.spirit_scaling = 2.0
+	var mains := CharacterAttributesData.make({&"strength": 12.0, &"spirit": 14.0})
+	var all_high := CharacterAttributesData.make({&"strength": 12.0, &"spirit": 14.0,
+		&"body": 99.0, &"agility": 99.0, &"mind": 99.0, &"control": 99.0})
+	assert_eq(effect.calculate_value(mains), 56.0, "10 + 12 x 1.5 + 14 x 2")
+	assert_eq(effect.calculate_value(all_high), 56.0, "Body, Agility, Mind and Control add nothing")
+```
+
+  - **`tests/unit/test_combat_damage.gd`, `test_value_adds_each_attribute_times_its_scaling`:** delete the body, agility, mind and control cases. Its doc becomes `## calculate_value() is base_value plus Strength and Spirit times their scalings: no scaling, a zero base, each main stat on its own (caster at 10 in everything), both together, and a high Strength.`
+
+- [x] **Step 3: Move three screen tests to main-stat scaling.**
+  - **`tests/unit/test_technique_slot_math.gd`, `test_format_damage`:** the precondition becomes `assert_eq(amount, 30, "precondition: 10 + 13 x 1.5 = 29.5, rounded")`. `strong` stays as Task 1.1 left it; its Agility no longer counts.
+  - **`tests/integration/test_abilities_book.gd`, `test_damage_shows_the_total_and_each_attributes_part`:** delete `agility_part` and the two asserts that read it, make the visibility assert `assert_true(strength_part.visible)`, and point the hidden-part assert at `ScalingPart2` with the message "Basic Strike scales with Strength alone". It keeps its name, and the file keeps `AGILITY_ICON`: Task 1.15 replaces the test and deletes both icon consts.
+  - **`tests/integration/test_character_book.gd`** (Task 1.16 later rewrites the file): `test_effects_list_unlocked_abilities_that_scale_with_it` (doc `## A technique scales from its side's main stat only.`) asserts, after each `_view.select_attribute(CharacterAttributesData.AttributeType.X)`, that `EffectsLabel` contains `_scaling_line("res://resources/abilities/basic_strike.tres", X)` for X = STRENGTH, `_scaling_line("res://resources/abilities/empty_palm.tres", X)` for X = SPIRIT, and no "Basic Strike" for X = AGILITY (message "Agility scales no technique").
+
+- [x] **Step 4: Run them and see them fail.**
+  - Command: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_combat_content.gd,res://tests/unit/test_combat_effect_data.gd,res://tests/unit/test_combat_damage.gd,res://tests/unit/test_technique_slot_math.gd,res://tests/integration/test_abilities_book.gd,res://tests/integration/test_character_book.gd -gexit`
+  - Expected: FAIL: `test_combat_content.gd` (Basic Strike's `strength_scaling` is 1.0, enemy armor and Ward are 0.0, Famishing Bite hits for 10), `test_combat_effect_data.gd` ("body_scaling is gone"), `test_technique_slot_math.gd` (27), `test_abilities_book.gd` (ScalingPart2 shows Agility), `test_character_book.gd` (Agility lists Basic Strike). `test_combat_damage.gd` passes, having only lost cases.
+
+- [x] **Step 5: Implement main-stat scaling in `scripts/resource_definitions/combat/combat_effect_data.gd`.**
+  - **Exports:** delete `body_scaling`, `agility_scaling`, `mind_scaling` and `control_scaling`. The Attribute Scaling group keeps `strength_scaling` (doc `## Scales with the caster's Strength: Physical techniques.`) and `spirit_scaling` (doc `## Scales with the caster's Spirit: Spirit techniques and heals.`).
+  - **`get_scaling()`:** two match arms, STRENGTH and SPIRIT. Any other stat returns 0.0, without the `Log.error`.
+  - **`calculate_value()`:** the AttributeType loop and its per-stat `Log.info` lines become the two-term sum in Interfaces. The null-caster guard and the other `Log.info` lines stay.
+  - **`get_scaling_contribution()`:** the body stays; its doc adds "0 for any stat but Strength and Spirit".
+  - **`scenes/abilities/abilities_view.gd`:** the example in the doc of `_show_value_breakdown()` becomes `"10 base" then Strength "+15"`.
+
+- [x] **Step 6: Retune the five technique files.** Set or delete these lines in each damage sub-resource; every other line stays.
+
+| File | Sub-resource | Set | Delete |
+|---|---|---|---|
+| `resources/abilities/basic_strike.tres` | `Resource_dx6op` | `strength_scaling = 1.5` | `agility_scaling = 0.5` |
+| `resources/abilities/empty_palm.tres` | `Resource_damage` | `spirit_scaling = 1.3` | `agility_scaling = 0.3` |
+| `resources/abilities/power_font.tres` | `Resource_damage` | `spirit_scaling = 2.0` | `mind_scaling = 0.5` |
+| `resources/combat/combatant_data/enemy_abilities/famishing_bite.tres` | `Resource_8emjg` | `strength_scaling = 0.91` | |
+| `resources/combat/combatant_data/enemy_abilities/madra_lash.tres` | `Resource_m6bjc` | `spirit_scaling = 0.91` | |
+
+- [x] **Step 7: Write out the four enemy stat blocks.** The `attributes` sub-resources are `Resource_wrvmu` (`amorphous_spirit.tres`), `Resource_ygc7y` (`coalescing_spirit.tres`) and `Resource_xwkgh` (`starving_dreadbeast.tres`, `ravenous_dreadbeast.tres`). In each, the lines between `script = ExtResource(...)` and `metadata/_custom_type_script = ...` become eight lines, `strength` to `ward` in the order `test_enemy_stat_blocks` lists them, with its values. Default values are written too, so a later default change can't rewrite them. The dreadbeasts' `mind = 12.0` (Task 1.1's rename of `foundation`) is their `mind` line.
+
+- [x] **Step 8: Check that nothing names a removed scaling or a deleted display script.**
+  - Command: `git grep -n -E "(body|agility|mind|control|foundation)_scaling|AbilityStatsDisplay|StatLabel|StatTooltip" -- . ":!addons" ":!docs" ":!tests/unit/test_combat_effect_data.gd"`
+  - Expected: no output. `test_combat_effect_data.gd` is left out because `test_only_the_main_stats_have_a_scaling` names the four removed scalings on purpose; Task 1.1 deleted AbilityStatsDisplay, StatLabel and StatTooltip, the last other readers.
+
+- [x] **Step 9: Run them and see them pass.** Run the Step 4 command, then the full suite: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`. Expected: PASS for both.
+
+- [x] **Step 10: Commit.**
+  - Stage the Files list above and `tests/unit/test_combat_content.gd.uid`, which Godot writes for a new script. If it is missing, run `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` once and check that `git status --short project.godot` prints nothing.
+  - Commit: `git commit -m "feat(combat): scale techniques from main stats only" -m "A technique scales from Strength or Spirit alone, and enemies defend with armor and Ward. The retune keeps every Lv 1 hit, the player's and the enemies'." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`
+
+---
+
+### Task 1.10: Dodge
+
+Before Step 1, invoke `godot-prompter:hud-system` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd` (new DODGE section)
+- Modify: `scenes/combat/combatant/combatant_visual/combatant_visual.gd` (`play_dodge()`)
+- Modify: `scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd` (`execute_ability()`, new `_dodged_by()`, the class doc)
+- Create: `tests/unit/test_combat_dodge.gd`
+
+**Interfaces:**
+- Consumes: `CharacterAttributesData.get_dodge_chance() -> float` (Task 1.1; 0 at Agility 10).
+- Produces: `CombatEffectManager.dodge_roll: Callable` (returns a float from 0 to 1; a roll of 1.0 never dodges) and `CombatEffectManager.try_dodge() -> bool`; `CombatantVisual.play_dodge() -> void`; `CombatAbilityInstance.execute_ability(target: CombatantNode) -> void` asks the target before its effects land.
+
+- [x] **Step 1: Write the failing test.** Create `tests/unit/test_combat_dodge.gd` (`#----` CONSTANTS, HELPERS and TESTS headers). Helpers:
+  - `_combatant(character_name: String, is_player: bool, attributes: CharacterAttributesData) -> CombatantNode`: an autofreed `CombatantNode.new()`, never in the tree, with `is_player` and a `CombatantData` (the name, `attributes`). Its `vitals_manager` is a `VitalsManager` with `character_attributes_data = attributes` and `initialize_current_values()`; its `ability_manager`, `buff_manager` and `effect_manager` are new managers, each `setup(fighter)`. All four go in with `add_child_autofree()`.
+  - `_fix_roll(fighter: CombatantNode, roll: float) -> void` sets `fighter.effect_manager.dodge_roll = func() -> float: return roll`.
+  - `_instance(ability: AbilityData, caster: CombatantNode) -> CombatAbilityInstance`: `CombatAbilityInstance.new(ability, caster)`, a child of `caster.ability_manager`.
+  - `_start_casting(fighter: CombatantNode) -> CombatAbilityInstance`, as `test_empty_palm_interrupt.gd` does: an `_instance()` of `test_long_cast` ("Test Long Cast", cast 3 s, cooldown 5 s) appended to `fighter.ability_manager.abilities`, `is_casting = true`, `cast_timer.start(3.0)`.
+  - `_bite() -> AbilityData`: `test_bite` ("Test Bite"): on the target a DAMAGE effect of base 10 (Physical), then a CANCEL_CAST effect; on itself a `BuffEffectData` `test_hunger`, OUTGOING_DAMAGE_MODIFIER, `damage_multiplier = 1.5`.
+  - `_self_heal() -> AbilityData`: `test_coalesce` ("Test Coalesce"), one HEAL effect of base 5 on itself and none on the target.
+
+  The rest of the file:
+
+```gdscript
+extends GutTest
+
+## Dodge: only the player dodges, at its Agility's chance. A dodge skips every
+## effect on the target, riders too; the caster's self effects still apply.
+
+## Agility 25: 15 points above Lv 1, so the player can dodge.
+const NIMBLE: float = 25.0
+
+## Only the player dodges, on a roll under its chance. Lv 1 Agility has none.
+func test_only_the_player_dodges_under_its_chance() -> void:
+	var chance: float = CharacterAttributesData.make({&"agility": NIMBLE}).get_dodge_chance()
+	assert_gt(chance, 0.0, "precondition: Agility 25 can dodge")
+	var cases: Array[Dictionary] = [
+		{"name": "the player, a roll just under its chance", "is_player": true, "agility": NIMBLE, "roll": chance - 0.001, "dodges": true},
+		{"name": "the player, a roll at its chance", "is_player": true, "agility": NIMBLE, "roll": chance, "dodges": false},
+		{"name": "the player at Lv 1 Agility, the lowest roll", "is_player": true, "agility": 10.0, "roll": 0.0, "dodges": false},
+		{"name": "an enemy, however nimble", "is_player": false, "agility": 100.0, "roll": 0.0, "dodges": false},
+	]
+	for case: Dictionary in cases:
+		var fighter: CombatantNode = _combatant("Fighter", case["is_player"], CharacterAttributesData.make({&"agility": case["agility"]}))
+		_fix_roll(fighter, case["roll"])
+		assert_eq(fighter.effect_manager.try_dodge(), case["dodges"], case["name"])
+
+## At a chance of 0 no roll is drawn at all: Lv 1 Agility never calls dodge_roll.
+func test_no_chance_draws_no_roll() -> void:
+	var player: CombatantNode = _combatant("Player", true, CharacterAttributesData.make())
+	assert_eq(player.combatant_data.attributes.get_dodge_chance(), 0.0, "precondition: Lv 1 Agility has no chance")
+	var rolls: Array[int] = [0]
+	player.effect_manager.dodge_roll = func() -> float:
+		rolls[0] += 1
+		return 0.0
+	assert_false(player.effect_manager.try_dodge(), "no chance, no dodge")
+	assert_eq(rolls[0], 0, "and no roll drawn")
+
+## A manager with no owner, an owner that has no data, or data with no
+## attributes never dodges.
+func test_a_bare_node_never_dodges() -> void:
+	var manager := CombatEffectManager.new()
+	add_child_autofree(manager)
+	manager.dodge_roll = func() -> float: return 0.0
+	assert_false(manager.try_dodge(), "no owner")
+	var fighter := CombatantNode.new()
+	autofree(fighter)
+	fighter.is_player = true
+	manager.setup(fighter)
+	assert_false(manager.try_dodge(), "an owner with no data")
+	# CombatantData._init() gives new data its own attributes: take them away.
+	fighter.combatant_data = CombatantData.new()
+	fighter.combatant_data.attributes = null
+	assert_false(manager.try_dodge(), "an owner whose data has no attributes")
+
+## A dodge stops the damage and the interrupt riding on it, and is logged. The
+## biter's Hunger still applies.
+func test_a_dodge_skips_every_target_effect_but_not_the_casters_own() -> void:
+	var player: CombatantNode = _combatant("Player", true, CharacterAttributesData.make({&"agility": NIMBLE}))
+	_fix_roll(player, 0.0)
+	var cast: CombatAbilityInstance = _start_casting(player)
+	var beast: CombatantNode = _combatant("Dreadbeast", false, CharacterAttributesData.make())
+	watch_signals(LogManager)
+	_instance(_bite(), beast).execute_ability(player)
+	assert_eq(player.vitals_manager.current_health, player.vitals_manager.max_health, "the damage never lands")
+	assert_true(cast.is_casting, "nor does the interrupt")
+	assert_eq(beast.buff_manager.active_buffs.size(), 1, "the biter's Hunger still applies")
+	assert_signal_emitted_with_parameters(LogManager, "message_logged", ["[b]Player[/b] dodged Test Bite"])
+
+## A roll over the chance lands the whole hit: the damage and the interrupt.
+func test_a_missed_dodge_lands_the_hit() -> void:
+	var player: CombatantNode = _combatant("Player", true, CharacterAttributesData.make({&"agility": NIMBLE}))
+	_fix_roll(player, 0.99)
+	var cast: CombatAbilityInstance = _start_casting(player)
+	_instance(_bite(), _combatant("Dreadbeast", false, CharacterAttributesData.make())).execute_ability(player)
+	assert_eq(player.vitals_manager.current_health, 90.0, "the bite's 10 damage lands (no armor)")
+	assert_false(cast.is_casting, "and so does its interrupt")
+
+## A cast with no effect on its target never rolls a dodge, though SimpleEnemyAI
+## aims every cast at the player (Coalesce heals only its caster).
+func test_a_cast_without_target_effects_never_rolls() -> void:
+	var player: CombatantNode = _combatant("Player", true, CharacterAttributesData.make({&"agility": NIMBLE}))
+	var rolls: Array[int] = [0]
+	player.effect_manager.dodge_roll = func() -> float:
+		rolls[0] += 1
+		return 0.0
+	_instance(_self_heal(), _combatant("Spirit", false, CharacterAttributesData.make())).execute_ability(player)
+	assert_eq(rolls[0], 0, "no dodge is rolled for a self-heal aimed at the player")
+```
+
+- [x] **Step 2: Run it and see it fail.**
+  - Command: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_combat_dodge.gd -gexit`
+  - Expected: FAIL: the script does not parse (`CombatEffectManager` has no `dodge_roll` or `try_dodge()`), so GUT runs none of its tests.
+
+- [x] **Step 3: Implement the roll in `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd`.** After PUBLIC API, add a `#----` DODGE section with:
+  - `var dodge_roll: Callable = func() -> float: return randf()`, doc `## The roll a dodge is checked against, a float from 0 to 1 (randf() can return 1.0, and a roll of 1.0 never dodges). Tests swap in a fixed one (the TribulationView.clock_usec pattern).` A lambda, because GDScript can't use the utility function `randf` as a value.
+  - `func try_dodge() -> bool` (`##` doc): false when `owner_combatant`, its `combatant_data` or their `attributes` is null, or `owner_combatant.is_player` is false. Otherwise `chance > 0.0 and float(dodge_roll.call()) < chance`, with `chance = owner_combatant.combatant_data.attributes.get_dodge_chance()`, so no roll is drawn at a chance of 0.
+
+- [x] **Step 4: Implement the floater in `scenes/combat/combatant/combatant_visual/combatant_visual.gd`.** Add `const DODGED_TEXT: String = "Dodged"`, `const COLOR_DODGE: Color` set to the colour of the approved Task 1.0 "Dodged" floater (it starts as `ThemeConstants.LACQUER_STAMINA`, Agility's Stamina green), and a `##`-documented `func play_dodge() -> void` that only calls `_spawn_number(DODGED_TEXT, COLOR_DODGE)`: no flash, no recoil.
+
+- [x] **Step 5: Ask the target in `execute_ability()`** (`scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd`).
+  - The target-effects block runs only when `target` is set and has `receive_effect`, `ability_data.effects_on_target` is not empty, and `not _dodged_by(target)`, checked in that order so a cast with no target effect never rolls. The self-effects block stays outside that condition.
+  - New `func _dodged_by(target: CombatantNode) -> bool` (`##` doc) under INTERNAL LOGIC: false when `target.effect_manager` is null or its `try_dodge()` is false. Otherwise it calls `target.visual.play_dodge()` when `target.visual` is set, logs `LogManager.log_message("[b]%s[/b] dodged %s" % [target.combatant_data.character_name, ability_data.ability_name])` and returns true.
+  - The class doc's EXECUTION list gains "- The target may dodge: its effects are skipped, the caster's own still apply".
+
+- [x] **Step 6: Run them and see them pass.** Run the Step 2 command with `,res://tests/unit/test_combat_effect_types.gd,res://tests/integration/test_technique_dock.gd` added to `-gtest`, then the full suite (`tests/run_tests.ps1`, as in Task 1.9). Expected: PASS for both.
+
+- [x] **Step 7: Commit.** Stage the Files list above and `tests/unit/test_combat_dodge.gd.uid` (as in Task 1.9), then `git commit -m "feat(combat): let the player dodge hits with Agility" -m "Agility's third job. Only the player dodges, so the player's own hits never miss for a reason the player can't see." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`
+
+---
+
+### Task 1.11: Control's Madra cost and cooldown cuts
+
+Before Step 1, invoke `godot-prompter:ability-system` and `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scripts/resource_definitions/abilities/ability_data.gd`, `scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd`, `scenes/combat/combatant/combat_ability_manager/combat_ability_manager.gd`
+- Modify: `scenes/ui/combat/technique_dock/technique_slot/technique_slot.gd`, `scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.gd`, `scenes/abilities/ability_row/ability_row.gd`, `scenes/abilities/abilities_view.gd` (`_show_details()`)
+- Create: `tests/unit/test_ability_data.gd`, `tests/unit/test_control_cuts.gd`
+- Test: `tests/unit/test_technique_slot_math.gd`, `tests/integration/test_technique_dock.gd`, `tests/integration/test_abilities_book.gd`
+
+**Interfaces:**
+- Consumes: `CharacterAttributesData.get_madra_cost_cut()` and `get_cooldown_cut()` (Task 1.1; 0 at Control 10); `CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)` and `get_stat(StatModifierData.Stat.COOLDOWN_CUT)` (Task 1.5); `execute_ability()` as Task 1.10 left it.
+- Produces:
+  - `AbilityData.get_madra_cost(cost_cut: float = 0.0) -> float` = `roundf(madra_cost * (1.0 - cost_cut))` and `get_cooldown(cooldown_cut: float = 0.0) -> float` = `base_cooldown * (1.0 - cooldown_cut)`; `can_afford()` and `consume_costs()` gain `cost_cut: float = 0.0`.
+  - `CombatAbilityInstance.get_cost_cut() -> float` and `get_cooldown_cut() -> float`: the player's cuts, 0.0 for an enemy or no owner. `cooldown_started(duration)` carries the duration actually started.
+  - `AbilityRow.format_cost(ability_data: AbilityData, cost_cut: float = 0.0) -> String` and `format_costs(ability_data: AbilityData, cost_cut: float = 0.0, cooldown_cut: float = 0.0) -> String`.
+  - `TechniqueSlot.is_cost_affordable() -> bool`.
+
+- [x] **Step 1: Write the failing AbilityData tests.** Create `tests/unit/test_ability_data.gd`:
+
+```gdscript
+extends GutTest
+
+## AbilityData's Madra cost and cooldown under Control's cuts. Stamina and
+## Health costs are never cut.
+
+## The Madra a cast costs after a cut, rounded to whole Madra (a half rounds up).
+func test_madra_cost_is_cut_and_rounded() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no cut", "cost": 10.0, "cut": 0.0, "paid": 10.0},
+		{"name": "a quarter off 8 Madra", "cost": 8.0, "cut": 0.25, "paid": 6.0},
+		{"name": "a half rounds up: 10 less a quarter is 7.5, paid as 8", "cost": 10.0, "cut": 0.25, "paid": 8.0},
+		{"name": "under a half rounds down: 29.28 is paid as 29", "cost": 30.0, "cut": 0.024, "paid": 29.0},
+		{"name": "a free technique stays free", "cost": 0.0, "cut": 0.25, "paid": 0.0},
+	]
+	for case: Dictionary in cases:
+		var ability := AbilityData.new()
+		ability.madra_cost = case["cost"]
+		assert_eq(ability.get_madra_cost(case["cut"]), case["paid"], case["name"])
+
+## The cooldown after a cut, not rounded. A technique with no cooldown keeps none.
+func test_cooldown_is_cut() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no cut", "cooldown": 2.0, "cut": 0.0, "expected": 2.0},
+		{"name": "a fifth off 2 s", "cooldown": 2.0, "cut": 0.2, "expected": 1.6},
+		{"name": "a fifth off 15 s", "cooldown": 15.0, "cut": 0.2, "expected": 12.0},
+		{"name": "no cooldown stays none", "cooldown": 0.0, "cut": 0.2, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		var ability := AbilityData.new()
+		ability.base_cooldown = case["cooldown"]
+		assert_almost_eq(ability.get_cooldown(case["cut"]), case["expected"], 0.0001, case["name"])
+
+## The check and the payment use the cut Madra cost; Stamina is paid in full.
+func test_costs_are_checked_and_paid_after_the_cut() -> void:
+	var ability := AbilityData.new()
+	ability.madra_cost = 8.0
+	ability.stamina_cost = 3.0
+	var vitals := VitalsManager.new()
+	add_child_autofree(vitals)
+	vitals.current_madra = 6.0
+	vitals.current_stamina = 3.0
+	assert_false(ability.can_afford(vitals), "6 Madra can't pay the full 8")
+	assert_true(ability.can_afford(vitals, 0.25), "but can pay 8 cut by a quarter")
+	assert_true(ability.consume_costs(vitals, 0.25), "the payment goes through")
+	assert_eq(vitals.current_madra, 0.0, "6 Madra paid, not 8")
+	assert_eq(vitals.current_stamina, 0.0, "the Stamina cost is paid in full")
+```
+
+- [x] **Step 2: Write the failing fight tests.** Create `tests/unit/test_control_cuts.gd` (`#----` CONSTANTS, HELPERS and TESTS headers). Helpers:
+  - `_technique(madra_cost: float, base_cooldown: float, cast_time: float = 0.0) -> AbilityData`: `test_technique` ("Test Technique"), those fields, no effects.
+  - `_fighter(is_player: bool, control: float) -> CombatantNode`: an autofreed `CombatantNode.new()`, never in the tree, with `is_player` and a `CombatantData` named "Player" or "Enemy" holding `CharacterAttributesData.make({&"control": control})`.
+  - `_instance(ability: AbilityData, fighter: CombatantNode) -> CombatAbilityInstance`: `CombatAbilityInstance.new(ability, fighter)` added with `add_child_autofree()` (its opening cooldown runs).
+
+  The rest of the file:
+
+```gdscript
+extends GutTest
+
+## Control's cuts in a fight, the player's only. A cast, a cancelled cast and the
+## cast gate use them; the opening cooldown does not.
+
+## Control 30: 20 points above Lv 1, so both cuts are well above 0.
+const CONTROL: float = 30.0
+
+## The cuts come from the player's snapshot; an enemy or an unowned instance has none.
+func test_only_the_player_has_cuts() -> void:
+	var snapshot := CharacterAttributesData.make({&"control": CONTROL})
+	assert_gt(snapshot.get_cooldown_cut(), 0.0, "precondition: Control 30 cuts")
+	var player: CombatAbilityInstance = _instance(_technique(8.0, 3.0), _fighter(true, CONTROL))
+	assert_eq(player.get_cost_cut(), snapshot.get_madra_cost_cut(), "the player's Madra cost cut")
+	assert_eq(player.get_cooldown_cut(), snapshot.get_cooldown_cut(), "the player's cooldown cut")
+	var enemy: CombatAbilityInstance = _instance(_technique(8.0, 3.0), _fighter(false, CONTROL))
+	assert_eq(enemy.get_cost_cut(), 0.0, "an enemy's Madra costs are never cut")
+	assert_eq(enemy.get_cooldown_cut(), 0.0, "nor are its cooldowns")
+	var unowned: CombatAbilityInstance = _instance(_technique(8.0, 3.0), null)
+	assert_eq(unowned.get_cost_cut(), 0.0, "no owner: no Madra cost cut")
+	assert_eq(unowned.get_cooldown_cut(), 0.0, "no owner: no cooldown cut")
+
+## A cast starts the cut cooldown and reports it on cooldown_started.
+func test_a_cast_starts_the_cut_cooldown() -> void:
+	var technique: AbilityData = _technique(0.0, 2.0)
+	var instance: CombatAbilityInstance = _instance(technique, _fighter(true, CONTROL))
+	var cooldown: float = technique.get_cooldown(instance.get_cooldown_cut())
+	assert_lt(cooldown, 2.0, "precondition: Control 30 shortens a 2 s cooldown")
+	watch_signals(instance)
+	instance.execute_ability(null)
+	assert_almost_eq(instance.cooldown_timer.wait_time, cooldown, 0.0001, "the timer runs the cut cooldown")
+	assert_signal_emitted_with_parameters(instance, "cooldown_started", [cooldown])
+
+## A cancelled cast starts the cut cooldown too.
+func test_a_cancelled_cast_starts_the_cut_cooldown() -> void:
+	var technique: AbilityData = _technique(0.0, 5.0, 2.0)
+	var instance: CombatAbilityInstance = _instance(technique, _fighter(true, CONTROL))
+	instance.is_casting = true
+	instance.cast_timer.start(2.0)
+	instance.cancel_cast()
+	assert_almost_eq(instance.cooldown_timer.wait_time, technique.get_cooldown(instance.get_cooldown_cut()), 0.0001)
+	assert_lt(instance.cooldown_timer.wait_time, 5.0, "shorter than the full 5 s")
+
+## Every fight still opens on the full 1.5 s, whatever the player's Control.
+func test_the_opening_cooldown_is_never_cut() -> void:
+	var instance: CombatAbilityInstance = _instance(_technique(0.0, 3.0), _fighter(true, CONTROL))
+	assert_eq(instance.cooldown_timer.wait_time, CombatAbilityInstance.INITIAL_COOLDOWN)
+
+## A technique with no cooldown stays ready after a cast, cut or not.
+func test_a_technique_with_no_cooldown_stays_ready() -> void:
+	var instance: CombatAbilityInstance = _instance(_technique(0.0, 0.0), _fighter(true, CONTROL))
+	watch_signals(instance)
+	instance.execute_ability(null)
+	assert_true(instance.is_ready(), "no cooldown runs")
+	assert_signal_not_emitted(instance, "cooldown_started")
+
+## An enemy's cast starts its full cooldown, however much Control it has.
+func test_an_enemys_cooldown_is_never_cut() -> void:
+	var instance: CombatAbilityInstance = _instance(_technique(0.0, 30.0), _fighter(false, CONTROL))
+	instance.execute_ability(null)
+	assert_eq(instance.cooldown_timer.wait_time, 30.0)
+
+## The cast gate and the payment use the cut Madra cost.
+func test_the_gate_and_the_payment_use_the_cut_cost() -> void:
+	var technique: AbilityData = _technique(8.0, 3.0)
+	var player: CombatantNode = _fighter(true, CONTROL)
+	var abilities: Array[AbilityData] = [technique]
+	player.combatant_data.abilities = abilities
+	var vitals := VitalsManager.new()
+	add_child_autofree(vitals)
+	player.vitals_manager = vitals
+	var manager := CombatAbilityManager.new()
+	add_child_autofree(manager)
+	manager.setup(player)
+	var instance: CombatAbilityInstance = manager.abilities[0]
+	instance.cooldown_timer.stop()
+	var cost: float = technique.get_madra_cost(instance.get_cost_cut())
+	assert_lt(cost, 8.0, "precondition: Control 30 cuts the 8 Madra cost")
+	vitals.current_madra = cost - 1.0
+	assert_false(manager.can_cast_ability_instance(instance, null), "one Madra short of the cut cost")
+	vitals.current_madra = cost
+	assert_true(manager.can_cast_ability_instance(instance, null), "the cut cost is enough")
+	assert_true(manager.use_ability_instance(instance, null), "the cast starts")
+	assert_eq(vitals.current_madra, 0.0, "it paid the cut cost, not the full 8")
+```
+
+- [x] **Step 3: Write the failing preview and dock tests.**
+  - **`tests/unit/test_technique_slot_math.gd`:** the header adds "the cost lines (AbilityRow.format_cost(), format_costs()) and the durations in them (AbilityRow.format_seconds())". Add a helper `_costed(madra_cost: float, stamina_cost: float, base_cooldown: float, cast_time: float) -> AbilityData` (`test_costed`, "Test Costed", those four fields, no effects) and:
+
+```gdscript
+## The cost lines after Control's cuts. Stamina and the cast time are never cut.
+func test_cost_lines_show_the_cut_values() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no cut", "ability": _costed(8.0, 0.0, 3.0, 0.0), "cost_cut": 0.0, "cooldown_cut": 0.0,
+			"cost": "8 Madra", "costs": "8 Madra · 3 s"},
+		{"name": "a quarter off 8 Madra, a fifth off 3 s", "ability": _costed(8.0, 0.0, 3.0, 0.0), "cost_cut": 0.25, "cooldown_cut": 0.2,
+			"cost": "6 Madra", "costs": "6 Madra · 2.4 s"},
+		{"name": "7.5 Madra rounds up to 8; the cast time stays", "ability": _costed(10.0, 0.0, 15.0, 1.0), "cost_cut": 0.25, "cooldown_cut": 0.2,
+			"cost": "8 Madra", "costs": "8 Madra · 12 s · 1 s cast"},
+		{"name": "Stamina is never cut", "ability": _costed(0.0, 3.0, 2.0, 0.5), "cost_cut": 0.25, "cooldown_cut": 0.2,
+			"cost": "3 Stamina", "costs": "3 Stamina · 1.6 s · 0.5 s cast"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AbilityRow.format_cost(case["ability"], case["cost_cut"]), case["cost"], "%s: the cost" % case["name"])
+		assert_eq(AbilityRow.format_costs(case["ability"], case["cost_cut"], case["cooldown_cut"]), case["costs"], "%s: costs and timings" % case["name"])
+
+## A duration reads to a tenth at most, so a cooldown Control cuts (Leeching
+## Ring at Control 12 leaves 2.892 s) never prints two decimals.
+func test_seconds_read_to_a_tenth_at_most() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "whole seconds stay whole", "seconds": 10.0, "text": "10 s"},
+		{"name": "a cut cooldown rounds to the nearest tenth", "seconds": 2.892, "text": "2.9 s"},
+		{"name": "14.46 rounds up to the nearest tenth", "seconds": 14.46, "text": "14.5 s"},
+		{"name": "a tenth stays as it is", "seconds": 1.5, "text": "1.5 s"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AbilityRow.format_seconds(case["seconds"]), case["text"], case["name"])
+```
+
+  - **`tests/integration/test_technique_dock.gd` and `tests/integration/test_abilities_book.gd`:** each gets a `##`-documented `const TEST_SOURCE: StringName = &"test_control"`, `const StatSources := preload("res://tests/helpers/stat_sources.gd")`, and a `CharacterManager.remove_modifier_source(TEST_SOURCE)` call in `after_each()` (in the dock test, after the nodes are freed and before `_set_vitals.callv(_original_vitals)`). Reuse `tests/helpers/stat_sources.gd`, which Task 1.12 creates (it runs before this task): it holds the helper below as `## A modifier source that raises `stat` by a FLAT `amount`.` `static func flat(stat: StatModifierData.Stat, amount: float) -> Callable`, with `stat` in place of `StatModifierData.Stat.CONTROL`. The tests below call `StatSources.flat(StatModifierData.Stat.CONTROL, 20.0)` wherever they show `_control_source(20.0)`. Stage only this task's files at Step 11; the helper is committed already:
+
+```gdscript
+## A modifier source that raises Control by `amount`.
+func _control_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.CONTROL, StatModifierData.Kind.FLAT, amount)]
+		return modifiers
+```
+
+  The dock test adds:
+
+```gdscript
+## On the map, the slot's cost line and the tooltip show the cut values.
+func test_the_preview_and_tooltip_show_the_cut_values() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _control_source(20.0))
+	var cost_cut: float = CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)
+	var cooldown_cut: float = CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)
+	assert_lt(EMPTY_PALM.get_madra_cost(cost_cut), EMPTY_PALM.madra_cost, "precondition: Control 30 cuts Empty Palm's cost")
+	_equip("empty_palm", 2)
+	_dock.show_loadout()
+	assert_eq((_slot_node(2, "CostLabel") as Label).text, AbilityRow.format_number(EMPTY_PALM.get_madra_cost(cost_cut)), "the cost line")
+	_slot(2).mouse_entered.emit()
+	assert_eq((_tooltip_node("CostLabel") as Label).text, AbilityRow.format_cost(EMPTY_PALM, cost_cut), "the tooltip's cost")
+	assert_eq((_tooltip_node("TimingText") as RichTextLabel).get_parsed_text(),
+		TechniqueTooltip.INSTANT_TIMING_FORMAT % AbilityRow.format_seconds(EMPTY_PALM.get_cooldown(cooldown_cut)), "the tooltip's cooldown")
+
+## In a fight the cost line shows the cut cost and reads affordable exactly when
+## the cast gate lets the technique cast.
+func test_the_cost_line_agrees_with_the_gate_under_a_cost_cut() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _control_source(20.0))
+	_equip("empty_palm", 2)
+	_start_fight()
+	var palm: CombatAbilityInstance = _slot(2).get_ability_instance()
+	await _finish_cooldown(palm)
+	var cost: float = EMPTY_PALM.get_madra_cost(palm.get_cost_cut())
+	assert_lt(cost, EMPTY_PALM.madra_cost, "precondition: the fight's Control cuts Empty Palm's cost")
+	assert_eq((_slot_node(2, "CostLabel") as Label).text, AbilityRow.format_number(cost), "the cost line shows the cut cost")
+	_vitals.current_madra = cost
+	await wait_process_frames(1)
+	assert_true(_player.ability_manager.can_cast_ability_instance(palm, null), "the cut cost is enough to cast")
+	assert_true(_slot(2).is_cost_affordable(), "and the cost line reads affordable")
+	_vitals.current_madra = cost - 1.0
+	await wait_process_frames(1)
+	assert_false(_player.ability_manager.can_cast_ability_instance(palm, null), "one Madra short can't cast")
+	assert_false(_slot(2).is_cost_affordable(), "and the cost line reads unaffordable")
+```
+
+  The Abilities book test adds:
+
+```gdscript
+## With Control raised, the details and the row show the cut cost and cooldown.
+func test_details_and_rows_show_the_control_cut_values() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _control_source(20.0))
+	var cost_cut: float = CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)
+	var cooldown_cut: float = CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)
+	assert_gt(cooldown_cut, 0.0, "precondition: 20 more Control shortens cooldowns")
+	var enforce: AbilityData = load("res://resources/abilities/enforce.tres")
+	_view.refresh()
+	_view.select_ability("enforce")
+	assert_eq(_label("CooldownValue").text, AbilityRow.format_seconds(enforce.get_cooldown(cooldown_cut)), "the cut cooldown")
+	assert_eq(_label("CostValue").text, AbilityRow.format_cost(enforce, cost_cut), "the cut Madra cost")
+	assert_eq(_label("CastValue").text, "1 s", "Control leaves the cast time alone")
+	var row_cost: Label = _row_for("enforce").find_child("CostLabel", true, false) as Label
+	assert_eq(row_cost.text, AbilityRow.format_costs(enforce, cost_cut, cooldown_cut), "the row's line too")
+```
+
+- [x] **Step 4: Run them and see them fail.**
+  - Command: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_ability_data.gd,res://tests/unit/test_control_cuts.gd,res://tests/unit/test_technique_slot_math.gd,res://tests/integration/test_technique_dock.gd,res://tests/integration/test_abilities_book.gd -gexit`
+  - Expected: FAIL: none of the five scripts parses (the new functions don't exist, and `format_cost()` takes one argument), so GUT runs none of their tests.
+
+- [x] **Step 5: Implement the cost rules in `scripts/resource_definitions/abilities/ability_data.gd`.** Under COST CHECKING, add `get_madra_cost()` and `get_cooldown()` (`##` docs) with the Interfaces formulas. `can_afford()` and `consume_costs()` use `get_madra_cost(cost_cut)` wherever they read `madra_cost`, and `consume_costs()` passes `cost_cut` on to `can_afford()`. The Health and Stamina lines stay as they are.
+
+- [x] **Step 6: Implement the cuts in `scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd`.**
+  - Under PUBLIC API, `get_cost_cut()` and `get_cooldown_cut()` (`##` docs) return `_player_attributes().get_madra_cost_cut()` and `.get_cooldown_cut()`, or 0.0 when `_player_attributes()` is null.
+  - Under INTERNAL LOGIC, `_player_attributes() -> CharacterAttributesData` returns `owner_combatant.combatant_data.attributes` when `owner_combatant` is set, `is_player` is true and `combatant_data` is set, and null otherwise.
+  - `execute_ability()` and `cancel_cast()` call `_start_cooldown(ability_data.get_cooldown(get_cooldown_cut()))` in place of their `base_cooldown` start. `_ready()` keeps `_start_cooldown(INITIAL_COOLDOWN)`.
+  - `_start_cooldown(cooldown)` keeps its `ability_data.base_cooldown > 0` gate and emits `cooldown_started.emit(cooldown)` in place of `base_cooldown`.
+
+- [x] **Step 7: Use the cut at the gate in `scenes/combat/combatant/combat_ability_manager/combat_ability_manager.gd`.** `can_cast_ability_instance()` checks `instance.ability_data.can_afford(owner_combatant.vitals_manager, instance.get_cost_cut())` and gains a `##` doc naming the cut and its callers: the dock before it takes a press, SimpleEnemyAI before it picks an ability to cast, and `use_ability_instance()` before every cast. `use_ability_instance()` pays with `instance.ability_data.consume_costs(owner_combatant.vitals_manager, instance.get_cost_cut())`.
+
+- [x] **Step 8: Make the dock slot follow the gate in `scenes/ui/combat/technique_dock/technique_slot/technique_slot.gd`.**
+  - `_process()` checks `_ability_data.can_afford(_vitals_manager, _instance.get_cost_cut())`.
+  - `static func _shown_cost(data: AbilityData, cost_cut: float = 0.0) -> float` returns `data.get_madra_cost(cost_cut)` in its Madra branch, and `_refresh()` passes `_cost_cut()`. That new private helper returns `_instance.get_cost_cut()` while bound and `CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)` otherwise.
+  - Add a `##`-documented `func is_cost_affordable() -> bool` returning `_cost_affordable` (true while the cost reads cream).
+  - In the class doc's ACTIVE line, "the cost in cream" becomes "the cost the cast gate charges (after Control's cut) in cream".
+
+- [x] **Step 9: Show the cut values in the previews.**
+  - **`scenes/abilities/ability_row/ability_row.gd`:** `format_cost()` prints `format_number(ability_data.get_madra_cost(cost_cut))` for Madra. `format_costs()` passes its `cost_cut` to `format_cost()` and prints `format_seconds(ability_data.get_cooldown(cooldown_cut))`. `format_seconds()` snaps the seconds to the nearest 0.1 (`snappedf(seconds, 0.1)`) before `format_number()`, so a cut cooldown prints at most one decimal (2.892 s reads "2.9 s") and whole seconds stay whole; its doc says so.
+  - The live readers pass the player's cuts, `CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT)` and `CharacterManager.get_stat(StatModifierData.Stat.COOLDOWN_CUT)`: `AbilityRow.setup()` to `format_costs()`; `TechniqueTooltip.show_for_ability()` to `AbilityRow.format_cost()`, and `_timing_line()` to `data.get_cooldown()`; `AbilitiesView._show_details()` to CooldownValue's `AbilityRow.format_seconds(ability.get_cooldown(...))` and CostValue's `AbilityRow.format_cost(ability, ...)`. CastValue stays as it is.
+
+- [x] **Step 10: Run them and see them pass.** Run the Step 4 command with `,res://tests/unit/test_combat_ability_instance_cancel.gd,res://tests/unit/test_combat_dodge.gd` added to `-gtest`, then the full suite (`tests/run_tests.ps1`, as in Task 1.9). Expected: PASS for both.
+
+- [x] **Step 11: Commit.** Stage the Files list above, `tests/unit/test_ability_data.gd.uid` and `tests/unit/test_control_cuts.gd.uid` (as in Task 1.9), then `git commit -m "feat(combat): cut Madra costs and cooldowns with Control" -m "One cut serves the cast gate, the payment, the cooldowns and every preview, so the screen never calls a technique affordable when the gate refuses it." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`
+
+---
+
+### Task 1.12: Stamina regen from Agility in runs
+
+Before Step 1, invoke `godot-prompter:godot-testing`.
+
+**Files:**
+- Modify: `scenes/adventure/adventure_view/adventure_view.gd` (`_update_stamina_regen()`)
+- Create: `tests/helpers/stat_sources.gd` and its `.gd.uid` (`StatSources.flat()`, the shared modifier-source helper Task 1.11 reuses)
+- Test: `tests/integration/test_adventure_view_frame.gd`
+
+**Interfaces:**
+- Consumes: `CharacterManager.get_stat(StatModifierData.Stat.STAMINA_REGEN) -> float` (Task 1.5: Agility × 0.1 over the totals, 1.0 at Lv 1).
+- Produces: a run's `PlayerManager.vitals_manager.stamina_regen` = STAMINA_REGEN × `AdventureActionData.stamina_regen_modifier`, set at every run start and 0 at run end. Max Stamina already follows Agility (Task 1.1).
+
+- [x] **Step 1: Write the failing test.** In `tests/integration/test_adventure_view_frame.gd`:
+  - Add a `##`-documented `const TEST_SOURCE: StringName = &"test_agility"`, and call `CharacterManager.remove_modifier_source(TEST_SOURCE)` in `after_each()` just before `_restore_vitals(_saved_vitals)`.
+  - `_start_run()` gains a second parameter, `stamina_regen_modifier: float = -1.0`, set on the duplicated action when it is >= 0. Its doc adds "A modifier below 0 keeps the action's own."
+  - Create the shared helper here, since Task 1.12 runs before Task 1.11: `tests/helpers/stat_sources.gd` (`extends RefCounted`, no `class_name`, like `gear_fixture.gd`; `##` header: "Modifier sources for tests, to hand CharacterManager.set_modifier_source(). A test that sets one removes it again in after_each(). Preload it: const StatSources := preload("res://tests/helpers/stat_sources.gd")."), holding `## A modifier source that raises `stat` by a FLAT `amount`.` `static func flat(stat: StatModifierData.Stat, amount: float) -> Callable`: Task 1.11's `_control_source()`, with `stat` in place of `StatModifierData.Stat.CONTROL`.
+  - Add `const StatSources := preload("res://tests/helpers/stat_sources.gd")`, call `StatSources.flat(StatModifierData.Stat.AGILITY, 20.0)` in the test below wherever it shows `_agility_source(20.0)`, and add:
+
+```gdscript
+## A run regenerates Stamina at STAMINA_REGEN (Agility x 0.1 a second) times the
+## run's modifier, worked out at every run start. The run's end stops it.
+func test_stamina_regen_follows_agility_at_each_run_start() -> void:
+	assert_eq(ADVENTURE_ACTION.stamina_regen_modifier, 1.0, "precondition: the Shallow Woods adds no modifier of its own")
+	_start_run()
+	assert_almost_eq(PlayerManager.vitals_manager.stamina_regen, 1.0, 0.0001, "Lv 1 Agility: 1 Stamina a second")
+	ActionManager.stop_action(false)
+	_stop_every_action()
+	assert_eq(PlayerManager.vitals_manager.stamina_regen, 0.0, "the run's end stops it")
+
+	CharacterManager.set_modifier_source(TEST_SOURCE, _agility_source(20.0))
+	var rate: float = CharacterManager.get_stat(StatModifierData.Stat.STAMINA_REGEN)
+	assert_gt(rate, 1.0, "precondition: Agility 30 regenerates faster")
+	_map = AdventureMapFixture.build_map()
+	_start_run(0, 0.5)
+	assert_almost_eq(PlayerManager.vitals_manager.stamina_regen, rate * 0.5, 0.0001, "the next run starts at the new rate, times its modifier")
+```
+
+- [x] **Step 2: Run it and see it fail.**
+  - Command: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/integration/test_adventure_view_frame.gd -gexit`
+  - Expected: FAIL: in `test_stamina_regen_follows_agility_at_each_run_start`, the second run regenerates the flat 1.0 × 0.5 a second instead of Agility 30's rate × 0.5.
+
+- [x] **Step 3: Implement it in `scenes/adventure/adventure_view/adventure_view.gd`.** Inside its `PlayerManager.vitals_manager` guard, `_update_stamina_regen(modifier: float)` sets `stamina_regen = CharacterManager.get_stat(StatModifierData.Stat.STAMINA_REGEN) * modifier`. A `##` doc saying so, and that it is set at every run start, replaces its TODO doc.
+
+- [x] **Step 4: Run it and see it pass.** Run the Step 2 command, then the full suite (`tests/run_tests.ps1`, as in Task 1.9). Expected: PASS for both.
+
+- [x] **Step 5: Commit.** `git add scenes/adventure/adventure_view/adventure_view.gd tests/helpers/stat_sources.gd tests/helpers/stat_sources.gd.uid tests/integration/test_adventure_view_frame.gd` (Godot writes the `.gd.uid` for a new script; if it is missing, run the shared notes' `--import` once and check that `git status --short project.godot` prints nothing), then `git commit -m "feat(stats): regenerate run Stamina from Agility" -m "Run Stamina regen was a flat 1.0 a second. It is now Agility's rate, worked out at every run start; Lv 1 keeps 1.0." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"`
+
+---
+
+### Task 1.13: Breakthrough gate
+
+**Files:**
+- Modify: `scripts/resource_definitions/zones/zone_action_data/tribulation_action_data/tribulation_action_data.gd` (`can_attempt()`, a new `get_missing_requirements()`, the class doc)
+- Modify: `singletons/action_manager/action_manager.gd` (the Tribulation refusal in `select_action()` and its doc)
+- Modify: `scenes/zones/zone_action_button/presenters/tribulation_presenter.gd` (`setup()`, `teardown()`, `can_activate()`'s doc, `on_activation_rejected()` and its doc, `_update_state()`, `_update_need()`, a new `_on_stat_level_changed()`, the class doc) and `scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn` (`%StatNeedLabel`)
+- Modify: `scenes/ui/goals_panel/goals_panel.gd` (`_ready()`, `_update_milestone()`, a new `_on_stat_level_changed()`, the class doc)
+- Modify, to Task 1.0's approved wording: `singletons/cultivation_manager/cultivation_manager.gd` (`CORE_FULL_LOG`), `resources/tribulation/foundation_tribulation.tres` (`intro_text`), `resources/zones/spirit_valley_zone/zone_actions/tribulation_action.tres` and `resources/dev/save_presets/tribulation_ready.tres` (`description`)
+- Create: `tests/helpers/stat_caps.gd` and its `.gd.uid` (`StatCaps.cap_main_stats()`, which the three test files share)
+- Test: `tests/integration/test_tribulation_flow.gd`, `tests/integration/test_tribulation_card.gd`, `tests/integration/test_goals_panel.gd`
+
+**Interfaces:**
+- Consumes: Tasks 1.3 and 1.5 (CharacterManager's level and cap API, `get_trained_value()`, `stat_level_changed(stat, level: int)`, `get_attribute_display_name()`, the modifier sources); `CultivationManager.is_core_full()`, `get_core_density_level()`, `get_core_density_cap()`.
+- Produces (Tasks 1.14 and 1.18 rely on both):
+  - `static func get_missing_requirements(include_core: bool = true) -> Array[String]` on `TribulationActionData`: one line per unmet requirement, in the order Core Density, Strength, Spirit ("Core Density 95 / 100", "Strength Lv 3 / 10", "Spirit Lv 9 / 10"), from trained levels, never totals. `include_core = false` leaves the Core Density line out, for screens whose rod shows it.
+  - `can_attempt() -> bool`: a trial is set, the player is in the stage before its target, and nothing is missing.
+
+- [x] **Step 1: Write the failing tests.** Below, `cap` is `CharacterManager.get_stat_level_cap()` and `core_cap` is `CultivationManager.get_core_density_cap()`.
+
+`tests/helpers/stat_caps.gd`, new (`extends RefCounted`, no `class_name`, like `stat_sources.gd`; `##` header: "Stat levels for tests that need the Tribulation's stat requirement met. Preload it: const StatCaps := preload("res://tests/helpers/stat_caps.gd")."), holds the one helper the three files below preload as `StatCaps` and call:
+
+```gdscript
+## Trains Strength and Spirit to the current stage's cap, as the Tribulation
+## needs them, through CharacterManager.set_stat_level() on the live save.
+static func cap_main_stats() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.STRENGTH, cap)
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, cap)
+```
+
+`test_tribulation_flow.gd`: add `const Attribute := CharacterAttributesData.AttributeType`, the `StatSources` and `StatCaps` preloads and `const TEST_SOURCE: StringName = &"test_tribulation_flow"`; start `after_each()` with `CharacterManager.remove_modifier_source(TEST_SOURCE)`; rename the section "THE ACTION'S TWO QUESTIONS" to "THE ACTION'S QUESTIONS"; and make `_fill_core()` call `StatCaps.cap_main_stats()` first (its doc: it readies the whole trial). `test_a_full_copper_core_cannot_face_the_foundation_trial` calls it again once `advance_to_next_stage()` has moved the stage (it reads Copper's cap now), and asserts `get_missing_requirements()` is empty ("precondition: only the stage refuses") before it checks the refusal, so the stage clause is tested on its own.
+
+Add:
+- `test_the_trial_needs_a_full_core_and_both_main_stats_at_the_cap`, a table test. Each case sets `PersistenceManager.save_game_data.core_density_level` and Strength's and Spirit's levels, then asserts that `TribulationActionData.get_missing_requirements()` is `missing` (as `Array[String]`) and that `_tribulation().can_attempt()` is `missing.is_empty()`, each message naming the case:
+
+| name | core | Strength | Spirit | missing |
+|---|---|---|---|---|
+| everything met | core_cap | cap | cap | none |
+| the core short | core_cap - 5 | cap | cap | `"Core Density %d / %d" % [core_cap - 5, core_cap]` |
+| Strength short | core_cap | cap - 1 | cap | `"Strength Lv %d / %d" % [cap - 1, cap]` |
+| Spirit short | core_cap | cap | 1 | `"Spirit Lv 1 / %d" % cap` |
+| nothing met | 0 | 1 | 1 | `"Core Density 0 / %d" % core_cap`, `"Strength Lv 1 / %d" % cap`, `"Spirit Lv 1 / %d" % cap` |
+
+- `test_the_requirements_can_leave_the_core_out`: core 50; `get_missing_requirements(false)` is `["Strength Lv 1 / %d" % cap, "Spirit Lv 1 / %d" % cap]`.
+- `test_bonuses_never_count_toward_the_cap`: `_fill_core()`, Strength Lv 1, and a `TEST_SOURCE` source of a FLAT +100.0 `StatModifierData.Stat.STRENGTH`; precondition: `get_stat(StatModifierData.Stat.STRENGTH)` is over `get_trained_value(Attribute.STRENGTH) + 50.0`; `can_attempt()` is false.
+- `test_select_refuses_with_a_main_stat_below_the_cap`: `_run_foraging()`, `_fill_core()`, Strength Lv 1, `watch_signals(ActionManager)`, `ActionManager.select_action(_tribulation())`: `_current_id()` is still `FORAGING_ID`, and `start_tribulation` is not emitted.
+
+`test_tribulation_card.gd`: add the `Attribute` const and the `StatCaps` preload, and call `StatCaps.cap_main_stats()` at the end of `before_each()` so the ready tests keep a ready card. `test_rejected_click_below_the_cap_logs_why` asserts `assert_string_contains(_logged[0], "Core Density 95 / 100")`, and `test_click_at_the_cap_starts_the_trial`'s loop checks `line.contains("The Tribulation needs")`. `test_card_follows_a_stage_change` asserts the tag is "TRIAL" ("the card follows the stage") right after its `advancement_stage_changed` emit, before the stats are capped, since their `stat_level_changed` refreshes the card on its own; it then calls `StatCaps.cap_main_stats()` and asserts `get_missing_requirements()` is empty ("precondition: only the stage refuses") before its TRIAL checks. Add:
+- `test_a_full_core_with_strength_short_is_not_ready`: `_set_core_level(FULL_CORE)`, Strength at `cap - 1`, `_card()`: the tag is "TRIAL", the ready frame is hidden, and `_has_text_containing(card, "Strength Lv %d / %d" % [cap - 1, cap])`.
+- `test_a_stat_level_up_readies_the_card`: a full core with Spirit at `cap - 1` is "TRIAL" (precondition); after `CharacterManager.add_stat_levels(Attribute.SPIRIT, 1)`, the tag is "ENTER" and the ready frame shows.
+- `test_rejected_click_names_every_missing_requirement`: `_run_aura_well()`, `_set_core_level(SHORT_CORE)`, Strength Lv 1, `_logged.clear()`, `_click(card)`: two log lines, each containing "The Tribulation needs", the first "Core Density 95 / 100" and the second `"Strength Lv 1 / %d" % cap`.
+- `test_leaving_the_tree_disconnects_from_the_stat_levels`: as `test_leaving_the_tree_disconnects_from_the_cultivation_manager`, counting `CharacterManager.stat_level_changed`'s connections (one more in the tree, back after `remove_child`).
+
+`test_goals_panel.gd`: add `const Attribute := CharacterAttributesData.AttributeType` and the `StatCaps` preload; call `StatCaps.cap_main_stats()` in `test_milestone_at_the_cap_asks_for_the_tribulation` after `_use_fresh_save(save)`, in `test_milestone_reads_the_stages_cap` before the 40 / 40 step, and at the start of `test_long_step_text_wraps_and_does_not_widen_board`: `before_each()`'s fresh save has both stats at Lv 1, and their two milestone lines alone would carry the board past `FULL_HEIGHT` (220, both rows at one line each), so its last check, that the board grows, would pass even if the long step never grew it. Each `assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to N")` in the file (five tests) becomes `assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to N")` with no third argument: GUT's third parameter is `match_case`, so drop the "precondition: Foundation" message. Add:
+- `test_milestone_lists_every_missing_requirement`: `_add_goals()` on the fresh save; the text contains "Raise Core Density to 100", `"Strength Lv 1 / %d" % cap` and `"Spirit Lv 1 / %d" % cap`.
+- `test_a_full_core_waits_for_the_main_stats`: `_use_fresh_save()` with a `SaveGameData.new()` at `core_density_level = 100.0`, then `_add_goals()`: the text holds neither "Face the Tribulation" nor "Raise Core Density" and contains `"Strength Lv 1 / %d" % cap`; `MilestoneFigureLabel` is "100 / 100".
+- `test_milestone_follows_a_stat_level_up`: that save, Spirit at `cap`, Strength at `cap - 1`, `_add_goals()`; the text contains "Strength Lv" (precondition); after `add_stat_levels(Attribute.STRENGTH, 1)` it is "Face the Tribulation".
+
+
+- [x] **Step 2: Run them and see them fail.**
+`"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/integration/test_tribulation_flow.gd,res://tests/integration/test_tribulation_card.gd,res://tests/integration/test_goals_panel.gd -gexit`
+Expected: FAIL. GUT cannot load `test_tribulation_flow.gd` or `test_tribulation_card.gd` (no `get_missing_requirements` on `TribulationActionData`; the card's `test_card_follows_a_stage_change` calls it as well). `test_goals_panel.gd`'s three new tests fail (no stat lines; a full core reads "Face the Tribulation").
+- [x] **Step 3: Implement the gate, its readers and the copy.** Invoke `godot-prompter:hud-system` first. The card and the board look as the approved Task 1.0 mock-up shows; the binding below holds whatever the look.
+  - `TribulationActionData`: `get_missing_requirements()` adds, with `include_core` and the core not full, `"Core Density %d / %d" % [floori(CultivationManager.get_core_density_level()), CultivationManager.get_core_density_cap()]`; then, for STRENGTH and then SPIRIT, each stat that is not `CharacterManager.is_stat_capped(stat)` adds `"%s Lv %d / %d" % [CharacterManager.get_attribute_display_name(stat), CharacterManager.get_stat_level(stat), CharacterManager.get_stat_level_cap()]`. `can_attempt()` returns `in_stage_before_target and get_missing_requirements().is_empty()`. The class doc says the trial needs a full core and both main stats at the cap, counting trained levels, never gear.
+  - `ActionManager.select_action()`: the refusal's `Log.info` reads `"ActionManager: Cannot start the Tribulation - %s (%s)" % [", ".join(TribulationActionData.get_missing_requirements()), CultivationManager.get_current_advancement_stage_name()]`, and its doc says "a Tribulation the player isn't ready for".
+  - `TribulationPresenter`:
+    - `setup()` connects `CharacterManager.stat_level_changed` to `_on_stat_level_changed(_stat: CharacterAttributesData.AttributeType, _level: int) -> void`, which calls `_update_state()`; `teardown()` disconnects it.
+    - While not ready, `_update_need()` keeps the rod and `"Core %d / %d"`, and sets `%StatNeedLabel` to `", ".join(TribulationActionData.get_missing_requirements(false))`, visible only when that is not empty; `_update_state()`'s not-ready branch calls `_update_need()` before it sizes the card. It then calls `button.set_tall(_stat_need_label.visible)` in place of today's `button.set_tall(false)`, so the not-ready card is tall exactly while the label that `_update_need()` just set is showing.
+    - `on_activation_rejected()` logs one line per missing requirement, in order: `"[color=red]The Tribulation needs %s.[/color]" % requirement` for each line of `TribulationActionData.get_missing_requirements()`. The whole list on one line runs past the Log board's 384 px (Task 1.0's answer).
+    - `can_activate()`'s doc says the player may face the trial now: a full core and Strength and Spirit at the cap, in the stage before the trial's target. `on_activation_rejected()`'s says it shakes the Core row and logs a line per missing requirement. In the class doc, "below the cap" and "at the cap" become not ready and ready, and not ready also names the main stats still short on a line under the Core row; the card is ready while `TribulationActionData.can_attempt()`: the stage before the trial's target, a full core, and Strength and Spirit at the cap; it follows the stat levels too; and it is the 72 px drawer unless a part of the ready line wraps or the stat line shows, which replaces "short again once it is not ready".
+    - Scene default, if the mock-up keeps today's card: `%StatNeedLabel` is a Label (`LabelLacquerDetail`, `autowrap_mode = 3`, `mouse_filter = 2`) in `%NeedGroup` at offsets (64, 58) to (380, 76), and `%NeedGroup` gets `offset_bottom = 96`.
+  - `GoalsPanel`: `_ready()` connects `CharacterManager.stat_level_changed` to `_on_stat_level_changed(_stat, _level)`, which calls `_update_milestone()`. `_update_milestone()` checks, in order: with no next stage, "<Stage> reached" (unchanged); with nothing missing, "Face the Tribulation", the rod full and the figure at cap / cap; otherwise "Raise Core Density to <cap>" (only while the core is not full), then each line of `get_missing_requirements(false)`, one per line, with the rod and the figure at level / cap. The class doc's three states follow.
+  - The copy: Task 1.0's four approved lines go into `CORE_FULL_LOG`, the trial's `intro_text`, and the action's and the preset's `description`.
+- [x] **Step 4: Run them and see them pass.** Run the Step 2 command, then the one-file command for `res://tests/unit/test_cultivation_manager.gd` (it logs `CORE_FULL_LOG`). Expected: PASS.
+- [x] **Step 5: Commit.** `git add` each file under Files, by path (Godot writes `stat_caps.gd.uid` for the new script; if it is missing, run the shared notes' `--import` once and check that `git status --short project.godot` prints nothing). `git commit -m "feat(stats): gate the breakthrough on Strength and Spirit at the cap"` (+ Co-Authored-By line)
+
+---
+
+### Task 1.14: Dev tools for stat levels
+
+**Files:**
+- Modify: `singletons/dev_manager/dev_commands.gd` (remove `add_attribute()`; add `set_stat_level()` and `raise_stat_to_cap()` in "CULTIVATION AND RESOURCES")
+- Modify: `scenes/ui/dev_panel/tabs/player_tab.gd` (node refs, `_ready()`, `_on_stat_set_pressed()` in place of `_on_attribute_add_pressed()`, the class doc) and `scenes/ui/dev_panel/tabs/player_tab.tscn` (`AttributeRow` becomes `StatRow`)
+- Modify: `scripts/resource_definitions/dev/dev_step_data.gd` (`Kind.RAISE_STAT_TO_CAP`, its Kind doc line, arms in `apply()`, `describe()` and `_problem_with_target()`)
+- Modify: `resources/dev/story_route.tres` (beat_9_ready's steps)
+- Test: `tests/unit/test_dev_preset_data.gd`, `tests/integration/test_dev_commands.gd`, `tests/integration/test_dev_panel.gd`, `tests/integration/test_story_route.gd`, `tests/integration/test_save_presets.gd`
+
+**Interfaces:**
+- Consumes: Task 1.1 (`stat_key()`, `stat_from_key()`), Task 1.3 (CharacterManager's level, XP and cap API, `get_attribute_display_name()`), Task 1.13 (`can_attempt()`).
+- Produces:
+  - On `DevCommands`: `static func set_stat_level(stat_key: StringName, level: int, xp: float = 0.0) -> String` and `static func raise_stat_to_cap(stat_key: StringName) -> String` ("" or the refusal).
+  - `DevStepData.Kind.RAISE_STAT_TO_CAP = 13`: its `target_id` is a stat key; it reads no amount.
+  - `tribulation_ready` and `copper` built with Strength and Spirit at Foundation's cap. Task 1.18's run starts from `tribulation_ready`.
+
+- [x] **Step 1: Write the failing tests.**
+  - `test_dev_preset_data.gd`: `"RAISE_STAT_TO_CAP": 13` in `test_kind_numbers_never_change`, `_assert_valid(_step(Kind.RAISE_STAT_TO_CAP, "strength"))` in `test_a_good_step_validates`, and `_assert_flagged(_step(Kind.RAISE_STAT_TO_CAP, "willpower"), "unknown stat")` in `test_validate_catches_each_bad_step`.
+  - `test_story_route.gd`: an arm of `_assert_took_effect()`:
+
+```gdscript
+		Kind.RAISE_STAT_TO_CAP:
+			var stat: int = CharacterAttributesData.stat_from_key(StringName(step.target_id))
+			assert_true(CharacterManager.is_stat_capped(stat as CharacterAttributesData.AttributeType), "%s: the stat is at the cap" % what)
+```
+
+  - `test_save_presets.gd`: `test_tribulation_ready_can_face_the_trial`: after `_build_shipped("tribulation_ready")`, Strength and Spirit are `is_stat_capped()`, and `(ZoneManager.get_action_by_id(TRIBULATION_ACTION) as TribulationActionData).can_attempt()` is true. `test_copper_keeps_the_levels_it_broke_through_with`: after `_build_shipped("copper")`, Strength's and Spirit's levels both equal `(load(FOUNDATION_STAGE) as AdvancementStageResource).stat_level_cap` (levels carry across stages).
+  - `test_dev_commands.gd`:
+    - Add `const Attribute := CharacterAttributesData.AttributeType`; rename the section "ATTRIBUTES AND STAGE" to "STATS AND STAGE"; delete Task 1.3's `test_add_attribute_adds_levels` and `test_add_attribute_does_nothing_at_the_cap`, and `test_add_attribute_refuses_an_unknown_attribute`.
+    - In `test_successful_commands_log_a_dev_line`, the `add_attribute` row becomes `["set_stat_level", func() -> String: return DevCommands.set_stat_level(&"strength", 5, 20.0)]` and `["raise_stat_to_cap", func() -> String: return DevCommands.raise_stat_to_cap(&"spirit")]`.
+    - In `test_a_command_pauses_recording_for_its_own_duration`, add `var during_level: Array[bool] = _note_recording_on(CharacterManager.stat_level_changed, 2)`, call `DevCommands.set_stat_level(&"mind", 3)` and then `DevCommands.raise_stat_to_cap(&"spirit")`, and `assert_eq(during_level, [true, true] as Array[bool], "set_stat_level, then raise_stat_to_cap")`.
+    - `test_set_stat_level_sets_the_level_and_xp`: `set_stat_level(&"strength", 7, 30.0)` returns ""; Strength is Lv 7 with 30.0 XP.
+    - `test_set_stat_level_refuses_a_bad_stat_level_or_xp` (a refusal changes nothing and logs nothing): after `watch_signals(LogManager)`, a table of three calls is each refused (not ""): "a removed stat" `(&"willpower", 3, 0.0)`, "level 0" `(&"strength", 0, 0.0)`, "negative XP" `(&"strength", 3, -1.0)`. Then Strength is still Lv 1 and `_dev_lines()` is empty.
+    - `test_raise_stat_to_cap_raises_a_stat_to_the_stage_cap`: `raise_stat_to_cap(&"spirit")` returns "", and Spirit's level is `get_stat_level_cap()`.
+    - `test_raise_stat_to_cap_never_lowers_a_stat`: `set_stat_level(&"spirit", cap + 2)` returns "" (precondition: the dev tools may pass the cap); after `watch_signals(LogManager)`, `raise_stat_to_cap(&"spirit")` returns "", Spirit stays at `cap + 2`, and `_dev_lines()` is empty.
+    - `test_raise_stat_to_cap_at_the_cap_does_nothing` (the `>=` boundary): with Spirit at `cap` (`CharacterManager.set_stat_level()`), after `watch_signals(LogManager)`, `raise_stat_to_cap(&"spirit")` returns "" ("a stat at the cap is no failure"), Spirit stays at `cap`, and no line is logged (`_logged_lines()` is empty).
+    - `test_raise_stat_to_cap_refuses_an_unknown_stat`: `raise_stat_to_cap(&"foundation")` is refused (Foundation names the stage now, not a stat).
+  - `test_dev_panel.gd`, after `test_player_tab_shows_a_refusal`, each on `_open_tab(_add_panel(), "PlayerTab")`: `test_player_tab_lists_the_six_stats`: `_item_metadata(player.get_node("%StatOption"))` is `["strength", "body", "agility", "spirit", "mind", "control"] as Array[String]`. `test_player_tab_sets_a_stats_level_and_xp`: `_pick_item(player.get_node("%StatOption"), &"spirit")`, (each with `var player: Control = _open_tab(_add_panel(), "PlayerTab")`) `_enter(player, "StatLevelSpin", 4.0)`, `_enter(player, "StatXpSpin", 12.0)`, `_press(player, "StatSet")`: Spirit is Lv 4 with 12.0 XP.
+- [x] **Step 2: Run them and see them fail.**
+`"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_dev_preset_data.gd,res://tests/integration/test_dev_commands.gd,res://tests/integration/test_story_route.gd,res://tests/integration/test_save_presets.gd,res://tests/integration/test_dev_panel.gd -gexit`
+Expected: FAIL. GUT cannot load `test_dev_preset_data.gd` or `test_story_route.gd` (`RAISE_STAT_TO_CAP` is not a member of `DevStepData.Kind`), nor `test_dev_commands.gd` (`set_stat_level` is not declared on `DevCommands`). In `test_save_presets.gd` both new tests fail (Strength and Spirit are Lv 1), and in `test_dev_panel.gd` both fail (no `%StatOption`).
+- [x] **Step 3: Implement the commands, the step kind, the tab and the route steps.** Invoke `godot-prompter:godot-ui` first, for the tab's scene. Both commands keep DevCommands' contract: refuse an unknown key first (`CharacterAttributesData.stat_from_key(stat_key) == -1`: "Unknown stat: %s"), run the work through `_while_paused()`, log one line through `_succeed()`, and return the refusal or "".
+  - `set_stat_level()` also refuses `level < 1` ("The level must be at least 1") and `xp < 0.0` ("XP can't be negative"), then runs `_while_paused(CharacterManager.set_stat_level.bind(stat, level, xp))` and `_succeed("Set %s to Lv %d with %s XP" % [CharacterManager.get_attribute_display_name(stat), level, String.num(CharacterManager.get_stat_xp(stat))])`.
+  - `raise_stat_to_cap()` reads `var cap: int = CharacterManager.get_stat_level_cap()` and returns "" with nothing done when `CharacterManager.get_stat_level(stat) >= cap`; otherwise it runs `_while_paused(CharacterManager.set_stat_level.bind(stat, cap))` and `_succeed("Raised %s to Lv %d, the stage cap" % [CharacterManager.get_attribute_display_name(stat), cap])`.
+  - Delete `DevCommands.add_attribute()`.
+  - `DevStepData`: append `RAISE_STAT_TO_CAP,` after `TRAVEL`, with the Kind doc line `##   RAISE_STAT_TO_CAP    target_id: a stat key (strength, body, agility, spirit, mind, control)`. `apply()` returns `DevCommands.raise_stat_to_cap(StringName(target_id))`, `describe()` returns `"Raise %s to the stage cap" % target_id`, and `_problem_with_target()` returns `"unknown stat"` when `CharacterAttributesData.stat_from_key(StringName(target_id)) == -1`. `_problem_with_amount()` needs no arm.
+  - `player_tab.tscn`: `AttributeRow` and its three nodes become `StatRow` (HBoxContainer), holding `%StatOption` (OptionButton, `custom_minimum_size = Vector2(130, 0)`), `%StatLevelSpin` (SpinBox, `size_flags_horizontal = 3`, `min_value = 1.0`, `max_value = 100.0`, `value = 1.0`, `allow_greater = true`, `prefix = "Lv"`), `%StatXpSpin` (SpinBox, `size_flags_horizontal = 3`, `max_value = 100000.0`, `suffix = "XP"`), so each spin says what it holds, and `%StatSet` (Button, `text = "Set"`).
+  - `player_tab.gd`: `_ready()` fills `%StatOption` from `CharacterAttributesData.AttributeType.values()` (text `CharacterManager.get_attribute_display_name(stat)`, metadata `CharacterAttributesData.stat_key(stat)`) and connects `%StatSet.pressed` to `_on_stat_set_pressed()`, which calls `_show_result(DevCommands.set_stat_level(StringName(_picked_id(_stat_option)), int(_stat_level_spin.value), _stat_xp_spin.value))`. The class doc says a stat is set to a level and XP.
+  - `resources/dev/story_route.tres`: after `beat_9_ready_core_density_100`, add the sub_resources `beat_9_ready_strength_cap` and `beat_9_ready_spirit_cap` (`type="Resource"`, `script = ExtResource("3_step")`, `kind = 13`, `target_id = "strength"` / `"spirit"`), and set beat_9_ready's `steps = Array[ExtResource("3_step")]([SubResource("beat_9_ready_core_density_100"), SubResource("beat_9_ready_strength_cap"), SubResource("beat_9_ready_spirit_cap")])`.
+
+- [x] **Step 4: Run them and see them pass.** Run the Step 2 command. Expected: PASS.
+- [x] **Step 5: Commit.** `git add` each file under Files, by path. `git commit -m "feat(dev): set stat levels and cap them for the presets"` (+ Co-Authored-By line)
+
+---
+
+### Task 1.15: StatDisplay
+
+**Files:**
+- Create: `scripts/utils/stat_display.gd`
+- Modify: `scenes/abilities/abilities_view.gd` (remove `_ATTRIBUTE_ICONS`; `_show_value_breakdown()` reads `StatDisplay.icon_of()`)
+- Test: `tests/unit/test_stat_display.gd` (new), `tests/integration/test_abilities_book.gd`
+
+**Interfaces:**
+- Consumes: the six-value `CharacterAttributesData.AttributeType` (Task 1.1); `CharacterManager.get_attribute_display_name(stat) -> String`; `CombatEffectData.get_scaling(stat)`, which reads only Strength and Spirit after Task 1.9.
+- Produces: `class_name StatDisplay extends RefCounted`: `const PHYSICAL` (STRENGTH, BODY, AGILITY) and `const SPIRITUAL` (SPIRIT, MIND, CONTROL), both `Array[CharacterAttributesData.AttributeType]`, and the statics `name_of(stat) -> String`, `icon_of(stat) -> Texture2D` and `side_name(stat) -> String`, each `stat` a `CharacterAttributesData.AttributeType`. Task 1.16 reads all five.
+
+- [x] **Step 1: Write the failing tests.** Create `tests/unit/test_stat_display.gd` (`extends GutTest`; header `## StatDisplay: the two sides, and each stat's name, icon and side, the one map the Character book and the Abilities book read.`; `const Attribute := CharacterAttributesData.AttributeType`):
+  - `test_each_side_holds_its_three_stats_in_order`: `StatDisplay.PHYSICAL` is `[Attribute.STRENGTH, Attribute.BODY, Attribute.AGILITY]` and `StatDisplay.SPIRITUAL` is `[Attribute.SPIRIT, Attribute.MIND, Attribute.CONTROL]`, each `as Array[CharacterAttributesData.AttributeType]`.
+  - `test_every_stat_sits_on_exactly_one_side`: for each of `Attribute.values()`, `int(PHYSICAL.has(stat)) + int(SPIRITUAL.has(stat))` is 1.
+  - `test_every_stat_has_a_name_an_icon_and_a_side`: a table of the six (Strength, Body, Agility "Physical"; Spirit, Mind, Control "Spiritual"): `name_of()` is the name, `side_name()` the side, and `icon_of()` is not null.
+  - `test_no_two_stats_share_an_icon`: the six `icon_of()` textures all differ.
+
+  In `tests/integration/test_abilities_book.gd`, delete the `STRENGTH_ICON` and `AGILITY_ICON` consts and turn `test_damage_shows_the_total_and_each_attributes_part` (as Task 1.9 left it) into a table over Basic Strike (STRENGTH) and Empty Palm (SPIRIT), each message naming the ability: `PrimaryValue` and `ExplainText` keep Task 1.9's assertions, `ScalingPart1` shows with `get_icon() == StatDisplay.icon_of(stat)` and `get_value_text() == "+%s" % AbilityRow.format_number(effect.get_scaling_contribution(stat, attrs))`, and `ScalingPart2` is hidden (`effect`: the ability's first target effect; `attrs`: `CharacterManager.get_total_attributes_data()`).
+- [x] **Step 2: Run them and see them fail.**
+`"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_stat_display.gd,res://tests/integration/test_abilities_book.gd -gexit`
+Expected: FAIL: GUT cannot load either script (`StatDisplay` is not declared), so none of their tests run.
+- [x] **Step 3: Implement `StatDisplay` and use it in `AbilitiesView`.** Invoke `godot-prompter:godot-ui` first.
+  - `name_of()` returns `CharacterManager.get_attribute_display_name(stat)`, so the name keeps one home. `side_name()` returns "Physical" when `PHYSICAL.has(stat)`, else "Spiritual".
+  - `icon_of()` reads a private `const _ICONS: Dictionary` of preloads from `res://assets/sprites/ui/attribute_icons/`: STRENGTH `strength_icon.png`, BODY `body_icon.png`, AGILITY `agility_icon.png`, SPIRIT `spirit_icon.png`, MIND `foundation_icon.png` (Task 1.0's answer), CONTROL `control_icon_ai.png`. An unknown stat gets a `Log.error` and null. Never edit the existing icons.
+  - `AbilitiesView`: delete `_ATTRIBUTE_ICONS`; `_show_value_breakdown()` calls `part.setup(StatDisplay.icon_of(attribute_type), ...)`.
+  - `StatDisplay` is a new `class_name`, so run `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import`. Expected: no parse error, and `git status --short project.godot` prints nothing.
+- [x] **Step 4: Run them and see them pass.** Run the Step 2 command. Expected: PASS.
+- [x] **Step 5: Commit.** `git add scripts/utils/stat_display.gd scripts/utils/stat_display.gd.uid scenes/abilities/abilities_view.gd tests/unit/test_stat_display.gd tests/unit/test_stat_display.gd.uid tests/integration/test_abilities_book.gd`. `git commit -m "feat(stats): add StatDisplay, one map of stat names and icons"` (+ Co-Authored-By line)
+
+---
+
+### Task 1.16: Character book
+
+**Files:**
+- Modify: `scenes/character/attribute_tile/attribute_tile.gd` (remove the `attribute_name` and `icon_texture` exports and the `PanelBookTile` / `PanelBookTileSelected` swap, change `_ready()`, `set_stat()` replaces `set_value()`, and `set_selected()` / `is_selected()` show and read `%Marks`) and `scenes/character/attribute_tile/attribute_tile.tscn` (board 1's pressed tile: `%Icon` in a pressed slot, `%ValueLabel` on a paper tag, `%NameLabel`, `%LevelLabel`, `%XpBar`, `%CapSeal` and `%Marks`; no book card and no `res://icon.svg` default)
+- Modify: `scenes/character/character_view.gd` (`STAT_DESCRIPTIONS` replaces `ATTRIBUTE_DETAILS`; `_ready()`, `refresh()`, `_show_details()`; the three line statics; `_describe_effect_kind()` made static; `_describe_effects()` and `_EFFECT_MARK` removed) and `scenes/character/character_view.tscn` (the six tiles, a `PageTitle` heading each page in place of the `TitleBanner` ribbon and the `DetailPlaque` plaque, the detail page's nodes, `%FightRows`, no `max_lines_visible`)
+- Create: two pairs of pressed `_ai` textures for the XP bars, each a groove pressed into the page and its ink fill at the groove's size, as the approved boards draw them: 120×10 for the tile (board 1) and 200×10 for the stat's page (board 2), under `assets/sprites/ui/book/pressed/`
+- Modify: `tests/integration/test_boards_never_trim_text.gd` and `tests/integration/test_tab_banner_title.gd` (its one test moves to the Abilities book, which keeps its ribbon)
+- Test: `tests/integration/test_character_book.gd` (rewritten)
+
+**Interfaces:**
+- Consumes: Task 1.1 (`CharacterAttributesData.make()`, the derived functions, the derived `StatModifierData.Stat` members); Tasks 1.3 and 1.5 (`CharacterManager`'s stat reads and writes, `get_stat()`, `get_total_attributes_data()`, `stat_progression`, `stats_changed`, `stat_xp_changed`, `stat_level_changed`, the modifier sources); Task 1.6 (`get_gear_bonus()`, `stat_percent_bonuses`, `stat_bonus_floor`); Task 1.15 (`StatDisplay`); `CultivationManager.advancement_stage_changed` and `advance_to_next_stage()` (the cap the pages show comes from the stage).
+- Produces:
+  - `AttributeTile.set_stat(level: int, xp: float, xp_to_next: float, capped: bool, total: float) -> void`.
+  - On `CharacterView`: `static func effect_lines(stat: CharacterAttributesData.AttributeType, now: CharacterAttributesData, next: CharacterAttributesData, abilities: Array[AbilityData]) -> Array[Dictionary]` (each `{"label", "now", "next"}`, Strings); `static func source_lines(stat) -> Array[Dictionary]` and `static func fight_lines() -> Array[Dictionary]` (each `{"label", "value"}`); `const STAT_DESCRIPTIONS: Dictionary`.
+  - `%FightRows` holds a `TableRow` per `fight_lines()` entry, captioned with the entry's label in capitals (the Madra row's `%Label` reads "MADRA"), in the grid's order, row by row: with `half = ceili(lines.size() / 2.0)`, line r is child 2r and line r + half is child 2r + 1, so the children don't follow `fight_lines()`'s order (Madra, line 1, is child 2).
+  - Task 2.4 makes the Madra entry of `fight_lines()` read "current / max" and also rebuilds `%FightRows` on `ResourceManager.madra_changed`. Phase 3 adds the cycles-to-next-level estimate; nothing pays stat XP per cycle in phase 1. The book names no trainers (Task 1.0's answer).
+
+- [x] **Step 1: Write the failing tests.** Rewrite `tests/integration/test_character_book.gd`; keep `test_pages_wait_for_the_open_book` and `test_pages_hide_as_the_book_closes` as they are.
+  - Header: what the book shows (tiles, the detail page, In a fight) and follows while open. Consts: `CharacterViewScene`, `ANIMATION_TIMEOUT: float = 2.0`, `Attribute`, `Stat := StatModifierData.Stat`, `TEST_SOURCE: StringName = &"test_character_book"`, and the ability paths `BASIC_STRIKE` and `EMPTY_PALM`.
+  - Fixture: `PersistenceManager.save_game_data = SaveGameData.new_current()` and `save_data_reset.emit()` (the original restored in `after_each()`), with `unlocked_ability_ids = ["basic_strike", "empty_palm"]`; `AbilityManager._build_catalog_index()`; the view through `add_child_autofree`. `after_each()` also removes `TEST_SOURCE` and stops actions until none runs. `before_each()` also keeps `CultivationManager.advancement_stage_resources`, which `after_each()` puts back before the save, so the restored save is read against the real stages.
+  - Helpers: `_tile(name) -> AttributeTile`, `_label(name) -> Label` and `_page_title(name) -> PageTitle` (`find_child(name, true, false)`); `_sword() -> ItemInstanceData` of a MAIN_HAND `EquipmentDefinitionData` (`item_id = "test_character_book_sword"`, `stat_percent_bonuses = {&"strength": 0.1}`, `stat_bonus_floor = 2`); `_use_stat_caps(foundation_cap: int, copper_cap: int)`, which swaps in a "Test Foundation" with `stat_level_cap = foundation_cap` whose `next_stage` is a "Test Copper" (`stage_id` COPPER) with `stat_level_cap = copper_cap`, the same helper Task 1.17 gives `test_cultivator_plate.gd`.
+  - Tests (`format_number` is `AbilityRow.format_number`):
+    - `test_the_tiles_are_the_six_stats_on_their_sides`: the children of `%PhysicalTiles` and `%SpiritualTiles` carry the `attribute_type`s of `StatDisplay.PHYSICAL` and `SPIRITUAL`.
+    - `test_a_tile_shows_its_level_xp_and_total`: `set_stat_level(SPIRIT, 4, 30.0)`, `refresh()`: SpiritTile's `%LevelLabel` "Lv 4", `%ValueLabel` `"%.0f" % get_stat(Stat.SPIRIT)`, `%XpBar` at step `roundi(30.0 / get_stat_xp_to_next(SPIRIT) * bar.steps)`, `%CapSeal` hidden.
+    - `test_a_capped_tile_shows_the_cap`: Strength at the cap, `refresh()`: StrengthTile's `%CapSeal` shows and its `%XpBar` is full (`get_step() == steps`, though a capped stat holds 0 XP); BodyTile's `%CapSeal` does not. Then `set_stat_level(STRENGTH, 1)` and `refresh()`: StrengthTile's `%CapSeal` hides.
+    - `test_the_book_follows_stats_while_open`: `_view.show()`, `refresh()`; `add_stat_levels(SPIRIT, 1)` turns SpiritTile to "Lv 2"; `add_stat_xp(SPIRIT, 10.0)` moves its bar to step `roundi(10.0 / get_stat_xp_to_next(SPIRIT) * bar.steps)`.
+    - `test_the_book_follows_gear_while_open`: `show()`, `select_attribute(STRENGTH)`, `refresh()`, `InventoryManager.equip_item(_sword(), EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)`; precondition `get_gear_bonus(STRENGTH) > 0.0`; `DetailValue` is `"%.0f" % get_stat(Stat.STRENGTH)`.
+    - `test_the_book_follows_a_breakthrough_while_open` (the cap comes from the stage): `_use_stat_caps(3, 6)`, `show()`, `set_stat_level(STRENGTH, 3)`: StrengthTile's `%CapSeal` shows (precondition: capped at Foundation's 3); `CultivationManager.advance_to_next_stage()` is true (precondition); then the seal hides ("Copper's cap of 6 leaves room, so the open book drops the seal").
+    - `test_opening_shows_strength`: `select_attribute(CONTROL)`, `animate_open()`: STRENGTH is selected, `_page_title("DetailPlaque").title` reads "Strength", StrengthTile `is_selected()`.
+    - `test_pointing_at_a_tile_describes_it`: `animate_open()`, BodyTile emits `hovered(body_tile)`: `_page_title("DetailPlaque").title` "Body" (board 2 prints the name once: there is no `DetailName`), `DetailGroup` `StatDisplay.side_name(BODY).to_upper()`, `DetailDescription` `STAT_DESCRIPTIONS[BODY]`; only BodyTile is selected.
+    - `test_every_stat_has_a_description`: no stat's `STAT_DESCRIPTIONS` entry is empty.
+    - `test_each_stat_names_what_it_does` (table): the labels of `effect_lines(stat, make(), make(), [Basic Strike, Empty Palm])` are STRENGTH ["Basic Strike damage"], BODY ["Max Health"], AGILITY ["Max Stamina", "Stamina regen", "Dodge chance"], SPIRIT ["Empty Palm damage"], MIND ["Max Madra"], CONTROL ["Technique cost cut", "Cooldown cut"].
+    - `test_now_and_next_come_from_the_blocks_functions`: with `now = make()` and `next = make({&"body": 11.0, &"spirit": 11.0})`, Body's first line is `format_number(now.get_max_health())` now and `format_number(next.get_max_health())` next; given `[Empty Palm]`, Spirit's first line is its first target effect's `calculate_value(now)` and `calculate_value(next)`, formatted.
+    - `test_the_page_shows_a_row_per_effect`: `select_attribute(SPIRIT)`: `%EffectRows` has a child per line of `effect_lines(SPIRIT, block, block, AbilityManager.get_unlocked_abilities())` (`block = get_total_attributes_data()`), fewer than with `get_all_abilities()` (precondition: locked Power Font stays off).
+    - `test_a_stat_with_no_known_technique_says_so`: unlocked `["enforce"]`, `select_attribute(SPIRIT)`: `%NoEffectsLabel` is visible and `%EffectRows` has no child; then `select_attribute(BODY)`: `%NoEffectsLabel` is hidden (Body always has its Max Health line).
+    - `test_a_capped_stats_page_has_no_next_level`: Body at the cap, `select_attribute(BODY)`, `refresh()`: `%DetailCapSeal` visible and `%DetailXpBar` full (`get_step() == steps`); `%DetailXpLabel` and `%NextLevelCaption` not; the first `%EffectRows` row's `%Value` reads `format_number(CharacterManager.get_total_attributes_data().get_max_health())` alone (`get_parsed_text()`: no next figure). Then `set_stat_level(BODY, 1)` and `refresh()`: `%NextLevelCaption` and `%DetailXpLabel` show, the caption's text holding "2", the next level, and `%DetailCapSeal` hides.
+    - `test_the_xp_figure_never_shows_an_unmet_threshold_as_met`: `set_stat_level(BODY, 3)`, then `add_stat_xp(BODY, 156.0)`: added, not set, since `set_stat_level()` keeps the XP a point under the threshold. Preconditions: Body holds 156.0 XP and is still Lv 3. `select_attribute(BODY)`, `refresh()`; precondition: Lv 3's threshold, `get_stat_xp_to_next(BODY)` = 156.25, is not a whole number. `%DetailXpLabel` contains "157" ("the threshold is rounded up") and never "/ 156 ".
+    - `test_the_page_shows_trained_plus_gear`: equip `_sword()` (precondition: Strength's gear bonus > 0.0): `source_lines(STRENGTH)` is two lines, valued `format_number(get_trained_value(STRENGTH))` and `"+%s" % format_number(get_gear_bonus(STRENGTH))`.
+    - `test_in_a_fight_lists_every_total`: a `TEST_SOURCE` source of FLAT ARMOR 6.0 and FLAT WARD 4.0: the labels of `fight_lines()` are ["Health", "Madra", "Stamina", "Dodge chance", "Technique cost cut", "Cooldown cut", "Armor", "Ward"]; Health's value is `format_number(get_stat(Stat.MAX_HEALTH))`, Armor's "6", Ward's "4".
+    - `test_the_fight_block_shows_a_row_per_total`: after `refresh()`, `%FightRows` has `fight_lines().size()` children.
+
+  In `test_boards_never_trim_text.gd`, add `"res://scenes/character/character_view.tscn"` and `"res://scenes/character/attribute_tile/attribute_tile.tscn"` to `BOARD_SCENES` (naming them in its doc comment), and `"res://scenes/character/character_view.tscn": ["DetailDescription"]` to the `wrapping` table of `test_the_labels_that_can_run_long_wrap`. That test also asserts that each label it walks shows every line: `max_lines_visible` is -1 (`"%s in %s shows every line"`); none of the boards already in its table sets it.
+
+  In `test_tab_banner_title.gd`, the Character book's ribbon goes (Step 3), so its one test moves to the Abilities book, which keeps its ribbon: `test_character_banner_title_at_runtime` becomes `test_abilities_banner_title_at_runtime`, reading `res://scenes/abilities/abilities_view.tscn`'s `BookLayer/BookContent/TitleBanner` and expecting "Abilities", its message naming the Abilities book.
+- [x] **Step 2: Run them and see them fail.**
+`"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/integration/test_character_book.gd,res://tests/integration/test_boards_never_trim_text.gd -gexit`
+Expected: FAIL. GUT cannot load `test_character_book.gd` (`CharacterView.effect_lines`, `STAT_DESCRIPTIONS` and the others are not declared). `test_the_labels_that_can_run_long_wrap` fails: `%DetailDescription` keeps `max_lines_visible = 3`.
+- [x] **Step 3: Build the book the approved mock-up shows.** Invoke `godot-prompter:godot-ui` first, and read `docs/STYLE_GUIDE.md` (rule 14, pressed paper) and `docs/UI_STYLING.md`. The unique names below are the binding; the look is the mock-up's, except where Task 1.0's answers depart from board 2: its "WHAT TRAINS IT" section ("Nothing trains this yet", "Aura Well") is not built, since the book names no trainers, and the page's CAPPED seal stamps across `%DetailXpBar`, as on the tile, instead of standing beside it. The description keeps `autowrap_mode = 3` and gets a width.
+  - `attribute_tile.tscn`: board 1's pressed tile, built from the Inventory's pressed pieces, with no book card: the root keeps its `PanelContainer` type but takes `PanelBookBare`, the book theme's empty panel, in place of `PanelBookTile`. `%Icon` (64×64) sits 4 px inside a 72×72 pressed slot, a TextureRect showing `res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png` (the slot `InventorySlot` shows while it holds an item, and the one boards 1 and 2 draw). `%ValueLabel` becomes the total, small, on a paper tag at the slot's bottom-right corner: a `LabelBookTag` Label, the paper tag's variant (not `PaperTag.set_count()`, which prints "×N"). Under the slot: `%NameLabel`; `%LevelLabel` (Label), the big "Lv N" in Yatra One 26 as board 1 draws it; `%XpBar` (an instance of `scenes/common/lacquer/lacquer_rod.tscn` with the tile's 120×10 pair and `steps = 58`: `LacquerRod` clips its fill to 2 + 2 × step px, so a step is 2 px of the 116 px fill); and `%CapSeal` (a hidden `LabelBookSeal` Label, 66×26, reading "CAPPED", stamped across the bar). `%Marks` is a hidden `PanelPrinterMarks` Panel round the whole tile, 6 px outside it on each side, as `InventorySlot`'s `%Marks` sits round its slot, inside a plain `Control` that fills the tile (a `PanelContainer` fits its direct children to its own rect). Every child ignores the mouse, as today's do, so pointing anywhere on the tile emits `hovered`. Drop the `res://icon.svg` texture and its ext_resource (STYLE_GUIDE §9).
+  - `AttributeTile`: delete the `attribute_name` and `icon_texture` exports; `_ready()` writes `StatDisplay.name_of(attribute_type)` and `StatDisplay.icon_of(attribute_type)`. `set_stat()` writes "Lv %d" and `"%.0f" % total`, fills `%XpBar` to `xp / xp_to_next` (0 when `xp_to_next` is 0; full while capped), and shows `%CapSeal` exactly while capped. `set_selected()` shows or hides `%Marks`, and `is_selected()` returns its visibility, as `InventorySlot.set_marked()` and `is_marked()` do; delete `_STYLE_NORMAL` and `_STYLE_SELECTED` (STYLE_GUIDE K11: selection as a frame overlay, not a tint).
+  - `character_view.tscn`: `%PhysicalTiles` holds StrengthTile (`attribute_type` 0, left at the default), BodyTile (1) and AgilityTile (2), `%SpiritualTiles` holds SpiritTile (3), MindTile (4) and ControlTile (5), and both grids get `columns = 3`; delete the tiles' `attribute_name` and `icon_texture` lines and the icon ext_resources nothing uses. Where the mock-up places them, add `%DetailLevel` (Label), `%DetailXpBar` (a `lacquer_rod.tscn` instance with the page's 200×10 pair and `steps = 98`, so a step is 2 px of its 196 px fill), `%DetailXpLabel` (Label), `%DetailCapSeal` (a hidden `LabelBookSeal` Label reading "CAPPED"), `%NextLevelCaption` (Label, at the right of the "WHAT IT DOES" caption), `%EffectRows` and `%SourceRows` (VBoxContainers), `%FightRows` (a GridContainer, `columns = 2`: one column of eight doesn't fit under the tiles) and `%NoEffectsLabel` (Label, text `NO_EFFECTS_TEXT`, hidden in the scene: a sibling right under `%EffectRows`, never its child, since no board draws it and `%EffectRows` holds only the rows). The captions are static `LabelBookCaps` Labels with the approved copy: "PHYSICAL" and "SPIRITUAL" in place of the two side plaques, "WHAT IT DOES", "WHERE IT COMES FROM" and "IN A FIGHT". Each page is headed by the Inventory's `PageTitle` (`scenes/inventory/pressed/page_title/page_title.tscn`), as boards 1 and 2 draw them. On the left, one in `PageLayer` with `title = "Character"` replaces the `TitleBanner` ribbon, on the spot the Inventory's tabs give their `LeftTitle`: 192, 134 to 644, 196 from the book's top-left corner, which is -700, -450 in the centred `PageLayer`, so `offset_left = -508`, `offset_top = -316`, `offset_right = -56` and `offset_bottom = -254`. Delete `BookLayer/BookContent/TitleBanner` and its `tab_banner.tscn` ext_resource. On the right, `%DetailPlaque` becomes a `PageTitle` instance, keeping its unique name, with `%DetailGroup` under it as a centred `LabelBookCaps` Label; delete `DetailName`, since board 2 prints the name once. The `PanelBookCard` detail card goes: board 2's pressed panel (`PanelPressed`) holds `%DetailIcon` in a pressed slot like the tile's, with `%DetailValue` on its paper tag (a `LabelBookTag` Label), then `%DetailLevel`, `%DetailXpBar` and `%DetailXpLabel`, and the description and the sections sit on the page under it. `%EffectRows` replaces `EffectsCaption` and `%EffectsLabel`; `%DetailDescription` loses `max_lines_visible = 3`.
+  - `CharacterView`:
+    - `_ready()` connects `CharacterManager.stats_changed` to `_refresh_if_shown() -> void`, and `stat_level_changed` and `stat_xp_changed` to it through `.unbind(2)` and `.unbind(3)`, and `CultivationManager.advancement_stage_changed` through `.unbind(1)`, since the cap the pages show comes from the stage and a breakthrough raises it; `_refresh_if_shown()` calls `refresh()` while `is_visible_in_tree()`.
+    - `refresh()` calls `set_stat()` on each tile with the stat's level, XP, XP to next, `is_stat_capped()` and total `CharacterManager.get_stat(StatModifierData.for_attribute(stat))`, rebuilds `%FightRows` from `fight_lines()`, and re-describes the selected stat.
+    - `_show_details(tile)`: `%DetailPlaque`'s `title` from `StatDisplay.name_of()`, the icon from `icon_of()`, `%DetailGroup` from `side_name().to_upper()` (the page writes its captions in capitals: `LabelBookCaps` doesn't uppercase); `%DetailLevel` reads `"Lv %d / %d"` (level, cap) and `%DetailValue` `"%.0f"` of the total (never `PaperTag.set_count()`, which prints "×N"). While capped, `%DetailXpBar` is full with `%DetailCapSeal` stamped across it, and `%DetailXpLabel` and `%NextLevelCaption` hide; otherwise `%DetailXpLabel` reads `"%d / %d XP" % [floori(xp), ceili(xp_to_next)]`, the XP floored and the threshold rounded up, so a threshold with decimals (156.25 from Lv 3 on) never reads as met before the stat levels; the bar holds their fraction, and `%NextLevelCaption` reads `"NOW → LV %d" % (level + 1)`. The description comes from `STAT_DESCRIPTIONS`. `%EffectRows` holds a row per line of `effect_lines(stat, now, next, AbilityManager.get_unlocked_abilities())`, with `now = CharacterManager.get_total_attributes_data()` and `next` a `now.duplicate()` given `set_attribute(stat, now.get_attribute(stat) + CharacterManager.stat_progression.get_value_for_level(level + 1) - CharacterManager.stat_progression.get_value_for_level(level))`, so next keeps gear's bonus as it is now; a row shows "now → next", or "now" alone while capped, and `%NoEffectsLabel` shows only when there are no lines. `%SourceRows` holds a row per `source_lines(stat)` line.
+    - Rows are `TableRow`s (`scenes/inventory/pressed/table_row/table_row.tscn`, the row boards 1 to 3 draw): add each row to its container, then `setup(label.to_upper(), LacquerText.decimal_bbcode(value))`. Old rows go at once (`remove_child()`, then `free()`, as `AbilitiesView._rebuild_rows()` does). `%FightRows` takes them so the first half of `fight_lines()` runs down the left column and the second half down the right: with `half = ceili(lines.size() / 2.0)`, grid row r holds line r on the left and line r + half on the right, as board 3 draws. A Madra amount, the rows labelled "Madra" (the fight block's) and "Max Madra" (Mind's line), prints its value in `ThemeConstants.BOOK_MADRA_INK`: the row builder calls `setup(label.to_upper(), "[color=#%s]%s[/color]" % [ThemeConstants.BOOK_MADRA_INK.to_html(false), LacquerText.decimal_bbcode(value)])`. The tag goes on after `decimal_bbcode()`, which escapes every "[" it is given (the order `BookText.effect_line()` keeps). `fight_lines()` and `effect_lines()` return plain text, and `BookText.color_madra()` is not called here: it inks only "<n> Madra" amounts and would leave a bare figure plain.
+    - The line statics:
+
+```
+effect_lines: derived lines first (now from `now`, next from `next`), then each ability's
+  effects_on_target and effects_on_self with get_scaling(stat) != 0.0, as
+  "<ability_name> <damage|healing|effect>" (_describe_effect_kind()), calculate_value(), number
+  BODY: Max Health get_max_health() number | MIND: Max Madra get_max_madra() number
+  AGILITY: Max Stamina get_max_stamina() number, Stamina regen get_stamina_regen() "<number> / s",
+           Dodge chance get_dodge_chance() percent
+  CONTROL: Technique cost cut get_madra_cost_cut(), Cooldown cut get_cooldown_cut(): percent
+fight_lines, from CharacterManager.get_stat(): Health MAX_HEALTH, Madra MAX_MADRA, Stamina
+  MAX_STAMINA: number; Dodge chance DODGE_CHANCE, Technique cost cut MADRA_COST_CUT, Cooldown cut
+  COOLDOWN_CUT: percent; Armor ARMOR, Ward WARD: number
+source_lines: "Trained (Lv %d)" % level with number(get_trained_value(stat)), then "Gear" with
+  "+" + number(get_gear_bonus(stat))
+number = AbilityRow.format_number(v); percent = "%s%%" % AbilityRow.format_number(snappedf(v * 100.0, 0.1))
+```
+
+    - The copy, as Task 1.0 approved it on board 2: `const STAT_DESCRIPTIONS: Dictionary`, keyed by `CharacterAttributesData.AttributeType`:
+      - STRENGTH: "Raw physical power. Your physical techniques hit harder."
+      - BODY: "Physical constitution. Sets your maximum Health."
+      - AGILITY: "Speed and footwork. Sets your Stamina and how fast it returns, and gives you a chance to dodge."
+      - SPIRIT: "The force of your Madra. Your Spirit techniques hit harder."
+      - MIND: "The depth of your Madra channels. Sets your maximum Madra."
+      - CONTROL: "Mastery of your techniques. They cost less Madra and come back sooner."
+    - Update the class doc: while shown, the book follows CharacterManager and the stage, whose breakthrough raises the cap.
+- [x] **Step 4: Run them and see them pass.** If Step 3 drew any `_ai` texture, first run `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` (the `-s` test command imports nothing). Expected: a `.png.import` beside each new texture, and `git status --short project.godot` prints nothing. Then run the Step 2 command, then `tests/unit/test_book_view_state.gd` and `tests/unit/test_view_state_hud_positions.gd` (they build the book), and `tests/integration/test_tab_banner_title.gd` (its test now builds the Abilities book). Expected: PASS.
+- [x] **Step 5: Commit.** `git add` each modified file under Files and each new `_ai` texture with its `.png.import`. `git commit -m "feat(stats): show levels, XP, the cap and fight totals in the Character book"` (+ Co-Authored-By line)
+
+---
+
+### Task 1.17: Stats on the zone view
+
+Show the six stats on the zone view's cultivator cabinet, as Lionel answered Task 1.0's zone view question ("add stats to the zone view, make them 20% smaller and in side by side triangular positions"): a cell per stat with its level and an XP ring, full at the cap, live on CharacterManager's signals; the Goals board hung lower under the grown cabinet; and the full log opening over it.
+
+Starts after Task 1.0's approval and builds what the approved board 8 shows: this task fixes the binding and the behaviour, the board the look and the copy. Each cell is 80% of the 100 px ring cells of board 8's first with-stats draw: an 80 px ring, the size of the cabinet's orbs. The cells stand as two triangles side by side, in the book's sides and order: Physical on the left (Strength at the apex, Body below left, Agility below right) and Spiritual on the right (Spirit at the apex, Mind below left, Control below right). Shrinking a cell shrinks its art and spacing only. The stat icons are the game's own at 32 px, not board 8's 40 px `_ai` redraws (Task 1.0's answer, Lionel's "My icons at 32 px", so no new icon art; 80% of the board's 52 px would be 41.6, off the grid), and the labels stay on the lacquer type scale, never under its 13 px. 32 px puts five of the six on the 2 px grid: Lionel's Strength, Body, Agility, Spirit and Mind (`foundation_icon.png`) icons are 16 art px drawn in whole 4×4 blocks in their 64 px files, so each art pixel shows as 2×2 screen px (STYLE_GUIDE §9). Control's does not: `StatDisplay.icon_of()` gives it `control_icon_ai.png`, the books' re-centred copy of his Control art, moved 6 px left, 1.5 of its 4 px art pixels, so at 32 px its art pixels are still 2 px wide but start at odd x, 1 px off the grid. That is a known phase 1 limit, not a stop: Step 5 looks at it and notes it for the PR summary. **G** = 248, how many px taller the approved board draws the cabinet than today's 256 (board 8 grows it 248 px, to 444×504, and hangs Goals at y 524); every place and size below is written for it. If the approved board changes this, use its numbers.
+
+Before Step 1, invoke `godot-prompter:godot-ui` and `godot-prompter:hud-system`.
+
+**Files:**
+- Create: `scenes/zones/cultivator_plate/stat_cell/stat_cell.gd` (`class_name StatCell`) and `scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn`
+- Create (`_ai` art, copied from the approved board 8 in Step 3): `assets/ui/lacquer/lacquer_cult_stats_ai.png` (the cabinet's board, 444×504, 248 px taller) and `assets/ui/lacquer/lacquer_stat_ring_strip_ai.png` (the 80 px XP ring, a 2000×80 strip of 0 to 24 beads)
+- Modify: `scenes/zones/cultivator_plate/cultivator_plate.gd` (`_ready()`, `_update_all()`, `_on_advancement_stage_changed()`, the new `_update_stats()`, `_on_stats_changed()` and `_on_stat_xp_changed()`, `_update_core_density()`'s XP figure and its doc, the class doc) and `scenes/zones/cultivator_plate/cultivator_plate.tscn` (the root and `Board` 248 px taller on the new art; `%PhysicalCells` and `%SpiritualCells` with their side rows and the six cells; `Divider` and `GoldRow` 248 px lower)
+- Modify: `scenes/ui/main_view/states/zone_view_state.gd` (`GOALS_POSITION` and its doc), `scenes/ui/goals_panel/goals_panel.tscn` (the root's `offset_top` and `offset_bottom`, 248 px lower) and `scenes/ui/goals_panel/goals_panel.gd` (the `CORDS_HEIGHT` doc)
+- Modify: `scenes/ui/main_view/states/adventure_view_state.gd` (`GOALS_POSITION`, `enter()`, the class doc). The plan's call: a run's vitals cabinet shows no stats and keeps its 444×256 board (`lacquer_cult_ai.png`), its rings at y 272, so a run hangs the Goals board under it at (24, 276), where it hangs today.
+- Modify: `scenes/main/main_game/main_game.tscn` (the `LogWindow` node moves after `GoalsPanel`), `scenes/ui/log_window/log_window.gd` (`FULL_LOG_HEIGHT`, from 560.0 to 532.0, and its doc) and `scenes/ui/log_window/log_window.tscn` (`FullBoard`'s `offset_top` and `FullLogText`'s `offset_bottom`), so the open full log covers the lower Goals board and never the grown cabinet
+- Modify: `tests/integration/test_main_game_layout.gd`, `tests/integration/test_boards_never_trim_text.gd`, `tests/integration/test_cycling_view.gd` (two Core Density figure asserts)
+- Test: `tests/integration/test_cultivator_plate.gd`, `tests/unit/test_stat_cell.gd` (new, with its `.gd.uid`)
+
+**Interfaces:**
+- Consumes (each `stat` is a `CharacterAttributesData.AttributeType`):
+  - Tasks 1.3 and 1.5 (`CharacterManager` as they leave it):
+    - Reads: `get_stat_level(stat) -> int`, `get_stat_xp(stat) -> float`, `get_stat_xp_to_next(stat) -> float`, `get_stat_level_cap() -> int`, `is_stat_capped(stat) -> bool`.
+    - Writes: `add_stat_xp(stat, amount: float) -> void`, `add_stat_levels(stat, count: int) -> void`, `set_stat_level(stat, level: int, xp: float = 0.0) -> void`.
+    - Signals: `stats_changed` (a level changed, a dev set, a save reset) and `stat_xp_changed(stat: AttributeType, xp: float, xp_to_next: float)` (once per XP call, carrying 0 XP at the cap).
+    - The cells show trained levels, never totals, so gear moves none of them.
+  - Task 1.2: `AdvancementStageResource.stat_level_cap: int`; `StatTrainingData.set_level(stat, level: int)` and `set_xp(stat, value: float)`, reached through Task 1.3's `SaveGameData.stat_training`.
+  - Task 1.15: `StatDisplay.PHYSICAL`, `StatDisplay.SPIRITUAL`, `name_of(stat) -> String`, `icon_of(stat) -> Texture2D`.
+  - Existing code: `LacquerStripRect` (`strip`, `frame_size`, `set_frame(column: int, row: int = 0)`, `get_frame() -> Vector2i`), and `CultivationManager.advance_to_next_stage() -> bool` and `advancement_stage_changed`.
+- Produces:
+  - `class_name StatCell extends Control`:
+    - `@export var attribute_type: CharacterAttributesData.AttributeType` (STRENGTH by default), `const RING_BEADS: int = 24` and `const RING_CAPPED_FRAME: int = 24` (the full ring).
+    - `func set_stat(level: int, xp: float, xp_to_next: float, capped: bool) -> void`.
+    - The unique names `%XpRing`, `%Icon`, `%NameLabel` and `%LevelLabel`.
+  - In `cultivator_plate.tscn`: `%PhysicalCells` holds `%StrengthCell`, `%BodyCell` and `%AgilityCell`; `%SpiritualCells` holds `%SpiritCell`, `%MindCell` and `%ControlCell`.
+  - `ZoneViewState.GOALS_POSITION = Vector2(24.0, 524.0)` and `AdventureViewState.GOALS_POSITION = Vector2(24.0, 276.0)`.
+  - `LogWindow` is `GoalsPanel`'s later sibling in `main_game.tscn`, so the open full log draws over the Goals board and takes the mouse there; `FULL_LOG_HEIGHT` is 532.0, so the full log's top meets the lowered Goals board's at y 524 (1056 − 532) and it never covers the grown cabinet.
+  - For later tasks:
+    - `CultivatorPlate._on_stats_changed()` exists from this task on, so Task 2.4 adds its `_update_madra()` call to it instead of connecting a new handler.
+    - Task 3.11 can fly stat XP pellets to these cells. It adds their hold and release, as Task 3.0 settles.
+
+- [x] **Step 1: Write the failing tests.** In `tests/integration/test_cultivator_plate.gd`:
+  - The header doc also names the six stat cells (each stat's level and its XP ring, full at the cap, following CharacterManager).
+  - Fixture:
+    - Add `const Attribute := CharacterAttributesData.AttributeType` and `var _original_save: SaveGameData = null`.
+    - `before_each()` keeps `PersistenceManager.save_game_data` in `_original_save` before `_use_fresh_save()`.
+    - `after_each()` restores the stages first, then sets `PersistenceManager.save_game_data = _original_save` and emits `save_data_reset`. This follows the Global Constraints' swap rule; the new tests leave levels in the swapped save.
+  - Helpers:
+    - `_cell(unique_name: String) -> StatCell`: `_node(unique_name) as StatCell`.
+    - `_cell_text(cell_name: String, label_name: String) -> String`: that cell's `%` Label, stripped.
+    - `_ring(cell_name: String) -> Vector2i`: its `%XpRing.get_frame()`.
+    - `_use_stat_caps(foundation_cap: int, copper_cap: int)`: like `_use_a_short_stage()`, it puts two new `AdvancementStageResource`s in `CultivationManager.advancement_stage_resources`. The first is a Foundation (`stage_name` "Test Foundation", `stat_level_cap = foundation_cap`). Its `next_stage` is the second, a Copper (`stage_id` COPPER, `stage_name` "Test Copper", `stat_level_cap = copper_cap`).
+  - Tests, under a `# STATS` header. The cells are named `StrengthCell`, `BodyCell`, `AgilityCell`, `SpiritCell`, `MindCell` and `ControlCell`. Each expected ring frame is pinned for the ring's 24 beads on the shipped curve (Lv L to L + 1 costs 100 × 1.25^(L−1) XP), as `test_beads_follow_xp` pins the core's beads, with its arithmetic in the assert message; a retune of `stat_progression.tres` changes them.
+    - `test_the_cells_are_the_six_stats_in_two_triangles`: take the StatCell children of `%PhysicalCells` in child order (apex, below left, below right). Their `attribute_type`s equal `StatDisplay.PHYSICAL`. Those of `%SpiritualCells` equal `StatDisplay.SPIRITUAL`.
+    - `test_each_cell_names_its_stat` (a table of six `{"cell", "stat"}` cases): `%NameLabel` is `StatDisplay.name_of(stat)` and `%Icon`'s texture is `StatDisplay.icon_of(stat)`.
+    - `test_a_new_save_shows_every_stat_at_level_one`: each cell reads "Lv 1" and its ring is at `Vector2i(0, 0)`.
+    - `test_a_cell_shows_its_level_and_xp`: after `set_stat_level(Attribute.SPIRIT, 4, 120.0)`:
+      - SpiritCell reads "Lv 4".
+      - Its ring is at `Vector2i(14, 0)` ("120 of Lv 4's 195.3125 XP: 120 × 24 / 195.3125 = 14.75, floored to 14; a bead lights once its share is earned").
+      - MindCell still reads "Lv 1" ("only Spirit's cell moved").
+    - `test_a_cell_follows_xp`: after `add_stat_xp(Attribute.BODY, 50.0)`:
+      - Precondition: Body is still Lv 1 ("50 of Lv 2's 100 buys no level").
+      - BodyCell's ring is at `Vector2i(12, 0)` ("50 of 100 XP: 50 × 24 / 100 = 12") and it still reads "Lv 1".
+    - `test_a_cell_follows_levels`:
+      - `add_stat_levels(Attribute.BODY, 2)` turns BodyCell to "Lv 3" ("whole levels, the Aura Well's way").
+      - `add_stat_xp(Attribute.BODY, CharacterManager.get_stat_xp_to_next(Attribute.BODY) + 100.0)` turns it to "Lv 4", with its ring at `Vector2i(12, 0)` ("the 100 over, into Lv 4's 195.3125: 100 × 24 / 195.3125 = 12.29, floored to 12").
+    - `test_a_capped_cell_shows_the_cap`: after `set_stat_level(Attribute.STRENGTH, CharacterManager.get_stat_level_cap())`:
+      - StrengthCell reads `"Lv %d" % CharacterManager.get_stat_level_cap()` and its ring is at `Vector2i(24, 0)` ("all 24 beads lit at the cap").
+      - BodyCell's ring is at `Vector2i(0, 0)` ("only the capped stat's ring fills").
+    - `test_xp_at_the_cap_keeps_the_cap`: call `set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())`, then `add_stat_xp(Attribute.SPIRIT, 50.0)`.
+      - Precondition: `CharacterManager.get_stat_xp(Attribute.SPIRIT)` is 0.0 ("the 50 is lost at the cap").
+      - SpiritCell's ring stays at `Vector2i(24, 0)` ("the 0 XP that arrives at the cap leaves the ring full").
+      - The signal's payload stays `test_character_manager.gd`'s to check (Task 1.3's `test_xp_at_the_cap_is_lost`).
+    - `test_the_breakthrough_lifts_the_cap`:
+      - Call `_use_stat_caps(3, 6)`, then `set_stat_level(Attribute.STRENGTH, 3)`.
+      - Precondition: StrengthCell's ring is at `Vector2i(24, 0)` ("capped at Foundation's 3").
+      - `CultivationManager.advance_to_next_stage()` is true ("precondition: the breakthrough lands").
+      - Then StrengthCell's ring is at `Vector2i(0, 0)` and it still reads "Lv 3" ("Copper's cap of 6 leaves room, and the set Lv 3 holds no XP").
+    - `test_a_loaded_save_shows_its_levels`: load a `SaveGameData.new()` through `_use_fresh_save(save)`, its `stat_training` holding Mind at Lv 6 (`set_level`) with 200.0 XP (`set_xp`). MindCell reads "Lv 6", and its ring is at `Vector2i(15, 0)` ("200 of Lv 6's 305.18 XP: 200 × 24 / 305.18 = 15.73, floored to 15"). Then `_plate = _add_plate()`, a second cabinet, whose `_ready()` runs after the save loaded, as at boot: its MindCell also reads "Lv 6", with its ring at `Vector2i(15, 0)` ("read on _ready"). This is the one test of the read on `_ready` (`_update_all()`'s `_update_stats()` call): the first cabinet took the load through `stats_changed`, and a new save's empty rings are what cells no one has set show anyway (frame (0, 0), where a `LacquerStripRect` starts).
+  - Beside `test_beads_follow_xp`, `test_the_xp_figure_never_shows_an_unmet_threshold_as_met` (doc: the figure floors the XP and rounds the threshold up: level 6 costs 10 × 1.02^5 = 11.04 XP, and 11 XP of it reads 11 / 12, never 11 / 11): `_load_core_density(5.0, 11.0)`; preconditions: the next level's threshold has decimals and the 11 XP is short of it; `XpLabel` contains `"/ %d" % ceili(need)` ("the figure holds the threshold rounded up") and not `"/ %d " % floori(need)`. `test_losing_levels_ends_core_full`'s and `test_held_xp_holds_back_a_level_up`'s `XpLabel` asserts read the need through `ceili()`, and so do `test_cycling_view.gd`'s two (`test_the_core_shows_the_xp_as_its_pellets_land`, `test_hiding_the_view_shows_what_its_pellets_carried`).
+  - Where each view hangs the Goals board, and what the open full log covers, are placement (TESTING.md, What to test): Step 5 checks them by eye, and only the editor-save regression below pins the board's place in the scene. So is the full log's shorter board: no test pins its height, `FULL_LOG_HEIGHT` or how many lines it shows (`test_log_board.gd` counts the full log's paragraphs against `LogManager.HISTORY_LIMIT`), so no log test changes.
+
+  `tests/unit/test_stat_cell.gd`, new: header "Unit tests for StatCell, one stat on the cultivator cabinet: the frame its XP ring shows at the edges of set_stat(), called directly with values CharacterManager does not send today (no cost to the next level, XP at or past it, negative XP). test_cultivator_plate.gd covers the cells following CharacterManager." `before_each()` instances `stat_cell.tscn` with `add_child_autofree()`; `_ring() -> Vector2i` reads `%XpRing.get_frame()`; each case first sets a half ring (`set_stat(1, 50.0, 100.0, false)`), so a case that changed nothing would show.
+  - `test_an_uncapped_ring_stays_within_its_beads`, at Lv 3 and not capped, xp and xp_to_next → frame column: "no cost to the next level lights no bead" 50.0, 0.0 → 0; "XP at the next level's cost lights every bead" 100.0, 100.0 → `StatCell.RING_BEADS`; "XP past the next level's cost lights every bead, no more" 250.0, 100.0 → `RING_BEADS`; "negative XP lights no bead" -10.0, 100.0 → 0.
+  - `test_a_capped_ring_is_full_whatever_the_xp`, at Lv 10 and capped: no XP (0.0 of 100.0), half (50.0 of 100.0), negative (-10.0 of 100.0) and no cost (0.0 of 0.0) each show `StatCell.RING_CAPPED_FRAME` ("capped, %s").
+
+  In `tests/integration/test_main_game_layout.gd`, `PLACES`' `"MainView/GoalsPanel": Vector2(24, 276)` becomes `Vector2(24, 524)`. This is the one existing test the move breaks, and no test pins the cabinet's size.
+
+  In `tests/integration/test_boards_never_trim_text.gd`, add `"res://scenes/zones/cultivator_plate/cultivator_plate.tscn"` and `"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn"` to `BOARD_SCENES`, naming the cultivator cabinet and its stat cells in its doc comment. Their labels hold fixed words (a stat's name, "Lv N", the side names), so none joins the `wrapping` table.
+- [x] **Step 2: Run them and see them fail.**
+`"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/integration/test_cultivator_plate.gd,res://tests/unit/test_stat_cell.gd,res://tests/integration/test_main_game_layout.gd,res://tests/integration/test_boards_never_trim_text.gd -gexit`
+Expected: FAIL.
+  - GUT cannot load `test_cultivator_plate.gd` or `test_stat_cell.gd` (`StatCell` is not declared).
+  - `test_main_game_layout.gd` finds GoalsPanel at (24, 276).
+  - `test_no_label_of_a_board_ellipsizes_or_clips` and `test_no_board_scene_file_sets_an_ellipsis` fail on the missing `stat_cell.tscn`.
+- [x] **Step 3: Build what the approved board 8 shows.** First read `docs/STYLE_GUIDE.md` (§3 rule 2, §5 Type and Long text, §9 Icons and art) and `docs/UI_STYLING.md` (Lacquer theme). The unique names below are the binding; the look and the copy are the board's. Keep every position and size even: the project imports with nearest filtering.
+  - **Check the room first.**
+    - The five-line log: with Task 1.13's three milestone lines under a one-line quest, the Goals board is 256 px tall. Hung at y 524, its foot is at 780 (524 + 256), 72 px above the log's top at 852, so the check passes: a wrapped line (20 px) still fits. It would not with Goals below y 576 (576 + 256 + 20 = 852).
+    - The full log: today's 440×560 board would start at y 496 (1056 − 560), 28 px into the grown cabinet, whose board now ends at 524 and its shadow at 528. Open, it would cover the cabinet's foot: its brass corner straps, its rings and the lower half of the gold row (480 to 512 on screen). So it shortens to 440×532: its top at y 524 (1056 − 532) meets the lowered Goals board's, and it covers the whole Goals board while open and never the cabinet's board, only the 4 px shadow strip under it, where the Goals board's root already starts. The Goals board's `%Cords` reach 4 px higher, from y 520 (the root's y − 4), over the cabinet's rings: those 4 px stay in sight while the log is open, down to its top edge. As the scene stands, the Goals board would draw over the log and stop the clicks there: both are at `z_index` 1 in `main_game.tscn`, GoalsPanel is the later sibling, and its root stops the mouse. Task 1.0's answer lets the log cover the Goals board while open (**The full log**, below).
+    - If the approved board hangs Goals lower than y 524, redo these sums with its numbers, and stop and ask Lionel if a wrapped line no longer fits above the log.
+  - **Art.** Copy board 8's approved art; don't redraw it. Each file is a new `_ai` file. Never edit `lacquer_cult_ai.png`: the vitals cabinet keeps it.
+    - `assets/ui/lacquer/lacquer_cult_stats_ai.png`: canvas asset `/_blob/008764ed9d99599a55da6fe0cbe796da` (sha256 `065cd4fd…`), the cabinet's board at 444×504 with its 4 px shadow. Its foot, with the straps and the rings the Goals board's cords hang from, is 248 px lower: the rings meet the cords at y 520 on screen.
+    - `assets/ui/lacquer/lacquer_stat_ring_strip_ai.png`: canvas asset `/_blob/c7449a90639b15dedb1313a0391c4dd9` (sha256 `a0a93af3…`), 2000×80: 25 frames of 80×80 in one row, frame n with n beads lit, 0 to 24, and no capped frame. The hole holds a 32×32 icon at (24, 24).
+    - Copy them from `C:/Users/lione/AppData/Local/Temp/claude/C--worktrees-EndlessPath-game-stats-rework-e6a4b4/0c3add7a-623d-403e-8031-c82f6d946dcc/scratchpad/art/lacquer_cult_stats_ai.png` and `C:/Users/lione/AppData/Local/Temp/claude/C--worktrees-EndlessPath-game-stats-rework-e6a4b4/0c3add7a-623d-403e-8031-c82f6d946dcc/scratchpad/art/lacquer_stat_ring80_strip_ai.png`. If those copies are gone, fetch each with `Artifact` `action: "read"` (`url`: the approved canvas, Task 1.0's `Approved canvas:` link; `path`: the asset id, the 32 hex digits after `/_blob/`). Check the sizes, 444×504 and 2000×80, before using them. Lionel approved them with the canvas (Task 1.0).
+    - Board 8's orb images are stills of the two shaders, for the canvas only: don't ship them. Nor its six `*_icon_20_ai.png` icons: the cells use the game's own (`StatDisplay.icon_of()`).
+  - **`stat_cell.tscn`.** The root `StatCell` is a Control with `theme = lacquer_theme.tres` (as `LacquerCountSeal`'s root has) and `mouse_filter = 2`. It holds:
+    - `%XpRing`: a `LacquerStripRect` with `strip` the ring and `frame_size = Vector2i(80, 80)`.
+    - `%Icon`: a TextureRect, 32×32 at (24, 24) in the ring, `expand_mode = 1`.
+    - `%NameLabel` and `%LevelLabel`: Labels in the variants the board shows (`LabelLacquerDetail`, 15/18, as drawn). A cream level takes a `font_color` override, as the tan in `%MadraMaxLabel` does. No font size override, nothing under 13 px. They sit side by side in `LabelRow`, an HBoxContainer centred under the ring (from y 82 to the cell's foot at 100), whose `separation` is 5: BM Euljiro's space at 15 px, so "Strength Lv 10" spaces as board 8 draws it. That gap between two texts is the one odd size; every art position and size stays even.
+    - Every node has `mouse_filter = 2`, and no Label trims or clips. There is no cap seal: board 8's cells show the cap by the full ring alone.
+  - **`StatCell`.**
+    - Class doc: one stat on the cultivator cabinet, with its icon, name, "Lv N" and a ring of XP beads toward the next level, every bead lit at the cap.
+    - `_ready()` writes `StatDisplay.name_of(attribute_type)` into `%NameLabel` and `StatDisplay.icon_of(attribute_type)` into `%Icon`.
+    - `set_stat()` writes `"Lv %d" % level` and shows the ring at `floori(xp * RING_BEADS / xp_to_next)`, clamped from 0 to `RING_BEADS` (0 when `xp_to_next` is 0). This is the cabinet's bead rule: a bead lights only once its share is earned. While `capped`, it shows `RING_CAPPED_FRAME` instead: the full ring, as the book's bar fills at the cap.
+    - `RING_BEADS = 24`, the approved ring's bead count, and `RING_CAPPED_FRAME = 24`, the full ring: the strip has no capped frame of its own.
+  - **`cultivator_plate.tscn`.**
+    - The root's `offset_bottom` goes from 276 to `524.0` and `Board`'s from 256 to `504.0`. `Board` takes the new art.
+    - Add `%PhysicalCells` and `%SpiritualCells`, plain Controls with `mouse_filter = 2`, where the board places the two triangles. Each holds its side's row (next bullet), then its three `stat_cell.tscn` instances, apex first, then below left, then below right. All six have `unique_name_in_owner`:
+      - `%PhysicalCells`: `%StrengthCell` (`attribute_type` left at the default), `%BodyCell` (1), `%AgilityCell` (2).
+      - `%SpiritualCells`: `%SpiritCell` (3), `%MindCell` (4), `%ControlCell` (5).
+    - Above each triangle, inside `%PhysicalCells` / `%SpiritualCells` and before the cells (the triangles test reads StatCell children only), a side row built as the zone chest's `activity_group_label.tscn` builds its `LabelRow`, the row board 8 copies ("drawn as ActivityGroupLabel draws its row"). Copy its structure rather than instance the scene: the scene has no script, so no export sets its label text (`ActivityList` sets `%GroupLabel`'s in code), its `LabelRow` is at least 392 px wide (`custom_minimum_size = Vector2(392, 18)`, the chest's width), and its root also holds the chest's `%Cards` column. Every node of the row has `mouse_filter = 2`:
+      - `SideRow`, an HBoxContainer (theme constant `separation = 0`) at the triangle's top left, `custom_minimum_size = Vector2(196, 20)`: board 8's row, 20 px tall and as wide as its 196 px triangle, 4 px above the apex.
+      - In it, `SideLabel`, a static `LabelLacquerDetail` Label ("Physical" / "Spiritual", `size_flags_vertical = 0`, so it sits at the row's top), then `GrooveMargin`, a MarginContainer (theme constants `margin_left = 10`, `margin_top = 7`, `margin_right = 0` and `margin_bottom = 0`, all four set as in the chest's; `size_flags_horizontal = 3`, `size_flags_vertical = 0`).
+      - In `GrooveMargin`, `GrooveRow`, an HBoxContainer (`separation = 0`) of `Groove`, a TextureRect tiling `lacquer_groove_ai.png` (4×6, `custom_minimum_size = Vector2(0, 6)`, `expand_mode = 1`, `stretch_mode = 1`, `size_flags_horizontal = 3`, `size_flags_vertical = 0`), and `GrooveEnd`, a TextureRect of `lacquer_groove_end_ai.png` (6×6, `size_flags_vertical = 0`).
+      - The groove then starts 10 px after the label and 7 px down, and its end pin sits flush against its right end, as board 8 draws them.
+    - `Divider` moves to `offset_top = 446.0` and `offset_bottom = 452.0`, and `GoldRow` to `offset_top = 456.0` and `offset_bottom = 488.0`, 248 px lower, where board 8 puts them. The orbs and their rows stay.
+  - **`CultivatorPlate`.**
+    - `@onready var _stat_cells: Array[StatCell]` holds the six `%` cells.
+    - `_ready()` connects `CharacterManager.stats_changed` to `_on_stats_changed() -> void`, and `stat_xp_changed` to `_on_stat_xp_changed(_stat: CharacterAttributesData.AttributeType, _xp: float, _xp_to_next: float) -> void`.
+    - Both handlers call `_update_stats() -> void`, which calls each cell's `set_stat()` with `CharacterManager.get_stat_level()`, `get_stat_xp()`, `get_stat_xp_to_next()` and `is_stat_capped()` for its `attribute_type`.
+    - The XP handler ignores its payload and re-reads, as `_on_madra_rate_changed()` does. XP at the cap arrives as 0 XP, and the cell must keep showing the full ring.
+    - `_update_core_density()`'s figure reads `"%d / %d XP" % [floori(xp), ceili(need)]`, the need rounded up as the Character book rounds its threshold (Task 1.16): thresholds of 10 × 1.02^(n − 1) have decimals, and a floored one could read as met before it is. Its doc says the beads never run ahead of that figure.
+    - `_update_all()` calls `_update_stats()` too, the read on `_ready`: the save loads in `PersistenceManager._ready()`, which the engine runs before the cabinet's `_ready()`, and the title menu's Continue only closes the menu (`test_a_loaded_save_shows_its_levels`' second cabinet checks it). `_on_advancement_stage_changed()` calls it as well, because a breakthrough raises the cap.
+    - The class doc gains the stats: two triangles, Physical on the left and Spiritual on the right; each cell's level and XP ring, full at the cap; read on `_ready`, then on CharacterManager's signals and the stage's.
+  - **The Goals board's place.**
+    - `zone_view_state.gd`: `GOALS_POSITION = Vector2(24.0, 524.0)`. Its doc says the Goals board hangs under the cabinet grown for the six stats, 4 px under its rings at y 520.
+    - `goals_panel.tscn`: the root's `offset_top` goes from 276 to `524.0` and its `offset_bottom` from 496 to `744.0`, so the editor shows the board where the zone view hangs it.
+    - `goals_panel.gd`: the `CORDS_HEIGHT` doc says the cords reach 4 px above the root because each view hangs the board 4 px under its cabinet's rings: the zone view under the cultivator cabinet grown for the six stats (`ZoneViewState.GOALS_POSITION`), a run under the vitals cabinet (`AdventureViewState.GOALS_POSITION`).
+    - `adventure_view_state.gd`: add `const GOALS_POSITION: Vector2 = Vector2(24.0, 276.0)`. Doc: where a run hangs the Goals board, under the vitals cabinet, which keeps the cabinet's old height, 4 px under its rings at y 272. `enter()` puts `scene_root.goals_panel` there when there is one, and `ZoneViewState.enter()` hangs it back. The class doc: the log stays where the zone view hung it, and the Goals board moves up under the vitals cabinet with its cords on.
+  - **The full log.** It covers the Goals board while open (Task 1.0's answer: the player opened the log to read it, and closing it brings the Goals board back), on a 440×532 board whose top meets the lowered Goals board's at y 524, so it never covers the grown cabinet (the room check above).
+    - `main_game.tscn`: move the `LogWindow` node after `GoalsPanel`, both still at `z_index` 1. The open full log then draws over the Goals board and takes the clicks and the wheel there. The five-line board and the Goals board don't overlap (72 px apart), and in a run the full log covers the foot of a tall Goals board the same way, so nothing else changes. No script reads `MainView`'s child order.
+    - `log_window.gd`: `FULL_LOG_HEIGHT` goes from 560.0 to `532.0`. Its doc: from the bottom line up to the lowered Goals board's top in the zone view (1056 − 532 = 524), where the grown cabinet's board ends, so it never covers the cabinet; it opens over the Goals board, which it covers until it closes (`LogWindow` is `GoalsPanel`'s later sibling in `main_game.tscn`).
+    - `log_window.tscn`: `FullBoard`'s `offset_top` goes from -560 to `-532.0` (`_hang()` sets it from `FULL_LOG_HEIGHT` at run time; the scene shows the editor the same board), and `FullLogText`'s `offset_bottom` from 532 to `506.0`: 64 + 17 whole 26 px lines (`RichTextLacquerLog`'s pitch, so no sliver of an older line shows at the top), with a 26 px foot under the text, 2 px less than today's 28. `FullBoardTexture`'s `StyleBoxTexture` stretches the middle of `lacquer_log5_ai.png` (texture margins 38 top, 104 bottom) to any height, so the shorter board needs no new art.
+- [x] **Step 4: Register the class and the art.** Run `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` (the `-s` test command imports nothing). Expected: no parse error, `stat_cell.gd.uid` beside the script and `test_stat_cell.gd.uid` beside the new test, a `.png.import` beside each new texture, and `git status --short project.godot` prints nothing.
+- [x] **Step 5: Run them and see them pass.**
+  - Run the Step 2 command.
+  - Run the files that build the cabinet or hang the Goals board: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/integration/test_cycling_view.gd,res://tests/integration/test_cycling_technique.gd,res://tests/unit/test_cycling_mode.gd,res://tests/integration/test_zone_transition.gd,res://tests/integration/test_board_transition_camera.gd,res://tests/integration/test_goals_panel.gd,res://tests/integration/test_log_board.gd -gexit`. They cover cycling's pellets into the cabinet and `MainView._hand_cabinet_to_cycling_view()`, and `test_log_board.gd` the full log this task shortens.
+  - Run the full suite: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.
+  - Expected: PASS for all three.
+  - Then compare the cabinet with the approved board 8 by eye: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=tribulation_ready --save=user://dev/runs/zone_stats.tres`. If this session can't drive the window, ask Lionel to look. In this order:
+    - The cabinet shows Strength and Spirit at Lv 10 with all 24 beads lit and the rest at Lv 1 with empty rings. The Goals board hangs under it at y 524, its cords on the cabinet's rings. Control's icon, beside Mind's, has its 2 px art pixels 1 px off the grid the other five keep (zoom a screenshot: they start at odd x), the known phase 1 limit the intro names: not a stop, but note it for the PR summary (Task 1.18), where Lionel sees it.
+    - Press L: the full log opens over the Goals board, its top flush with the Goals board's at y 524, covering it, and the wheel scrolls it where the Goals board hangs. The whole cabinet stays in sight above it, its brass corner straps, rings and gold row uncovered; only the cords' top 4 px show, over the rings, down to the log's top edge. Press L: it closes, and the Goals board shows again.
+    - Set Madra to 100 from the dev panel's Player tab (Ctrl+Shift+D) and enter the Shallow Woods: during the run the Goals board hangs under the vitals cabinet, its cords on that cabinet's rings. End the run with Exit as victory on the dev panel's Adventure tab and press RETURN: the Goals board hangs under the grown cabinet again.
+    - With the Player tab's stat row, set Body, Agility, Mind and Control to Lv 10: the lower cells' labels ("Control Lv 10" is the widest) stand apart. Press Advance to the next stage, set the four to Lv 20 and look again. If two labels touch, stop and ask Lionel; board 8 then redraws the lower row at Lv 10 and Lv 20.
+- [x] **Step 6: Commit.**
+  - Stage each file by name:
+    - `git add scenes/zones/cultivator_plate/stat_cell/stat_cell.gd scenes/zones/cultivator_plate/stat_cell/stat_cell.gd.uid scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn`
+    - `git add scenes/zones/cultivator_plate/cultivator_plate.gd scenes/zones/cultivator_plate/cultivator_plate.tscn scenes/ui/main_view/states/zone_view_state.gd scenes/ui/main_view/states/adventure_view_state.gd scenes/ui/goals_panel/goals_panel.tscn scenes/ui/goals_panel/goals_panel.gd scenes/ui/log_window/log_window.gd scenes/ui/log_window/log_window.tscn scenes/main/main_game/main_game.tscn`
+    - `git add assets/ui/lacquer/lacquer_cult_stats_ai.png assets/ui/lacquer/lacquer_cult_stats_ai.png.import assets/ui/lacquer/lacquer_stat_ring_strip_ai.png assets/ui/lacquer/lacquer_stat_ring_strip_ai.png.import`
+    - `git add tests/integration/test_cultivator_plate.gd tests/unit/test_stat_cell.gd tests/unit/test_stat_cell.gd.uid tests/integration/test_main_game_layout.gd tests/integration/test_boards_never_trim_text.gd tests/integration/test_cycling_view.gd`
+  - `git commit -m "feat(stats): show the six stats on the cabinet"`. Body: "The zone view's cabinet grows to hold the six stats as two triangles, Physical left and Spiritual right. Each cell shows a stat's level and its XP as a ring of beads, full at the cap, and follows CharacterManager as the stat trains. The Goals board hangs lower under the cabinet, and the open full log covers it, on a board shortened from 560 to 532 px so it starts where the Goals board does and never covers the grown cabinet's foot and gold row; a run still hangs the Goals board under the vitals cabinet." (+ Co-Authored-By line)
+
+---
+
+### Task 1.18: Phase 1 wrap
+
+**Files:**
+- No new files. A fix found here goes in a commit of its own, with its test.
+
+**Interfaces:**
+- Consumes: every phase 1 task; `tribulation_ready` built with the stats at the cap (Task 1.14).
+- Produces: the phase 1 PR from this worktree's branch, `feat/game-stats-rework-e6a4b4`, into `main`, with its `## Docs to update` list. It is not merged: Lionel merges.
+
+- [x] **Step 1: Run the full suite.** `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`. Expected: PASS, exit code 0, no failing test and no script that ran no tests. Rerun a failing file alone, with the command the runner prints, before investigating it.
+- [x] **Step 2: Check for leftovers of the old stats and for living-doc edits.**
+  - `git grep -n -E "AttributeType\.(FOUNDATION|RESILIENCE|WILLPOWER)|Stat\.(FOUNDATION|RESILIENCE|WILLPOWER)|add_base_attribute|base_attribute_changed|attribute_bonuses|(foundation|resilience|willpower|body|agility|mind|control)_scaling|foundation_madra_multiplier|ATTRIBUTE_DETAILS|_ATTRIBUTE_ICONS|add_attribute\(|STAMINA_PER_BODY|MADRA_PER_FOUNDATION|AbilityStatsDisplay|StatTooltip|abilities/(ability_stats_display|stat_label|stat_tooltip)|^(foundation|resilience|willpower) = " -- scripts scenes singletons tests resources ":!tests/unit/test_save_migration.gd" ":!tests/unit/test_combat_effect_data.gd" ":!scripts/resource_definitions/path_progression/path_effects_summary.gd" ":!singletons/path_manager/path_manager.gd"`. GUT never loads unused scripts, so this is the check for removed names and Task 1.1's deleted widgets; the two excluded test files name old fields on purpose (Task 1.4's v1 save, Task 1.9's absence check), and `PathEffectsSummary.attribute_bonuses` is the path perks' own field, which phase 1 keeps. Expected: no output. Fix a hit in its own commit.
+  - `git fetch origin main`, then `git diff --stat origin/main...HEAD -- docs`: the local `main` branch is not kept current, and a diff from its older merge base would list the docs other PRs changed. Expected: only `docs/superpowers/` and `docs/inventory/ITEMS.md`, which code reads.
+- [x] **Step 3: Play the game on its own save and check it by hand.** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=tribulation_ready --save=user://dev/runs/phase1.tres`. If this session can't drive the window, ask Lionel to run the checks. Expected: every check holds, and the console shows no script error.
+  1. On the zone view, the cabinet shows the six stats in two triangles side by side, as the approved board 8 draws them: Physical on the left (Strength at the apex, Body and Agility below), Spiritual on the right (Spirit at the apex, Mind and Control below). Strength and Spirit read Lv 10 with all 24 beads lit; the other four read Lv 1 with empty rings. The Goals board hangs under the cabinet with its cords on the cabinet's rings, and it ends above the log. Press L: the full log opens over the Goals board, its top flush with the Goals board's at y 524, covering it while the whole cabinet stays in sight (its brass corner straps, rings and gold row); L closes it and the Goals board shows again.
+  2. The Character book (C) shows the six stats on two sides: Strength and Spirit at Lv 10, each with a full bar, the CAPPED seal across it and 19 on its tag; the rest at Lv 1, with empty bars and 10 on their tags. It opens on Strength's page: Lv 10 / 10, its bar full under the CAPPED seal, no XP figure and no "NOW → LV" caption, and each line of what it does holds one figure, with no arrow.
+  3. Body's page reads Max Health 100 → 110 under "NOW → LV 2", no page names a trainer, and In a fight reads, in two columns, Health 100, Madra 100, Stamina 50, Dodge chance 0%, Technique cost cut 0%, Cooldown cut 0%, Armor 0, Ward 0.
+  4. With the book open, set Agility to Lv 6 with 0 XP from the stat row of the dev panel's Player tab (Ctrl+Shift+D): the tile follows (Lv 6, 15 on its tag), and In a fight's Dodge chance reads 8.8%. Close the book: the cabinet's Agility cell reads Lv 6. Set Body to Lv 3 with 60 XP: its cell reads Lv 3, with its ring lit for 60 of the level's 156.25 XP (9 of 24 beads).
+  5. The Tribulation card is ENTER. Set Strength to Lv 9 with 0 XP (the XP box still holds Body's 60, which would light 2 of Strength's beads): the card turns to TRIAL with "Strength Lv 9 / 10", the Goals board lists the same line, the cabinet's Strength ring empties, and a click logs "The Tribulation needs Strength Lv 9 / 10." Set Spirit to Lv 9 with 0 XP as well: a click logs two lines, "The Tribulation needs Strength Lv 9 / 10." then "The Tribulation needs Spirit Lv 9 / 10." Set both back to Lv 10 with 0 XP (XP set at the cap stays in the save, and check 10's rings would show it): the card is ENTER again and both rings fill. Click it: the intro reads Task 1.0's approved line; Not yet closes the board.
+  6. Give the Iron Shortsword from the dev panel's Items tab and equip it (right-click it in the bag on the inventory's Equipment tab). The inventory's details panel, the merchant's row for the sword and the item tooltip over that row's icon read "+50% Strength (+9)" (Lv 10 is 19 points) and "+10% Agility (+2)" (the sword's floor of 2); the item tooltip shows only over an item slot (the merchant's icons and the end card's loot), so the inventory has none. Strength's tile reads 28, and its page shows Gear +9.
+  7. The Abilities book's Basic Strike shows one Strength part.
+  8. Set Madra to 100 from the Player tab and enter the Shallow Woods. During the run the Goals board hangs under the vitals cabinet with its cords on that cabinet's rings. In the run's first fight, with Agility at Lv 6 from check 4 and check 6's sword worn (17 in all, an 11.1% dodge), let the enemy cast until a hit is dodged: "Dodged" floats over the player in Stamina green, that hit deals no damage, and the log reads "Player dodged <ability name>". The fights within reach can kill the player before a dodge at that chance shows: then raise Agility on the stat row (a fight takes its stats as it starts, so the next fight counts it) until one does, and set it back to Lv 6 with 0 XP afterwards. End the run with Exit as victory on the dev panel's Adventure tab and press RETURN: back in the zone view it hangs under the grown cabinet again. Open cycling and cycle once: the Madra pellets land in the cabinet's Madra orb as before, and the stat cells stay as they were.
+  9. Quit, then relaunch with `-- --save=user://dev/runs/phase1.tres` alone: the levels are as you left them (Strength and Spirit Lv 10, Agility Lv 6, Body Lv 3 with 60 XP, its cabinet ring at 9 of 24 beads, Mind and Control Lv 1), in the book and on the cabinet.
+  10. Press Advance to the next stage on the Player tab: at Copper's cap of 20, the full rings of Strength and Spirit empty, their cells still reading Lv 10. Open the book: their tiles read Lv 10 with empty bars and no CAPPED seal, and Strength's page reads Lv 10 / 20 with "NOW → LV 11".
+- [x] **Step 4: Open the PR.** Only once Lionel says to: pushing the branch and opening a PR reach GitHub. `git status --short` shows nothing staged you didn't intend (no `.godot/`, no stray `.import` cache). `git push -u origin feat/game-stats-rework-e6a4b4`. Write the body to a temporary file outside the repo and run `gh pr create --base main --head feat/game-stats-rework-e6a4b4 --title "feat(stats): six trained stats with levels, XP and a stage cap" --body-file <that file>`. The body, in order: what phase 1 delivers (the six stats in the Character book and on the zone view's cabinet among it); "Not in this PR": the Madra pool, cycling XP, Core Density from kills, body refining and the Health pool, quests and story; "Do not publish to itch: the breakthrough can't be reached in play until phase 5."; the test plan (the suite and Step 3's checks); the new `_ai` art for Lionel to review, each file by its path as `git diff --name-only --diff-filter=A origin/main...HEAD -- "*_ai.png"` lists it (Task 1.16's pressed XP bar textures under `assets/sprites/ui/book/pressed/`, `assets/ui/lacquer/lacquer_cult_stats_ai.png` and `assets/ui/lacquer/lacquer_stat_ring_strip_ai.png`), with a note that the cabinet's Control icon (`control_icon_ai.png` at 32 px) sits 1 px off the 2 px grid, a known phase 1 limit; the list below; last, the line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. Expected: the PR's URL.
+
+```
+## Docs to update
+- docs/infrastructure/CHARACTER.md: most of the doc describes eight base attributes in `SaveGameData.character_attributes`; it becomes the six trained stats:
+  - Overview: CharacterManager owns the six stats (Strength, Body, Agility; Spirit, Mind, Control: Mind takes Foundation's place, and Resilience and Willpower are gone), each a trained level with XP toward the next in `SaveGameData.stat_training` (`StatTrainingData`); a stat's total is its trained value plus its modifier sources; the Character book shows the six stats and describes the one pointed at.
+  - Player Experience: the book as built, on pressed paper pages, each headed by a `PageTitle` ("Character" on the left, the stat's name on the right) in place of the ribbon and the detail plaque, with the rows under caps captions (PHYSICAL and SPIRITUAL in place of the plaques, then IN A FIGHT). The left page holds the Physical and Spiritual rows of tiles, three to a row (the icon with the total on a paper tag, the name, the level and an XP bar; printer's marks on the tile described; a full bar under a CAPPED seal at the cap), and under them "In a fight" in two columns (Health, Madra, Stamina, Dodge chance, Technique cost cut, Cooldown cut, Armor, Ward). The right page holds the level against the cap, the XP (an unmet threshold never reads as met), what the stat does now → at the next level (only now at the cap), and where its total comes from (trained, gear); it doesn't name what trains a stat. A new character's tiles show Lv 1 and 10. While open, the book follows every stat, level and XP change, and a breakthrough. The "Attributes grow in two ways" list: trained levels (the Aura Well's whole Spirit levels, the dev tools) and gear's percents.
+  - Architecture: rewrite the tree by class and scene (`CharacterView`, `AttributeTile`, `PageTitle`, the `LacquerRod` XP bars on the pressed XP art, `StatDisplay`), with no `%` names, px sizes or private members; CharacterManager's lines show `stat_training`, the modifier sources and its three signals, and the player VitalsManager's line its refresh on `stats_changed`.
+  - Data Model, CharacterAttributesData: a combatant's stat block (an enemy's, or the player's fight snapshot), not the save's record: six stat fields plus `armor` and `ward` (stats 10, armor and Ward 0), `make()` by stat key, `stat_key()` and `stat_from_key()`, and the derived getters `get_max_health()` to `get_cooldown_cut()`; drop the positional constructor and `add_to_attribute()`, and the paragraph's commit `1ce7ecd` (2026-05-23) sentence goes: old saves get a link to PERSISTENCE.md's Versioning, not a restatement. Add the training record (`StatTrainingData`: a level and XP by stat key, Lv 1 when missing), `StatProgressionData`'s curve (`stat_progression.tres`: a stat is 10 at Lv 1 and each level adds 1; Lv 2 costs 100 XP and each later level 1.25 times the one before) and the cap: the stage's `stat_level_cap` (`get_stat_level_cap()`, with a link to CULTIVATION.md for its values), counting trained levels only, though gear can lift a total past it.
+  - Data Model, CharacterManager: totals as the trained value plus modifier sources (`get_stat()`, `get_total_attributes_data()`, `set_modifier_source()`, `remove_modifier_source()`; the "gear" source: each worn item's floored percents of the trained values, armor and Ward; `get_gear_bonus()`); CharacterManager hears `inventory_changed` and emits `stats_changed`; the training API (`add_stat_xp()`, `add_stat_levels()`, `set_stat_level()`, `get_stat_level()`, `get_stat_xp()`, `get_stat_xp_to_next()`, `get_stat_level_cap()`, `is_stat_capped()`, `get_trained_value()`, `get_trained_values()`) and signals (`stats_changed`, `stat_level_changed`, `stat_xp_changed`), with the cabinet's stat cells and the Character book among their listeners; the level-up log line; drop `base_attribute_changed`, `add_base_attribute()` and the per-attribute getters, and `get_attribute_display_name()`'s "Used only in log lines".
+  - Data Model, PlayerManager and VitalsManager: the player VitalsManager reads its maxima from `get_stat()` on `stats_changed`; the Attribute source and Max values rows point at the derived-stats table rather than restating its formulas; the Regen row: the run's Stamina regen during an adventure (ADVENTURING.md's `stamina_regen_modifier` row has how a run sets it), 0 after it.
+  - Data Model, Character View nodes: name each class and scene and what it does (`CharacterView` fills both pages and describes the stat pointed at; `AttributeTile` shows one stat; `CharacterViewState` as it is), with no member list, no `%` names, px sizes or private members.
+  - Core Systems and Flows: Total attributes (the trained value plus each source's flat, then percent, modifiers; the derived stats' formulas over the totals; armor and Ward from modifiers alone); the derived-stats table, the one home of these formulas (Max Health Body × 10 from `CharacterAttributesData.get_max_health()`, with no `VitalsManager.max_health_for()`, which doesn't exist; Max Stamina Agility × 5; Stamina regen Agility × 0.1 a second; Max Madra Mind × 10, while the adventure capacity row links RESOURCES.md with no formula of its own; a dodge chance from Agility nearing 35% and reaching half of it 15 points above Lv 1; Control's Madra cost cut nearing 50% and cooldown cut nearing 40%, each reaching half of it 20 points above Lv 1; the vitals effects' `mind_madra_multiplier`), whose Ability value and Damage taken rows link COMBAT.md's CombatEffectData and Damage formula instead of restating them; the attribute-usage table (BODY: Max Health and `body_hp_multiplier`, not Max Stamina; AGILITY: Max Stamina, Stamina regen, dodge; SPIRIT: damage scaling and heals, and no defence, since Ward defends; MIND: Max Madra, the capacity, `mind_madra_multiplier`; CONTROL: the cuts; the RESILIENCE and WILLPOWER rows go; Basic Strike, Empty Palm and Power Font scale from Strength or Spirit only, and the STRENGTH and SPIRIT rows' coefficients (Basic Strike ×1.0; Empty Palm ×1.0, Power Font ×1.5) go for a link to ABILITIES_MATRIX.md, which holds each technique's scaling, rather than being refreshed; the gear column's `attribute_bonuses` values give way to a link to ITEMS.md); the Base attribute award block and the opening and closing chains go rather than being refreshed (the training API and EFFECTS.md cover the award: `add_stat_levels()` stops at the cap, and `stats_changed` follows a gained level; the open path is MAIN_VIEW.md's, and Player Experience says the book reads each stat as it opens and follows changes while open), and "Values are read only when the book opens" goes.
+  - Integration Points: the PersistenceManager row (`stat_training`; a save reset makes CharacterManager emit `stats_changed`), InventoryManager (CharacterManager hears `inventory_changed`; the gear source reads its own save's inventory), ResourceManager (total Mind), AdventureCombat (the snapshot carries armor and Ward, and the fight reads dodge and the cuts from it), AdventureView / AdventureTilemap (the run's Stamina regen reads `get_stat(STAMINA_REGEN)`; ADVENTURING.md has how the run's modifier applies), ChangeVitalsEffectData (total Body and Mind), AwardAttributeEffectData (the only game code that calls `add_stat_levels()`, EFFECTS.md; the dev commands `DevCommands.set_stat_level()` and `raise_stat_to_cap()` set a level through `CharacterManager.set_stat_level()` instead, DEV_TOOLS.md, in place of `add_attribute()`), UnlockConditionData (UnlockManager doesn't hear `stats_changed`), AbilitiesView / `TechniqueTooltip` (cost and cooldown after Control's cuts, through `get_stat()`) and AbilityManager (the right page lists the unlocked abilities that scale with the stat); new rows for CultivationManager (the stage's stat cap), the Tribulation gate, its card and the Goals milestone (trained Strength and Spirit levels, `stat_level_changed`) and the zone view's cabinet (the stat cells).
+  - Existing Content: Mind keeps `foundation_icon.png`, the cultivator cabinet shows the six icons too, and `resilience_icon.png` and `willpower_icon.png` have no user left; the gear bullet points at ITEMS.md for each item's percents and drops its "cannot be obtained" sub-bullets (the Merchant sells six of the seven, and the Necklace drops); the Aura Well's award is a Spirit level.
+  - Key Files: rows for the training record (`stat_training_data.gd`), the curve (`stat_progression_data.gd`, `resources/character/stat_progression.tres`) and `StatDisplay` (`scripts/utils/stat_display.gd`, the one map of each stat's name, icon and side), and the purposes of `character_manager.gd`, `character_attributes_data.gd` and `award_attribute_effect_data.gd`. Design history: beside the character view spec and plan, the stats rework's spec (`docs/superpowers/specs/2026-11-04-stats-rework-design.md`), decision record (`docs/superpowers/specs/2026-11-04-stats-rework-decisions.md`) and plan (`docs/superpowers/plans/2026-11-04-stats-rework.md`); "Shipped on 2026-04-16 with the deviations listed under Work Remaining" goes.
+  - Work Remaining: drop the hand-written formula lines, the vitals-ignore-equipment bug (the player VitalsManager follows `stats_changed`), the book-not-updating bug, the attribute design pass, the buff TODOs, the derived-totals UI item, the untested refresh, the stale doc comments item (the CONTROL description with it; the one stale comment left is ResourceManager's, on RESOURCES.md's list) and the [LOW] load-and-reset item (the function only emits `stats_changed` and has a doc, `get_total_attributes_data()` has one, and no local is untyped). The totals-only item shrinks to what the book lacks (a worn-gear summary, the stage and Core Density); the allocation item: consumers follow `stats_changed`, but every derived read builds the whole snapshot; the path-perk item: the gear is CharacterManager's only modifier source; the PlayerManager item keeps only its missing class doc. It gains a [HIGH] item: only Spirit can be trained in play (the Aura Well's whole levels); Strength, Body, Agility, Mind and Control stay at Lv 1 apart from the dev tools (gear raises their totals, not their levels), and with Strength untrainable the breakthrough can't be readied in play; nothing pays stat XP either (`add_stat_xp()` has no game caller), so in play the cabinet's rings and the book's XP bars show no progress toward a level: empty below the cap and full at it, which only Spirit reaches in play (the Aura Well). It also gains: the XP bars round to the nearest step, so just short of a level both read full; a direct modifier on dodge or the cuts would show in `get_stat()` but not in a fight, which reads the snapshot's curves, and nothing bounds it; the tile and the page copy the paper tag's even-width fit, and the fight block's column widths are set in code; the book's levels borrow `LabelBookItemName` (the page's) and `LabelBookQuestName` (the tile's).
+- docs/combat/COMBAT.md: the six stats, armor and Ward, the player's dodge and Control's cuts:
+  - Overview: the "Stamina regenerates at 1/s" clause becomes a link to CHARACTER.md's derived stats (the regen follows Agility), not a flat rate.
+  - Player Experience: step 4's cost line and step 8's tooltip cost and cooldown are after Control's cuts; step 9: a dodged hit floats "Dodged" in Stamina green over the player, with no flash or recoil, and the log board records dodges too.
+  - Architecture: the reactions paragraph under CombatantNode says a dodge's floater is not one of the node's reactions: when the target's `CombatEffectManager.try_dodge()` passes, the casting `CombatAbilityInstance` plays the target's `CombatantVisual.play_dodge()`; the Technique dock's Slot states and Tooltip bullets (the cost the gate charges, and the cooldown, after the player's Control cuts).
+  - Data Model: the CombatantData `attributes` row (default stats 10, armor and Ward 0; used for Strength and Spirit scaling, armor and Ward defence, vitals, and the player's dodge and cuts) and the player's line (the snapshot is the trained values plus bonuses, armor and Ward included); "CharacterAttributesData — combat roles": six stats plus `armor` and `ward` (`CharacterAttributesData.make()`; stats 10, armor and Ward 0 by default), and the table says which stat scales each ability (STRENGTH: Basic Strike, Famishing Bite; SPIRIT: Empty Palm, Power Font, Madra Lash, Coalesce), armor's defence (vs PHYSICAL, half of MIXED) and Ward's (vs SPIRIT, half of MIXED), the player's dodge (AGILITY) and cuts (CONTROL), and that enemy Agility, Mind and Control are idle in a fight (enemy abilities cost nothing, so enemy Stamina and Madra are never spent; enemies don't dodge and get no cuts), leaving the coefficients to ABILITIES_MATRIX.md's Scaling Reference, the vitals to CHARACTER.md's derived stats and the adventure capacity to RESOURCES.md; the RESILIENCE and WILLPOWER rows and the note on unimplemented roles go; CombatEffectData: `strength_scaling` and `spirit_scaling` are the only scaling fields, and `calculate_value()` is the base plus Strength and Spirit times them, logging only the base and the total.
+  - Core Systems: the vitals table's formulas and its Stamina regen become links to CHARACTER.md's derived stats and ADVENTURING.md's `stamina_regen_modifier` row rather than being refreshed, naming no `VitalsManager.max_health_for()`, which doesn't exist; its Player bullet (the player VitalsManager refreshes its maxima from `get_stat()` on `stats_changed`; the run's Madra budget is the pool capped at the adventure capacity, RESOURCES.md); the ability lifecycle: the Gate and Pay steps at the cut Madra cost (`can_afford()` and `consume_costs()` with the player's cost cut, the cut cost rounded to whole Madra; Health and Stamina costs never cut), the Execute step (the cooldown cut by the player's Control; then, before the target effects of a cast that has any, a player target may dodge at its Agility's chance, `CombatEffectManager.try_dodge()`, which skips every effect on the target, riders included, while the caster's self effects still apply, floats "Dodged" and logs a line), the Cancel step (the cut cooldown) and the cooldown rules (`cooldown_started` reports the duration started: the opening 1.5 s, never cut, or the cut cooldown; no cut for an enemy); the damage-formula table (Physical cut by armor, Spirit by Ward, Mixed by their average) and its note (no buff can change armor or Ward).
+  - Combat UI: the TechniqueSlot and TechniqueTooltip rows (cost and cooldown after the player's Control cuts).
+  - Integration Points: the CharacterManager row (`stats_changed` refreshes the player vitals' maxima, `base_attribute_changed` gone) and the LogManager row, which gains the dodge line.
+  - Existing Content: the enemy table (MIND in place of FOUNDATION; armor 10 and Ward 10 on every enemy, Ward 25 on the Coalescing Spirit, which the "Attributes not listed are 10.0" note above it covers too; Stamina from Agility: 200 / 50 / 100 and 85 / 50 / 120) and the threat table: its header (a Lv 1 player: stats 10, no armor or Ward, 100 Health), its Per hit cells (the Coalescing Spirit's Madra Lash 22.75 and the Ravenous Dreadbeast's bite 13.65 × 1.5^(n−1): 0.91 a point, with no armor or Ward on the player; the Amorphous Spirit's 9.1 and the Starving Dreadbeast's 9.1 × 1.5^(n−1) stand) and its note (the Coalescing Spirit's Ward 25 and the others' Ward 10, not Spirit).
+  - Key Files: `combat_effect_manager.gd` also rolls the player's dodge (`try_dodge()`), and `combatant_visual.gd` floats "Dodged".
+  - Work Remaining: the vitals-maxima bug and the attribute design pass go; the defence-ignores-buffs bug names armor and Ward (no buff can change them); the dead-code item loses the deleted `AbilityStatsDisplay`, `StatLabel` and `StatTooltip`; the doc-comment item loses `can_cast_ability_instance()`; the test-gaps note goes, its gaps moving to TESTING.md's Combat row (see the TESTING.md line), rather than only losing `max_health_for()`. It gains: a dodged hit still spends the caster's consume-on-use outgoing buff (unreachable while only the player dodges and only Enforce has one); the map's dock preview cost line reads Control's cut only when the loadout is shown; `calculate_value()` names the two scaling stats itself while `get_scaling()` holds the same map.
+- docs/abilities/ABILITIES.md: one main stat per technique and Control's cuts:
+  - Player Experience: step 4's row cost line is after Control's cuts; step 5's first stat line reads "Damage 25", with "10 base" and then Strength's icon (from `StatDisplay`) and "+15" under it, the one main-stat part, and Cooldown and Cost are after Control's cuts; a stat change while the book is open works the damage or heal out again.
+  - Architecture: the `AbilityStatsDisplay` part of the tree and the paragraph under it go (`AbilityStatsDisplay`, `StatLabel` and `StatTooltip` are deleted).
+  - Data Model, the predicates table: `AbilityData.get_madra_cost()` (after Control's cut, rounded to whole Madra) and `get_cooldown()`, and the `cost_cut` parameter of `can_afford()` and `consume_costs()`.
+  - Details card section: the previews clear on `stats_changed`, not `base_attribute_changed` (say "the store", without the private `_value_previews`); the breakdown shows the main stat's part, since only Strength and Spirit scale and each technique from one of them; the cost and cooldown after Control's cuts (the card, and each row's line through `AbilityRow.format_cost()` and `format_costs()`); durations print to a tenth at most (`format_seconds()`), other numbers with up to two decimals. The AbilityStatsDisplay section goes, its attribute colours with it.
+  - Integration Points: the CharacterManager row (`stats_changed` clears the previews; the book and the technique tooltip read the cuts through `get_stat()`).
+  - Adding a New Ability, step 6: `calculate_value()` logs the base and the total, not a scaling breakdown.
+  - Key Files: the `ability_stats_display.gd`, `stat_label.gd` / `.tscn` and `stat_tooltip.gd` rows go.
+  - Work Remaining: the tween-leak bug, the fourth-scaling-attribute UI item, the built-in-code UI item and the logging bug go (LOGGING.md's hot-path item covers the previews); the test-gap item goes too, its gaps moving to TESTING.md (the `AbilityData` predicates other than `can_afford()` and `consume_costs()`, which are tested, and what `test_ability_manager.gd` leaves out; see the TESTING.md line). It gains: the rows' cost lines read Control's cut only when the list is built, so a Control change with the book open (dev panel only) leaves them stale until the next refresh.
+- scenes/combat/combat_architecture.md: the Ability call flow diagram goes rather than gaining Control's cuts and the dodge (COMBAT.md's ability lifecycle has the gate, the cuts and the dodge); How a fight runs stays as it is.
+- docs/abilities/ABILITIES_MATRIX.md: the defence and scaling rules and the retuned scalings:
+  - Legend: Damage type (`PHYSICAL` cut by the target's armor, `SPIRIT` by its Ward, `MIXED` by their average); Scaling (the base plus Strength and Spirit times their coefficients, the only two); Default math (a Lv 1 player has every stat at 10 and no armor or Ward; every enemy has armor 10 and Ward 10, the Coalescing Spirit Ward 25); Cost and CD are the data's, before Control's cuts (none at Lv 1).
+  - The retuned scalings, which keep the Lv 1 hits (Basic Strike 10 + 10 × 1.5 = 25, Empty Palm 15 + 10 × 1.3 = 28, Power Font 30 + 10 × 2.0 = 50; Madra Lash and Famishing Bite 0.91 a point, so 9.1 on a Lv 1 player, 22.75 from the Coalescing Spirit's lash and 13.65 from the Ravenous Dreadbeast's bite; Coalesce 3.0): in the damage table (its Coalescing Spirit cases read Ward 25, and the enemy rows hit a player with no armor or Ward), each effect's stat table and the Scaling Reference, whose columns shrink to Strength and Spirit, and its closing note (no other stat scales anything).
+  - The pacing line: Stamina regen is Agility's (1/s at Lv 1).
+  - Maintenance Notes: `calculate_value()` logs only the base and the total, not every term.
+- docs/infrastructure/EFFECTS.md: `AwardAttributeEffectData.process()` calls `CharacterManager.add_stat_levels()` with `amount` rounded to whole levels, up to the stage's cap, the levels past it lost; the levels it gives are trained levels, saved in `SaveGameData.stat_training`, and "The base attribute change is permanent" goes; `ChangeVitalsEffectData`'s `mind_madra_multiplier` in place of `foundation_madra_multiplier` (the field table, `get_final_madra_change()`, and `describe()`'s "Mind as Madra"); the Aura Well rest row in Existing Content (`mind_madra_multiplier` 2.0: +50 HP and +20 Madra at Body and Mind 10); Player Experience's Aura Well items (a Spirit level each training level, up to the cap; the rest scales with Body and Mind).
+- docs/cultivation/CULTIVATION.md: the stat cap and the breakthrough's stat gate:
+  - Overview: the Spirit Valley action runs the Tribulation once Core Density reaches 100 and Strength and Spirit are at the cap, not on a full core alone.
+  - Player Experience, step 8: the log line "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley."; a full core alone doesn't ready the breakthrough: the milestone and the card also wait for Strength and Spirit at the cap (QUESTS.md has the milestone, ZONES.md the card).
+  - Architecture: the readers' `TribulationActionData` line (`can_attempt()` also needs Strength and Spirit at the cap) and `GoalsPanel` line (the missing requirements); the Readers list gains CharacterManager (`get_stat_level_cap()`, the stat cap) and the save's version 2 step (the save's stage `stat_level_cap`, read from `advancement_stage_resources`; PERSISTENCE.md).
+  - Data Model: the constants table's `CORE_FULL_LOG` row goes; the field table gains `AdvancementStageResource.stat_level_cap` (class default 10); the API table gains `get_stat_level_cap()` (the current stage's cap, read live so the breakthrough raises it; 0 without save data or a stage resource).
+  - Core Systems: the Madra Cap table's adventure-capacity row links RESOURCES.md for its formula rather than naming the Foundation attribute; the breakthrough summary's Copper item takes no stat cap (the stages table holds it); the Path points bullet drops its "(lines 248-257)" citation rather than refreshing it.
+  - Signals: `advancement_stage_changed` also refreshes the cabinet's stat cells and the open Character book (the cap).
+  - Integration Points: the Tribulation row (`can_attempt()` and `is_passed()` read the stage and `is_core_full()`, and ZONES.md has the rest of the gate; `select_action()` refuses a card the player is not ready for; drop its `tribulation_view.gd` line citation); a CharacterManager row (its `get_stat_level_cap()` reads this manager's for the stat cap).
+  - Existing Content: the stages table gains the stat cap (Foundation 10, Copper 20), the cap values' one home.
+  - Key Files: the `cultivation_manager.gd` and `advancement_stage.gd` rows add the stat cap; the `goals_panel.gd` row adds the missing requirements. Related Docs: the CHARACTER.md line says the stats and Mind, not the Foundation attribute.
+- docs/cultivation/breakthrough-tribulation.md: the trial's stat gate:
+  - How it plays: the reveal's core-full log line in its new wording; the reveal's milestone sentence and the card bullet say the milestone and the card also wait for Strength and Spirit at the stage's cap, linking rather than restating them (QUESTS.md has the milestone; ZONES.md has the card, its stat line and its refusal), so the card bullet's refusal line ("Your core must be full to face the Tribulation (95 / 100).") goes rather than being refreshed.
+  - Where the code lives: the action, gate and card rows name `can_attempt()` and `get_missing_requirements()`, leaving what they check to ZONES.md, and drop their line numbers rather than refreshing them, and the cap row's with them.
+  - Open gains: the trial can't be readied in play yet (CHARACTER.md's Work Remaining: nothing trains Strength); the `tribulation_ready` preset readies it.
+- docs/cycling/CYCLING.md: Related Docs' breakthrough-tribulation.md line: the breakthrough at a full core with Strength and Spirit at the cap, not at a full core alone.
+- docs/infrastructure/PERSISTENCE.md: save version 2 and the training record:
+  - Overview, the edge-case table: a save older than version 2 (an unversioned one included) has its stats turned into trained levels (a link to Versioning); the 2026-05-23 row: such a save's stats come back at Lv 1 through the version 2 step; a training-record row: `repair()` makes a missing record and fills each missing entry, a level at Lv 1 and XP at 0, keeping the levels and XP the record holds, after the file is copied aside (in memory only for a newer build's save).
+  - Data Model: the fields table's `stat_training` (`StatTrainingData`, owned by CharacterManager), and `character_attributes` as the legacy field of saves older than version 2, null by default, which the version 2 step reads and clears; the methods table: `new_current()` and `reset()` write every stat at Lv 1, `verify()` checks the zone and the training record (its "the only validation performed" goes) and `repair()` fills the record; the sub-resources table: a `StatTrainingData` row (a level and XP by stat key) in place of the 8-field `CharacterAttributesData` row.
+  - Core Flows: Boot and load: the bullets for a save from a newer build and for any other save name the training record beside the zone as what `repair()` fixes; Also at boot: the version 2 step reads the save's stage cap from `CultivationManager.advancement_stage_resources`, a preloaded member default, before the managers bind, and reads it untyped: a typed read (of the property, or through `AdvancementStageResource`) makes the save script depend on the stage script, which then compiles at boot before CultivationManager, whose preloaded stage files then fail to load; Switching the save: a reset makes CharacterManager emit `stats_changed` only (`base_attribute_changed` gone).
+  - Versioning: the save format is version 2 (say so without refreshing the sentence's `CURRENT_VERSION` value); the version steps gain version 2, which turns the stat values of every save older than version 2 (an unversioned one included) into trained levels, one per point above 10, rounded down, up to its stage's cap (no cap when no stage resource has it), with no XP (its Foundation, Resilience and Willpower are dropped as it loads); the "field whose stored shape changes" bullet drops commit `1ce7ecd` and the quote of its message, and says a save from before 2026-05-23 comes back with every stat at Lv 1 through the version 2 step.
+  - Key Files: a row for `stat_training_data.gd`; `character_attributes_data.gd` is the legacy field's class.
+  - Work Remaining, the autoload-timing Tech Debt item: the version 2 step's stage-cap read leans on the same timing (a preloaded member default read before `_ready()`), and a public cap-of-a-stage read on CultivationManager would let the step drop its untyped read.
+- docs/tooling/DEV_TOOLS.md: the stat commands and the generator's worker:
+  - Player tab: the attribute row becomes the stat row (a picker of the six stats, a level spin read "Lv" from 1 and past the cap, an XP spin read "XP", and Set, through `set_stat_level()`).
+  - Save Presets: the step Kind table gains `RAISE_STAT_TO_CAP` (a stat key, no amount, `raise_stat_to_cap()`); in the story route `beat_9_ready` also raises Strength and Spirit to the stage's cap, so the `tribulation_ready` row of Starting presets has them capped.
+  - Dev Commands: the `add_attribute()` row becomes `set_stat_level(stat_key, level, xp)` (refuses an unknown key, a level below 1 and negative XP) and `raise_stat_to_cap(stat_key)` (refuses an unknown key; does nothing at or past the cap).
+  - Integration Points: a CharacterManager row (`set_stat_level()` behind both commands, and `get_stat_level_cap()` behind `raise_stat_to_cap()`).
+  - Items generator (the Overview's tools table, the Items Generator section and Key Files): name the worker `items_md_generator.gd` beside the entry `items_md_to_resources.gd`; how and why the entry loads it stays in ITEMS.md, which the tools table and the section already link.
+- docs/testing/TESTING.md: the noise, helpers, patterns and gaps of the stats work:
+  - A Green Run: CharacterManager's save-swap line is "Updating resources from save data" alone ("Updated 8 attributes" goes, under `test_dev_preset_data.gd`, `test_dev_hooks.gd` and `test_dev_panel.gd`); the newer-build warning reads "this build knows 2"; `WARN: PersistenceManager: Repaired stat_training in memory only; … stays as the newer build wrote it` for each newer-build save the session can check, whose missing training record `repair()` fills in memory (not for the one `UnverifiablePersistenceManager` boots in `test_persistence_manager.gd`, which prints only its CRITICAL): from `test_dev_panel.gd` (so it prints more than INFO lines beside its CRITICALs), from `test_dev_panel_saves_tab.gd`, and from `test_persistence_manager.gd`, which also prints `Repaired current_selected_zone_id, stat_training in memory only` for its newer save with an unknown zone; beside the dock's refusal WARNs, `Not enough resources for Empty Palm` (`test_technique_dock.gd`'s cut-cost test), and `CombatAbilityManager: Player: Not enough resources for Test Technique` from `test_control_cuts.gd`; two expected `ERROR` lines, `CharacterManager: Cannot level Spirit past Lv 1 - the next level costs no XP` from `test_a_free_level_does_not_level` (`test_character_manager.gd`) and `CharacterAttributesData: make() skips the unknown key 'foundation'` from `test_make_skips_an_unknown_key` (`test_character_attributes_data.gd`); the expected negative-path logs gain the items parser's errors for the bad cells of `test_items_md_parser.gd` (`ItemsMdParser.parse_stats: 'STRENGTH+3' needs a %: stat bonuses are percents`, `ItemsMdParser.parse_stats: unknown stat word 'BOGUS'` and the like, and `ItemsMdParser.parse_slot: unknown slot 'BOGUS'`), which its asserts consume.
+  - Directory Layout: `tests/helpers/` also holds preloaded helpers with no `class_name` (`gear_fixture.gd`, `stat_sources.gd`, `stat_caps.gd`), not only `class_name` ones such as `PageBounds`.
+  - Patterns: `test_award_attribute_effect_data.gd` binds its save through `PersistenceManager` and `save_data_reset`, so it moves to the global-swap row: a test that awards stat levels swaps the global save, because the cap comes from CultivationManager's bound save (`test_training_flow.gd` binds CharacterManager, ZoneManager, ResourceManager and EventManager to its own save but not CultivationManager, so it trains against the session save's cap); a test raises a stat through `CharacterManager.set_modifier_source()` (`StatSources.flat()`) and removes the source in `after_each()`; `CombatEffectManager.dodge_roll` joins the test-only hooks (a `Callable` that defaults to `randf()` and the dodge tests replace).
+  - Coverage Gaps: the CharacterManager row's `base_attribute_changed` refresh goes (the `stats_changed` refresh is tested); the Combat row gains the gaps COMBAT.md's test-gaps note held beyond it: `execute_ability()`'s outgoing-modifier consumption, incoming modifiers, DoT ticks and `AdventureCombat.stop()`; the AbilityManager row gains the gaps of ABILITIES.md's test-gap item: the `AbilityData` predicates other than `can_afford()` and `consume_costs()`, and what `test_ability_manager.gd` leaves out (`swap_slots()`, `equip_ability_at_slot()` moving or overwriting, `get_ability_at_slot()`'s bounds, a save reset); the Dev tools row's untested Player-tab attribute button goes (the stat row is tested at the panel); the Items generator row: the writer is the worker `items_md_generator.gd` (which puts an updated file's own UID back, since a headless save writes none), behind the entry `items_md_to_resources.gd`, whose load guard is untested too. The gaps gain an item's unknown stat key (logged and skipped on every read) and the Lv 1 value its bonus counts for a stat missing from the trained values, `StatDisplay.icon_of()`'s unknown-stat branch, the not-ready Tribulation card's height while its stat line shows, and a check that each field the generator writes names a real property.
+  - Work Remaining, Tech Debt gains: `test_ability_manager.gd` swaps AbilityManager's save and never puts it back (the rest of ABILITIES.md's test-gap item).
+- docs/adventuring/ADVENTURING.md: Agility's Stamina regen, Mind, and the run's Goals board:
+  - Player Experience, step 3: "Stamina regenerates at 1/s" becomes a link to CHARACTER.md's derived stats and the `stamina_regen_modifier` row; the Goals board and the log stay up (MAIN_VIEW.md places them), in place of the sentence that they stay where the zone view puts them.
+  - Data Model: the `stamina_regen_modifier` row, the one home of how a run uses the regen (the player's `CharacterManager.get_stat(STAMINA_REGEN)` times the modifier, set at each run's start); the effects table's AwardAttributeEffectData row goes (no encounter uses it; EFFECTS.md has it), and its ChangeVitalsEffectData row links EFFECTS.md for the Aura Well rest's multipliers rather than restating them.
+  - Starting an Adventure: the flow's regen line goes (step 3 and the `stamina_regen_modifier` row carry the regen); the Madra numbers table links RESOURCES.md for the capacity in place of its formula, its default column reading a Lv 1 character; the vitals sentence links CHARACTER.md's derived stats for max Health and Stamina in place of "BODY × 10" and "BODY × 5" (a new character has 100 Health and 50 Stamina, 10 steps).
+  - The Frame: the Here tray's note names `VitalsManager.max_health_for()`, which doesn't exist: an enemy's Max Health is `CharacterAttributesData.get_max_health()`.
+  - Integration Points: the MainView row (`AdventureViewState` places the Goals board and leaves the log; MAIN_VIEW.md has the places).
+  - Existing Content: the Aura Well row says Rest restores Health and Madra, leaving the multipliers, and the totals the note under the table gives at default attributes, to EFFECTS.md.
+  - Work Remaining: the path-perk item's regen reads Agility and the modifier but not the perk; the Open TODOs item loses `AdventureView`'s Stamina regen TODO; the [LOW] No enemy Health item names `VitalsManager.max_health_for()`, which doesn't exist (an enemy's Max Health is `CharacterAttributesData.get_max_health()`). It gains: a stat changed mid-run, which only the dev panel can do, moves max Stamina at once but the regen only at the next run.
+- docs/inventory/INVENTORY.md: percent gear:
+  - Overview: the worn gear is one of CharacterManager's modifier sources (each item's floored percents of the trained values, armor and Ward), not attribute bonuses it sums.
+  - Player Experience and the Equipment details section: the bonuses are `BookText.gear_bonus_lines()` ("+50% Strength (+5)", "Armor 6", "Ward 4", the figure being what the stat gains at its trained value), reprinted on `stats_changed`, in place of `BookText.bonus_lines()` ("+2 Strength"); a bonus too long for its column wraps and grows its row (beside the sentence that the panel never grows); the item tooltip shows the same lines as they stand when it opens, and the shop's rows print them too (FOUNDATION_PLAYTHROUGH.md Beat 4).
+  - Data Model: `EquipmentDefinitionData`'s `stat_percent_bonuses` (a fraction of the trained value by stat key), `stat_bonus_floor`, `armor` and `ward` in place of `attribute_bonuses`, and `get_stat_bonus()` (rounded down, never below the floor, not held to the cap).
+  - Integration Points: the CharacterManager row (the gear modifier source; CharacterManager hears `inventory_changed` and emits `stats_changed`).
+  - Existing Content: the equipment table drops its Bonuses column for a link to ITEMS.md, which holds them.
+  - Key Files: `equipment_definition_data.gd`'s purpose (the percents, the floor, armor and Ward); the generator row adds the worker `items_md_generator.gd`.
+  - Work Remaining gains: an unknown stat key in an item's percents is logged on every stat read; the item data class reads CharacterManager for its tooltip lines, so a headless `-s` script must not name an item class (ITEMS.md's Generator section has the generator's workaround).
+- docs/planned/SOULSMITHING.md: the stage blocker and the gear pipeline:
+  - Status banner: it says the Foundation → Copper breakthrough is built (the Tribulation), as SCRIPTING.md and ELIXIR_MAKING.md put it, rather than that Copper is reachable: play can't reach it yet (breakthrough-tribulation.md, Open).
+  - Current state (the Combat row, Equipment data and Stats pipeline): these notes say gear carries `attribute_bonuses` that private CharacterManager helpers sum, helpers that don't exist: gear carries `stat_percent_bonuses`, `stat_bonus_floor`, `armor` and `ward`, and reaches the stats as CharacterManager's gear modifier source (`get_stat()`), which Soulsmithing output would feed; the notes name no private helper, and the Equipment data note's "only one … can currently be obtained in play" goes (the Merchant sells six of the seven, and the Necklace drops).
+- docs/planned/SCRIPTING.md: in Implementation Considerations, the "Buffs outside combat" note says `CharacterManager.get_total_attributes_data()` has a TODO for active buffs, but the function has none; an out-of-combat buff would be a CharacterManager modifier source (`set_modifier_source()`).
+- docs/progression/PATH_PROGRESSION.md: in Work Remaining's numeric-perks item, the run's Stamina regen reads `CharacterManager.get_stat(STAMINA_REGEN)`, so Iron Will's multiplier (`STAMINA_RECOVERY_MULT`) would land as a modifier on that stat, and `ATTRIBUTE_BONUS` as a CharacterManager modifier source beside the gear's, not in "the attribute bonuses in CharacterManager, which only sum equipment"; the Point Economy table's milestone row drops its `cultivation_manager.gd` line citation.
+- docs/infrastructure/UNLOCKS.md: the Sweep's list of signals it doesn't hear, and its [MEDIUM] Work Remaining item, name `CharacterManager.base_attribute_changed`, which doesn't exist: the stat signal is `stats_changed`, which the sweep doesn't hear either; `ATTRIBUTE_VALUE` in the condition table reads the totals of the six stats, a trained value plus its bonuses, not "base plus bonuses"; the Gates by consumer table's Tribulation row: the card starts only while `can_attempt()` holds (ZONES.md has what it checks), not "while the core is full"; the [LOW] `CULTIVATION_STAGE` item calls `core_density_full` the card's reveal, not "the breakthrough's own gate" (`can_attempt()` gates the start).
+- docs/progression/FOUNDATION_PLAYTHROUGH.md: the stat gate, the cabinet's stats, Spirit levels and Mind:
+  - The breakthrough needs Strength and Spirit at the cap, out of reach in play while nothing trains Strength: the Overview's Built and Content ends bullets; Beat 9's row 1 (the core-full log line in its new wording, and the milestone listing the stats until both are capped), row 2, which calls the card ready at 100 (it is TRIAL with its stat line until both stats are capped), and row 3's click; Where content ends; the beat chain at a glance; the beat index's row 9; and the data table's Tribulation row.
+  - Starting state: the HUD row's cabinet shows the six stats from the first frame.
+  - The Aura Well's +1 Spirit a training level is a level that stops at the stage's cap: Beat 3a's Training bullet, the beat index's row 3a and the data table's Aura Well training row.
+  - The adventure capacity (Mind × 10) and the Aura Well rest (`mind_madra_multiplier`, +2 × Mind Madra) read Mind, not Foundation: Beat 2's row 1, Beat 3a's Rest bullet and the data table's capacity and rest rows.
+  - Beat 4: each gear row of the shop prints the item's gear lines (INVENTORY.md has their wording), reprints them when the stats change (`stats_changed`), and its effects line wraps.
+- docs/UI_STYLING.md: the deleted widgets' variants, the Character book's pressed pages and the full log:
+  - Scoped variants: the "Ability tooltip and stat pill text" bullet drops the deleted stat pills, from its heading and from `LabelAbilityBody`'s use, adding no list of who else uses it; `LabelSeparatorDot` is unused (its script `ability_stats_display.gd` is deleted); the `LabelInventorySignage` example drops "Character" (the Character book has no ribbon).
+  - Menu book pages: `LabelBookTitle`'s use drops the attribute card; `LabelBookValueLarge`, `PanelBookTile` and `PanelBookTileSelected` are unused; `LabelBookPlaque`'s examples drop "Physical"; the `LabelBookSeal`, `LabelBookItemName` and `LabelBookQuestName` use cells stay as they are. Pressed pages drops "for the Inventory's four tabs" rather than naming the Character book beside them (no list of the screens that use the pieces).
+  - Other variants: `PanelStatPill` is unused (`StatLabel` is deleted).
+  - Lacquer theme: the `RichTextLacquerLog` note's full log text is 442 px, 17 whole lines (in place of 468 and 18); `LacquerRod`'s steps gain the Character book's pressed XP bars (`pressed_xp_tile_empty_ai.png` and `pressed_xp_tile_full_ai.png`, 120 px, 58 steps; `pressed_xp_page_empty_ai.png` and `pressed_xp_page_full_ai.png`, 200 px, 98 steps); the Lacquer pieces' Tests line drops its list of the boards the trim test walks.
+  - Code-side constants: the `LACQUER_HEALTH` / `LACQUER_STAMINA` row drops "Nothing reads them yet", naming no reader.
+- docs/STYLE_GUIDE.md: the cabinet's grown board and rings, the places of the left column, and the backlog:
+  - §6 Furniture and boards: the anchor-furniture row gives the cultivator cabinet its own grown board, `lacquer_cult_stats_ai.png` (440x500), while the vitals cabinet keeps `lacquer_cult_ai.png` (440x252).
+  - §6 Progress: the Ring row gains the stat cells' 24-bead XP ring (`lacquer_stat_ring_strip_ai.png`, 80x80 frames, full at the cap; `StatCell`).
+  - §10 The frame: the adventure-view row hangs the Goals board under the vitals cabinet at (24, 276), not where the zone view puts it; a row for the zone view's left column, which holds the numbers MAIN_VIEW.md describes in words: the grown cabinet at (24, 24), 440x500; the Goals board at (24, 524), 4 px under the cabinet's rings at y 520; the log's 440x204 slot at (24, 852); the full log, a 440x532 board from y 524 down to the bottom line, over the Goals board and never the cabinet.
+  - §13: B8 (`AbilityStatsDisplay`, `StatLabel` and `StatTooltip` are deleted; only their variants `LabelSeparatorDot` and `PanelStatPill` and `stat_pill.tres` remain); K11, K-Q1 and the Suggested order's step 8 (the Character book is on pressed paper pages after the Inventory: its selection is printer's marks, its tiles lost the `res://icon.svg` default, and its indigo cover is unchanged, so K11 keeps K1's cover treatment).
+- docs/infrastructure/MAIN_VIEW.md: the cabinet's stats, the places of the Goals board and the full log, and the Character book:
+  - Scene tree: the CultivatorPlate line names the six stats beside Madra, Core Density and gold; `LogWindow` comes after `GoalsPanel`. The draw-order paragraph: with both at z 1, `LogWindow`'s later place in `main_game.tscn` puts the open full log over the Goals board.
+  - HUD placement: the CultivatorPlate, GoalsPanel and LogWindow rows describe the places in words and drop their numbers rather than refreshing them (STYLE_GUIDE.md §10 holds the numbers): the cabinet at the top left, grown for the six stats; the Goals board under the grown cabinet in the zone view, and under the vitals cabinet in a run; in the zone view the full log's top meets the Goals board's, and the open log covers that board, never the cabinet, while in a run the board hangs higher and the full log opens below it.
+  - HUD boards and the States table: `ZoneViewState` hangs the Goals board under the grown cultivator cabinet and places the log (the bullet's `GOALS_POSITION` and numbers go); `AdventureViewState` hangs the Goals board under the vitals cabinet, cords showing, and leaves the log where it is.
+  - What each view shows: the CharacterView row (pressed paper; the six stats in a Physical and a Spiritual row of three, "In a fight" under them, and the stat pointed at described on the right page).
+  - Shared widgets, Utilities: a `StatDisplay` row (each stat's name, icon and side; see CHARACTER.md).
+  - Integration Points: the GoalsPanel row (hung by `ZoneViewState` under the cultivator cabinet, and by `AdventureViewState` under the vitals cabinet).
+- docs/infrastructure/LOGGING.md: the new lines and the full log's reach:
+  - LogWindow: the tree drops the full log's sizes (FullBoard's 440x560 and FullLogText's 406x468, 18 lines) rather than refreshing them (STYLE_GUIDE.md §10 holds the board, UI_STYLING.md the text's lines); the Full log bullet links MAIN_VIEW.md's HUD placement for where the open full log sits and what it covers.
+  - BBCode Conventions: the `[color=red]` row's TribulationPresenter example becomes "The Tribulation needs %s.", one line per missing requirement, which the board shows in tan as it does every red line (`tone_for()`), in place of "Your core must be full to face the Tribulation (%d / %d)."; the tan row's core-full line in its new wording, "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley."; the level-up line "[b]Spirit[/b] reached Lv 6" (CharacterManager) and the dodge line "[b]Player[/b] dodged <ability name>" (CombatAbilityInstance), both tan.
+  - Integration Points: CharacterManager and CombatAbilityInstance join the senders.
+  - Work Remaining, the hot-path item: `calculate_value()` logs three lines a call, none per scaling term, and the Character book's rows of what a stat does call it too, twice per scaling effect.
+- docs/zones/ZONES.md: the cabinet's stats, the Tribulation's stat gate and Mind:
+  - Overview: the cabinet shows the six stats beside Madra, Core Density and gold; the Tribulation bullet: its board opens once the player is ready (a full core, and Strength and Spirit at the cap).
+  - Player Experience: step 7's adventure capacity links RESOURCES.md in place of "total FOUNDATION × 10, equipment included"; step 8's Tribulation card: TRIAL with the stats still short on a line under the Core row (in the tall drawer), a click logging one line per missing requirement ("The Tribulation needs Strength Lv 9 / 10."), and ENTER only when nothing is missing.
+  - Architecture: the scene tree's CultivatorPlate line (the six stats; drop its size and position rather than refreshing them) and the Goals board paragraph (MainView HUD that the view states place, MAIN_VIEW.md#hud-boards, with no place or position, and without the line that the adventure view leaves both boards where they are); the ActionManager API paragraph (`select_action()` refuses a Tribulation the player isn't ready for; drop its `action_manager.gd` line citation).
+  - Activity cards and presenters: the Tall drawer bullet names no card (the TribulationPresenter row says when that card takes it), and its "The adventure card no longer uses it" goes; the AdventurePresenter row refreshes on `CharacterManager.stats_changed`, which an equip also fires, in place of `base_attribute_changed` and `InventoryManager.inventory_changed`; the TribulationPresenter row (the stat line under the Core row while a main stat is below the cap; ready on `can_attempt()`: the stage before the target, a full core, and Strength and Spirit at the cap; the tall drawer while its stat line shows, the short one otherwise unless a part of the ready line wraps; it follows `CharacterManager.stat_level_changed`; a rejected click logs a line per missing requirement).
+  - Cultivator cabinet: the `CultivatorPlate` entry gains the six stats as `StatCell`s in two triangles, Physical on the left and Spiritual on the right, each with its name, icon, "Lv N" and a ring of XP beads, a bead lit only once its share is earned and every bead at the cap; the cells show trained levels, never totals, so gear moves no cell, and follow CharacterManager's `stats_changed` and `stat_xp_changed` and the stage; the Core Density figure rounds its need up, so an unmet threshold never reads as met.
+  - Data Model: the `stamina_regen_modifier` row links ADVENTURING.md for how the run's regen uses it, not "1.0 × modifier"; the `can_attempt()` sentence under the subclasses table (also Strength and Spirit at the cap).
+  - Core Systems / Flows: the action lifecycle's TRIBULATION line drops its `Log.info` clause rather than restating what the diagnostic says; "Other signals the zone code consumes" gains `CharacterManager.stats_changed` (AdventurePresenter, CultivatorPlate), `stat_xp_changed` (CultivatorPlate) and `stat_level_changed` (TribulationPresenter); Adventure start's step 1 links RESOURCES.md for the capacity in place of its chain to total FOUNDATION × 10; the Tribulation bullet (a click with anything missing stops nothing).
+  - Integration Points: the CharacterManager row (training awards levels up to the cap; total Mind sets the capacity, RESOURCES.md; the cabinet and the Tribulation card read the levels).
+  - Existing Content: the Tribulation action's description cell ("With a full core and Strength and Spirit at the cap, face the Tribulation and break through to Copper."). Key Files: the cabinet's row adds the six stats (`stat_cell/`).
+  - Work Remaining: the two-maximums UI item measures the adventure card against the adventure capacity (a link to RESOURCES.md), not "total FOUNDATION × 10". It gains: the Aura Well's card ("+1 Spirit / level") and Now strip keep promising Spirit once Spirit is at the cap, where the award is lost; on a save reset the Tribulation card reads the old save's levels until the zone panel's deferred rebuild; the cabinet's Control icon (`control_icon_ai.png`) sits off the 2 px grid; the cabinet's Physical and Spiritual side rows copy `ActivityGroupLabel`'s row instead of instancing it.
+- docs/progression/QUESTS.md: the Breakthrough milestone lists each missing requirement, a line each ("Raise Core Density to 100", then each of Strength and Spirit below the cap, such as "Strength Lv 1 / 10"), reads "Face the Tribulation" only when nothing is missing, and re-reads on `CharacterManager.stat_level_changed` (Player Experience's NPC 4 step and the paragraph after it, the GoalsPanel milestone row's states and its re-reads bullet, and Work Remaining's [HIGH] item that has it read "Face the Tribulation" at Core Density 100); Player Experience and the placement bullet link MAIN_VIEW.md for where the board hangs in each view, and the zone view's position and the line that the adventure view leaves the board there go.
+- docs/infrastructure/RESOURCES.md: the adventure capacity is Mind × 10, from total Mind with gear, and this doc is the capacity's one home, which the others link (the Madra caps table, the threshold paragraph, the CharacterManager row, the file table, and Work Remaining's threshold item, where Mind is 10 at Lv 1 and only gear raises it: CHARACTER.md has the training gap, ITEMS.md each item's percent); AdventurePresenter re-reads it on `CharacterManager.stats_changed`, which an equip also fires, in place of `base_attribute_changed` and `inventory_changed`. Work Remaining gains: `ResourceManager.get_adventure_madra_capacity()`'s doc comment still calls the capacity Foundation × 10.
+- docs/README.md: the Tribulation row's summary (a Spirit Valley action that needs a full core and Strength and Spirit at the cap), the Character row's "Attributes" (the six trained stats, their levels and the stage cap), and the Planned Systems table's Scripting row, which drops "(the Tribulation reaches it)".
+- docs/superpowers/README.md: a row for the stats rework (2026-11-04: its spec, decision record and plan), Partial: the six stats are built, and the one Madra pool, cycling, Core Density, body refining and Health, and quest parts are not; the Character view row, whose notes (no live update, wrong formula lines) the rebuilt book fixes, reads Superseded; the Ability stats display row: its pills and tooltip are deleted.
+```
+
+---
+
+## Phase 2: One Madra pool
+
+**Goal:** one saved Madra pool for home and runs, sized by Mind: Core Density stops capping it, a run spends straight from it and leaves the rest there, and every Madra readout shows it (design, "Phase 2: One Madra pool").
+
+**Branch and PR:** `feat/stats-rework-2-madra-pool`, cut from `main` after phase 1's PR merges (Task 2.0); one PR, opened in Task 2.5.
+
+**From phase 1:** `CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA)`, Mind × 10 plus modifiers: 100 for a new character, as `q_fill_core` needs (Task 1.1's `get_max_madra()`, read through the MAX_MADRA arm Task 1.3 keeps in `CharacterManager._get_base_stat()`); `CharacterManager.stats_changed`, `set_stat_level()` and `SaveGameData.stat_training` (Task 1.3); `StatTrainingData.set_level()` (Task 1.2); `CharacterAttributesData.make()` (Task 1.1); `EquipmentDefinitionData.stat_percent_bonuses` (Task 1.6); the "In a fight" block's `CharacterView.fight_lines()`, `%FightRows` and `_refresh_if_shown()` (Task 1.16). Expected values use phase 1's starting numbers (Mind Lv 3: 120 max Madra; Lv 6: 150; +50% Mind: +5 at Lv 1); a retune changes them.
+
+**Conventions in this phase's steps:**
+- "Run `<files>`" is the Global Constraints' one-process test command with `-gtest=` and each file's `res://` path; a bare file name is the one under the task's **Files**, and "the task's test files" are all of those. "The full suite" is `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.
+- "Commit" means: check that `git diff HEAD` shows only this task's files, stage its **Files** by path (plus a new test's `.gd.uid`: after creating a test file, run `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` once, because the `-s` test command imports nothing, then check that `git status --short project.godot` prints nothing), and `git commit` with the given subject and body, ending with the Co-Authored-By trailer.
+- "The save swap" is this fixture: `var _original_save: SaveGameData`; `before_each()` keeps `PersistenceManager.save_game_data` there, sets `SaveGameData.new_current()` and emits `save_data_reset`; `after_each()` puts the original back, emits `save_data_reset`, then calls `ActionManager.stop_action()` while `ActionManager.get_current_action() != null`.
+- `_max_madra_source(amount: float) -> Callable` provides one `StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)`, built like `test_player_vitals_manager.gd`'s `_max_health_source()`; each test file that uses it declares its own.
+
+**The rules this phase builds:**
+- `ResourceManager` owns the pool (`SaveGameData.madra`, saved already); `ResourceManager.get_max_madra()` is the max Madra stat.
+- One over-max rule: the pool never holds more than the max. `add_madra()` and `set_madra()` clamp to [0, max], a max that drops (`CharacterManager.stats_changed`) brings the pool down, and a save loads at most at the max. A version-1 save's pool (600 at a full Foundation core under the old cap) is cut to the new max this way, with no save version step.
+- A run needs half the max to start and spends nothing to start. It spends from the pool (the player's `VitalsManager` becomes a façade over it; enemies keep their own Madra), Scales and rest tiles refill it with no log line, and what is left when it ends stays.
+- Health doesn't change until phase 5: it still refills at every run start. Expanded Core and Madra Reclamation stay inert.
+
+---
+
+### Task 2.0: Phase 2 mock-ups
+
+**Files:**
+- Create: a Design canvas "One Madra Pool" (an Artifact, not a repo file)
+- Modify: `docs/superpowers/plans/2026-11-04-stats-rework.md` (an "Approved" line under this task; the bold copy in Tasks 2.3 and 2.4 where Lionel changes it)
+
+**Interfaces:**
+- Consumes: phase 1's approved canvas (Task 1.0); the cabinet and the "In a fight" block as phase 1 built them (Tasks 1.16 and 1.17).
+- Produces: the approved copy Tasks 2.3 and 2.4 build: the cabinet's Madra figures, the adventure card's ready line, the end card's Madra line, the book's Madra row.
+
+- [ ] **Step 1: Start the branch.** Once phase 1's PR has merged: `git fetch origin`, `git switch -c feat/stats-rework-2-madra-pool origin/main`, then `powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/godot_project_list.ps1 label "One Madra pool"`. Expected: `git status` shows the new branch, nothing to commit.
+- [ ] **Step 2: Read the look:** `docs/STYLE_GUIDE.md`, `docs/UI_STYLING.md`, and phase 1's approved canvas (Artifact `list`).
+- [ ] **Step 3: Draw four boards on a new canvas.** Run Artifact `quickstart` with intent `design` and create a canvas titled "One Madra Pool" from the Design type it names (never add boards to phase 1's). Use a new character's figures: 25 of 100 Madra, threshold 50. The bold copy is the proposal Tasks 2.3 and 2.4 build unless Lionel changes it:
+  1. **The cabinet's Madra orb:** "25 / 100", over max Madra (Mind plus gear). Beside it: Mind gear on, "140 / 150"; the gear off, "100 / 100" (the pool comes down with the max); after a Core Density level-up, the max unmoved; at a run's start, the pellets fly from the orb while its figure stays put.
+  2. **The adventure card:** below the threshold, unchanged ("25 / 50", the rod, "~17 s" while the Aura Well runs). At the threshold, "5 min run" on the left and **"carries 60 Madra"** on the right: the pool the run spends from, where today it prints the max.
+  3. **The end card:** **"MADRA LEFT"** over **"46 / 100"**, in place of "MADRA SPENT" over "50": what the pool kept, over its max, as the Health line reads.
+  4. **The Character book:** the "In a fight" block's Madra row reads **"46 / 100"**, the pool over its max, where phase 1 prints the max alone. It follows the pool while the book is open.
+  The vitals plate and the Goals board's "Awaken Your Core" figure already show the pool and change no pixel: no board.
+- [ ] **Step 4: Show Lionel and record his answer.** Send the canvas link and ask him to approve or change each board. Write "Approved <date>: <changes, or none>" under this task, and edit the bold copy in Task 2.3 Step 3 and Task 2.4 Step 3 to match. Tasks 2.1 and 2.2 change no screen and can start meanwhile; Tasks 2.3 and 2.4 wait for his approval.
+- [ ] **Step 5: Commit:** `docs(stats): record the approved phase 2 mock-ups` / "Tasks 2.3 and 2.4 build the copy Lionel approved on the One Madra Pool canvas."
+
+---
+
+### Task 2.1: One Madra max, from Mind
+
+**Files:**
+- Modify: `singletons/resource_manager/resource_manager.gd`, `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd`, `resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres`, `resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres`, `singletons/cultivation_manager/cultivation_manager.gd`
+- Modify, to repoint the callers: `scenes/zones/cultivator_plate/cultivator_plate.gd`, `scenes/cycling/cycling_technique/cycling_technique.gd`, `scenes/cycling/cycling_view/cycling_view.gd`, `scenes/zones/zone_transition/zone_transition.gd`, `scenes/zones/zone_action_button/presenters/adventure_presenter.gd`, `singletons/dev_manager/dev_commands.gd`, `scripts/resource_definitions/character/character_attributes_data.gd` (the doc of `get_max_madra()` only)
+- Test, in `tests/unit/`: `test_resource_manager.gd`, and for the old cap `test_cultivation_getters.gd`, `test_cultivation_manager.gd`, `test_foundation_tribulation_data.gd`
+- Test, in `tests/integration/`: `test_adventure_flow.gd` (rewritten), `test_dev_commands.gd`, and for the old cap `test_cultivator_plate.gd`, `test_cycling_technique.gd`, `test_cycling_view.gd`, `test_zone_transition.gd`, `test_board_transition_camera.gd`
+
+**Interfaces:**
+- Consumes: phase 1's names under "From phase 1".
+- Produces: `ResourceManager.get_max_madra() -> float`; `add_madra(amount: float, quiet: bool = false) -> float` and `set_madra(amount: float) -> void`, held to [0, `get_max_madra()`]; `get_adventure_madra_threshold() -> float`, now `get_max_madra() * 0.5`; `can_start_adventure() -> bool`, unchanged; `DevCommands.set_madra(value: float) -> String`, which also refuses a value above the max.
+- Removed: `ResourceManager.get_adventure_madra_capacity()`, `get_adventure_madra_budget()`; `CultivationManager.get_max_madra()`, `get_max_madra_at()`; `AdvancementStageResource.max_madra_base`, `max_madra_per_core_density_level`, `get_max_madra()`.
+
+**Skills:** `godot-prompter:save-load` (the clamp on load) and `godot-prompter:godot-testing`.
+
+- [ ] **Step 1: Write the failing tests.**
+
+`tests/unit/test_resource_manager.gd`:
+- The header: the one pool and its max (the max Madra stat), the over-max rule, gold, award_resource, the threshold, the signals and the log lines.
+- The fixture becomes the save swap, bound through `_use_save()`, with `_save.madra = 0.0` and `_save.gold = 0.0` at the end of `before_each()` and `CharacterManager.remove_modifier_source(TEST_SOURCE)` first in `after_each()`. The stub stage, its two constants, the `_original_*_save` fields and the hand re-binds go: the max no longer depends on a stage. New members:
+  - `const AttributeType = CharacterAttributesData.AttributeType`; `const TEST_SOURCE: StringName = &"test_resource_manager"`; `const NEW_MAX_MADRA: float = 100.0` (a new character's max: Mind Lv 1 (10) x 10); `var _save: SaveGameData`; `_max_madra_source()`.
+  - `_use_save(save: SaveGameData) -> void` binds a save as a load does: sets `_save` and `PersistenceManager.save_game_data`, then emits `save_data_reset`.
+  - `_raise_max_by(amount: float) -> void` puts a flat bonus on the max Madra stat: `CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(amount))`.
+- Delete `_pool_cap()`, `_adventure_capacity()`, `test_add_madra_cap_grows_with_core_density_level`, `test_add_madra_above_a_lowered_cap_keeps_the_pool`, `test_spending_above_the_cap_still_spends`, `test_adventure_capacity_follows_mind_not_stage_cap` (phase 1's name for `test_adventure_capacity_follows_foundation_not_stage_cap`) and `test_adventure_budget_is_madra_up_to_capacity`: no pool sits above its max any more, and there is one cap, not two.
+- `NEW_MAX_MADRA` replaces `_pool_cap()` in `test_add_madra_keeps_the_pool_between_zero_and_the_cap` (renamed `…_the_max`, its cases "the max absorbs the overflow" and "an add at the max stays at the max"), `test_add_madra_emits_capped_total` (renamed `test_add_madra_emits_the_total_at_the_max`) and `test_award_resource_adds_to_its_type`. `test_set_madra_sets_value` gains `{"name": "a value past the max stops at the max", "value": 150.0, "expected": 100.0}`. `test_adventure_threshold_is_half_the_max` replaces `test_adventure_threshold_is_half_capacity`; `test_can_start_adventure_at_threshold`, `test_cannot_start_adventure_below_threshold` and the other tests stay.
+- Add, under MAX MADRA, ONE OVER-MAX RULE and ADVENTURE THRESHOLD headers:
+
+```gdscript
+func test_max_madra_is_the_max_madra_stat() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a new character", "mind_level": 1, "bonus": 0.0, "max": 100.0},
+		{"name": "Mind Lv 3", "mind_level": 3, "bonus": 0.0, "max": 120.0},
+		{"name": "a +50 bonus on max Madra", "mind_level": 1, "bonus": 50.0, "max": 150.0},
+	]
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(AttributeType.MIND, case.mind_level)
+		_raise_max_by(case.bonus)
+		assert_eq(ResourceManager.get_max_madra(), case.max, case.name)
+
+## Core Density sets no Madra cap any more.
+func test_core_density_leaves_the_max_alone() -> void:
+	_save.core_density_level = 50.0
+	assert_eq(ResourceManager.get_max_madra(), NEW_MAX_MADRA)
+
+## Mind gear off, say.
+func test_a_falling_max_brings_the_pool_down() -> void:
+	_raise_max_by(50.0)
+	ResourceManager.set_madra(150.0)
+	watch_signals(ResourceManager)
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_eq(ResourceManager.get_madra(), 100.0)
+	assert_signal_emitted_with_parameters(ResourceManager, "madra_changed", [100.0])
+
+## A version-1 save can hold 600, from the old Core Density cap.
+func test_a_save_loads_with_its_pool_at_most_the_max() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a pool from the old Core Density cap", "madra": 600.0, "expected": 100.0},
+		{"name": "a pool under the max", "madra": 45.0, "expected": 45.0},
+	]
+	for case: Dictionary in cases:
+		var save := SaveGameData.new_current()
+		save.madra = case.madra
+		_use_save(save)
+		assert_eq(ResourceManager.get_madra(), case.expected, "%s: the pool" % case.name)
+		assert_eq(save.madra, case.expected, "%s: the save, so the next write keeps it" % case.name)
+
+## The save-reset path of ResourceManager._on_stats_changed().
+func test_a_save_reset_leaves_the_old_saves_pool_alone() -> void:
+	var old := SaveGameData.new_current()
+	old.stat_training.set_level(AttributeType.MIND, 6)
+	old.madra = 150.0
+	_use_save(old)
+	assert_eq(ResourceManager.get_madra(), 150.0, "precondition: Mind Lv 6 holds 150")
+	_use_save(SaveGameData.new_current())
+	assert_eq(old.madra, 150.0, "the save left behind is not cut to the new save's max of 100")
+
+func test_adventure_threshold_is_half_the_max() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a new character", "bonus": 0.0, "threshold": 50.0},
+		{"name": "a +50 bonus on max Madra", "bonus": 50.0, "threshold": 75.0},
+	]
+	for case: Dictionary in cases:
+		_raise_max_by(case.bonus)
+		assert_eq(ResourceManager.get_adventure_madra_threshold(), case.threshold, case.name)
+```
+
+`test_a_falling_max_above_the_pool_leaves_it_alone` (after `test_a_falling_max_brings_the_pool_down`) is that test with `ResourceManager.set_madra(80.0)`, asserting the pool stays 80.0 and `assert_signal_not_emitted(ResourceManager, "madra_changed")`.
+
+`tests/integration/test_adventure_flow.gd`: replace the whole file; its budget and two-cap tests go. The header: starting a run with one pool, Mind gear going through the real InventoryManager and CharacterManager (plan Review Focus 5). It holds the save swap, `const ACCESSORY := EquipmentDefinitionData.EquipmentSlot.ACCESSORY` and `_wear_mind_ring() -> void`, which equips with `InventoryManager.equip_item(instance, ACCESSORY, -1, 0)` an `ItemInstanceData` of an `EquipmentDefinitionData` (`item_id` "test_adventure_flow_ring", `item_name` "Test Mind Ring", `slot_type` ACCESSORY, `stat_percent_bonuses` from a typed `Dictionary[StringName, float]` var holding `{&"mind": 0.5}`): +5 Mind at Lv 1, so 150 max Madra and a threshold of 75. The tests:
+
+```gdscript
+func test_mind_gear_raises_the_threshold() -> void:
+	ResourceManager.set_madra(60.0)
+	assert_true(ResourceManager.can_start_adventure(), "precondition: 60 clears a threshold of 50")
+	_wear_mind_ring()
+	assert_eq(ResourceManager.get_adventure_madra_threshold(), 75.0, "half of the ring's 150")
+	assert_false(ResourceManager.can_start_adventure(), "60 falls short of 75")
+
+func test_taking_mind_gear_off_brings_the_pool_down() -> void:
+	_wear_mind_ring()
+	ResourceManager.set_madra(140.0)
+	InventoryManager.unequip_item(ACCESSORY, 0)
+	assert_eq(ResourceManager.get_madra(), 100.0, "the pool comes down to the max without the ring")
+	assert_true(ResourceManager.can_start_adventure(), "100 still clears a threshold of 50")
+```
+
+`tests/integration/test_dev_commands.gd`, under MADRA, GOLD AND PATH POINTS:
+
+```gdscript
+func test_set_madra_refuses_more_than_the_max() -> void:
+	ResourceManager.set_madra(30.0)
+	assert_ne(DevCommands.set_madra(101.0), "", "101 is past a new character's max of 100")
+	assert_eq(ResourceManager.get_madra(), 30.0, "Madra is left as it was")
+	assert_eq(DevCommands.set_madra(100.0), "", "the max itself is fine")
+```
+
+The tests that read the old cap:
+- `test_cycling_technique.gd`: the header's "(25 Madra, cap 100)" becomes "(25 Madra, max 100)". Add `const ROOM_SOURCE: StringName = &"test_cycling_technique_room"`, its `remove_modifier_source()` in `after_each()`, `_max_madra_source()`, and `_make_room(amount: float) -> void`, which sets `ROOM_SOURCE` to `_max_madra_source(amount)` so a cycle's Madra has room under the max. `_make_room(200.0)` replaces `core_density_level = 40.0` in `test_the_result_counts_the_madra_the_pool_gained`; `_make_room(500.0)` replaces `core_density_level = 100.0` in `test_a_hitch_through_the_end_pays_only_the_steps_left`, `test_auto_restart_keeps_the_rate` and `test_a_manual_start_begins_from_an_empty_window`. Their preconditions read `ResourceManager.get_max_madra()` (600 where they assert a value), and `test_no_madra_or_pellets_at_the_cap`'s becomes `assert_eq(ResourceManager.get_max_madra(), 100.0, "precondition: the max is 100")`. Delete `test_madra_above_the_cap_is_left_alone`: the pool can't pass its max.
+- `test_cycling_view.gd`: the header's "cap 100" becomes "max 100"; `test_the_status_label_stops_promising_xp_at_a_full_core` uses `ResourceManager.set_madra(ResourceManager.get_max_madra())`.
+- `test_zone_transition.gd` `_start_drain()` (doc: "on a full pool") and `test_board_transition_camera.gd` `_zoom_into_an_adventure()`: `ResourceManager.set_madra(ResourceManager.get_max_madra())`.
+- `test_cultivation_getters.gd`: delete the MAX MADRA section (`test_max_madra_follows_level`) and `test_max_madra_at_a_level_follows_the_stages_curve`; the header drops max Madra and Foundation's 100 + 5 per level curve.
+- `test_cultivation_manager.gd`: `_with_copper()` drops its two `copper.max_madra_*` lines and its doc's "600 Madra plus 10 a level"; delete `test_madra_cap_follows_the_new_stage`.
+- `test_foundation_tribulation_data.gd`: delete `test_the_madra_cap_does_not_drop_at_the_breakthrough`, and the header's clause that a full Foundation core holds as much Madra as an empty Copper one.
+- `test_cultivator_plate.gd`: delete `test_madra_fill_follows_max` (Task 2.4 tests what the max follows now).
+
+- [ ] **Step 2: Run them and see them fail.** Run `test_resource_manager.gd`, `test_adventure_flow.gd`, `test_dev_commands.gd` and `test_cycling_technique.gd`. Expected: FAIL. The scripts that call `ResourceManager.get_max_madra()` don't parse, so GUT runs none of their tests; `test_set_madra_refuses_more_than_the_max` fails, as `DevCommands.set_madra(101.0)` returns "".
+
+- [ ] **Step 3: Implement the max and the one over-max rule, and remove the stage cap.** CharacterManager (4th autoload) binds each save before ResourceManager (6th), at boot and on `save_data_reset`, so ResourceManager's clamp may read `CharacterManager.get_stat()`.
+  - `resource_manager.gd`:
+    - `get_max_madra()` returns `CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA)`. Doc: the most Madra the pool holds, the max Madra stat; every readout shows the pool against it.
+    - `add_madra()` clamps with `clampf(before + amount, 0.0, get_max_madra())`; its doc: held to [0, max], returns what it added, logs "Gained N Madra" unless quiet or under 1 (the "a pool above the cap is kept" sentence goes). `set_madra()` clamps with `clampf(amount, 0.0, get_max_madra())`, with a `##` doc.
+    - `get_adventure_madra_threshold()` returns `get_max_madra() * 0.5` (doc: half the max). Delete `get_adventure_madra_capacity()` and `get_adventure_madra_budget()`.
+    - `_clamp_to_max() -> bool` lowers a pool above `get_max_madra()` to the max, emits nothing, and returns whether it did. `_update_resources()`, after the null check and before the two emits: `if _clamp_to_max(): Log.info("ResourceManager: Madra was past its max of %d. Loaded at the max" % int(get_max_madra()))`.
+    - `_ready()`: `CharacterManager.stats_changed.connect(_on_stats_changed)` replaces the `CultivationManager` check, and the handler keeps the save-reset guard:
+
+```gdscript
+## A max that drops brings the pool down. On a save reset CharacterManager
+## announces the new save's stats before this re-binds: skip, as
+## _update_resources() clamps once it has.
+func _on_stats_changed() -> void:
+	if CharacterManager.live_save_data != live_save_data:
+		return
+	if _clamp_to_max():
+		madra_changed.emit(live_save_data.madra)
+```
+
+  - `advancement_stage.gd`: delete `max_madra_base`, `max_madra_per_core_density_level` and `get_max_madra(level)`; Foundation's `.tres` loses `max_madra_base = 100.0` and `max_madra_per_core_density_level = 5.0`, Copper's `max_madra_base = 600.0` and `max_madra_per_core_density_level = 10.0`. `cultivation_manager.gd`: delete `get_max_madra()` and `get_max_madra_at(level)`.
+  - Repoint the callers to `ResourceManager.get_max_madra()`:
+    - `CultivatorPlate._update_madra()` and its doc (Task 2.4 adds `_update_madra()` to Task 1.17's `_on_stats_changed()` and drops the Core Density refreshes).
+    - `CyclingTechnique._madra_full()`: `ResourceManager.get_madra() >= ResourceManager.get_max_madra()`; its doc and `_draw_madra_step()`'s say "max" and drop "Madra already over it is left alone". `CyclingView._update_status()`'s `madra_full` uses the same test.
+    - `ZoneTransition._on_adventure_start_requested()`: `_drain_budget = ResourceManager.get_madra()` (the whole pool, which never passes the max), and the ratio divides by `ResourceManager.get_max_madra()`. Task 2.3 removes the spend.
+    - `AdventurePresenter._update_state()`: `"carries %d Madra" % floori(ResourceManager.get_max_madra())`, the same figure as before (Task 2.4 changes the copy). In the class doc, "<capacity>" becomes "<max>", and the "Capacity is…" sentence becomes "The threshold is half of max Madra, so Mind and gear move it: the card follows stat changes too."
+    - `CharacterAttributesData.get_max_madra()`'s doc becomes `## Max Madra: Mind x 10, before modifiers. ResourceManager.get_max_madra() is the one pool's max.`
+  - `DevCommands.set_madra()`: after the negative check, `if value > ResourceManager.get_max_madra(): return "Madra can't pass its max of %d" % int(ResourceManager.get_max_madra())`. Doc: "Refuses a negative value or one above the max."
+
+- [ ] **Step 4: Run them and see them pass.** Run the task's test files plus `res://tests/unit/test_quiet_madra.gd,res://tests/integration/test_zone_action_cards.gd`: PASS. `git grep -n -e get_max_madra_at -e max_madra_base -e max_madra_per_core_density_level -e get_adventure_madra_capacity -e get_adventure_madra_budget -e "CultivationManager.get_max_madra" -- scenes scripts singletons tests resources`: no output. The full suite: PASS.
+
+- [ ] **Step 5: Commit:** `feat(madra): size the Madra pool by Mind alone` / "Core Density no longer sets a Madra cap. ResourceManager.get_max_madra() is the max Madra stat, and the pool never holds more: adds and sets clamp, a falling max brings it down, and a save loads at most at the max. Home and runs can now share one pool."
+
+---
+
+### Task 2.2: The player's Madra is the pool
+
+**Files:**
+- Modify: `scenes/combat/combatant/vitals_manager/vitals_manager.gd`
+- Modify: `scenes/adventure/adventure_view/adventure_view.gd` (`_initialize_combat_resources()`), `singletons/dev_manager/dev_commands.gd` (`refill_vitals()`), `singletons/player_manager/player_manager.gd` (`reset_vitals()`'s doc)
+- Test, in `tests/unit/`: `test_player_vitals_manager.gd` (a new section), and for the player's Madra fields they wrote, `test_combat_consumable_manager.gd`
+- Test, in `tests/integration/`, for the same fields: `test_vitals_plate.gd`, `test_technique_dock.gd`, `test_technique_dock_consumables.gd`, `test_dev_commands.gd`, `test_dev_adventure_commands.gd`, `test_adventure_view_frame.gd`, `test_adventure_map_zoom.gd`, `test_dev_hooks.gd`
+
+**Interfaces:**
+- Consumes: Task 2.1's ResourceManager (`get_madra()`, `get_max_madra()`, `set_madra()`, `add_madra()`, `madra_changed`).
+- Produces the façade shape, which phase 5 mirrors for Health. For a player `VitalsManager` (`is_player`):
+  - `current_madra: float` and `max_madra: float` read through ResourceManager (`get_madra()`, `get_max_madra()`); writing `current_madra` calls `ResourceManager.set_madra()`.
+  - `_apply_madra_change(amount)` calls `ResourceManager.add_madra(amount, true)` (quiet), so `apply_vitals_change()` lands a non-zero Madra amount in the pool.
+  - `signal madra_changed(new_madra: float)` is re-emitted once per pool change, from `ResourceManager.madra_changed`.
+  - `initialize_current_values() -> void` has no `starting_madra` parameter. It fills Health and Stamina, and an enemy's Madra, never the player's.
+  - Enemies keep in-memory Madra and are otherwise unchanged.
+
+**Skills:** `godot-prompter:godot-testing`.
+
+- [ ] **Step 1: Write the failing tests.**
+
+`tests/unit/test_player_vitals_manager.gd` already swaps in a fresh save holding 25 Madra, builds `_vitals` as a player manager and removes `TEST_SOURCE` in `after_each()`. Its header adds the one pool. Add `const CRUDE_SCALE: ConsumableDefinitionData = preload("res://resources/items/consumables/crude_scale.tres")`, `_max_madra_source()`, and a MADRA: THE ONE POOL section:
+
+```gdscript
+func test_the_players_madra_reads_the_pool() -> void:
+	ResourceManager.set_madra(46.0)
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(20.0))
+	assert_eq(_vitals.current_madra, 46.0, "current Madra is the pool")
+	assert_eq(_vitals.max_madra, 120.0, "max Madra is the pool's max")
+
+func test_madra_changes_land_in_the_pool() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Empty Palm's cost", "madra": 50.0, "change": -8.0, "expected": 42.0},
+		{"name": "a Scale's refill", "madra": 50.0, "change": 20.0, "expected": 70.0},
+		{"name": "a refill past the max stops at it", "madra": 90.0, "change": 20.0, "expected": 100.0},
+		{"name": "a cost past the pool stops at 0", "madra": 5.0, "change": -8.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		ResourceManager.set_madra(case.madra)
+		_vitals.apply_vitals_change(0.0, 0.0, case.change)
+		assert_eq(ResourceManager.get_madra(), case.expected, case.name)
+
+func test_writing_current_madra_sets_the_pool() -> void:
+	_vitals.current_madra = 33.0
+	assert_eq(ResourceManager.get_madra(), 33.0)
+
+func test_each_pool_change_reaches_the_vitals_once() -> void:
+	watch_signals(_vitals)
+	ResourceManager.add_madra(5.0, true)
+	_vitals.apply_vitals_change(0.0, 0.0, -10.0)
+	assert_signal_emit_count(_vitals, "madra_changed", 2, "cycling's add and a technique's cost, once each")
+	assert_signal_emitted_with_parameters(_vitals, "madra_changed", [20.0])
+
+## A hit or a step changes no Madra, so the pool stays quiet: each of its
+## signals sweeps every unlock condition.
+func test_a_change_with_no_madra_leaves_the_pool_quiet() -> void:
+	watch_signals(ResourceManager)
+	_vitals.apply_vitals_change(-10.0, -5.0, 0.0)
+	assert_signal_not_emitted(ResourceManager, "madra_changed")
+
+## In-run refills stay quiet: no "Gained" line.
+func test_a_scale_refills_the_pool_quietly() -> void:
+	watch_signals(LogManager)
+	CRUDE_SCALE.effects[0].process()
+	assert_eq(ResourceManager.get_madra(), 45.0, "25 + 20")
+	assert_signal_not_emitted(LogManager, "message_logged")
+
+func test_initialize_current_values_leaves_the_pool_alone() -> void:
+	ResourceManager.set_madra(30.0)
+	_vitals.initialize_current_values()
+	assert_eq(ResourceManager.get_madra(), 30.0)
+
+func test_an_enemys_madra_is_its_own() -> void:
+	var enemy := VitalsManager.new()
+	enemy.character_attributes_data = CharacterAttributesData.make()
+	add_child_autofree(enemy)
+	enemy.initialize_current_values()
+	enemy.apply_vitals_change(0.0, 0.0, -30.0)
+	assert_eq(enemy.current_madra, 70.0, "100 of its own, less 30")
+	assert_eq(ResourceManager.get_madra(), 25.0, "the pool is untouched")
+```
+
+The tests that wrote the player's Madra fields set the pool instead:
+- `test_vitals_plate.gd`: add `const TEST_SOURCE: StringName = &"test_vitals_plate"` and `_max_madra_source()`. `_set_vitals(health, max_health, stamina, max_stamina)` drops its Madra parameters, and `_original_vitals` holds Health and Stamina only. Add `_set_madra(madra: float, max_madra: float) -> void`: `TEST_SOURCE` gets `_max_madra_source(max_madra - 100.0)` (a new character's max is 100), then `ResourceManager.set_madra(madra)`; call it before `_set_vitals()`, because the bonus re-reads the Health and Stamina maxima. `before_each()`: `_set_madra(80.0, 120.0)`, then `_set_vitals(142.0, 160.0, 80.0, 80.0)`. `after_each()`, once the plate and the combatant are freed: `CharacterManager.remove_modifier_source(TEST_SOURCE)`, then `_set_vitals.callv(_original_vitals)`. `test_orbs_fill_to_the_fraction`: `ResourceManager.set_madra(30.0)` replaces `_vitals.current_madra = 30.0`. `test_health_rounds_up_and_the_rest_round_down`: `_set_madra(79.9, 120.9)`, then `_set_vitals(141.2, 160.7, 39.9, 80.9)`. Every expected figure stays.
+- `test_technique_dock.gd` and `test_technique_dock_consumables.gd`: `_set_vitals(health, max_health, stamina, max_stamina)` and `_original_vitals` lose Madra; `before_each()` calls `_set_vitals(100.0, 100.0, 50.0, 50.0)` and `ResourceManager.set_madra(100.0)`.
+- `test_combat_consumable_manager.gd`: `_original_vitals = [current_health, max_health, current_stamina, max_stamina]`, restored in `after_each()` from indexes 0 to 3.
+- `test_dev_commands.gd`: `_original_vitals = [vitals.current_health, vitals.current_stamina]` (doc: "The player's Health and Stamina"); the `current_madra` restore line goes.
+- `test_dev_adventure_commands.gd`: `_saved_madra` and its two lines go; `RUN_MADRA`'s doc becomes "The pool the run starts on." `test_refill_vitals_keeps_the_run_madra` calls `ResourceManager.set_madra(RUN_MADRA)` before `_start_run()`, its precondition message becomes "the run plays on the pool", and it ends with `assert_eq(ResourceManager.get_madra(), madra_left, "the pool keeps what the run left")`.
+- `test_adventure_view_frame.gd`: `VITALS_FIELDS` drops `&"max_madra"` and `&"current_madra"`; `_start_run()` calls `ResourceManager.set_madra(MADRA_BUDGET)` before `ActionManager.confirm_adventure_start(...)`; `test_start_fills_the_frame`'s Madra message becomes "the cabinet shows the pool the run plays on"; `test_a_key_uses_a_consumable_in_a_real_fight` adds `assert_eq(ResourceManager.get_madra(), expected_madra, "into the saved pool")`.
+- `test_adventure_map_zoom.gd`: `VITALS_FIELDS` drops the two Madra fields.
+- `test_dev_hooks.gd` `test_reset_vitals_gives_a_fresh_vitals_manager`: beside `stat_hooks`, take `var madra_hooks: int = ResourceManager.madra_changed.get_connections().size()`; after the frame, `assert_eq(ResourceManager.madra_changed.get_connections().size(), madra_hooks, "and its Madra hook")`.
+
+- [ ] **Step 2: Run them and see them fail.** Run `test_player_vitals_manager.gd` and `test_vitals_plate.gd`. Expected: FAIL in the other five façade tests and the plate's Madra figures: reads give the in-memory value, the pool doesn't move, and one emission is counted, not two. The "quiet", "alone" and "its own" tests already pass: they pin what the façade must not break.
+
+- [ ] **Step 3: Build the façade the Interfaces describe.**
+  - `vitals_manager.gd`:
+    - `max_madra` (still `= 100.0`) and `current_madra` get getters that read ResourceManager for the player and the stored value for an enemy. `current_madra`'s setter, for the player, calls `ResourceManager.set_madra(value)` and returns without emitting (`_on_pool_changed()` will); for an enemy it stores and emits as today. Their docs say the player's are the one pool's.
+    - `_ready()`, player branch, connects `ResourceManager.madra_changed` to `_on_pool_changed(new_amount: float) -> void`, which emits `madra_changed(new_amount)`.
+    - `initialize_current_values()` fills `current_health` and `current_stamina`, then `if not is_player: current_madra = max_madra`. Doc: Health and Stamina to their maxima, plus an enemy's Madra, never the player's pool.
+    - `_apply_madra_change(amount)`, player branch: `ResourceManager.add_madra(amount, true)` when `amount != 0.0`, then return. The enemy branch keeps today's clamp and drops its player-only `Log.info`.
+    - `_on_stats_changed()` drops its `max_madra =` line. `apply_vitals_change()` gets a `##` doc: the player's Madra change lands in the saved pool, quietly; a zero change does nothing there.
+  - `adventure_view.gd` `_initialize_combat_resources()` calls `PlayerManager.vitals_manager.initialize_current_values()`. Until Task 2.3 stops the spend, a real run starts on whatever the drain left.
+  - `dev_commands.gd` `refill_vitals()`: `_while_paused(vitals.initialize_current_values)`; doc: fills Health and Stamina, and the Madra pool stays as it is.
+  - `player_manager.gd` `reset_vitals()` doc: "nothing of a run carries over: not its Health or Stamina, nor its regen. Madra is ResourceManager's saved pool and stays."
+
+- [ ] **Step 4: Run them and see them pass.** Run the task's test files: PASS. The full suite: PASS.
+
+- [ ] **Step 5: Commit:** `feat(madra): make the player's Madra the saved pool` / "The player's VitalsManager reads and writes ResourceManager's pool, so technique costs, Scales and rest tiles spend and refill the one saved pool, quietly, and the vitals plate shows it. Enemies keep their own Madra."
+
+---
+
+### Task 2.3: Runs start and end on the pool
+
+**Files:**
+- Modify: `scenes/zones/zone_transition/zone_transition.gd`, `singletons/action_manager/action_manager.gd`, `scenes/adventure/adventure_view/adventure_view.gd`, `scenes/ui/main_view/states/adventure_view_state.gd`, `scenes/ui/dev_panel/tabs/adventure_tab.gd`, `scripts/resource_definitions/adventure/adventure_result_data.gd`, `scenes/adventure/adventure_end_card/adventure_end_card.gd`, `scenes/adventure/adventure_end_card/adventure_end_card.tscn`
+- Test, in `tests/integration/`: `test_zone_transition.gd`, `test_adventure_end_flow.gd`, `test_adventure_end_card.gd` (new), and for the callers of the old signatures `test_adventure_view_frame.gd`, `test_adventure_map_zoom.gd`, `test_play_stats_recording.gd`, `test_dev_adventure_commands.gd`, `test_dev_panel.gd`
+- Test, in `tests/unit/`: `test_adventure_result_data.gd`, `test_adventure_view_state.gd`
+
+**Interfaces:**
+- Consumes: Task 2.1's `get_madra()` and `get_max_madra()`; Task 2.2's façade and `initialize_current_values()`; Task 2.0's end card copy.
+- Produces: `signal ActionManager.start_adventure(action_data: AdventureActionData)`; `ActionManager.confirm_adventure_start(action_data: AdventureActionData) -> void`; `AdventureView.start_adventure(action_data: AdventureActionData) -> void`; `AdventureResultData.madra_left: float` and `madra_max: float`; `static func ZoneTransition.drain_pellet_count(madra: float, max_madra: float) -> int`.
+- Removed: the `madra_budget` parameters, `AdventureView._madra_budget`, `AdventureResultData.madra_spent`, ZoneTransition's spend.
+
+**Skills:** `godot-prompter:hud-system` (the end card) and `godot-prompter:godot-testing`.
+
+- [ ] **Step 1: Write the failing tests.**
+
+`test_zone_transition.gd`: the header's "pours the Madra budget out as pellets" becomes "pours pellets as a flourish, spending nothing". The last asserts of `test_drain_pours_pellets_then_starts_the_adventure` become:
+
+```gdscript
+	assert_signal_emitted_with_parameters(ActionManager, "start_adventure", [ZoneManager.get_action_by_id(ADVENTURE_ID)])
+	assert_false(_transition.is_transitioning())
+	assert_eq(ResourceManager.get_madra(), 100.0, "the pellets spend nothing: the run spends from the pool")
+```
+
+Add:
+
+```gdscript
+## From DRAIN_MIN_PARTICLES (empty) to DRAIN_MAX_PARTICLES (full).
+func test_a_fuller_pool_pours_more_pellets() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "an empty pool", "madra": 0.0, "max": 100.0, "pellets": 8},
+		{"name": "half full", "madra": 50.0, "max": 100.0, "pellets": 16},
+		{"name": "full", "madra": 100.0, "max": 100.0, "pellets": 25},
+		{"name": "no max", "madra": 10.0, "max": 0.0, "pellets": 8},
+	]
+	for case: Dictionary in cases:
+		assert_eq(ZoneTransition.drain_pellet_count(case.madra, case.max), case.pellets, case.name)
+```
+
+`test_adventure_end_flow.gd`: `_start_adventure()` calls `ActionManager.confirm_adventure_start(action)`; the comments that say the Madra drains before a run say "while the start's pellets fly"; add:
+
+```gdscript
+## Plan Review Focus 5: the end card is told the pool as it stands.
+func test_a_run_quit_midway_keeps_what_it_spent_and_what_is_left() -> void:
+	_set_player_health(40.0)
+	ResourceManager.set_madra(80.0)
+	_begin_a_run_without_a_map(300.0)
+	PlayerManager.vitals_manager.apply_vitals_change(0.0, 0.0, -30.0)
+	_view.stop_adventure()
+	assert_eq(ResourceManager.get_madra(), 50.0, "what the run spent stays spent, and the rest stays in the pool")
+	assert_eq(_results.size(), 1, "the retreat ended the run once")
+	if _results.size() == 1:
+		assert_eq(_results[0].madra_left, 50.0, "the end card is told the Madra left")
+		assert_eq(_results[0].madra_max, 100.0, "over the pool's max")
+```
+
+`test_adventure_result_data.gd`: in `test_defaults`, `["madra_spent", 0.0]` becomes `["madra_left", 0.0]` and `["madra_max", 0.0]`; in `test_populate`'s victory case, `"madra_spent": 150.0` becomes `"madra_left": 46.0` and `"madra_max": 100.0`.
+
+`test_adventure_end_card.gd` (new): `extends GutTest`, a header (the end card's Madra line shows what the pool kept, over its max), `const EndCardScene := preload("res://scenes/adventure/adventure_end_card/adventure_end_card.tscn")`, and:
+
+```gdscript
+func test_the_madra_line_shows_what_the_pool_kept() -> void:
+	var card: AdventureEndCard = EndCardScene.instantiate() as AdventureEndCard
+	add_child_autofree(card)
+	var result := AdventureResultData.new()
+	result.madra_left = 46.0
+	result.madra_max = 100.0
+	await card.show_results(result)
+	assert_eq((card.get_node("%MadraValueLabel") as Label).text, "46 / 100")
+```
+
+The callers of the old signatures:
+- `test_adventure_view_frame.gd`: `MADRA_BUDGET` becomes `RUN_START_MADRA` (doc: "The pool each run starts on: exactly half a new character's 100, the threshold"). `_start_run()` keeps Task 1.12's `stamina_regen_modifier` parameter, calls `ResourceManager.set_madra(RUN_START_MADRA)` and `ActionManager.confirm_adventure_start(action)`, and its doc drops "with its budget". `test_start_fills_the_frame` adds `assert_eq(ResourceManager.get_madra(), RUN_START_MADRA, "starting the run spent none of it")`.
+- `confirm_adventure_start()` loses its second argument in `test_adventure_map_zoom.gd` (where `MADRA_BUDGET` goes), `test_play_stats_recording.gd` and `test_dev_adventure_commands.gd`; `test_dev_panel.gd` emits `ActionManager.start_adventure.emit(AdventureActionData.new())`; `test_adventure_view_state.gd` calls `_adventure_state._on_start_adventure(null)` in all four places.
+
+- [ ] **Step 2: Run them and see them fail.** Run `test_zone_transition.gd`, `test_adventure_end_flow.gd`, `test_adventure_result_data.gd` and `test_adventure_end_card.gd`. Expected: FAIL. The first two and the end card test don't parse (`drain_pellet_count` isn't declared, `confirm_adventure_start()` takes two arguments, `madra_left` isn't a member of AdventureResultData); `test_adventure_result_data.gd` reads null for `madra_left`, not 0.0.
+
+- [ ] **Step 3: Implement the start and the end.**
+  - `zone_transition.gd`:
+    - Add `drain_pellet_count()` (doc: the pellets a run's start pours for madra out of max_madra): `int(lerpf(DRAIN_MIN_PARTICLES, DRAIN_MAX_PARTICLES, fullness))`, fullness being `madra / max_madra` clamped to 0..1, or 0 when `max_madra <= 0.0`.
+    - `_on_adventure_start_requested()` sets `_drain_total_particles = drain_pellet_count(ResourceManager.get_madra(), ResourceManager.get_max_madra())`.
+    - Delete `_drain_budget`, `_drain_budget_ratio`, `_drain_madra_per_particle`, `_drain_deficit_particle_amount`, `_drain_total_particles`' deficit comment, the deficit-pellet block and `ResourceManager.spend_madra()` in `_spawn_drain_particle()`. The last pellet's `delivered` still starts the zoom.
+    - `_on_zoom_complete()` calls `ActionManager.confirm_adventure_start(_pending_adventure_data)`. The class doc says the pellets are a flourish, because the run spends from the pool itself.
+  - `action_manager.gd`: the signal and `confirm_adventure_start()` carry the action only; it keeps the play-stat count, and its log line drops the budget.
+  - `adventure_view.gd`:
+    - `start_adventure()` takes the action only; delete `_madra_budget`; the comment over the `_initialize_combat_resources()` call drops the budget.
+    - `_initialize_combat_resources() -> void` takes no parameter; its log is `Log.info("AdventureView: The run starts on %.1f Madra" % ResourceManager.get_madra())`, and its doc says Health and Stamina fill and Madra is the saved pool as it stands.
+    - `_build_result_data()` sets `result.madra_left = ResourceManager.get_madra()` and `result.madra_max = ResourceManager.get_max_madra()`.
+    - The comment in `stop_adventure()` says the action is current "while the start's pellets fly", not "while its Madra drains".
+  - `adventure_view_state.gd`: `_on_start_adventure(_data: AdventureActionData) -> void`. `adventure_tab.gd`: `_on_adventure_started(_action: AdventureActionData) -> void`.
+  - `adventure_result_data.gd`: `madra_spent` gives way to `## The Madra the pool held when the run ended: it stays there.` `var madra_left: float = 0.0` and `## The pool's max when the run ended.` `var madra_max: float = 0.0`.
+  - The end card, with the copy approved in Task 2.0 (proposal **"MADRA LEFT"**, **"46 / 100"**): `adventure_end_card.gd` `_populate()` sets `madra_value_label.text = "%d / %d" % [floori(data.madra_left), floori(data.madra_max)]` (if the approved line shows the amount alone, drop `madra_max` everywhere), keeping the colour override; in `adventure_end_card.tscn`, MadraStat's `StatInfo/StatNameLabel` gets `text = "MADRA LEFT"`.
+
+- [ ] **Step 4: Run them and see them pass.** Run the task's test files plus `res://tests/integration/test_board_transition_camera.gd`: PASS. `git grep -n -e madra_budget -e madra_spent -e _drain_budget -e "MADRA SPENT" -- scenes scripts singletons tests`: no output. The full suite: PASS.
+
+- [ ] **Step 5: Commit:** `feat(adventure): start and end runs on the one pool` / "Starting a run spends nothing: the drain is a flourish and the run spends from the saved pool, so whatever is left at the end is still there. The budget parameter goes, and the end card shows the Madra left over its max."
+
+---
+
+### Task 2.4: Every Madra readout shows the pool
+
+**Files:**
+- Modify: `scenes/zones/cultivator_plate/cultivator_plate.gd`, `scenes/zones/zone_action_button/presenters/adventure_presenter.gd`, `scenes/character/character_view.gd`
+- Test, in `tests/integration/`: `test_cultivator_plate.gd`, `test_zone_action_cards.gd`, `test_character_book_madra.gd` (new)
+
+**Interfaces:**
+- Consumes: Task 2.1's `get_madra()`, `get_max_madra()` and `madra_changed`; `CharacterManager.stats_changed` and Task 1.17's `CultivatorPlate._on_stats_changed()`; Task 1.16's `static func CharacterView.fight_lines() -> Array[Dictionary]` (`{"label", "value"}` entries Health, Madra, Stamina, … in order) and its `%FightRows` (a `TableRow` per entry, captioned in capitals in the row's `%Label` and laid out row by row in two columns, so the children run in another order than `fight_lines()`, as Task 1.16's Produces says: `_madra_row_text()` finds the Madra row by its "MADRA" caption), `refresh()` and `_refresh_if_shown()`; Task 2.0's copy.
+- Produces: `fight_lines()`'s Madra entry reads "<pool> / <max>". `CharacterView._rebuild_fight_rows() -> void`, which phase 5's Task 5.4 also calls on `ResourceManager.health_changed` for the Health entry.
+
+**Skills:** `godot-prompter:godot-ui` and `godot-prompter:hud-system`.
+
+- [ ] **Step 1: Write the failing tests.**
+
+`test_cultivator_plate.gd`: add `const TEST_SOURCE: StringName = &"test_cultivator_plate"`, its `remove_modifier_source()` in `after_each()`, and `_max_madra_source()`. Under MADRA:
+
+```gdscript
+func test_the_madra_max_follows_the_max_madra_stat() -> void:
+	ResourceManager.set_madra(100.0)
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(100.0))
+	assert_eq(_text("MadraMaxLabel"), "/ 200")
+	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0001, "100 of 200 Madra")
+```
+
+`test_zone_action_cards.gd`:
+- `test_adventure_ready_copy_and_enter`: `assert_eq(card.get_detail_right_text(), "carries 60 Madra", "the pool the run spends from, in the right column")`.
+- `test_adventure_follows_equipment_capacity`, with phase 1's +50% Mind ring on (max 150, threshold 75): `ResourceManager.set_madra(140.0)` replaces `set_madra(80.0)`, followed by `assert_true(_has_text_containing(card, "carries 140 Madra"))`; after the unequip, `assert_true(_has_text_containing(card, "carries 100 Madra"), "taking the ring off brings the pool down to the new max")`. Its opening comment says the threshold is half of max Madra.
+
+`test_character_book_madra.gd` (new). The header: the In a fight block's Madra row, the pool over its max, live while the book is open. It holds the save swap; `const CharacterViewScene := preload("res://scenes/character/character_view.tscn")`; `const TEST_SOURCE: StringName = &"test_character_book_madra"`, removed first in `after_each()`; `_max_madra_source()`; and `var _view: CharacterView`, instanced and added with `add_child_autofree()` at the end of `before_each()`, after `AbilityManager._build_catalog_index()` as in `test_character_book.gd` (other suites leave a fake catalog). Then:
+
+```gdscript
+## The In a fight block's Madra entry: the second of fight_lines() (Task 1.16).
+func _madra_entry() -> Dictionary:
+	return CharacterView.fight_lines()[1]
+
+## The Madra row as the open book prints it: the %FightRows row captioned
+## "MADRA". It is found by its caption, as the two columns put the rows in
+## another order than fight_lines() (Task 1.16); "" when no row has it.
+func _madra_row_text() -> String:
+	for row: TableRow in _view.get_node("%FightRows").get_children():
+		if (row.get_node("%Label") as Label).text == "MADRA":
+			return (row.get_node("%Value") as RichTextLabel).get_parsed_text()
+	return ""
+
+func test_the_madra_line_shows_the_pool_over_its_max() -> void:
+	ResourceManager.set_madra(46.0)
+	assert_eq(_madra_entry()["label"], "Madra", "precondition: the second entry is Madra")
+	assert_eq(_madra_entry()["value"], "46 / 100")
+
+func test_the_madra_line_follows_the_pool_and_its_max_while_open() -> void:
+	_view.show()
+	_view.refresh()
+	ResourceManager.add_madra(1.5, true)
+	assert_eq(_madra_row_text(), "26 / 100", "the Aura Well's trickle: 25 + 1.5")
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(50.0))
+	assert_eq(_madra_row_text(), "26 / 150", "a bonus on max Madra")
+```
+
+- [ ] **Step 2: Run them and see them fail.** Run the task's test files. Expected: FAIL. The cabinet reads "/ 100" (it does not re-read the max on `stats_changed`); the card reads "carries 100 Madra" (the max); the book's Madra entry and row read "100", Task 1.16's max alone.
+
+- [ ] **Step 3: Build the three readouts** with the copy approved in Task 2.0.
+  - `cultivator_plate.gd`: Task 1.17's `_on_stats_changed()` also calls `_update_madra()` (its doc gains: "Mind, gear and any modifier source move the max."). Delete the `_update_madra()` calls in `hold_core_xp()`, `release_core_xp()`, `_on_core_density_level_updated()` and `_on_advancement_stage_changed()`, there only because the max followed the Core Density level shown. The class doc drops "with the Madra max of the level shown", and `_update_madra()`'s doc says the max is the pool's (`ResourceManager.get_max_madra()`).
+  - `adventure_presenter.gd` `_update_state()`: `button.set_detail_right("carries %d Madra" % floori(ResourceManager.get_madra()), ThemeConstants.LACQUER_BRASS)` (proposal **"carries 60 Madra"**: the pool). The class doc's "<max>" becomes "<pool>"; `_on_stats_changed()`'s doc says Mind, gear and any modifier source move the max and the threshold with it.
+  - `character_view.gd`:
+    - `fight_lines()`: the Madra entry's value becomes `"%d / %d" % [floori(ResourceManager.get_madra()), floori(ResourceManager.get_max_madra())]` (proposal **"46 / 100"**); its label stays "Madra", the other entries don't change, and the doc says Madra is the pool over its max.
+    - `refresh()`'s rebuild of `%FightRows` moves into `_rebuild_fight_rows() -> void`, which `refresh()` calls (keep Task 1.16's helper if it already has one).
+    - `_ready()` connects `ResourceManager.madra_changed` to `_on_madra_changed(_amount: float) -> void`, which calls `_rebuild_fight_rows()` while `is_visible_in_tree()` (the gate `_refresh_if_shown()` uses): a pool change rebuilds only those rows. `stats_changed` already rebuilds them through `_refresh_if_shown()`.
+
+- [ ] **Step 4: Run them and see them pass.** Run the task's test files plus `res://tests/integration/test_character_book.gd,res://tests/integration/test_cycling_view.gd,res://tests/unit/test_book_view_state.gd,res://tests/integration/test_boards_never_trim_text.gd`: PASS. The full suite: PASS. Then open the editor and compare the cabinet, the card and the book with the approved canvas by eye.
+
+- [ ] **Step 5: Commit:** `feat(ui): show the one Madra pool on every readout` / "The cabinet's orb follows the max Madra stat instead of Core Density, the adventure card says what the run carries from the pool, and the Character book's In a fight block shows the pool over its max, live while it is open."
+
+---
+
+### Task 2.5: Phase 2 wrap
+
+**Files:**
+- Modify: `docs/superpowers/plans/2026-11-04-stats-rework.md` (Tasks 2.0 to 2.5 ticked, with any deviations noted)
+
+**Interfaces:**
+- Consumes: Tasks 2.0 to 2.4.
+- Produces: the phase 2 PR.
+
+- [ ] **Step 1: Run the full suite.** Expected: PASS, with no script that runs no tests (confirm a failure in one process, with the command the runner prints, before acting on it).
+- [ ] **Step 2: Play it on a save of its own:** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --save=user://dev/runs/phase2_madra.tres`. Each check holds, or is a bug to fix before the PR:
+  1. A new save's cabinet reads "25 / 100", and so does the Goals board's "Awaken Your Core" figure.
+  2. In the dev panel's Player tab, Set Madra 150 is refused ("Madra can't pass its max of 100"); Set 100 completes "Awaken Your Core".
+  3. Once the adventure unlocks, its card reads "carries 100 Madra". Starting the Shallow Woods, the pellets fly while the cabinet stays at 100, and the vitals plate opens on "100 / 100".
+  4. In a fight, Enforce (10 Madra) drops the plate to 90. A Crude Scale, awarded from the dev panel and put on the hotbar in the Inventory book before the run, adds 20 with no "Gained" line in the log.
+  5. Retreat: the end card's MADRA LEFT reads the pool over 100, and back in the zone the cabinet and the book's Madra row read the same figures.
+- [ ] **Step 3: Review the branch.** `git diff origin/main...HEAD --stat`: under `docs/`, only `docs/superpowers/plans/2026-11-04-stats-rework.md` (living docs wait for the docs PR); no `.import` files; `git diff origin/main...HEAD | Select-String "print\("` finds nothing.
+- [ ] **Step 4: Update the plan and commit.** Tick Tasks 2.0 to 2.5 and note under each task anything built differently (CLAUDE.md: the plan reflects final reality). Commit: `docs(stats): mark phase 2 done in the plan` / "Records what phase 2 built, ahead of its PR."
+- [ ] **Step 5: Push and open the PR.** `git push -u origin feat/stats-rework-2-madra-pool`, then `gh pr create --base main --title "Stats rework phase 2: one Madra pool" --body-file <a temporary file outside the repo>`. Never merge it: Lionel does. The body: a summary of Tasks 2.1 to 2.4; a test plan (the full suite and the Step 2 checks); and a closing `## Docs to update` section, followed only by the line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`, listing:
+  - `docs/infrastructure/RESOURCES.md`: one saved pool sized by the max Madra stat; the over-max rule; no capacity or budget; the threshold is half the max.
+  - `docs/README.md`: the Resources row's "two Madra caps"; the Madra unification records are superseded.
+  - `docs/cultivation/CULTIVATION.md`: Core Density no longer raises a Madra cap; a new save's max is 100, from Mind; no Madra fields in the stage files. `docs/cultivation/breakthrough-tribulation.md`: Copper's Madra cap goes.
+  - `docs/adventuring/ADVENTURING.md`: the start spends nothing; runs spend from and refill the saved pool; the end card's MADRA LEFT line.
+  - `docs/zones/ZONES.md`: the card's "carries <pool> Madra"; `confirm_adventure_start(action_data)`. `docs/infrastructure/MAIN_VIEW.md`: ZoneTransition's drain is visual; the cabinet's max follows `stats_changed`.
+  - `docs/cycling/CYCLING.md`: "Madra full" against `ResourceManager.get_max_madra()`.
+  - `docs/infrastructure/CHARACTER.md`: the player's `VitalsManager` Madra is the pool, which `initialize_current_values()` never touches; the In a fight block's Madra row.
+  - `docs/combat/COMBAT.md`: a run's Madra is the saved pool. `docs/infrastructure/EFFECTS.md`: an awarded Madra gain stops at the max; ChangeVitals refills the pool quietly.
+  - `docs/infrastructure/PERSISTENCE.md`: the saved Madra is clamped to the max on load; a quit run keeps what it spent. `docs/tooling/DEV_TOOLS.md`: Set Madra refuses a value above the max; Refill vitals keeps the pool.
+  - `docs/progression/FOUNDATION_PLAYTHROUGH.md`: the threshold is half of max Madra; Copper's Madra cap lines go. `docs/progression/PATH_PROGRESSION.md`: Madra Reclamation has nothing to refund; Expanded Core would raise max Madra.
+  - `docs/testing/TESTING.md`: `test_foundation_tribulation_data.gd` no longer pins a Madra cap. `docs/infrastructure/MADRA_UNIFICATION_DESIGN.md` and `MADRA_UNIFICATION_PLAN.md`: superseded.
+
+  Expected: `gh pr view` shows the PR open against `main`. After Lionel merges it, open the docs PR on a `docs/<topic>` branch cut from the new `main` that writes this list (CLAUDE.md, Documentation).
+
+---
+
+## Phase 3: Cycling (outline)
+
+Outline only. Task 3.0 cuts `feat/stats-rework-3-cycling` from `main` once phase 2's PR merges (as Task 2.0 Step 1 does) and draws a new Design canvas, "Stats rework · Phase 3"; once Lionel approves it and answers every item under "Settled at the mock-up step" (recorded under the task), the outline becomes full tasks like phases 1 and 2's. One PR, opened in Task 3.14. * marks proposals the full tasks confirm. Each task also fixes its entries under "Tests that break". Test files go by name: the unit ones are under Files, the rest in `tests/integration/`.
+
+### Goal
+
+Cycling becomes the Spiritual side's training, as listed under Decided; the Aura Well changes role, and the screens show stat XP, level-ups and capped stats. Nothing pays Core Density until phase 4.
+
+### Decided
+
+- Every technique refills Madra and pays Spirit XP (`CyclingTechniqueData.spirit_xp_per_cycle: float`); Spirit raises the Madra a cycle draws.
+- At most one minor stat per technique (`CyclingTechniqueData.minor_stat: int`, an `AttributeType` or -1). Lionel's target: two main techniques, Spirit + Control and Spirit + Mind.
+- One mini-game per stat: following the ball trains Spirit, and each minor stat gets its own.
+- Following means following the ball: `CyclingRules.is_following(...) -> bool` replaces `CyclingTechnique.advance()`'s distance-only test (`CURSOR_REACH`, 36 px), which pays a cursor parked on the path whenever the ball passes. `wants_pointer()` keeps the reach for presses.
+- Auto unlocks per technique after a perfect cycle (`SaveGameData.auto_cycling_technique_ids: Array[String]`, Strings like every technique id); hands-on until then.
+- `CyclingTechnique.try_score_zone()` stops calling `CultivationManager.add_core_density_xp()`.
+- XP at the cap is lost, and level-ups log themselves (Task 1.3). Task 2.1 points `CyclingTechnique._madra_full()` and `CyclingView._update_status()` at `ResourceManager.get_max_madra()`.
+
+### Settled at the mock-up step
+
+- Which mini-game trains Control and which Mind (timed presses, unbroken following), and how techniques combine.
+- Auto's rate: one flat rate for refills and XP (0.2× or 0.4×, Lionel leaning 0.4×), or full-speed refills with reduced XP. Whether Auto pays the minor stat, runs with the board closed (today `CyclingView._on_visibility_changed()` stops the technique and `_on_hidden()` ends the cycle), and whether the toggle chains attended cycles before the unlock.
+- The Aura Well's role (keep its capped +1 Spirit level per training level, pay Spirit XP per tick, refill Madra only, or go) and copy (`NowStrip.LEVEL_REWARD_FORMAT`'s "+1 Spirit at Lv n" reads two ways once stats have levels).
+- The roster, and whether the Foundational Technique stays (the save's default unlocked and equipped id, and the story route's start).
+- The feel notes: the cycle speeding and slowing with how well you stay inside it; Auto not keeping that curve.
+- Claude's proposal: Smooth Flow is Spirit + Control and Torrential Flow Spirit + Mind; Spirit XP pays for the share of the cycle followed, not Madra drawn; XP keeps flowing at full Madra; the Foundational Technique trains Spirit only.
+- Left open by the code: what a perfect cycle is (every zone PERFECT and the cycle followed through? a zoneless technique only follows, and `CycleResult` has no followed share); when Spirit XP lands (0.08 s steps with pellets, or the cycle's end); where stat pellets, floaters and level-ups land (the cabinet's stat cells, Task 1.17, or another approved readout); the follow rule's thresholds; the Spirit-to-Madra curve (1.0× at Lv 1, keeping today's 50 / 200 / 250 Madra a cycle); the copy of the status line, zone floaters, cycle line, drawers and Cycling card ("Madra and Core Density XP" today).
+
+### Files
+
+- Data: in `scripts/resource_definitions/`, `cycling/cycling_technique/cycling_technique_data.gd` and `cycling_zone_data.gd`, `character/character_attributes_data.gd`, and `effects/award_attribute_effect_data.gd` (if the Aura Well's award changes); `singletons/persistence_manager/save_game_data.gd`.
+- Logic: `scenes/cycling/cycling_technique/cycling_technique.gd`, `cycling_rules.gd` and `cycle_result.gd`; `singletons/cycling_manager/cycling_manager.gd`; `singletons/action_manager/action_manager.gd` (closed-board Auto only).
+- Scenes: `scenes/cycling/cycling_view/cycling_view.gd` and `.tscn`; `scenes/cycling/technique_drawer/technique_drawer.gd`; in `scenes/zones/`, `zone_action_button/presenters/cycling_presenter.gd` and `training_presenter.gd`, `zone_panel/now_strip/now_strip.gd`, `cultivator_plate/cultivator_plate.gd` and `.tscn`, `map_markers/map_markers.gd`; `scenes/character/character_view.gd` and `.tscn`.
+- Content: in `resources/cycling/cycling_techniques/`, `foundation_cycling_technique/foundation_cycling_technique.tres`, `smooth_flow/smooth_flow.tres`, `smooth_flow/cycling_zone_data/zone_1.tres` to `zone_4.tres`, `torrential_flow/torrential_flow.tres` (inline zone) and `cycling_technique_list.tres` (roster changes only); in `resources/zones/spirit_valley_zone/zone_actions/`, `aura_well_training_action.tres`, `aura_well_madra_trickle_effect.tres` and `aura_well_spirit_award_effect.tres`; `resources/path_progression/pure_madra/nodes/torrential_flow.tres`. New art (stat marks, pellet ramps beyond `LacquerPellet.Ramp`'s MADRA, BRASS, CREAM and TAN) ends in `_ai`.
+- Unit tests (`tests/unit/`): `test_cycling_rules.gd`, `test_cycling_technique_data.gd`, `test_cycling_manager.gd`, `test_character_attributes_data.gd`, `test_save_round_trip.gd`, `test_award_attribute_effect_data.gd`.
+
+---
+
+### Task outline
+
+- **Task 3.0: Mock-ups.** Boards: following, at full Madra, with a stat capped, and with Auto unlocked and running; a stat XP hit and a level-up; drawers naming what they train; the Now tray; the Cycling and Aura Well cards; the Character book's Spirit page.
+- **Task 3.1: Training data.** Every technique file of the approved roster gets `spirit_xp_per_cycle` and `minor_stat`, and every zone `perfect_xp`, `good_xp` and `ok_xp` rebalanced for the minor stat, all written explicitly (Smooth Flow's `zone_1`, `zone_2` and `zone_4` lean on `ok_xp`'s default 5). A roster change is its own commit. Test: `test_cycling_technique_data.gd` `test_every_technique_trains_spirit_and_at_most_one_spiritual_minor` (`spirit_xp_per_cycle` > 0; `minor_stat` -1, MIND or CONTROL).
+- **Task 3.2: Spirit raises Madra per cycle.** `CharacterAttributesData.get_cycling_madra_multiplier() -> float`* (1.0 at Spirit 10); `CyclingTechniqueData.get_madra_per_cycle(madra_multiplier: float = 1.0) -> float`*, and that parameter on `get_madra_per_second()`. `_madra_per_step()`, `NowStrip._update_technique()` and `TechniqueDrawer.detail_text()` pass `CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier()`. Tests: a multiplier table in `test_character_attributes_data.gd`; `test_cycling_technique.gd` `test_spirit_raises_the_madra_a_cycle_draws`.
+- **Task 3.3: Real following.** `is_following(...)` takes this and the last frame's cursor and drawn ball, and whether the last frame followed. The ball barely moves at a cycle's ends and snaps to 2 px, and the Foundational path starts, crosses and ends at one point, so a still ball continues a streak but never starts one, except on a cycle's first frame, just after the press. Tests: `test_cycling_rules.gd` `test_is_following` (a table: moving with the ball, parked as it passes, the eased start and end, past the reach); `test_cycling_technique.gd` `test_a_cursor_parked_on_the_path_draws_nothing` on the Foundational path, which passes (322.5, 400) at its start, middle and end.
+- **Task 3.4: Spirit XP for following.** `advance()` accrues followed time on its own clock (`_draw_madra_step()` stops at full Madra) and pays `CharacterManager.add_stat_xp(SPIRIT, …)`, `spirit_xp_per_cycle` per fully followed cycle, in 0.08 s steps or at the cycle's end, never per frame (each call emits `stat_xp_changed`, capped or not). `_return_to_ready()` pays what a stopped, switched or hidden cycle had not yet paid, since those emit no `CycleResult`. Signal `stat_xp_paid(stat, from_pos, amount)`* carries the pellets; `CycleResult` gains `followed_ratio`*, `stat_xp`* (per stat) and `capped_stats`* (stats the cap took XP from). Tests in `test_cycling_technique.gd`: `test_following_pays_spirit_xp_with_madra_full`, `test_a_stopped_cycle_keeps_the_spirit_xp_it_followed`, `test_spirit_xp_at_the_cap_marks_the_result`.
+- **Task 3.5: Presses stop paying Core Density.** `try_score_zone()` drops `add_core_density_xp()`. If presses are a minor stat's mini-game, it pays `CharacterManager.add_stat_xp(technique_data.minor_stat, xp)` instead (nothing for -1). `capped_stats` replaces `CycleResult.core_full`.
+- **Task 3.6: The other minor stat's mini-game.** Its pure rule in `CyclingRules` (an unbroken-following streak, say), wired into `advance()` and paid through `add_stat_xp()` and `stat_xp_paid`. Tests: a table of the rule in `test_cycling_rules.gd`; `test_cycling_technique.gd` `test_a_technique_pays_its_minor_stat_through_its_mini_game`.
+- **Task 3.7: The Auto unlock.** `SaveGameData.auto_cycling_technique_ids: Array[String] = []`; `CyclingManager.unlock_auto(technique_id: String)`*, `is_auto_unlocked(technique_id: String) -> bool`* and `signal auto_unlocked(technique: CyclingTechniqueData)`*; `CycleResult.is_perfect() -> bool`*. `CyclingView._on_cycle_completed()` unlocks the equipped technique after a perfect cycle. Tests: `test_cycling_manager.gd` (saved, idempotent, an unknown id refused); `test_cycling_rules.gd` `test_is_perfect` (a table with a zoneless case); `test_cycling_view.gd` `test_a_perfect_cycle_unlocks_auto_for_its_technique`.
+- **Task 3.8: Unattended Auto.** With `auto_cycle` on, the technique's Auto unlocked and nobody following, `advance()` pays Madra at `CyclingRules.AUTO_MADRA_RATE`* and XP at `AUTO_XP_RATE`* (equal under one flat rate). `_on_auto_toggled()` and `_show_auto_state()` gate the toggle as approved. Closed-board Auto (cycling as an idle action) pays from an `ActionManager` timer like the Aura Well's `_on_train_timer_finished()`. Tests in `test_cycling_technique.gd`: `test_unattended_auto_pays_at_the_auto_rate`, `test_auto_pays_nothing_unattended_before_the_unlock`.
+- **Task 3.9: The speed curve, only if kept.** `advance()` scales how far `_elapsed` moves by how well the cursor follows, and Auto runs at the flat speed. Madra per cycle stays fixed, and `_madra_per_step()`, `_record_rate()` and `_update_session()` stop assuming a fixed `cycle_duration`. Test: `test_cycling_technique.gd` `test_following_speeds_the_cycle_and_auto_does_not`.
+- **Task 3.10: The cycle's lines and copy.** `CycleResult.summary()` shows Spirit and minor XP and the capped states (the chest's `%LastCycleLabel` and the log read it). `TechniqueDrawer.detail_text()` names what a technique trains. `CyclingPresenter.REWARD_TEXT` and the `torrential_flow.tres` path node's description ("at the expense of Core Density XP") take the approved copy: phase 3 owns cycling copy, phase 6 only dialogue and quests.
+- **Task 3.11: The board shows stat XP.** `CyclingView.status_line()` takes the capped states in place of `zones_pay_xp` (`MADRA_FULL_ZONES` follows). Zone floaters name the stat, and a capped stat gets the capped look and no pellets (today's `core_full` branch of `_on_zone_scored()`). Stat pellets fly to the approved readout, held and released like `hold_madra()` / `release_madra()`, with the approved level-up and capped looks. `CultivatorPlate.hold_core_xp()`, `release_core_xp()`, `rewind_core()` and `_held_xp` go with their only use, `_on_zone_scored()`'s core pellets. Any new board scene joins `BOARD_SCENES` in `test_boards_never_trim_text.gd`. Test: a capped floater in `test_cycling_view.gd`.
+- **Task 3.12: The Aura Well's new role.** First write the tick curve, `amount` and `resource_type` explicitly in its three files, then the approved role. `TrainingPresenter._detail_parts()`, `NowStrip._level_reward_text()` and `MapMarkers._on_training_tick_processed()` follow.
+- **Task 3.13: The Character book's cycling lines,** in Task 1.16's `CharacterView`. `effect_lines()` gains Spirit's "Madra per cycle": the equipped technique's `get_madra_per_cycle()` at the `now` and `next` blocks' multipliers. `cycles_to_next_level(stat) -> int`* is the XP still needed over the equipped technique's `CyclingTechniqueData.get_xp_per_cycle(stat)`*, rounded up; its line hides while capped or at 0 XP a cycle. Test: `test_character_book.gd` `test_cycles_to_next_level_reads_the_equipped_technique`.
+- **Task 3.14: Wrap.** `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1` passes, and a dev run covers a perfect cycle, Auto and a capped stat: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=path_open --save=user://dev/runs/phase3_cycling.tres`. The PR carries `## Docs to update` (below) and says nothing pays Core Density until phase 4.
+
+### Tests that break
+
+- Task 3.1: `test_cycling_technique.gd` `test_a_scored_zone_shows_in_the_result` (`result.xp == 25`, Smooth Flow `zone_1`'s PERFECT). If an id changes: `test_dev_hooks.gd`, `test_story_route.gd` and `test_save_presets.gd` (beat_2 of `resources/dev/story_route.tres` equips `smooth_flow`), `test_cycling_technique_data.gd` and `test_cycling_manager.gd`, and the rest of `git grep -l -e foundation_technique -e smooth_flow -e torrential_flow -- tests`.
+- Task 3.3: `test_cycling_technique.gd` `test_tracking_needs_the_cursor_on_the_ball`, `test_tracking_uses_the_drawn_ball` and `test_the_cursor_tracks_on_the_ring_and_not_past_it` pass under a rule that judges a cycle's first frame and a near-still ball by reach alone; any other rule rewrites them.
+- Task 3.5, in `test_cycling_technique.gd`: rewrite `test_scoring_an_active_zone_uses_the_tier_rule` (the minor stat gains the XP, Core Density none); capped-stat versions replace `test_a_zone_scored_at_the_cap_marks_the_result` and `test_the_zone_that_fills_the_core_marks_the_result`.
+- Task 3.7: `test_save_round_trip.gd` `test_the_full_save_leaves_no_field_at_its_default`, until `_full_save()` sets `auto_cycling_technique_ids`.
+- Task 3.8, if the toggle is gated: `test_cycling_view.gd` `test_auto_toggle_sets_auto_cycle` and `test_a_toggle_that_starts_pressed_is_honoured`.
+- Task 3.10: `test_cycling_rules.gd` `test_result_lines`, `test_log_line`, and `test_a_full_core_line_says_so` (now a capped line; `test_xp_per_tier` lives while `xp_for_tier()` and the zone fields keep their names); `test_zone_panel.gd` `test_the_last_cycle_line_shows_the_result` and `test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down`; `test_technique_drawer.gd` `test_detail_text` and `test_setup_shows_icon_name_and_detail`.
+- Task 3.11: `test_cycling_view.gd` `test_status_line_copy`, `test_the_status_label_stops_promising_xp_at_a_full_core`, `test_scoring_pops_the_zone_floater_and_pellets`, `test_a_full_core_floater_sends_no_pellets`, `test_the_core_shows_the_xp_as_its_pellets_land`, `test_hiding_the_view_shows_what_its_pellets_carried`, and `test_hiding_the_view_frees_the_pellets_in_flight` if a zone hit sends no pellets; `test_cultivator_plate.gd` deletes `test_held_xp_shows_once_released`, `test_held_xp_holds_back_a_level_up`, `test_rewind_core_within_a_level`, `test_rewind_core_steps_back_through_levels` and `test_rewind_core_stops_at_nothing`.
+- Task 3.12, if the well changes: `test_training_flow.gd` `test_training_ticks_fire_effects_and_level_up`; `test_zone_panel.gd` `test_strip_shows_for_aura_well` and `test_strip_follows_training_ticks`; `test_zone_action_cards.gd` `test_training_detail`; `test_map_markers.gd` `test_floater_on_training_tick`; `test_award_attribute_effect_data.gd`; `test_cycling_technique.gd` `test_the_aura_well_rate_survives_closing_cycling` if its "+1.5 / s" changes.
+- Task 3.13, as Task 1.16 left them: `test_character_book.gd` `test_each_stat_names_what_it_does` (Spirit's labels start with Madra per cycle), `test_a_stat_with_no_known_technique_says_so` (Spirit always has its Madra per cycle line: point it at Strength) and `test_now_and_next_come_from_the_blocks_functions` (Spirit's first line is Madra per cycle).
+
+### Risks
+
+- **Saves.** `foundation_technique` is the save's default unlocked and equipped id. → An id the roster drops is moved on every load, as `SaveGameData._apply_zone_id_migrations()` moves zone ids, and the empty Auto list suits old saves. No save version, so phase 5 keeps v3.
+- **No Core Density until phase 4,** so beat 3b and the Tribulation can't be reached in play. → Accepted, as `main` may be broken between phases; `DevCommands.reach_core_density()` uses real XP, so the route and presets still build.
+- **Tuning.** The Spirit cap should land about when Core Density reaches 100. → Set `spirit_xp_per_cycle` against `CharacterManager.stat_progression` and Foundation's cap of 10; phase 4's retune reads those rates.
+
+### Docs to update
+
+`CYCLING.md`, `CULTIVATION.md`, `RESOURCES.md`, `ZONES.md`, `CHARACTER.md`, `PERSISTENCE.md`, `PATH_PROGRESSION.md`, `FOUNDATION_PLAYTHROUGH.md`, `TESTING.md`; `MAIN_VIEW.md` and `UI_STYLING.md` if a stat readout or new pellet ramps come; `EFFECTS.md` if the Aura Well's award changes.
+
+---
+
+## Phase 4: Core Density (outline)
+
+Outline only, run like phase 3: Task 4.0 cuts `feat/stats-rework-4-core-density` from `main` once phase 3's PR merges and draws "Stats rework · Phase 4". One PR, opened in Task 4.8. The * mark, "Tests that break" and test file names work as in phase 3.
+
+### Goal
+
+Core Density comes from won fights, as listed under Decided, on a curve retuned to about 6–10 Shallow Woods runs. It shows as a ball of stars, and a kill shows what it paid.
+
+### Decided
+
+- A won fight pays Core Density XP by tier: `AdventureActionData.core_density_xp_regular`, `core_density_xp_elite` and `core_density_xp_boss`.
+- The tier is the tile's `AdventureEncounter.encounter_type` (COMBAT_REGULAR 0, COMBAT_BOSS 2, COMBAT_ELITE 3), and `CombatChoice.is_boss` also marks the boss. Not `CombatantData` (the Shallow Woods boss, `manifested_spirit_encounter.tres`, reuses the regular `amorphous_spirit.tres`), and not gold (the Coalescing Spirit, an elite, drops none).
+- Paid at the kill, in `AdventureTilemap.handle_combat_result()`'s once-per-fight `if _current_combat_choice:` block, before the boss branch's `ActionManager.stop_action(true)`; kept if the run is lost (Claude's call), since `CultivationManager.add_core_density_xp()` writes the live save at once and no lost, timed-out or retreated run undoes it.
+- Core Density keeps its other jobs: 0–100 per stage, a path point every 10 levels (`PATH_POINT_LEVEL_INTERVAL`, `_pay_milestone()`), the breakthrough at 100, and the 5-level penalty for a failed Tribulation.
+- Tuning target (Claude's call): 0 to 100 in Foundation takes about 6–10 Shallow Woods runs, with no new maps. A full clear of `resources/adventure/data/shallow_woods.tres` is 7 regular, 4 elite and 1 boss fight in a 300 s run.
+- The breakthrough gate and its requirement lines are Task 1.13's (`TribulationActionData.can_attempt()`, `get_missing_requirements()`); phase 4 changes only how Core Density looks there.
+- The path tree doesn't change; a lost fight ends the run as today, keeping loot already won.
+- The look: a main ball with 9 or 10 stars, each filled star shown graphically (Lionel).
+
+### Settled at the mock-up step
+
+- 9 or 10 stars; what a star is worth; whether stars line up with the path-point milestones (10 stars of 10 levels match `PATH_POINT_LEVEL_INTERVAL`).
+- Where the ball and stars show, and whether "Level N" and "xp / need XP" survive beside them: the cabinet (`%CoreOrb`, `%XpBeads`, `%LevelLabel`, `%XpLabel`), the Goals board's Breakthrough row (`%MilestoneRod`, `%MilestoneFigureLabel`), the Tribulation card (`%CoreRod`, `%CoreFigure`), the adventure end card.
+- How a kill shows what it paid: the tile summary (`AdventureTilemap.summary_for()`, "Won · 15 gold" today), a floater in the fight, the chest's Run ledger (`ExpeditionPage.set_run_stats()`), the end card, or the Goals board (under the vitals cabinet during a run, already following `core_density_level_updated`).
+- Left open by the code: whether COMBAT_AMBUSH pays the regular amount (no content uses it); `CORE_FULL_LOG`'s timing, since Task 1.13 set its wording and from now on it logs mid-run, at the kill that fills the core.
+
+### Files
+
+- Data: in `scripts/resource_definitions/`, `zones/zone_action_data/adventure_action_data/adventure_action_data.gd`, `cycling/advancement_stage/advancement_stage.gd` (also a `##` doc on `get_xp_for_level()`), `adventure/adventure_result_data.gd` (if the end card shows the run's total), and `zones/zone_action_data/tribulation_action_data/tribulation_action_data.gd` (if Core Density's line is reworded).
+- Logic: `scenes/adventure/adventure_tilemap/adventure_tilemap.gd`; `singletons/cultivation_manager/cultivation_manager.gd`; `scenes/adventure/adventure_view/adventure_view.gd`.
+- Scenes: `scenes/zones/cultivator_plate/cultivator_plate.gd` and `.tscn`; `scenes/ui/goals_panel/goals_panel.gd` and `.tscn`; `scenes/zones/zone_action_button/presenters/tribulation_presenter.gd` and `.tscn`; as the mock-ups show, `scenes/adventure/adventure_end_card/adventure_end_card.gd` and `.tscn` and `scenes/adventure/adventure_chest/expedition_page/expedition_page.gd`.
+- Content, every value written explicitly: `resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres` (the three amounts); in `resources/cycling/advancement_stages/`, `foundation_advancement_stage/foundation_advancement_stage.tres` (Task 4.3's curve, whose base cost and cap are omitted today, and the star count) and `copper_advancement_stage/copper_advancement_stage.tres` (the star count; its curve stays, as Copper has no content). Art: `assets/ui/lacquer/lacquer_core_stars_strip_ai.png`*, plus any smaller strip the card and the board need, all `_ai`.
+- Unit tests (`tests/unit/`): `test_fight_rules.gd`, `test_cultivation_manager.gd`, `test_cultivation_getters.gd`.
+
+---
+
+### Task outline
+
+- **Task 4.0: Mock-ups.** Boards: the star ball on the cabinet; the Goals board's Breakthrough row and the Tribulation card empty, part-way and full; a kill paying Core Density in the fight, on the tile, in the ledger and on the end card.
+- **Task 4.1: The kill reward rule.** The three amounts on `AdventureActionData`, written explicitly in `spirit_valley_adventure_action.tres`. `get_core_density_xp_for(encounter_type: AdventureEncounter.EncounterType, is_boss: bool) -> float`* pays the boss amount for `is_boss` or COMBAT_BOSS, the elite one for COMBAT_ELITE, the regular one for COMBAT_REGULAR (and COMBAT_AMBUSH if approved), else 0. `experience_multiplier` stays unread. Test: `test_fight_rules.gd` `test_core_density_reward_by_encounter_type` (a table with REST_SITE and NONE).
+- **Task 4.2: Pay at the kill.** Where Decided says, call `CultivationManager.add_core_density_xp(current_adventure_action_data.get_core_density_xp_for(get_encounter_at(get_current_tile()).encounter_type, _current_combat_choice.is_boss))`, skipped when `current_adventure_action_data` is null; a tile with no encounter counts as NONE. The run's total, `get_core_density_xp_earned() -> float`*, resets in `start_adventure_on_map()`. Tests walk to FIGHT, since a fight picked on START pays nothing: `test_adventure_tilemap_events.gd` `test_a_won_fight_pays_its_core_density_once` (a win reported twice pays once) and `test_core_density_is_kept_when_a_later_fight_is_lost`; `test_adventure_end_flow.gd` `test_the_boss_pays_its_core_density_before_the_run_ends`.
+- **Task 4.3: Retune the curve.** Write `core_density_base_xp_cost`, `core_xp_scaling_factor` and `max_core_density_level = 100` explicitly in `foundation_advancement_stage.tres`, so a full core takes 6–10 full clears at Task 4.1's amounts, about when phase 3's Spirit XP rates reach the Spirit cap. The PR description records both estimates, since no test pins shipped tuning ("What to test" in `docs/testing/TESTING.md`); `test_cultivation_manager.gd` `test_xp_for_level_follows_base_times_scaling` still covers the formula.
+- **Task 4.4: The star rule.** `AdvancementStageResource.core_density_star_count: int`*, written explicitly in both stage files, and `get_stars_lit(level: int) -> int`* (each star an equal share of `max_core_density_level`, unless approved otherwise). `CultivationManager.get_core_density_stars_lit() -> int`* and `get_core_density_star_count() -> int`* read the current stage. Test: `test_cultivation_manager.gd` `test_stars_lit_follow_the_level`, a table on `_make_stage()` stages: empty, one level short of a star, a star, the cap, and a stage of 40 levels.
+- **Task 4.5: The cabinet's star ball.** `CultivatorPlate._update_core_density()` shows the approved ball and stars on a `LacquerStripRect` over the new strip, in the room of `%CoreOrb` and `%XpBeads`; the board art `lacquer_cult_stats_ai.png` (Task 1.17) stays. Its rewritten tests check that the strip's frame follows `get_core_density_stars_lit()` and the stage's cap, and read any XP need from `CultivationManager.get_xp_for_next_level()`.
+- **Task 4.6: Stars on the Goals board and the Tribulation card.** `GoalsPanel._update_milestone()` and `TribulationPresenter._update_need()` show the Core Density requirement as stars beside Task 1.13's stat lines. If the mock-ups reword Core Density's line, `TribulationActionData.get_missing_requirements()` and `on_activation_rejected()` change with it. The rewritten card tests assert the stars lit.
+- **Task 4.7: A kill shows what it paid,** as approved: `summary_for()` gains the amount; `ExpeditionPage.set_run_stats()` gains the run's total, passed by `AdventureView._on_run_stats_changed()`; `AdventureResultData.core_density_xp_earned: float`*, which `AdventureView._build_result_data()` fills from Task 4.2's total and `AdventureEndCard._populate()` shows; or a floater in the fight. Tests: `test_adventure_end_flow.gd` `test_the_result_carries_the_runs_core_density`, through `_build_result_data()`; if the end card shows the total, a case in Task 2.3's `test_adventure_end_card.gd` reads its line.
+- **Task 4.8: Wrap.** `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1` passes, and one Shallow Woods dev run checks the stars and the kill display: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=adventure_open --save=user://dev/runs/phase4_core_density.tres`. The PR carries `## Docs to update` (below), Task 4.3's arithmetic and the story-order note.
+
+### Tests that break
+
+- Task 4.3: `test_cultivation_getters.gd` `test_xp_for_level_follows_the_stages_curve` (Foundation's 10 × 1.02^(L−1)) goes, with its section and header line.
+- Task 4.5: `test_cultivator_plate.gd` `test_beads_follow_xp` ("5 / 10 XP", from the level-1 cost of 10), `test_level_and_stage_text`, `test_core_fill_follows_a_level_up`, `test_core_fill_reads_the_stages_cap` and `test_losing_levels_ends_core_full` ("Level N", the orb's fill, the beads, "Core full").
+- Task 4.6, as Task 1.13 left them: in `test_goals_panel.gd` (on the "N / cap" figure, the rod's steps or "Raise Core Density to N"): `test_milestone_text`, `test_milestone_at_the_cap_asks_for_the_tribulation`, `test_milestone_follows_level_up`, `test_milestone_follows_the_stage_change`, `test_the_figure_returns_with_a_new_save`, `test_milestone_reads_the_stages_cap`, `test_npc_4_hands_the_board_to_the_breakthrough`, `test_milestone_lists_every_missing_requirement` and `test_a_full_core_waits_for_the_main_stats`; in `test_tribulation_card.gd`, `test_below_the_cap_shows_the_core_figure` and `test_card_follows_a_lost_level` ("Core 95 / 100", the rod) and `test_filling_the_core_readies_the_card` (its "Core 99 / 100" precondition). If Core Density's requirement line is reworded, also `test_rejected_click_below_the_cap_logs_why`, `test_rejected_click_names_every_missing_requirement`, and `test_tribulation_flow.gd` `test_the_trial_needs_a_full_core_and_both_main_stats_at_the_cap`.
+- Task 4.7, per the mock-ups: `test_adventure_tilemap_events.gd` `test_won_fight_summary` and `test_summary_for`, if the tile shows it; `test_expedition_page.gd` `test_run_ledger_values`, `test_ledger_keeps_the_latest_six`, `test_a_new_run_clears_the_ledger` and `test_the_ledger_does_not_touch_the_tile`, if `set_run_stats()` gains an argument.
+- Unaffected (checked): `test_cultivation_manager.gd` (its own stages); `test_play_stats_recording.gd` (fights picked on START, a NoOpEncounter of type NONE, pay nothing; it asserts no Core Density); `test_story_route.gd`, `test_save_presets.gd`, `test_dev_commands.gd` and `test_beat_3b_merchant_unlock.gd` (`DevCommands.reach_core_density()` or set levels work on any curve).
+
+### Risks
+
+- **Repeated wins, and the boss's early end.** `VitalsManager`'s Health setter emits on every set, so `AdventureCombat._on_enemy_health_changed()` reports a win again on each hit at 0 Health (`AdventureView._on_stop_combat()` and the gold line count it again), and the boss's `stop_action(true)` ends the run and builds the end card at once. → Pay once, in the once-per-fight block, before that call.
+- **Mid-run side effects.** `core_density_level_updated` now fires during runs: the Goals board refreshes, `UnlockManager` latches `q_reach_cd_10` (NPC 4) and `core_density_full` (the Tribulation card), path points land in the dock, and `CORE_FULL_LOG` logs. → All already work away from the zone view; the log's timing is a Task 4.0 question.
+- **Story order.** Kills pay from the first run, so `q_reach_cd_10` (latched at CD ≥ 10) opens NPC 4 before NPC 3, and the CD-10 path point comes before `q_first_steps`' free one. → Accepted until phase 6 reorders the beats; the PR description says so.
+- **Art and room.** The cabinet is a fixed board texture with absolutely placed children, and the Tribulation card is a 72 px drawer. → The stars fit the orb-and-beads room and the card's footer; changed board art is a new `_ai` file; a taller card uses `ZoneActionButton.set_tall()`.
+
+### Docs to update
+
+`CULTIVATION.md`, `ADVENTURING.md`, `breakthrough-tribulation.md`, `MAIN_VIEW.md`, `ZONES.md`, `PATH_PROGRESSION.md`, `FOUNDATION_PLAYTHROUGH.md`, `TESTING.md`; `UI_STYLING.md` if the star strip becomes a kit piece.
+
+---
+
+## Phase 5: Body refining and Health (outline)
+
+Branch `feat/stats-rework-5-body-refining`, cut from `main` after phase 4 merges; one PR. Task 5.0's approved mock-ups turn this outline into full tasks. Names outside the shared contract are proposals.
+
+### Goal
+
+One saved Health pool for home and runs, refilled at home only by body refining: drills on a board opened from a zone action. Each drill pays Strength XP plus at most one other Physical stat, and each rep restores Health, more with Strength. Auto unlocks after a perfect set; adventure manuals teach drills. Strength reaches the cap, so the breakthrough opens in play.
+
+### Decided
+
+- **Health:** one saved pool in `ResourceManager` (`SaveGameData.health`, a version step). A run leaves it as it is; at home only body refining refills it; in runs, rest tiles still heal it.
+- **Fix first (Task 5.1):** `AdventureCombat.initialize_combat()` connects `_on_player_health_changed` to `PlayerManager.vitals_manager.health_changed` and never disconnects it, so after one fight, Health reaching 0 anywhere (likelier once it persists) reports a lost fight.
+- **Health façade, as Task 2.2's for Madra:** the player's `VitalsManager` reads `current_health` and `max_health` from `ResourceManager.get_health()` and `get_max_health()`, a `current_health` write calls `set_health()`, `_apply_health_change()` calls `add_health(amount, true)`, and `health_changed` is re-emitted once, from `ResourceManager.health_changed`. `ChangeVitalsEffectData.process()`, which calls `apply_vitals_change()`, thus heals the saved pool unchanged (a test pins it). Enemies keep in-memory Health.
+- **Task 2.1's over-max rule:** `ResourceManager._on_stats_changed()` clamps Health behind its guard (skip while `CharacterManager.live_save_data != live_save_data`, as `CharacterManager` re-binds and emits first on a save reset), and so does `_update_resources()`.
+- **Body refining:** `ZoneActionData.ActionType.BODY_REFINING = 8` (after `TRIBULATION = 7`, pinned), `BodyRefiningActionData`, `BodyRefiningManager` (an autoload modelled on `CyclingManager`), `DrillData`, `DrillRules`. A drill refills Health and pays Strength XP plus at most one minor (`DrillData.minor_stat: int`: `BODY`, `AGILITY` or -1, like Task 3.1's `CyclingTechniqueData.minor_stat`); Strength raises Health per rep. XP goes through `CharacterManager.add_stat_xp()` (Task 1.3): lost at the cap, while Health still refills.
+- Auto unlocks per drill after a perfect set (`SaveGameData.auto_drill_ids: Array[String]`, like Task 3.7's list; drill ids are Strings). Manuals drop on adventures. The gate stays Task 1.13's `TribulationActionData.can_attempt()`.
+
+**(Claude's call)**, open to the mock-ups: one starting drill per save (as `foundation_technique` is); the action unlocks on `q_fill_core_completed` with the adventure, so a hurt player can always refill; Stamina stays per run; the card warns below half Health; XP flows at full Health; run starts refill Health through the façade until Task 5.17, keeping each commit playable.
+
+### Settled at the mock-up step
+
+- The design's list: the drill roster and each drill's minor stat, how manuals drop and teach (pickup or use), combinations, Auto's rate and whether it runs beside Auto cycling (one wait between runs or two), a lost run's cost, and whether a consumable heals Health (none does today).
+- Each drill's input (hold and release in the band, hold steady, click to catch, press on the beat), a set's reps, and how PERFECT, GOOD and OK are judged.
+- Drawers in the chest or a picker on the board; a running set in the Now strip or not.
+- The cabinet's Health readout (orb or row), the book's Health line, the Goals board's new place.
+- Low Health: a warning, or also a refusal in `ActionManager.select_action()` beside the Madra one (below half, or at 0).
+- The Aura Well rest tile (`aura_well_encounter.tres`, `body_hp_multiplier = 5.0`): kept or retuned.
+- Drill XP pellets (after Task 3.11's), result and log lines, a `PlayStatsData` set count, the action's name and card text.
+
+### Files
+
+Create:
+- `scripts/resource_definitions/zones/zone_action_data/body_refining_action_data/body_refining_action_data.gd`: `BodyRefiningActionData extends ZoneActionData`, whose `_init()` sets `action_type = ActionType.BODY_REFINING`.
+- `scripts/resource_definitions/body_refining/drill/`: `drill_data.gd` (`DrillData`: `id: String`, `drill_name: String`, `icon: Texture2D`, `minor_stat: int`, `strength_xp_per_rep: float`, `minor_xp_per_rep: float`, `health_per_rep: float` at Strength Lv 1, the input's fields) and `drill_list.gd` (`DrillList`: `drills: Array[DrillData]`); `resources/body_refining/drills/drill_list.tres` and `resources/body_refining/drills/<drill_id>/<drill_id>.tres` per drill, every value written out.
+- `singletons/body_refining_manager/body_refining_manager.gd`, the autoload `BodyRefiningManager` right after `CyclingManager` in `project.godot`.
+- `scenes/body_refining/drill/`: `drill_rules.gd` (statics), `drill_set_result.gd` (a RefCounted), `drill_run.gd` (judges a set at exact times, like `scripts/tribulation/tribulation_run.gd`), `drill_play.gd` and `.tscn` (an injectable `clock_usec: Callable`, like `TribulationView`'s).
+- `scenes/body_refining/body_refining_view/body_refining_view.gd` and `.tscn` (after `CyclingView`), `scenes/ui/main_view/states/body_refining_view_state.gd`, `scenes/zones/zone_action_button/presenters/body_refining_presenter.gd` and `.tscn`, `resources/zones/spirit_valley_zone/zone_actions/body_refining_action.tres`.
+- If approved: `scenes/body_refining/drill_drawer/drill_drawer.gd` and `.tscn`, `scenes/zones/zone_panel/drill_drawer_list/drill_drawer_list.gd` and `.tscn`; manual items such as `resources/items/quest_items/<manual_id>.tres`. Art only as `_ai` files; the cabinet can reuse `assets/ui/lacquer/lacquer_orb_health_ai.png`.
+- `tests/unit/`: `test_body_refining_action_data.gd`, `test_drill_data.gd`, `test_drill_rules.gd`, `test_body_refining_manager.gd`, `test_body_refining_view_state.gd`; `tests/integration/`: `test_drill_play.gd`, `test_body_refining_view.gd`, `test_drill_manuals.gd`.
+
+Modify:
+- `singletons/`: `persistence_manager/save_game_data.gd`, `resource_manager/resource_manager.gd`, `player_manager/player_manager.gd` (`reset_vitals()`'s doc: Health is the save's), `action_manager/action_manager.gd`, `zone_manager/zone_manager.gd`, `dev_manager/dev_commands.gd`, `dev_manager/dev_manager.gd`.
+- `scenes/combat/combatant/vitals_manager/vitals_manager.gd`, `scenes/combat/adventure_combat/adventure_combat.gd`, `scenes/adventure/adventure_view/adventure_view.gd` (`_initialize_combat_resources()`; `stop_adventure()` if runs may start at 0 Health).
+- `scenes/zones/cultivator_plate/cultivator_plate.gd` and `.tscn`, `scenes/character/character_view.gd`, `scenes/ui/main_view/states/zone_view_state.gd` (`GOALS_POSITION`), `scenes/ui/dev_panel/tabs/player_tab.gd` and `.tscn`.
+- `scenes/zones/zone_action_button/`: `zone_action_button.gd`, `presenters/adventure_presenter.gd` and `.tscn`. `scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd`, `scripts/utils/zone_action_groups.gd`, `resources/zones/spirit_valley_zone/spirit_valley_zone.tres`.
+- `scenes/main/main_game/main_game.tscn` (`BodyRefiningView` hidden at z_index 3, after `TribulationView` and before `BoardTransition`; `BodyRefiningViewState` under `MainViewStateMachine`; the GoalsPanel) and `scenes/ui/main_view/main_view.gd` (`@onready var body_refining_view` and `body_refining_view_state`, their `scene_root` line in `_ready()`, a cabinet hand-over like `_hand_cabinet_to_cycling_view()`).
+- The encounters under `resources/adventure/encounters/shallow_woods/` that drop manuals, each through a `LootTableEntry`, as `combat_encounters/elite/ravenous_dreadbeast_encounter.tres` drops its necklace.
+- If the mock-ups need them: a drills chest (`scenes/zones/zone_panel/zone_panel.gd`, `scenes/ui/main_view/board_transition/board_transition.gd`, `board_transition_spec.gd`); the Now strip (`scenes/zones/zone_panel/now_strip/now_strip.gd`); an appended manual item type (`scripts/resource_definitions/items/item_definition_data.gd`, `singletons/inventory_manager/inventory_manager.gd`); a set count (`singletons/persistence_manager/play_stats_data.gd`: `sets_finished`, `count_set_finished()`); a `drill_press` input action (`project.godot`); `docs/inventory/ITEMS.md`'s Quest items section, which names the map as the only quest item (code reads this doc, so it changes in the PR).
+
+---
+
+### Task outline
+
+Test files are named without their folder.
+
+- **Task 5.0: Mock-ups.** A new Design canvas, "Body refining and Health" (the old Body Refining canvas has the old stats), answering the list above, with a manual on the end card and in the inventory and the Physical stat pages. Lionel approves it before UI tasks 5.4, 5.5, 5.10–5.12, 5.14–5.16, 5.18 and 5.20.
+- **Task 5.1: The fight lets go of Health.** `AdventureCombat.stop()` disconnects `_on_player_health_changed`. `test_adventure_combat_victory_event.gd` `test_health_at_zero_after_the_fight_reports_nothing`: win, `stop()`, `LETHAL_DAMAGE` on the player; `_combat_ends.size()` stays 1.
+- **Task 5.2: Saved Health.** `SaveGameData.health`, defaulting to the const `HEALTH_UNSET = -1.0`; `CURRENT_VERSION = 3` (or the next free number), with `_migrate_to_v3()` writing the sentinel explicitly. `ResourceManager`: `signal health_changed(new_amount: float)` and twins of the Madra functions as Task 2.1 leaves them, held to [0, max]: `get_health()`, `get_max_health()` (the `StatModifierData.Stat.MAX_HEALTH` stat), `add_health(amount, quiet = false) -> float`, `spend_health(amount) -> bool`, `set_health(amount)`, plus `is_health_low()`, below `LOW_HEALTH_RATIO := 0.5` of the max. `_update_resources()` fills a negative Health to the max, clamps one above it, and emits; `_on_stats_changed()` clamps behind its guard. `test_resource_manager.gd`: `test_add_health_keeps_the_pool_between_zero_and_max`, `test_spend_health_refuses_more_than_the_pool`, `test_an_unset_health_binds_full`, `test_health_above_a_lowered_max_is_clamped`, `test_a_save_swap_leaves_the_old_saves_health_alone`; `test_save_migration.gd`: `test_v3_leaves_health_for_the_bind_to_fill`.
+- **Task 5.3: The player's Health is the pool.** The façade; until Task 5.17, `initialize_current_values()` fills Health through it. `test_player_vitals_manager.gd`: `test_player_health_reads_and_writes_the_saved_pool`, `test_each_health_change_reaches_the_vitals_once`, `test_an_enemys_health_is_its_own`; `test_change_vitals_effect_data.gd`: `test_process_heals_the_saved_pool`.
+- **Task 5.4: The cabinet and the book show it.** `CultivatorPlate`'s readout, with `get_health_orb_global_position()`, `hold_health()` and `release_health()` as for Madra; the Goals board moves if the cabinet grows (`ZoneViewState.GOALS_POSITION` and `goals_panel.tscn`'s root, not `AdventureViewState.GOALS_POSITION`), and the open full log still covers it exactly (`LogWindow` stays `GoalsPanel`'s later sibling, and `FULL_LOG_HEIGHT` becomes 1056 − the Goals board's new y, with `log_window.tscn`'s `FullBoard` and `FullLogText` re-cut to whole lines, as Task 1.17 cuts them); `CharacterView.fight_lines()`'s Health reads "current / max", rebuilt on `ResourceManager.health_changed` (Task 2.4's Madra pattern). `test_cultivator_plate.gd`: `test_shows_health_over_max`, `test_health_follows_its_signal`, `test_held_health_shows_once_released`; `test_character_book.gd`: `test_the_health_line_shows_the_saved_pool`, reading `fight_lines()`.
+- **Task 5.5: The low-Health warning.** `AdventurePresenter` warns while `is_health_low()`, following `health_changed`; an approved refusal joins the Madra one in `select_action()`. `test_resource_manager.gd`: `test_health_is_low_below_half` (a table); `test_zone_action_cards.gd`: `test_adventure_card_warns_below_half_health`, `test_the_warning_clears_when_health_refills`; with a refusal, `test_adventure_flow.gd`: `test_low_health_blocks_adventure`.
+- **Task 5.6: The BODY_REFINING type.** The enum value, `BodyRefiningActionData`, cycling's ActionManager signals and handlers renamed for it (`start_body_refining(action_data: BodyRefiningActionData)`, `stop_body_refining()`, `_execute_body_refining_action()`, `_stop_body_refining_action(successful: bool)`), with a branch each in `_execute_action()` and `_stop_executing_current_action()`; `ZoneActionGroups.group_of()` CULTIVATE and `mode_tag()` "ACTIVE". `test_body_refining_action_data.gd`: `test_body_refining_type_is_eight`, `test_selecting_starts_body_refining_and_stopping_stops_it`, `test_stopping_runs_the_completion_effects`; rows in `test_zone_action_groups.gd`'s `test_group_of_each_type` and `test_mode_tags`.
+- **Task 5.7: Drill data and the approved drills.** `test_drill_data.gd`: `test_each_drill_trains_at_most_one_physical_minor` (over `drill_list.tres`: `strength_xp_per_rep` > 0; `minor_stat` -1, BODY or AGILITY), `test_drill_ids_are_unique`.
+- **Task 5.8: `DrillRules` and `DrillSetResult`.** `enum Tier { OK, GOOD, PERFECT }`, the approved judge, `xp_for_rep(base_xp, tier)`, `health_for_rep(drill, tier, strength)` (in the shape Task 3.2 gives Spirit's Madra; Claude's proposal: `health_per_rep` × the tier's factor × `strength / CharacterAttributesData.STAT_BASELINE`) and `perfect_set_xp(drill, stat)`; `DrillSetResult.is_perfect()`, `summary()`, `log_line()`. Table tests for each in `test_drill_rules.gd`.
+- **Task 5.9: `BodyRefiningManager`.** The catalog; saved fields named as cycling's (`unlocked_drill_ids`, default the starting drill; `equipped_drill_id`; `seen_drill_ids`; `seen_drills_initialized`) plus `auto_drill_ids`; CyclingManager's technique API with drill for technique (`unlock_drill()`, `get_equipped_drill()`, …), `unlock_auto()`, `is_auto_unlocked()`; signals `drill_unlocked`, `equipped_drill_changed` and `auto_unlocked`, each with the `DrillData`; `pay_rep(drill, tier, result: DrillSetResult)`, paying XP through `add_stat_xp()` and Health through `ResourceManager.add_health(..., true)` at `CharacterManager.get_stat(StatModifierData.Stat.STRENGTH)`. `ZoneManager._on_drill_unlocked()` marks the card NEW, as `_on_technique_unlocked()` does. `test_body_refining_manager.gd`: `test_a_rep_pays_strength_the_minor_and_health`, `test_a_capped_strength_still_refills_health`, and `test_cycling_manager.gd`'s tests from `test_default_save_has_foundation_unlocked` to `test_save_reset_runs_the_first_pass_on_the_new_save`, drill for technique; `test_seen_actions.gd`: `test_drill_unlock_lights_the_body_refining_card`.
+- **Task 5.10: Drill play, one task per approved input.** `DrillRun`, and `DrillPlay` (`start_set() -> bool`, `stop_set()`, `handle_press_event(event) -> bool`, signals `rep_scored(tier)` and `set_completed(result: DrillSetResult)`), which pays each scored rep through `pay_rep()`. `test_drill_play.gd`: `test_a_set_scores_and_pays_each_rep`, at exact `clock_usec` times.
+- **Task 5.11: The board and its state.** `BodyRefiningView`; `BodyRefiningViewState` opens and closes through `BoardTransition` like `CyclingViewState` and takes input like `TribulationViewState` (`ui_cancel` stops the action; presses go to `DrillPlay.handle_press_event()`); the MainView and main_game.tscn wiring. `test_body_refining_view_state.gd`: `test_tribulation_view_state.gd`'s push, close, reversal, press and `test_main_game_holds_the_board_and_its_state` tests, plus `test_escape_stops_the_action`; `test_body_refining_view.gd`: the status line, Health pellets landing in the cabinet, the close button stopping the action. `BOARD_SCENES` in `test_boards_never_trim_text.gd` gains the board; `test_cycling_mode.gd::test_main_game_names_the_zone_furniture_for_main_view` asserts `%BoardTransition` after `%BodyRefiningView`.
+- **Task 5.12: The card.** `BodyRefiningPresenter` in `PRESENTER_SCENES`. `test_zone_action_cards.gd`: `test_body_refining_detail`.
+- **Task 5.13: In Spirit Valley.** `body_refining_action.tres` (`action_type = 8`), unlocked by `q_fill_core_completed`, in `all_actions`; `test_story_route.gd::test_the_route_covers_the_story` stays green (beat_1 reaches `q_fill_core_completed`).
+- **Task 5.14: Drill drawers, only if approved.** A drills mode beside `ZonePanel.set_techniques_mode()`, whose API stays. Drills-mode tests in `test_zone_panel.gd` and `test_board_transition.gd`. The techniques-mode tests stay green: `test_board_transition.gd`'s `test_the_chest_swaps_at_the_swap_point_both_ways`, `test_a_row_freed_mid_slide_is_skipped` and `test_a_list_rebuilt_mid_slide_ends_at_rest`, `test_cycling_mode.gd`'s `is_techniques_mode()` assertions, and `test_zone_panel.gd`'s.
+- **Task 5.15: A running set in the Now strip, only if approved.** A set session on `BodyRefiningManager`, like `CyclingManager.start_cycle_session()`. `test_zone_panel.gd`: `test_strip_shows_a_running_set`.
+- **Task 5.16: Auto after a perfect set.** `BodyRefiningView` unlocks the equipped drill's Auto when `set_completed` carries `is_perfect()`; Auto then plays reps at the approved rate, like Task 3.8's. `test_body_refining_manager.gd`: `test_auto_unlock_is_saved_per_drill`; `test_body_refining_view.gd`: `test_auto_stays_locked_until_a_perfect_set`, `test_a_perfect_set_unlocks_auto`; `test_drill_play.gd`: `test_auto_plays_reps_at_the_auto_rate`.
+- **Task 5.17: Health comes home.** `initialize_current_values()` stops filling the player's Health; `DevCommands.refill_vitals()` adds `ResourceManager.set_health(ResourceManager.get_max_health())`; if runs may start at 0 Health, `AdventureView.stop_adventure()` classifies a loss by a flag the lost fight sets. `test_adventure_view_frame.gd`: `test_health_comes_home_from_a_run`; `test_dev_adventure_commands.gd::test_refill_vitals_keeps_the_run_madra` also checks Health refills.
+- **Task 5.18: Manuals.** A manual teaches its drill through `BodyRefiningManager.unlock_drill()`, on pickup or on use as approved. `test_drill_manuals.gd`: `test_a_looted_manual_teaches_its_drill`, `test_a_second_copy_teaches_nothing`, `test_every_manual_drops_in_the_shallow_woods`; `test_inventory_manager.gd`, if a new item type is added.
+- **Task 5.19: Combinations, as approved.** `test_body_refining_manager.gd`: `test_a_combined_rep_pays_each_minor_once`.
+- **Task 5.20: The Physical pages count the sets to the next level.** Each Physical page gives about how many perfect sets of the equipped drill its next level takes (`perfect_set_xp()`); the book names no trainers (Task 1.0's answer). `test_character_book.gd`: `test_a_physical_stat_counts_the_sets_to_its_next_level`.
+- **Task 5.21: Drills open the trial (test only).** `test_tribulation_flow.gd` `test_strength_trained_by_drills_opens_the_trial`: `DevCommands.reach_core_density(100)` and `DevCommands.set_stat_level(&"spirit", CharacterManager.get_stat_level_cap())`, then `BodyRefiningManager.pay_rep()` until `CharacterManager.is_stat_capped(STRENGTH)`; `select_action()` then starts the trial.
+- **Task 5.22: Dev tools.** `DevCommands.set_health(value)` (refuses below 0 or past the max), `unlock_drill(drill_id)`, `equip_drill(drill_id)` and `unlock_all_drills()`, each returning "" or the refusal; the player tab's Health and drill controls; `_tear_down()` ends Task 5.15's set session, if built. `test_dev_commands.gd`: `test_set_health_sets_exactly_and_refuses_past_the_max`, `test_unlock_and_equip_drill`, `test_drill_commands_refuse_an_unknown_id_and_equip_refuses_a_locked_one`; `test_dev_panel.gd`: `test_player_tab_sets_health`; `test_dev_manager_sessions.gd::test_teardown_clears_the_runtime_state`, with a set session.
+- **Task 5.23: Wrap.** `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1` passes. The PR has a `## Docs to update` list and says the breakthrough can be reached in play again, so an itch build is possible; Lionel publishes by hand.
+
+### Tests that break
+
+Updated in the task named:
+- 5.2, 5.9: `test_save_round_trip.gd::test_the_full_save_leaves_no_field_at_its_default`: `_full_save()` sets `health`, the drill fields, and `stats.sets_finished` if sets are counted.
+- 5.3: `test_dev_hooks.gd::test_reset_vitals_gives_a_fresh_vitals_manager` expects the save's Health, not 0, and `ResourceManager.health_changed` keeping its connection count (Task 2.2's Madra check). `test_vitals_plate.gd`'s `test_shows_the_runs_vitals`, `test_orbs_fill_to_the_fraction`, `test_health_rounds_up_and_the_rest_round_down` and `test_follows_the_vitals_signals` write a max Health of 160, which the façade ignores: a FLAT `Stat.MAX_HEALTH` bonus beside Task 2.2's MAX_MADRA one sets it, then `ResourceManager.set_health()`; the figures stay.
+- 5.4, if the cabinet grows: `test_main_game_layout.gd::test_the_furniture_keeps_its_places_through_an_editor_save` moves the GoalsPanel's pin in `PLACES` down from Task 1.17's (24, 524) by as many px as the cabinet grows.
+- 5.4: `test_character_book.gd::test_in_a_fight_lists_every_total`: Health's value becomes "current / max".
+- 5.6: `test_idle_action_resolution.gd::test_is_idle_action_is_foraging_and_training_only` classifies every `ActionType`: add `BODY_REFINING: false`.
+- 5.13: `test_zone_panel.gd::test_count_label`: "10 here" becomes "11 here".
+- 5.17: `test_player_vitals_manager.gd::test_new_max_health_fills_the_next_run` becomes `test_a_run_starts_at_the_saved_health`; `test_adventure_view_frame.gd::test_gear_equipped_before_the_run_raises_the_cabinets_max_health` drops "and the run starts at that maximum"; if runs may start at 0 Health, `test_adventure_end_flow.gd::test_zero_health_counts_a_lost_adventure`, which sets Health to 0 before the run.
+- Rerun after 5.3, expected green since each writes into the save it bound or a save's own Health back (checked): the other writers of the player's `current_health`, directly or through `adventure_map_fixture.gd`'s `swap_in_known_vitals()`: `test_adventure_combat_victory_event`, `test_fight_rules`, `test_technique_dock`, `test_technique_dock_consumables`, `test_combat_consumable_manager`, `test_adventure_map_zoom`, `test_adventure_tilemap_events`, `test_play_stats_recording`, `test_adventure_end_flow`, `test_dev_commands`, `test_dev_adventure_commands`.
+
+### Risks
+
+- **"Full" depends on Body and gear, and the text saver skips defaults:** the `HEALTH_UNSET` sentinel, filled at bind, once `CharacterManager` (whose gear source reads its own save) gives the new max; `_migrate_to_v3()` writes it explicitly.
+- **A half-built action type** (no stop signal or completion effects without its ActionManager branches; its card under Visit, tagged STORY, without a group, tag and presenter): Tasks 5.6 and 5.12.
+- **Unattended Auto** (board closed, or beside Auto cycling) breaks one action at a time and four idle checks (`ActionManager.is_idle_action()`, `ZoneActionButton._is_idle_action()`, `NowStrip._is_idle()`, `MapMarkers._is_idle()`): Task 5.16 reuses Task 3.8's Auto; both at once goes back to Lionel.
+- **The cycling-only chest flag** (`ZonePanel`, `BoardTransition._apply_chest()`, `BoardTransitionSpec.swaps_chest`, `MainView.open_board()`'s instant path): Task 5.14's drills mode sits beside `set_techniques_mode()` and `is_techniques_mode()`; without drawers the spec sets `swaps_chest = false`, as the Tribulation's does.
+- **The click shield** covers only boards before `BoardTransition` in main_game.tscn: Task 5.11.
+- **Manual pickups:** `InventoryManager.award_items()` emits `item_awarded` before matching the type (an unsupported type shows in the loot, never stored), and item-award effects lack `describe()` (the tile reads "Done"): Task 5.18 uses a stored type or tests a new branch, and tests learning end to end.
+- **Late latches:** UnlockManager re-checks only on events, stage changes, Core Density level, Madra and gold, so ITEM_OWNED or ATTRIBUTE_VALUE gates lag: the action unlocks on an event, and manuals teach through `BodyRefiningManager`.
+- **A run at 0 Health:** `AdventureView.stop_adventure()` checks `current_health <= 0` before the timer, so a retreat counts as a loss: Task 5.17's flag, unless Task 5.0 refuses such runs.
+- **Shared config:** the autoload and any input action edit `project.godot`; the board closes on `ui_cancel` like the Tribulation (cycling's key is `close_cycling_view`), and each `project.godot` edit is committed with its task.
+
+### Docs to update
+
+- `docs/infrastructure/`: `RESOURCES.md` (the Health pool), `PERSISTENCE.md` (the version step, `health`, the drill fields), `CHARACTER.md` (Strength from drills, Health per rep, the book's Health line), `EFFECTS.md` (`ChangeVitalsEffectData` heals the saved pool), `MAIN_VIEW.md` (the board's state and keys, the cabinet's Health, the Goals board's place), `UNLOCKS.md` (only if a condition is added).
+- `docs/combat/COMBAT.md` (the fight's Health handler lives only for the fight), `docs/adventuring/ADVENTURING.md` (Health comes home, rest tiles heal the saved pool, the warning, manuals in loot), `docs/zones/ZONES.md` (the action, card, chest, Now strip), `docs/inventory/INVENTORY.md` (manuals).
+- `docs/cultivation/CULTIVATION.md` and `breakthrough-tribulation.md` (the breakthrough is reachable in play), `docs/progression/FOUNDATION_PLAYTHROUGH.md`, `docs/tooling/DEV_TOOLS.md`, `docs/testing/TESTING.md` (the player's Health belongs to the bound save).
+- New `docs/body_refining/BODY_REFINING.md`, with its `docs/README.md` row; `CLAUDE.md` (the singleton count, the built systems).
+
+---
+
+## Phase 6: Quests and story (outline)
+
+Branch `feat/stats-rework-6-quests`, cut from `main` after phase 5 merges; one PR. Task 6.0's approved mock-ups turn this outline into full tasks.
+
+### Goal
+
+The Foundation quests teach the new loop: train at home (cycling grows Spirit and refills Madra, body refining grows Strength and refills Health), fight for Core Density, and break through with a full core and Strength and Spirit capped. The Intervener stops teaching the old loop, the chain stays in order now that kills pay Core Density, and the route and presets play the new beats.
+
+### Decided
+
+Elixir quests stay out, with elixirs. Phase 6 owns dialogue and quest copy only: the cycling copy (`CyclingPresenter.REWARD_TEXT`, the `torrential_flow.tres` path node) is Task 3.10's; the breakthrough copy (`CultivationManager.CORE_FULL_LOG`, `foundation_tribulation.tres`'s `intro_text`, `tribulation_action.tres`, the `tribulation_ready` preset's description) Task 1.13's, and `CORE_FULL_LOG`'s timing phase 4's.
+
+What the code shows must be fixed:
+- **The chain opens out of order.** NPC 4 (`celestial_intervener_dialogue_4.tres`) is gated only on `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10, latched). Today only Smooth Flow pays Core Density, bought with the path point `q_first_steps` pays at NPC 3; once kills pay it, NPC 4 can show beside NPC 3 in the first runs. Talked to first, it fires `celestial_intervener_dialogue_4`, and `QuestManager._retroactive_advance()` completes `q_reach_core_density_10` as soon as NPC 3 starts it.
+- **False lines** in `assets/dialogue/timelines/celestial_intervener_introduction_1.dtl`: line 16 (`dialogue_3`) says to strengthen the core by cycling, which pays no Core Density from phase 3; line 4 (`dialogue_1`) and `celestial_intervener_dialogue_2.tres`'s description ("With your core now full") call the Madra pool the core, though "Core full" means Core Density 100 elsewhere, and line 4 closes its colour tag with `[color]`; line 21 (`dialogue_4`) reports the Core Density 10 beat.
+- **Body refining has no beat;** phase 5 unlocks it with the adventure, on `q_fill_core_completed`.
+
+What stays **(Claude's call)**:
+- Pattern B and the rules of `docs/progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md`; in the spirit of its rule 2, every return NPC also requires the previous NPC's event.
+- The event ids other content gates on: `celestial_intervener_dialogue_1` (cycling, the Test Zone), `q_fill_core_completed` (adventure, foraging, body refining), `q_first_steps_enemy_defeated` (fired in `AdventureCombat._on_enemy_health_changed()`), `aura_well_discovered`, `merchant_discovered`, `core_density_full`.
+- Quest and beat ids, wherever the content keeps its meaning (saves hold `quest_progression.active_quests`, quest id → step index, and `completed_quest_ids`; presets and tests name beats); new content gets new ids.
+- Task 1.14's steps raising Strength and Spirit to the cap, in `beat_9_ready`, which the `tribulation_ready` and `copper` presets build on.
+
+### Settled at the mock-up step
+
+- The beat order: which beats teach cycling, body refining and fighting, and in what order.
+- Whether "Harden Your Core" keeps a Core Density 10 target, and `q_first_steps` its free path point, now that kill-paid milestones pay one.
+- New quests (say a body refining beat): steps, criteria, rewards, the NPC that starts each; new NPC beats as labels `dialogue_5` onward in the same timeline.
+- The new lines for every changed label, and the player-facing word for the Madra pool.
+- Which NPC puts the breakthrough on the Goals board (`breakthrough_goal_condition` in `foundation_advancement_stage.tres`, today `celestial_intervener_dialogue_4`); any new presets, such as one at the body refining beat.
+
+### Files
+
+Modify:
+- `resources/quests/q_fill_core.tres`, `q_first_steps.tres`, `q_reach_core_density_10.tres`, `quest_list.tres`.
+- `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_1.tres` to `_4.tres` (`unlock_conditions`, `success_effects`, `description`); `resources/zones/spirit_valley_zone/spirit_valley_zone.tres`, only for new NPC actions.
+- `resources/unlocks/q_reach_cd_10.tres` (its target, or removed with its registration) and `resources/unlocks/unlock_condition_list.tres`.
+- `assets/dialogue/timelines/celestial_intervener_introduction_1.dtl`.
+- `resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres` (`breakthrough_goal_condition`), only if the chain's last NPC changes.
+- `resources/dev/story_route.tres`, `resources/dev/save_presets/*.tres`.
+- Only if needed: a criterion type (`scripts/resource_definitions/unlocks/unlock_condition_data.gd`, `singletons/unlock_manager/unlock_manager.gd`); a step kind (`scripts/resource_definitions/dev/dev_step_data.gd`, `singletons/dev_manager/dev_commands.gd`); a version step (`singletons/persistence_manager/save_game_data.gd`).
+
+Create:
+- `resources/unlocks/celestial_intervener_dialogue_2.tres` and `celestial_intervener_dialogue_3.tres`: EVENT_TRIGGERED on the event of the same name, registered in `unlock_condition_list.tres` (`_1` and `_4` exist); one more per further gate the approved chain needs.
+- Per new quest, NPC beat or preset: `resources/quests/q_<id>.tres`, `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_<N>.tres`, `resources/dev/save_presets/<preset_id>.tres`.
+- `tests/integration/test_foundation_quest_chain.gd`, `tests/unit/test_npc_dialogue_labels.gd`.
+
+---
+
+### Task outline
+
+Test files are named without their folder.
+
+- **Task 6.0: Mock-ups.** A new Design canvas, "Quests and story", answering the list above: the beats as a flow, each quest's steps and rewards, each step's Goals board row, the Intervener's lines as copy. Lionel approves it before Task 6.2.
+- **Task 6.1: The chain can't open out of order.** NPCs 2, 3 and 4 each add the previous NPC's event condition to `unlock_conditions`. `test_foundation_quest_chain.gd` `test_no_return_npc_shows_before_the_one_before_it`, a table over NPCs 2 to 4: meet the NPC's own condition early through `DevCommands` (`set_madra(100.0)`, `trigger_event("q_first_steps_enemy_defeated")`, `reach_core_density(10)`), check it stays out of `ZoneManager.get_available_actions()`, then complete the previous NPC (`DevCommands.complete_action()`) and check it shows.
+- **Task 6.2: Quest data.** The approved quests, `quest_list.tres`, every condition registered, and the tests pinning the old names and targets. `test_foundation_quest_chain.gd`: `test_every_condition_a_step_or_npc_uses_is_registered`.
+- **Task 6.3: NPC actions.** Pattern B effects in order (`TriggerEvent`, then `StartQuest`), descriptions, and the breakthrough goal on the approved NPC. `test_foundation_quest_chain.gd`: `test_each_npc_completes_one_quest_and_starts_the_next`; `test_cultivation_getters.gd::test_foundations_breakthrough_goal_waits_for_npc_4`, renamed if the NPC changes.
+- **Task 6.4: Dialogue.** The changed lines and new labels in the timeline, and line 4's `[/color]`; wording is checked by eye. `test_npc_dialogue_labels.gd` `test_every_npc_action_jumps_to_a_label_of_its_timeline`: each NPC action's `dialogue_timeline_name` resolves through `project.godot`'s `[dialogic] directories/dtl_directory` to a file holding `label <dialogue_timeline_label_jump>`.
+- **Task 6.5: A new step criterion, only if the mock-ups add one** (such as a stat level): appended to `UnlockConditionData.ConditionType`, re-checked by `UnlockManager` on `CharacterManager.stat_level_changed`, and measurable (`is_measurable()`, `get_current_value()`, `get_target_value()`) so the Goals board shows a figure. A row in `test_unlock_condition_progress.gd::test_measurable_conditions_read_current_and_target`; a figure test in `test_goals_panel.gd`.
+- **Task 6.6: The story route.** Beats in the approved order, a step for every criterion; a criterion with no step kind gets an appended `DevStepData.Kind` (after Task 1.14's `RAISE_STAT_TO_CAP = 13`), its `DevCommands` command and its check in `test_story_route.gd`. `test_story_route.gd::test_the_route_validates` and `::test_the_route_covers_the_story`; `test_dev_preset_data.gd::test_kind_numbers_never_change`, if a kind is added.
+- **Task 6.7: Presets.** Each preset's `story_through`, plus approved new presets. `test_save_presets.gd`: `STARTING_PRESETS`, `test_the_starting_presets_start_where_the_spec_says`, `test_every_preset_validates_and_builds`.
+- **Task 6.8: Old saves' quest progress, only if a kept quest's steps change.** A version step, numbered after phase 5's, moves the indices in `quest_progression.active_quests` to the new steps. `test_save_migration.gd`: `test_v4_moves_an_active_quest_to_its_new_step` (v4 if phase 5 took v3).
+- **Task 6.9: Wrap.** The full suite passes, and the PR has a `## Docs to update` list. After the merge, the milestone docs (`docs/STATE_OF_THE_GAME.md`, `docs/GAMEPLAY_STATE.md`, `docs/CODEBASE_STATE.md`) get a docs PR of their own.
+
+### Tests that break
+
+These pin today's chain; each is updated in the task that changes what it pins.
+- `test_goals_panel.gd`: `test_quest_row_shows_current_step` and `test_reads_active_quest_on_ready` ("Awaken Your Core"); `test_shows_the_first_active_quest` and `test_refreshes_on_save_reset` ("First Steps Out"); `test_figure_follows_madra` ("60 / 100"); `test_a_quest_before_npc_4_stands_alone` and `test_npc_4_hands_the_board_to_the_breakthrough`.
+- `test_beat_3b_merchant_unlock.gd::test_full_beat_3b_flow` shows NPC 4 by reaching Core Density 10 alone; from Task 6.1 it completes NPC 3 first. It also breaks if the map moves to another quest.
+- `test_journal_page.gd` ("Harden Your Core" gave the map) and `test_quest_item_link.gd::test_refugee_camp_map_belongs_to_harden_your_core`.
+- `test_unlock_condition_progress.gd::test_measurable_conditions_read_current_and_target`: `q_fill_core_madra_full` at 100, `q_reach_cd_10` at 10.
+- `test_cultivation_getters.gd::test_foundations_breakthrough_goal_waits_for_npc_4`, if the goal moves.
+- Both tests in `test_story_route.gd`, and `STARTING_PRESETS` in `test_save_presets.gd`, until Tasks 6.6 and 6.7.
+- Only if the ids they name go away: `test_dev_hooks.gd` (the three quest ids); `test_dev_manager_build.gd` (`q_reach_cd_10`, NPC 4); `test_dev_panel_story_tab.gd` (`beat_1`, `beat_2`, NPCs 1, 2 and 4, `q_fill_core`, "Locked: needs q_fill_core_madra_full"); `test_dev_panel_saves_tab.gd` (NPC 4, `q_fill_core_completed`); `test_dev_preset_data.gd` (NPCs 1 and 2, `q_fill_core.tres`).
+- Green while the kept event ids keep their meaning: `test_adventure_combat_victory_event.gd` (`q_first_steps_enemy_defeated`), and the files that open content through `celestial_intervener_dialogue_1` or `q_fill_core_completed`: `test_zone_panel`, `test_zone_action_cards`, `test_seen_actions`, `test_idle_action_resolution`, `test_map_markers`, `test_zone_travel`, `test_zone_walk_steps`, `test_zone_map_render`, `test_zone_map_state`, `test_materials_page`, `test_merchant_shop_flow`, `test_material_sources`, `test_zone_progression_data`, `test_tribulation_flow`.
+
+### Risks
+
+- **A quest done the moment it starts:** `_retroactive_advance()` skips met steps, so approved criteria must be unmeetable before their quest starts; Task 6.1's test reaches Core Density 10 early and plays on.
+- **Old saves' quest progress:** `_prune_unknown_active_quests()` drops a renamed quest, and changed steps change what a saved index means: keep ids and append steps, or Task 6.8.
+- **UID mismatches:** `quest_list.tres` references `q_first_steps.tres` as `uid://bqfirststeps01` (header `uid://d1mcp5rsmbbwu`); `q_reach_cd_10.tres` is referenced as `uid://i2xnqd3pem53` (header `uid://bqreachcd10001`) and `q_first_steps_enemy_defeated.tres` as `uid://d1vxkodelucwu` (header `uid://bqfsendefeat01`). An editor save may rewrite references, so edit these by hand and commit any editor rewrite alone.
+- **Late latches:** UnlockManager re-checks only on events, stage changes, Core Density level, Madra and gold: prefer event criteria, or Task 6.5.
+- **Dialogic:** a new timeline needs registering in `project.godot`'s `[dialogic] directories/dtl_directory`, a key a fresh `--import` once emptied: new labels go in the existing timeline.
+- **Beat ids:** presets, dev panel tests and the route name beats: keep them; new beats get new ids.
+
+### Docs to update
+
+- `docs/progression/`: `QUESTS.md` (quests, steps, rewards), `QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md` (its Foundation examples), `FOUNDATION_PLAYTHROUGH.md` (the beats). `docs/infrastructure/`: `DIALOGUE.md` (the label and NPC tables, the malformed-tag note), `UNLOCKS.md` (new conditions). `docs/tooling/DEV_TOOLS.md` (route beats and presets).
+- The milestone docs, in their own docs PR after the merge (Task 6.9).
+
+---
+
+## After phase 6
+
+- **Milestone docs:** once phase 6 merges, `docs/STATE_OF_THE_GAME.md`, `docs/GAMEPLAY_STATE.md` and `docs/CODEBASE_STATE.md` are refreshed in a docs PR of their own (CLAUDE.md). CLAUDE.md's count of manager singletons and its list of built systems change with phase 5's new autoload.
+- **Elixirs (out of scope):** `docs/superpowers/specs/2026-11-03-elixirs-and-materials-notes.md` assumes cycling pays Core Density. Revisit it before elixirs are built: cycling elixirs could boost stat XP instead, or the Core Density boost could move to fights.
+- **Set aside for later, by Lionel:** fights paying stat XP, Core Density raising the stat cap every X levels, and XP banked while a stat is capped.
+- **Publishing:** no itch build until phase 5 lands, because the breakthrough can't be reached before then (Claude's call; Lionel publishes by hand).

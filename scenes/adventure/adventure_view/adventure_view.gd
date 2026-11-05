@@ -406,11 +406,13 @@ func _on_item_awarded(item: ItemDefinitionData, _quantity: int) -> void:
 	_loot_items.append(item)
 	_announce_run_stats()
 
-## Updates the stamina regeneration based on the given modifier
-## TODO: This will be expanded later to include more complex calculation logic
+## Sets the Stamina the run regenerates a second: the player's STAMINA_REGEN
+## (from Agility, with its modifiers) times `modifier`, the run's own. It is set
+## at every run start, so a run keeps the rate the player had when it started;
+## the run's end passes 0, which stops it.
 func _update_stamina_regen(modifier: float) -> void:
 	if PlayerManager.vitals_manager:
-		PlayerManager.vitals_manager.stamina_regen = 1.0 * modifier
+		PlayerManager.vitals_manager.stamina_regen = CharacterManager.get_stat(StatModifierData.Stat.STAMINA_REGEN) * modifier
 
 func _on_adventure_timer_timeout() -> void:
 	Log.info("AdventureView: Time limit reached!")
