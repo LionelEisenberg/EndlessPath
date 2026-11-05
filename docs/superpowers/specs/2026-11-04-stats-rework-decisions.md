@@ -5,7 +5,7 @@ A running record of the design questions for the stats rework, kept so the answe
 The inputs were Lionel's brief, a Figma board with Lionel's brother, the brother's doc "Thoughts on Endless Path" (with Lionel's comments on it), and two mock-up canvases ("Cultivator Stats" and "Body Refining"). The canvases were built on the old eight stats, so their pieces are reused, not their numbers.
 
 Two kinds of line, kept apart:
-- **Lionel** marks Lionel's answers, paraphrased. Only quoted text is Lionel's own wording. R1 to R5 are the question rounds; Lionel's messages are voice-transcribed.
+- **Lionel** marks Lionel's answers, paraphrased. Only quoted text is Lionel's own wording. R1 to R5 are the question rounds, and R6 is his feedback on the phase 1 mock-ups; Lionel's messages are voice-transcribed.
 - **Claude's call** marks defaults Claude chose. Lionel hasn't confirmed them and can overrule any.
 
 ## Settled
@@ -29,6 +29,7 @@ Two kinds of line, kept apart:
 | Health and Madra | One pool each, shared by the overworld and adventures, kept between runs. Only training refills them: cycling refills Madra, body refining refills Health. Until body refining exists, Health keeps refilling at every run start. | Lionel (brief, R1 Q2, R2 Q1 b) | |
 | What each stat does | Strength: physical technique damage, plus Health per refining rep. Body: max Health. Agility: max Stamina, Stamina regen, and a chance to dodge. Spirit: Spirit technique damage, plus Madra per cycle. Mind: max Madra. Control: cheaper techniques and cooldown reduction. | Lionel (R1 Q5, R2 Q2) | |
 | Gear | Armor (against physical damage) and magic resist (against Spirit damage) live on gear. Gear raises stats by a percentage with a floor (for example +10%, at least +1), so a sword neither feels weak early nor fades later. Lionel leaned toward not spelling the floor out. | Lionel (brief, R1 Q3, R2 Q3) | |
+| Gear text | A stat line shows the item's percent and the stat, then what it gives right now in parentheses: "+50% Strength (+5)" ("instead of +X now, just do +50% and then between parentheses, the actual number"). Armor and Ward lines stay "Armor 6" and "Ward 4". The item description panel (the item tooltip) is Lionel's to rework later, so phase 1 leaves its code alone ("ignore updating item description panel because I'm going to update that anyways later on"). | Lionel (R6) | Lionel's rework of the item description panel. |
 | Side names | Physical and Spiritual. | Lionel (R1 Q6) | |
 | Auto | Not in phase 1: Auto keeps chaining cycles while you play, and nothing is earned unattended. Unattended Auto comes with the cycling phase (and with body refining in phase 5). | Lionel (R4 Q2 a) | Its rate, in phase 3's mock-up step. Lionel's R1 answer reads two ways: "Only by training, but auto-refills at full speed" (refills at full speed, XP at the reduced rate), then "auto-runs at 0.2 for everything. Or at 0.4, maybe that makes most sense" (one flat rate). "After a perfect cycle or set" comes from the brother's doc, where Lionel replied "Yup this was planned". |
 | The Aura Well | Unchanged until phase 3: its training action keeps its Madra trickle and its +1 Spirit per training level. Its new role is settled in phase 3. Lionel's words (read as "Aura Well" and "pass"): "don't change the order whatsoever. We can do that in a second or third class. It's really not first class." | Lionel (R3, answering R2 Q5 again; R5) | Phase 3 mock-ups. |
@@ -52,7 +53,7 @@ Two kinds of line, kept apart:
 
 **Defence and gear**
 - Defence comes only from gear. Spirit stops reducing Spirit damage. Magic resist shows as "Ward". Armor and Ward keep today's formula shape, and MIXED damage uses their average.
-- The gear floor is never spelled out: cards and breakdowns show "+10% Strength · +1 now".
+- The gear floor is never spelled out: cards and breakdowns show "+10% Strength (+1)", in Lionel's format (R6). Until Lionel reworks the item description panel, it keeps its code and prints the same lines, read from the item, as they stand when the tooltip opens.
 - Gear can lift a stat past the cap; the cap limits training.
 - Each enemy family gets authored armor and Ward. Enemy damage is retuned for the physical and Spirit cuts every fighter loses.
 

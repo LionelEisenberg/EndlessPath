@@ -94,7 +94,7 @@ Builds the six stats, their levels, XP and cap, everything they do in a fight, g
 - **The Physical stats** have no source until phase 5. They stay at their starting level, and gear raises them. Their pages say nothing trains them yet.
 - **Gear:**
   - **Armor** cuts physical damage and **Ward** cuts Spirit damage, with today's shape of formula, damage × 100 / (100 + armor) **(Claude's call)**. MIXED damage uses the average of the two, and TRUE ignores both. Gear is the only source.
-  - **Gear raises stats by a percentage with a floor,** for example +10% Strength, at least +1. The floor is never spelled out: item cards and stat breakdowns show the percent and what it gives right now, "+10% Strength · +1 now" **(Claude's call, following Lionel's lean that the floor shouldn't be explicit)**.
+  - **Gear raises stats by a percentage with a floor,** for example +10% Strength, at least +1. The floor is never spelled out **(Claude's call, following Lionel's lean that the floor shouldn't be explicit)**: item cards and stat breakdowns show the percent, then what it gives right now in parentheses, "+10% Strength (+1)".
   - The cap limits training, not gear, so gear can lift a stat past the cap **(Claude's call)**.
   - **Today's Spirit Valley gear converts:** every stat bonus becomes a percent of the same stat (Strength, Agility, Body, Spirit, Control); the Leeching Ring's Foundation becomes Mind; the Reinforced Robes' Resilience becomes armor; the Cultivator's Cowl's Willpower becomes Ward. `docs/inventory/ITEMS.md` generates the gear files, so the new stat words go there.
 - **Enemies:** each family gets authored armor and Ward, for example armored Dreadbeasts and warded Spirits **(Claude's call)**. Enemy damage is retuned for the cuts every fighter loses: about 9% on physical damage (Resilience 10), and the Spirit-based cut on Spirit damage, about 9% for the player against Madra Lash and about 20% for the Coalescing Spirit against the player's Spirit techniques.
@@ -103,7 +103,7 @@ Builds the six stats, their levels, XP and cap, everything they do in a fight, g
 - **Screens:**
   - **Character book.** The Physical and Spiritual sides, each stat with its level, XP bar and cap state. A stat's detail page shows what it does at this level and the next, where its value comes from (trained level plus gear), and what trains it: the Aura Well in phase 1; from phase 3 each cycling technique, with roughly how many cycles the next level takes **(Claude's call)**. An "In a fight" block totals Health, Madra, Stamina, dodge chance, the technique cost and cooldown cuts, armor and Ward.
   - **Zone view.** The mock-ups settle whether the stats show on the zone view (the Cultivator Stats canvas grew the cabinet to hold them).
-  - **Gear text** everywhere (inventory, item panels, merchant): "+10% Strength · +1 now", "Armor 6", "Ward 4".
+  - **Gear text** everywhere (inventory, item panels, merchant): "+10% Strength (+1)", "Armor 6", "Ward 4". Lionel reworks the item description panel (the item tooltip) later, so phase 1 leaves its code alone; it prints the same lines, read from the item **(Claude's call)**.
   - **Abilities book and technique tooltips:** the damage breakdown comes from the side's main stat.
   - **Tribulation card and Goals board:** every breakthrough requirement.
   - **Dev panel and save presets:** set any stat's level and XP; the presets at or past the breakthrough (such as `tribulation_ready` and `copper`) set the stats it needs.

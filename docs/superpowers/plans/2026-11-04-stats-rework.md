@@ -46,7 +46,7 @@
 
 1. **A version-1 save** with Aura Well Spirit (`spirit = 13.0`), dev-raised stats and worn gear loads and migrates to the right levels. Nothing else is lost, and the save is never set aside as unreadable (Task 1.4).
 2. **Training at the cap:** XP or an Aura Well level that arrives at the cap is lost, and the level never passes the cap. The breakthrough reads trained levels, never totals that include gear (Tasks 1.3 and 1.13).
-3. **Gear's "+N now"** always equals the bonus actually applied: at Lv 1 (the floor), past the cap, and after a level-up while the inventory is open (Tasks 1.6 and 1.8).
+3. **Gear's "(+N)"** always equals the bonus actually applied: at Lv 1 (the floor), past the cap, and after a level-up while the inventory is open. The item tooltip, whose code is left for Lionel's rework, shows it as it stands when the tooltip opens (Tasks 1.6 and 1.8).
 4. **A dodged hit** lands no target effect, including riders such as CANCEL_CAST. The attacker's own self effects still apply, and enemies never dodge (Task 1.10).
 5. **The one Madra pool** behaves when its max drops (Mind gear removed), when a run is quit midway, and when a run starts at exactly half Madra (Tasks 2.1 to 2.3).
 
@@ -72,7 +72,6 @@ Phases 1 and 2 mostly change existing files. Each task's **Files** list is exact
 | `scripts/utils/stat_display.gd` | `StatDisplay`: each stat's name, icon and side on screen | 1.15 |
 | `assets/sprites/ui/attribute_icons/mind_icon_ai.png`, pressed XP bar textures in `assets/sprites/ui/book/pressed/` | Art, only if the phase 1 mock-ups ask for it | 1.15, 1.16 |
 | `tests/unit/test_stat_training_data.gd`, `tests/unit/test_stat_progression_data.gd` | The training record and the level curve | 1.2 |
-| `tests/integration/test_item_description_panel.gd` | The item tooltip's gear lines | 1.8 |
 | `tests/unit/test_combat_content.gd` | The shipped techniques' and enemies' Lv 1 numbers | 1.9 |
 | `tests/unit/test_combat_dodge.gd` | Dodge | 1.10 |
 | `tests/unit/test_ability_data.gd`, `tests/unit/test_control_cuts.gd` | Control's Madra cost and cooldown cuts | 1.11 |
@@ -87,7 +86,7 @@ Phases 1 and 2 mostly change existing files. Each task's **Files** list is exact
 |---|---|---|
 | Stat identity and the combat stat block | `character_attributes_data.gd` (six stats, armor, Ward, the derived values), `stat_modifier_data.gd` | 1.1 |
 | Training, the cap and the save | `character_manager.gd`, `save_game_data.gd`, `advancement_stage.gd` and both stage `.tres`, `cultivation_manager.gd` | 1.2–1.5 |
-| Gear | `equipment_definition_data.gd`; `docs/inventory/ITEMS.md` with `items_md_parser.gd`, `items_md_to_resources.gd` and the regenerated Spirit Valley items; `book_text.gd`, `equipment_details`, `bonus_row`, `item_description_panel.gd`, `merchant_stock_row.gd` | 1.6–1.8 |
+| Gear | `equipment_definition_data.gd`; `docs/inventory/ITEMS.md` with `items_md_parser.gd`, `items_md_to_resources.gd` and the regenerated Spirit Valley items; `book_text.gd`, `equipment_details`, `bonus_row`, `merchant_stock_row.gd` | 1.6–1.8 |
 | Combat | `combat_effect_data.gd` and the technique and enemy `.tres`; `combat_effect_manager.gd`, `combatant_visual.gd`; `ability_data.gd`, `combat_ability_instance.gd`, `combat_ability_manager.gd`, the dock's slot and tooltip, `ability_row.gd`; `adventure_view.gd` | 1.9–1.12 |
 | The breakthrough | `tribulation_action_data.gd`, `tribulation_presenter`, `goals_panel.gd`, `action_manager.gd`, the Tribulation's copy | 1.13 |
 | Dev tools | `dev_commands.gd`, `dev_step_data.gd`, the dev panel's Player tab, `story_route.tres` | 1.14 |
@@ -130,7 +129,7 @@ These names and signatures cross tasks and phases. Every task uses them as writt
 **Gear** (`EquipmentDefinitionData`)
 - Fields: `stat_percent_bonuses: Dictionary[StringName, float]` (0.10 is +10%), `stat_bonus_floor: int = 1`, `armor: float` and `ward: float`.
 - `get_stat_bonus(stat, trained_value: float) -> float` returns `maxf(stat_bonus_floor, floorf(trained_value * percent))`, or 0 when the item has no percent for that stat. `get_stat_modifiers(trained_values: Dictionary) -> Array[StatModifierData]` returns FLAT modifiers.
-- Text: `BookText.gear_bonus_lines(def, trained_values) -> Array[String]` gives "+10% Strength · +1 now", then "Armor 6", then "Ward 4".
+- Text: `BookText.gear_bonus_lines(def, trained_values) -> Array[String]` gives "+10% Strength (+1)", the number in parentheses being what `get_stat_bonus()` gives, then "Armor 6", then "Ward 4". `_get_item_effects()` returns those lines for `CharacterManager.get_trained_values()`, each as `"[color=#a89070]%s[/color]"` (today's effect ink), for the item tooltip and the shop.
 
 **Combat**
 - `CombatEffectData` keeps only `strength_scaling` and `spirit_scaling`.
@@ -182,11 +181,11 @@ Approved canvas: *(recorded in Step 6)*
 
 - [ ] **Step 1: Read the rules and find the old pieces.** `docs/STYLE_GUIDE.md`: rule 14, "Pressed paper (the books)", K-Q1, rows K1, K10 and K11. `docs/UI_STYLING.md`: the book theme's pressed variants (`LabelBookCaps`, `LabelBookSeal`, `RichTextBookValue`, `PanelPressed`). Find the "Cultivator Stats" canvas (`Artifact` `action: "list"`, `type: "Design"`) and reuse its pieces (stat cells, XP beads, the Character book spread), not its eight stats or its numbers.
 - [ ] **Step 2: Start a new canvas.** `Artifact` `action: "quickstart"` with `intent: "design"`, then publish from the Design type's `type_url` with `title: "Stats rework · Phase 1"`. Never add boards to "Cultivator Stats" or "Body Refining" (one canvas per topic). Expected: an empty private canvas and its link.
-- [ ] **Step 3: Draw one board per screen, in these states.** The numbers: Lv 1 is 10 points and each level adds 1; Lv 2 costs 100 XP and each later level 1.25× the last; the cap is 10 in Foundation, 20 in Copper. Health = Body × 10, Stamina = Agility × 5 (regen Agility × 0.1 a second), Madra = Mind × 10: 100 / 50 / 1.0 / 100 at Lv 1. Dodge is 8.8% at Agility Lv 6; at Control Lv 6 techniques cost 10% less Madra and cooldowns are 8% shorter. Basic Strike 25, Empty Palm 28, Power Font 50. Task 1.7's gear at Lv 1: Iron Shortsword "+50% Strength · +5 now", "+10% Agility · +2 now"; Reinforced Robes "+40% Body · +4 now", "Armor 6"; Cultivator's Cowl "+15% Spirit · +1 now", "Ward 4".
+- [ ] **Step 3: Draw one board per screen, in these states.** The numbers: Lv 1 is 10 points and each level adds 1; Lv 2 costs 100 XP and each later level 1.25× the last; the cap is 10 in Foundation, 20 in Copper. Health = Body × 10, Stamina = Agility × 5 (regen Agility × 0.1 a second), Madra = Mind × 10: 100 / 50 / 1.0 / 100 at Lv 1. Dodge is 8.8% at Agility Lv 6; at Control Lv 6 techniques cost 10% less Madra and cooldowns are 8% shorter. Basic Strike 25, Empty Palm 28, Power Font 50. Task 1.7's gear at Lv 1: Iron Shortsword "+50% Strength (+5)", "+10% Agility (+2)"; Reinforced Robes "+40% Body (+4)", "Armor 6"; Cultivator's Cowl "+15% Spirit (+1)", "Ward 4".
   1. **Character book, left page** (`CharacterView`, `AttributeTile`): Physical (Strength, Body, Agility), Spiritual (Spirit, Mind, Control); a tile shows an icon, the name, "Lv N", an XP bar and the total. States: a new character (all Lv 1); Spirit Lv 6, bar part-filled; Spirit at the cap; Strength at the cap with the Iron Shortsword lifting its total past it (Lv 10, total 28); the selected tile and the hover.
   2. **A stat's detail page:** Lv N / cap, the XP figure, a description, what it does now → next, where it comes from, what trains it. States: Body (Max Health 100 → 110); Agility (Max Stamina, Stamina regen, Dodge chance); Control (Technique cost cut, Cooldown cut); Spirit Lv 6 wearing the cowl (Trained (Lv 6) 15, Gear +2), trained by the Aura Well; Strength ("Nothing trains this yet"); a capped stat (no next column); a long description wrapping.
   3. **The "In a fight" block:** Health, Madra, Stamina, Dodge chance, Technique cost cut, Cooldown cut, Armor, Ward; for a new character, and wearing the robes and the cowl (Health 140, Armor 6, Ward 4).
-  4. **Gear text** in `EquipmentDetails`, `ItemDescriptionPanel` (the item tooltip's fixed 424×264 panel must hold the longest item uncut) and `MerchantStockRow` (its separators between bonuses): the three items, a long line wrapping, and the robes' slot word (BODY in the book, Armor in the tooltip and the shop) beside "Armor 6".
+  4. **Gear text** in `EquipmentDetails` and `MerchantStockRow` (its separators between bonuses): the three items, a long line wrapping, and the robes' slot word (BODY in the book, Armor in the shop) beside "Armor 6". `ItemDescriptionPanel` (the item tooltip) is Lionel's to rework later: its column shows today's panel with the new lines, marked as his.
   5. **Goals board milestone** (`GoalsPanel`): "Raise Core Density to 100" over "Strength Lv 1 / 10" and "Spirit Lv 4 / 10"; a full core with Strength short; everything met, "Face the Tribulation".
   6. **Tribulation card** (`TribulationPresenter`): core 95 with the stats short (TRIAL); core 100 with Strength short (TRIAL, with a second line); ready (ENTER); and the refusal log line, naming every missing requirement.
   7. **Abilities book breakdown:** Basic Strike "25" = "10 base" plus one Strength part, "+15".
@@ -897,33 +896,34 @@ Before Step 1, invoke `godot-prompter:godot-ui` and `godot-prompter:godot-testin
 **Files:**
 - Modify: `scripts/utils/book_text.gd`, `scripts/resource_definitions/items/equipment/equipment_definition_data.gd`
 - Modify, in `scenes/inventory/inventory_view/equipment_tab/equipment_details/`: `equipment_details.gd`, `bonus_row.gd`, `bonus_row.tscn`, and `equipment_details.tscn` only if the approved layout needs it
-- Modify: `scenes/common/item_description_panel/item_description_panel.gd`, `scenes/merchant/merchant_stock_row/merchant_stock_row.gd` and `.tscn`; and `scenes/common/item_description_panel/item_description_panel.tscn` and `scenes/common/item_display_slot/item_display_slot.tscn` (the fixed 424×264 TooltipPanel) only if the approved gear-text board changes the tooltip. Step 5 stages them under the same condition as `equipment_details.tscn`.
+- Modify: `scenes/merchant/merchant_stock_row/merchant_stock_row.gd` and `.tscn`. Not `ItemDescriptionPanel` or `ItemDisplaySlot`: Lionel reworks the item tooltip later, and it prints the new lines through `_get_item_effects()`.
 - Modify: the seven `resources/items/equipment/spirit_valley/*.tres` (the dead `attribute_bonuses` block)
-- Create: `tests/integration/test_item_description_panel.gd` and its `.gd.uid`
+- Modify, only if Before Step 1 applies: `docs/inventory/ITEMS.md`
+- Modify: `tests/helpers/gear_fixture.gd` (`spirit_charm()`)
 - Test: `tests/unit/test_book_text.gd`, `tests/unit/test_equipment.gd`, `tests/integration/test_equipment_page.gd`, `tests/integration/test_merchant_shop_flow.gd`, `tests/integration/test_boards_never_trim_text.gd`
 
 **Interfaces:**
 - Consumes: Task 1.6's gear fields, `get_stat_bonus()` and `CharacterManager.get_gear_bonus()`; Task 1.3's `CharacterManager.get_trained_values()` and `set_stat_level()` (emits `stats_changed`); `CharacterManager.get_attribute_display_name()`; Task 1.1's `stat_key()` and `STAT_BASELINE`; Task 1.0's approved gear-text board.
-- Produces: `BookText.gear_bonus_lines(def: EquipmentDefinitionData, trained_values: Dictionary) -> Array[String]`, printed by EquipmentDetails, ItemDescriptionPanel and MerchantStockRow, which reprint gear on `CharacterManager.stats_changed`. Gone: `attribute_bonuses`, `BookText.bonus_lines()` and the `EquipmentDefinitionData._get_item_effects()` override, so equipment gets the base class's `[]`.
+- Produces: `BookText.gear_bonus_lines(def: EquipmentDefinitionData, trained_values: Dictionary) -> Array[String]`, which EquipmentDetails prints; `EquipmentDefinitionData._get_item_effects()` returning each of those lines for `CharacterManager.get_trained_values()` as `"[color=#a89070]%s[/color]"` (today's effect ink), which MerchantStockRow and the untouched ItemDescriptionPanel print. EquipmentDetails and MerchantStockRow reprint gear on `CharacterManager.stats_changed`; the item tooltip shows the lines as they stand when it opens. Gone: `attribute_bonuses` and `BookText.bonus_lines()`.
 
 **Before Step 1:** if Task 1.0 recorded a gear value Lionel changed on board 4, edit that item's stats cell in `docs/inventory/ITEMS.md`, rerun Task 1.7's generator command, and stage the regenerated `.tres` with this task (Task 1.7 may already have shipped the old value).
 
 - [ ] **Step 1: Write the failing tests**
 
-In `tests/unit/test_book_text.gd`, add `const AttributeType = CharacterAttributesData.AttributeType` and `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")` (Task 1.6's shared fixture), write `GearFixture.item(...)` where the test below writes `_item(...)`, and replace `test_bonus_lines_skip_zero_and_set_fractions_to_one_decimal` with:   …and in place of 'The three files below each get `_spirit_charm() -> EquipmentDefinitionData`: …': Add `static func spirit_charm() -> EquipmentDefinitionData` to `tests/helpers/gear_fixture.gd` (`item_id = "test_spirit_charm"`, `item_name = "Spirit Charm"`, HEAD slot, `stat_percent_bonuses[&"spirit"] = 0.5`: the Aura Well levels Spirit while a book or the shop is open), and list `tests/helpers/gear_fixture.gd` under **Files** (Modify). The three files below preload it and call `GearFixture.spirit_charm()` where they write `_spirit_charm()`.
+In `tests/unit/test_book_text.gd`, add `const AttributeType = CharacterAttributesData.AttributeType` and `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")` (Task 1.6's shared fixture), and replace `test_bonus_lines_skip_zero_and_set_fractions_to_one_decimal` with:
 
 ```gdscript
 func test_gear_bonus_lines_word_each_bonus_with_its_value_now() -> void:
 	var cases: Array[Dictionary] = [
-		{"name": "a stat at its floor", "item": _item({&"strength": 0.1}, 2),
-			"trained": {AttributeType.STRENGTH: 10.0}, "lines": ["+10% Strength · +2 now"]},
+		{"name": "a stat at its floor", "item": GearFixture.item({&"strength": 0.1}, 2),
+			"trained": {AttributeType.STRENGTH: 10.0}, "lines": ["+10% Strength (+2)"]},
 		{"name": "stats in stat order, then armor, then Ward",
-			"item": _item({&"control": 0.2, &"strength": 0.5}, 1, 6.0, 4.0),
+			"item": GearFixture.item({&"control": 0.2, &"strength": 0.5}, 1, 6.0, 4.0),
 			"trained": {AttributeType.STRENGTH: 10.0, AttributeType.CONTROL: 15.0},
-			"lines": ["+50% Strength · +5 now", "+20% Control · +3 now", "Armor 6", "Ward 4"]},
-		{"name": "a fractional percent", "item": _item({&"spirit": 0.125}),
-			"trained": {AttributeType.SPIRIT: 16.0}, "lines": ["+12.5% Spirit · +2 now"]},
-		{"name": "no bonuses", "item": _item({}), "trained": {}, "lines": []},
+			"lines": ["+50% Strength (+5)", "+20% Control (+3)", "Armor 6", "Ward 4"]},
+		{"name": "a fractional percent", "item": GearFixture.item({&"spirit": 0.125}),
+			"trained": {AttributeType.SPIRIT: 16.0}, "lines": ["+12.5% Spirit (+2)"]},
+		{"name": "no bonuses", "item": GearFixture.item({}), "trained": {}, "lines": []},
 	]
 	for case: Dictionary in cases:
 		var expected: Array[String] = []
@@ -931,11 +931,29 @@ func test_gear_bonus_lines_word_each_bonus_with_its_value_now() -> void:
 		assert_eq(BookText.gear_bonus_lines(case.item, case.trained), expected, case.name)
 ```
 
-In `tests/unit/test_equipment.gd`, delete `test_init_empty_bonuses`, `test_attribute_bonuses_stores_values`, `test_attribute_bonuses_supports_all_types`, `test_get_item_effects_one_line_per_nonzero_bonus` and `test_get_item_effects_formats_each_bonus`, and the "ATTRIBUTE BONUSES DICTIONARY" and "_get_item_effects() BBCode FORMATTING" headers; the `##` header names the slot enum and its ints, initialization, and the gear rule.
+In `tests/unit/test_equipment.gd`, delete `test_init_empty_bonuses`, `test_attribute_bonuses_stores_values`, `test_attribute_bonuses_supports_all_types`, `test_get_item_effects_one_line_per_nonzero_bonus` and `test_get_item_effects_formats_each_bonus`, and the "ATTRIBUTE BONUSES DICTIONARY" header. `_get_item_effects()` now reads the player's training, so the file gets the save swap from Global Constraints: `var _original_save: SaveGameData`, a `before_each()` that stashes `PersistenceManager.save_game_data`, installs `SaveGameData.new_current()` and emits `save_data_reset`, and an `after_each()` that puts the original back and emits it again. Under the "_get_item_effects() BBCode FORMATTING" header, add the test below; the `##` header names the slot enum and its ints, initialization, the gear rule, and `_get_item_effects()`'s inked gear lines.
 
-The three files below each get `_spirit_charm() -> EquipmentDefinitionData`: `item_id = "test_spirit_charm"`, `item_name = "Spirit Charm"`, HEAD slot, `stat_percent_bonuses[&"spirit"] = 0.5` (the Aura Well levels Spirit while a book or the shop is open).
+```gdscript
+## The item tooltip and the shop print these: one per gear_bonus_lines() line,
+## for the player's trained values as they stand at each call. Each holds its
+## plain line; the ink around it is a look, checked by eye.
+func test_item_effects_are_the_gear_lines_at_the_trained_values() -> void:
+	var cowl: EquipmentDefinitionData = GearFixture.item({&"spirit": 0.15}, 1, 0.0, 4.0)
+	var cases: Array[Dictionary] = [
+		{"name": "Spirit Lv 1 (10)", "level": 1, "lines": ["+15% Spirit (+1)", "Ward 4"]},
+		{"name": "Spirit Lv 5 (14)", "level": 5, "lines": ["+15% Spirit (+2)", "Ward 4"]},
+	]
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(AttributeType.SPIRIT, case.level)
+		var effects: Array[String] = cowl._get_item_effects()
+		assert_eq(effects.size(), case.lines.size(), "%s: one effect per line" % case.name)
+		for i: int in range(mini(effects.size(), case.lines.size())):
+			assert_true(effects[i].contains(case.lines[i]), "%s: %s" % [case.name, case.lines[i]])
+```
 
-In `tests/integration/test_equipment_page.gd`, the fixture also stashes `PersistenceManager.save_game_data.stat_training` in `var _saved_training: StatTrainingData`, installs `StatTrainingData.new_default()` in `before_each()`, and restores it after the frame wait in `after_each()`. Add `_spirit_charm()` and `_bonus_texts(details: EquipmentDetails) -> Array[String]` (each `%Bonuses` row's `%LeftBonus` text, then its `%RightBonus` text when visible), replace `test_details_print_the_slot_and_the_bonuses`, and add the reprint test:
+Add `static func spirit_charm() -> EquipmentDefinitionData` to `tests/helpers/gear_fixture.gd`: `item_id = "test_spirit_charm"`, `item_name = "Spirit Charm"`, HEAD slot, `stat_percent_bonuses[&"spirit"] = 0.5` (the Aura Well levels Spirit while a book or the shop is open; it gives +5 at Spirit Lv 1 and +7 at Lv 5). The two files below call it as `GearFixture.spirit_charm()`.
+
+In `tests/integration/test_equipment_page.gd`, the fixture also stashes `PersistenceManager.save_game_data.stat_training` in `var _saved_training: StatTrainingData`, installs `StatTrainingData.new_default()` in `before_each()`, and restores it after the frame wait in `after_each()`. Add `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")` and `_bonus_texts(details: EquipmentDetails) -> Array[String]` (each `%Bonuses` row's `%LeftBonus` text, then its `%RightBonus` text when visible), replace `test_details_print_the_slot_and_the_bonuses`, and add the reprint test:
 
 ```gdscript
 func test_details_print_the_slot_and_the_bonuses() -> void:
@@ -950,62 +968,34 @@ func test_details_print_the_slot_and_the_bonuses() -> void:
 	assert_eq(_bonus_texts(details), lines, "every bonus line, in order")
 	assert_eq((details.get_node("%Description") as Label).text, DAGGER.description)
 
-## The details reprint the item they already show, and the "now" they print is
-## the bonus the total gets.
+## The details reprint the item they already show, and the bonus they print in
+## parentheses is the one the total gets.
 func test_details_reprint_when_a_stat_levels() -> void:
 	var tab: Control = _tab()
-	var charm: EquipmentDefinitionData = _spirit_charm()
+	var charm: EquipmentDefinitionData = GearFixture.spirit_charm()
 	InventoryManager.award_items(charm, 1)
 	InventoryManager.equip_item(InventoryManager.get_inventory().equipment[0], charm.slot_type, 0)
 	tab.open_page()
 	var details: EquipmentDetails = _details(tab)
-	var before: Array[String] = _bonus_texts(details)
+	assert_eq(_bonus_texts(details), ["+50% Spirit (+5)"] as Array[String], "Spirit Lv 1 (10)")
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
-	var after: Array[String] = _bonus_texts(details)
-	assert_ne(after, before, "the Spirit line moved")
-	assert_eq(after, BookText.gear_bonus_lines(charm, CharacterManager.get_trained_values()))
-	var now: String = "+%d now" % roundi(CharacterManager.get_gear_bonus(CharacterAttributesData.AttributeType.SPIRIT))
-	assert_true(after.size() == 1 and after[0].ends_with(now), "the now printed is the bonus applied: %s" % [after])
+	assert_eq(_bonus_texts(details), ["+50% Spirit (+7)"] as Array[String], "reprinted at Spirit Lv 5 (14)")
+	assert_eq(CharacterManager.get_gear_bonus(CharacterAttributesData.AttributeType.SPIRIT), 7.0, "the +7 printed is the bonus the total gets")
 ```
 
-Create `tests/integration/test_item_description_panel.gd` (`extends GutTest`; header: "ItemDescriptionPanel, ItemDisplaySlot's hover tooltip: its gear lines, reprinted when a stat levels.") with the save swap from Global Constraints in `before_each()` / `after_each()`, `_spirit_charm()`, `_panel() -> ItemDescriptionPanel` (instances `res://scenes/common/item_description_panel/item_description_panel.tscn` with `add_child_autofree()`, then awaits one process frame), `_effects(panel) -> String` (the `%EffectsLabel` text), and:
-
-```gdscript
-func test_gear_prints_each_bonus_line() -> void:
-	var panel: ItemDescriptionPanel = await _panel()
-	var charm: EquipmentDefinitionData = _spirit_charm()
-	charm.ward = 4.0
-	panel.setup_from_definition(charm)
-	var lines: Array[String] = BookText.gear_bonus_lines(charm, CharacterManager.get_trained_values())
-	assert_eq(lines.size(), 2, "precondition: a Spirit line and a Ward line")
-	for line: String in lines:
-		assert_string_contains(_effects(panel), line)
-
-func test_gear_reprints_when_a_stat_levels() -> void:
-	var panel: ItemDescriptionPanel = await _panel()
-	var charm: EquipmentDefinitionData = _spirit_charm()
-	panel.setup_from_definition(charm)
-	var before: String = _effects(panel)
-	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
-	assert_ne(_effects(panel), before, "the Spirit line moved")
-	assert_string_contains(_effects(panel), BookText.gear_bonus_lines(charm, CharacterManager.get_trained_values())[0])
-```
-
-In `tests/integration/test_merchant_shop_flow.gd`, under `# SHOP VIEW`, add `_spirit_charm()`, `_selling(item: EquipmentDefinitionData) -> MerchantActionData` (`_action_selling()` over a typed `Array[MerchantStockEntry]` holding one new entry with `entry_id = item.item_id` and `item = item`), and:
+In `tests/integration/test_merchant_shop_flow.gd`, under `# SHOP VIEW`, add `const GearFixture := preload("res://tests/helpers/gear_fixture.gd")`, `_selling(item: EquipmentDefinitionData) -> MerchantActionData` (`_action_selling()` over a typed `Array[MerchantStockEntry]` holding one new entry with `entry_id = item.item_id` and `item = item`), and the two tests below. They read the row's own `%DetailLabel`, never its icon's hover tooltip, and look for the gear line itself, since the slot word and the separator around it come from the approved board:
 
 ```gdscript
 func test_gear_rows_reprint_their_detail_when_a_stat_levels() -> void:
-	var charm: EquipmentDefinitionData = _spirit_charm()
 	var view := await _make_view()
-	view.setup(_selling(charm))
+	view.setup(_selling(GearFixture.spirit_charm()))
 	var detail: RichTextLabel = _visible_rows(view)[0].get_node("%DetailLabel")
-	var before: String = detail.text
+	assert_string_contains(detail.text, "+50% Spirit (+5)")
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 5)
-	assert_ne(detail.text, before, "the Spirit line moved")
-	assert_string_contains(detail.text, BookText.gear_bonus_lines(charm, CharacterManager.get_trained_values())[0])
+	assert_string_contains(detail.text, "+50% Spirit (+7)")
 
 func test_a_long_gear_detail_wraps() -> void:
-	var charm: EquipmentDefinitionData = _spirit_charm()
+	var charm: EquipmentDefinitionData = GearFixture.spirit_charm()
 	for key: StringName in [&"strength", &"body", &"agility", &"mind", &"control"]:
 		charm.stat_percent_bonuses[key] = 0.5
 	charm.armor = 6.0
@@ -1021,23 +1011,22 @@ func test_a_long_gear_detail_wraps() -> void:
 
 In `tests/integration/test_boards_never_trim_text.gd`, add `"res://scenes/inventory/inventory_view/equipment_tab/equipment_details/bonus_row.tscn": ["LeftBonus", "RightBonus"],` to the `wrapping` dictionary in `test_the_labels_that_can_run_long_wrap`.
 
-- [ ] **Step 2: Run them and see them fail.** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_book_text.gd,res://tests/integration/test_equipment_page.gd,res://tests/integration/test_item_description_panel.gd,res://tests/integration/test_merchant_shop_flow.gd,res://tests/integration/test_boards_never_trim_text.gd -gexit`
-  Expected: FAIL: the first four scripts don't parse (no `BookText.gear_bonus_lines()`), and `test_the_labels_that_can_run_long_wrap` fails because LeftBonus doesn't wrap.
+- [ ] **Step 2: Run them and see them fail.** `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_book_text.gd,res://tests/unit/test_equipment.gd,res://tests/integration/test_equipment_page.gd,res://tests/integration/test_merchant_shop_flow.gd,res://tests/integration/test_boards_never_trim_text.gd -gexit`
+  Expected: FAIL: `test_book_text.gd` and `test_equipment_page.gd` don't parse (no `BookText.gear_bonus_lines()`); `test_item_effects_are_the_gear_lines_at_the_trained_values` and the two new shop tests fail, because equipment's effect lines still walk `attribute_bonuses`, which the fixtures leave empty; and `test_the_labels_that_can_run_long_wrap` fails because LeftBonus doesn't wrap.
 
-- [ ] **Step 3: Implement `gear_bonus_lines()` and the three readers**
-  - `BookText.gear_bonus_lines()` walks `CharacterAttributesData.AttributeType.values()` in order. Each stat with a percent above 0 under `stat_key(stat)` gives `"%s%% %s%s%s now" % [_signed(percent * 100.0), CharacterManager.get_attribute_display_name(stat), _EFFECT_SEPARATOR, _signed(bonus)]`, where `bonus` is `def.get_stat_bonus(stat, trained_values.get(stat, CharacterAttributesData.STAT_BASELINE))`. Then `"Armor %s"` and `"Ward %s"`, each when above 0, through a new `_plain(value: float) -> String` ("6", "6.5"). Its doc: the now comes from `get_stat_bonus()`, as the totals' bonus does, so card and total can't disagree. Delete `bonus_lines()`; the class doc says "gear bonus lines".
-  - `EquipmentDefinitionData`: delete `attribute_bonuses` with its legacy doc, and the `_get_item_effects()` override.
-  - `EquipmentDetails`: `_ready()` connects `CharacterManager.stats_changed` to `_on_stats_changed()`, which calls `_print_item(_item.item_definition)` while `_item` is set, deliberately bypassing `show_item()`'s same-item return and `EquipmentTab._show_slot()`'s same-slot return. `_print_item()` takes its bonuses from `BookText.gear_bonus_lines(equipment, CharacterManager.get_trained_values())`. Its class doc and `BonusRow`'s say "+10% Strength · +1 now" for "+2 Strength", and `BonusRow.setup()`'s doc names `gear_bonus_lines()`.
+- [ ] **Step 3: Implement `gear_bonus_lines()`, `_get_item_effects()` and the two readers that reprint**
+  - `BookText.gear_bonus_lines()` walks `CharacterAttributesData.AttributeType.values()` in order. Each stat with a percent above 0 under `stat_key(stat)` gives `"%s%% %s (%s)" % [_signed(percent * 100.0), CharacterManager.get_attribute_display_name(stat), _signed(bonus)]`, where `bonus` is `def.get_stat_bonus(stat, trained_values.get(stat, CharacterAttributesData.STAT_BASELINE))`. Then `"Armor %s"` and `"Ward %s"`, each when above 0, through a new `_plain(value: float) -> String` ("6", "6.5"). Its doc: the number in parentheses comes from `get_stat_bonus()`, as the totals' bonus does, so card and total can't disagree. Delete `bonus_lines()`; the class doc says "gear bonus lines".
+  - `EquipmentDefinitionData`: delete `attribute_bonuses` with its legacy doc. `_get_item_effects()` keeps its place under TOOLTIP but returns each `BookText.gear_bonus_lines(self, CharacterManager.get_trained_values())` line as `"[color=#a89070]%s[/color]"` (today's effect ink) instead of walking `attribute_bonuses`. Its doc: the item tooltip (`ItemDescriptionPanel`) and the shop (`MerchantStockRow`) print these, and every call reads the training afresh, so a reader that calls it again prints the bonus as it stands.
+  - `EquipmentDetails`: `_ready()` connects `CharacterManager.stats_changed` to `_on_stats_changed()`, which calls `_print_item(_item.item_definition)` while `_item` is set, deliberately bypassing `show_item()`'s same-item return and `EquipmentTab._show_slot()`'s same-slot return. `_print_item()` takes its bonuses from `BookText.gear_bonus_lines(equipment, CharacterManager.get_trained_values())`. Its class doc and `BonusRow`'s say "+10% Strength (+1)" for "+2 Strength", and `BonusRow.setup()`'s doc names `gear_bonus_lines()`.
   - Layout per the approved gear-text board: `_BONUSES_PER_ROW`, BonusRow's label widths, and `equipment_details.tscn` if the panel must grow with its rows. Either way `%LeftBonus` and `%RightBonus` get `autowrap_mode = 3`, and `test_long_names_wrap_inside_the_panel` stays green.
-  - `ItemDescriptionPanel`: `var _item: ItemInstanceData = null`, set by `setup()`, cleared by `reset()`. Add `BookText.gear_effect_lines(def: EquipmentDefinitionData, trained_values: Dictionary) -> Array[String]`, which returns each `gear_bonus_lines()` line as `"[color=#a89070]%s[/color]"` (today's effect ink), and list it under Produces. For equipment, `setup()` joins `BookText.gear_effect_lines(equipment, CharacterManager.get_trained_values())` with `"\n"`; other items keep `def._get_item_effects()`. `MerchantStockRow._format_detail()` joins the same `gear_effect_lines()` result. Neither reader writes the ink itself. `_ready()` connects `CharacterManager.stats_changed` to `_on_stats_changed()`, which calls `setup(_item)` while `_item` holds equipment. The class doc says gear lines reprint when a stat changes.
-  - `MerchantStockRow`: for equipment, `_format_detail()` prints the slot word and joins the same coloured gear lines with the separator the approved gear-text board shows. Today's slot word and `", "` stay when the board keeps them, with the doc example "Main Hand: +30% Strength · +3 now, +10% Agility · +2 now". `ItemDescriptionPanel`'s type line likewise keeps today's slot word only if the board does. If the board resizes the item tooltip, `scenes/common/item_display_slot/item_display_slot.tscn` (its 424×264 `TooltipPanel`) joins **Files** and the commit. `_ready()` also connects `stats_changed` to `_on_stats_changed()`, which sets `_detail_label.text = _format_detail(_entry.item)` while `_entry` sells equipment. In `merchant_stock_row.tscn`, delete `%DetailLabel`'s `autowrap_mode = 0` (a RichTextLabel wraps by word by default, growing the row down).
+  - `ItemDescriptionPanel` and `ItemDisplaySlot` stay as they are: Lionel reworks the item tooltip later. The slot calls `setup()` on each hover and `setup()` prints `_get_item_effects()`, so the tooltip shows the new lines as they stand when it opens, with no reprint while it is open.
+  - `MerchantStockRow`: for equipment, `_format_detail()` keeps joining `item._get_item_effects()` (already inked: the row writes no ink itself) after the slot word, with the separator the approved gear-text board shows. Today's slot word and `", "` stay when the board keeps them, with the doc example "Main Hand: +30% Strength (+3), +10% Agility (+2)". `_ready()` also connects `stats_changed` to `_on_stats_changed()`, which sets `_detail_label.text = _format_detail(_entry.item)` while `_entry` sells equipment. In `merchant_stock_row.tscn`, delete `%DetailLabel`'s `autowrap_mode = 0` (a RichTextLabel wraps by word by default, growing the row down).
   - Delete the `attribute_bonuses = { … }` block from the seven Spirit Valley `.tres` files (the loader would skip the undeclared property silently), then rerun Task 1.7's generator command. Expected: `ItemsMdGenerator: created=0 updated=0 skipped=7 orphans=0`.
-  - Run `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import` to write `tests/integration/test_item_description_panel.gd.uid` (test runs import nothing). Expected: `git status --short project.godot` prints nothing.
 
-- [ ] **Step 4: Run them and see them pass.** The Step 2 command with `res://tests/unit/test_equipment.gd` and `res://tests/unit/test_items_md_parser.gd` added to `-gtest`.
+- [ ] **Step 4: Run them and see them pass.** The Step 2 command with `res://tests/unit/test_items_md_parser.gd` added to `-gtest`.
   Expected: PASS.
 
-- [ ] **Step 5: Commit.** Stage the files under **Files** (`equipment_details.tscn` only if the layout step changed it), then `git commit -m "feat(inventory): print gear percents and their now"`. Body: "The book, the item tooltip and the shop print '+30% Strength · +3 now', 'Armor 6' and 'Ward 4' from one builder that uses the stat totals' own per-item bonus. Each reader reprints on stats_changed, so a Spirit level gained with the book open shows at once. attribute_bonuses and its dead file entries go." (+ Co-Authored-By line)
+- [ ] **Step 5: Commit.** Stage the files under **Files** (`equipment_details.tscn` only if the layout step changed it, `docs/inventory/ITEMS.md` only if Before Step 1 applied), then `git commit -m "feat(inventory): print gear percents and what they give"`. Body: "The book, the item tooltip and the shop print '+30% Strength (+3)', 'Armor 6' and 'Ward 4' from one builder that uses the stat totals' own per-item bonus. The tooltip and the shop take them inked from _get_item_effects(), so the tooltip's own code is left for Lionel's rework. The book and the shop reprint on stats_changed, so a Spirit level gained with either open shows at once. attribute_bonuses and its dead file entries go." (+ Co-Authored-By line)
 
 ---
 
@@ -1937,7 +1926,7 @@ number = AbilityRow.format_number(v); percent = "%s%%" % AbilityRow.format_numbe
   2. Body's page reads Max Health 100 → 110, Spirit lists the Aura Well, Strength says "Nothing trains this yet", and In a fight reads Health 100, Madra 100, Stamina 50, 0%, 0%, 0%, Armor 0, Ward 0.
   3. With the book open, set Agility to Lv 6 from the dev panel's Player tab (Ctrl+Shift+D): the tile follows, and Dodge chance reads 8.8%.
   4. The Tribulation card is ENTER. Set Strength to Lv 9: the card turns to TRIAL with "Strength Lv 9 / 10", the Goals board lists the same line, and a click logs "The Tribulation needs Strength Lv 9 / 10." Set it back to Lv 10: the card is ENTER again. Click it: the intro reads Task 1.0's approved line; Not yet closes the board.
-  5. Award the Iron Shortsword from the Items tab and equip it. The inventory, the item panel and the merchant read "+50% Strength · +9 now" (Lv 10 is 19 points) and "+10% Agility · +2 now", and Strength's page shows Gear +9.
+  5. Award the Iron Shortsword from the Items tab and equip it. The inventory, the item tooltip and the merchant read "+50% Strength (+9)" (Lv 10 is 19 points) and "+10% Agility (+2)", and Strength's page shows Gear +9.
   6. The Abilities book's Basic Strike shows one Strength part.
   7. Quit, then relaunch with `-- --save=user://dev/runs/phase1.tres` alone: the levels are as you left them.
 - [ ] **Step 4: Open the PR.** `git status --short` shows nothing staged you didn't intend (no `.godot/`, no stray `.import` cache). `git push -u origin feat/game-stats-rework-e6a4b4`. Write the body to a temporary file outside the repo and run `gh pr create --base main --head feat/game-stats-rework-e6a4b4 --title "feat(stats): six trained stats with levels, XP and a stage cap" --body-file <that file>`. The body, in order: what phase 1 delivers; "Not in this PR": the Madra pool, cycling XP, Core Density from kills, body refining; "Do not publish to itch: the breakthrough can't be reached in play until phase 5."; the test plan (the suite and Step 3's checks); the list below; last, the line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. Expected: the PR's URL.
@@ -1955,8 +1944,8 @@ number = AbilityRow.format_number(v); percent = "%s%%" % AbilityRow.format_numbe
 - docs/tooling/DEV_TOOLS.md: set_stat_level(), raise_stat_to_cap(), the stat row, RAISE_STAT_TO_CAP, beat_9_ready, tribulation_ready's description
 - docs/testing/TESTING.md: the CharacterManager log pair ("Updated 8 attributes"); coverage rows (base_attribute_changed; the stat Set control); the newer-build warning's "this build knows 2"
 - docs/adventuring/ADVENTURING.md: Agility's Stamina regen, dodge and "Dodged", the Aura Well rest's Mind multiplier, the default numbers
-- docs/inventory/INVENTORY.md: gear text ("+50% Strength · +5 now", "Armor 6", "Ward 4"), reprinted on stats_changed
-- docs/inventory/EQUIPMENT_DESIGN.md: floored percent bonuses, armor, Ward; the "no parallel stat systems" principle
+- docs/inventory/INVENTORY.md: gear text ("+50% Strength (+5)", "Armor 6", "Ward 4"), reprinted on stats_changed in the book and the shop; the item tooltip shows the same lines as they stand when it opens
+- docs/inventory/EQUIPMENT_DESIGN.md: floored percent bonuses, armor, Ward; the "no parallel stat systems" principle; the Item Tooltip Display example in the new format ("+50% Strength (+5)", "Armor 6"), _get_item_effects() inking BookText.gear_bonus_lines() at the trained values
 - docs/infrastructure/UNLOCKS.md: base_attribute_changed gone; ATTRIBUTE_VALUE reads totals
 - docs/progression/FOUNDATION_PLAYTHROUGH.md: the breakthrough needs Strength and Spirit at the cap (out of reach until phase 5)
 - docs/UI_STYLING.md and docs/STYLE_GUIDE.md: B8's deleted widgets and their orphaned variants LabelSeparatorDot and PanelStatPill; K11 if the book's look changed
