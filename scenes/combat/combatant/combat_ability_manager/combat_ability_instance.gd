@@ -18,6 +18,7 @@ extends Node
 ##
 ## EXECUTION:
 ## - Applies effects to target
+## - The target may dodge: its effects are skipped, the caster's own still apply
 ## - Starts cooldown timer
 ## - Consumes outgoing modifiers
 
@@ -115,8 +116,9 @@ func start_cast(target: CombatantNode) -> void:
 	else:
 		execute_ability(target)
 
-## Internal method to execute the ability effects. 
+## Internal method to execute the ability effects.
 ## Called immediately for instant abilities, or after cast timer for casted abilities.
+## The target may dodge first: then none of its effects land, but the caster's own do.
 func execute_ability(target: CombatantNode) -> void:
 	use_count += 1
 	executed.emit(self)
@@ -135,13 +137,17 @@ func execute_ability(target: CombatantNode) -> void:
 		if owner_combatant.buff_manager:
 			outgoing_modifier = owner_combatant.buff_manager.consume_outgoing_modifier()
 
-	# Apply effects to the enemy target (outgoing modifier multiplies into damage there).
-	if target and target.has_method("receive_effect"):
+	# Apply effects to the enemy target (outgoing modifier multiplies into damage there),
+	# unless it dodges, which skips every one of them, riders too. The dodge is asked
+	# last, so a cast with no effect on its target never rolls one.
+	if target and target.has_method("receive_effect") \
+			and not ability_data.effects_on_target.is_empty() \
+			and not _dodged_by(target):
 		for effect in ability_data.effects_on_target:
 			target.receive_effect(effect, modified_attributes, outgoing_modifier)
 
-	# Apply effects to self (caster). Outgoing modifier does not apply here — self-effects
-	# are not "outgoing attacks" from the caster's perspective.
+	# Apply effects to self (caster), dodged or not. Outgoing modifier does not apply
+	# here — self-effects are not "outgoing attacks" from the caster's perspective.
 	if owner_combatant and owner_combatant.has_method("receive_effect"):
 		for effect in ability_data.effects_on_self:
 			owner_combatant.receive_effect(effect, modified_attributes, 1.0)
@@ -180,6 +186,16 @@ func _on_cast_timeout() -> void:
 		execute_ability(_current_target)
 		cast_finished.emit(self)
 		_current_target = null
+
+## Whether the target dodges this cast (only the player can: its effect manager's
+## try_dodge()). A dodge floats "Dodged" over the target and goes in the log.
+func _dodged_by(target: CombatantNode) -> bool:
+	if target.effect_manager == null or not target.effect_manager.try_dodge():
+		return false
+	if target.visual:
+		target.visual.play_dodge()
+	LogManager.log_message("[b]%s[/b] dodged %s" % [target.combatant_data.character_name, ability_data.ability_name])
+	return true
 
 ## Creates a modified copy of source_attributes with buff multipliers applied.
 func _get_modified_attributes() -> CharacterAttributesData:
