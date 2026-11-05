@@ -164,9 +164,11 @@ func _update_rate() -> void:
 ## Stage, level, the core orb's spiral at min(level, cap) / cap (0 with no cap;
 ## the dormant pebble at level 0) and the XP beads. A bead lights only once its
 ## share of the XP is earned, floor(xp × 18 / need), so the beads never run
-## ahead of the floored "xp / need XP" figure. A full core takes no XP: the
-## beads show their whole row and the figure reads "Core full". With XP held,
-## the core shows as it stood that much XP ago (rewind_core), and not full.
+## ahead of the "xp / need XP" figure, which floors the XP and rounds the need
+## up: a need with decimals never reads as met before it is. A full core takes
+## no XP: the beads show their whole row and the figure reads "Core full". With
+## XP held, the core shows as it stood that much XP ago (rewind_core), and not
+## full.
 func _update_core_density() -> void:
 	var shown: Vector2 = _shown_core()
 	var level: int = int(shown.x)
@@ -184,7 +186,7 @@ func _update_core_density() -> void:
 		var need: float = CultivationManager.get_xp_for_level(level + 1)
 		var lit_beads: int = floori(xp * XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
 		_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
-		_xp_label.text = "%d / %d XP" % [floori(xp), floori(need)]
+		_xp_label.text = "%d / %d XP" % [floori(xp), ceili(need)]
 
 ## Each stat cell's trained level, its XP toward the next level and whether it
 ## stands at the cap. Trained levels, never totals, so gear moves no cell.

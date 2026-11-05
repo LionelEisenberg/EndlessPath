@@ -8,8 +8,10 @@ extends GutTest
 ## level against the cap, what it does now and at the next level (worked out
 ## from the stat block's own functions and the techniques the player knows),
 ## and where its total comes from. While shown, the book follows the stats,
-## their levels and XP, and the gear. Its pages wait for the book to open.
-## Every test runs on a fresh save, swapped in and restored around it.
+## their levels and XP, the gear, and the stage, whose breakthrough lifts the
+## cap. Its pages wait for the book to open. Every test runs on a fresh save,
+## swapped in and restored around it, and a test that swaps in its own stages
+## has them restored too.
 
 const CharacterViewScene := preload("res://scenes/character/character_view.tscn")
 const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
@@ -23,12 +25,14 @@ const EMPTY_PALM: String = "res://resources/abilities/empty_palm.tres"
 
 var _view: CharacterView
 var _previous_save: SaveGameData
+var _original_stage_resources: Array[AdvancementStageResource] = []
 
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
 
 func before_each() -> void:
+	_original_stage_resources = CultivationManager.advancement_stage_resources
 	_previous_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new_current()
 	PersistenceManager.save_data_reset.emit()
@@ -42,6 +46,8 @@ func after_each() -> void:
 	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
+	# The stages first: the restored save is read against the real ones.
+	CultivationManager.advancement_stage_resources = _original_stage_resources
 	PersistenceManager.save_game_data = _previous_save
 	PersistenceManager.save_data_reset.emit()
 
@@ -66,6 +72,21 @@ func _sword() -> ItemInstanceData:
 	var instance := ItemInstanceData.new()
 	instance.item_definition = sword
 	return instance
+
+## Swaps in a Foundation whose stats cap at `foundation_cap`, leading to a Copper
+## whose stats cap at `copper_cap`. after_each() restores the real stages.
+func _use_stat_caps(foundation_cap: int, copper_cap: int) -> void:
+	var copper := AdvancementStageResource.new()
+	copper.stage_id = CultivationManager.AdvancementStage.COPPER
+	copper.stage_name = "Test Copper"
+	copper.stat_level_cap = copper_cap
+	var foundation := AdvancementStageResource.new()
+	foundation.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	foundation.stage_name = "Test Foundation"
+	foundation.stat_level_cap = foundation_cap
+	foundation.next_stage = copper
+	var stages: Array[AdvancementStageResource] = [foundation, copper]
+	CultivationManager.advancement_stage_resources = stages
 
 #-----------------------------------------------------------------------------
 # THE TILES
@@ -125,6 +146,17 @@ func test_the_book_follows_gear_while_open() -> void:
 	assert_gt(CharacterManager.get_gear_bonus(Attribute.STRENGTH), 0.0, "precondition: the sword raises Strength")
 	assert_eq(_label("DetailValue").text, "%.0f" % CharacterManager.get_stat(Stat.STRENGTH),
 		"the open page's total counts the sword just put on")
+
+## The cap comes from the stage, so a breakthrough while the book is open lifts
+## it there and then.
+func test_the_book_follows_a_breakthrough_while_open() -> void:
+	_use_stat_caps(3, 6)
+	_view.show()
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 3)
+	var seal := _tile("StrengthTile").get_node("%CapSeal") as Label
+	assert_true(seal.visible, "precondition: Strength is capped at Foundation's 3")
+	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough lands")
+	assert_false(seal.visible, "Copper's cap of 6 leaves room, so the open book drops the seal")
 
 #-----------------------------------------------------------------------------
 # THE DETAIL PAGE

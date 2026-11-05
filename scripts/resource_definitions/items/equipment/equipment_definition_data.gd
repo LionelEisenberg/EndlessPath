@@ -56,7 +56,8 @@ func get_stat_bonus(stat: CharacterAttributesData.AttributeType, trained_value: 
 	var percent: float = stat_percent_bonuses.get(CharacterAttributesData.stat_key(stat), 0.0)
 	if percent <= 0.0:
 		return 0.0
-	return maxf(stat_bonus_floor, floorf(trained_value * percent))
+	# The 1e-6 lifts a product a hair under its whole number (25 × 1.16 is 28.999999999999996 as a double) back onto it.
+	return maxf(stat_bonus_floor, floorf(trained_value * percent + 1e-6))
 
 ## The item's bonuses as FLAT modifiers, for CharacterManager's gear source:
 ## one per stat whose get_stat_bonus() is above 0, counted on that stat's

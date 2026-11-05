@@ -71,7 +71,8 @@ func cancel_current_cast() -> bool:
 ## Whether the instance can be cast now: it is one of this manager's, nothing is
 ## casting, it is not recharging, and its costs can be paid, the Madra cost after
 ## the player's Control cut (CombatAbilityInstance.get_cost_cut()). The dock asks
-## it before taking a press, and use_ability_instance() before every cast.
+## it before taking a press, SimpleEnemyAI before it picks an ability to cast,
+## and use_ability_instance() before every cast.
 func can_cast_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
 	if not instance in abilities:
 		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])

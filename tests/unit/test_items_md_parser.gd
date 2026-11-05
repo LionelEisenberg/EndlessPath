@@ -11,6 +11,9 @@ func test_parse_stats_reads_each_token() -> void:
 		{"name": "a percent and Ward", "text": "SPIRIT+15%, WARD+4", "percents": {&"spirit": 0.15}, "ward": 4.0},
 		{"name": "Mind and Control", "text": "MIND+20%, CONTROL+20%", "percents": {&"mind": 0.2, &"control": 0.2}},
 		{"name": "a fractional percent", "text": "SPIRIT+12.5%", "percents": {&"spirit": 0.125}},
+		{"name": "armor in mixed case", "text": "Armor+6", "percents": {}, "armor": 6.0},
+		{"name": "the floor in lower case", "text": "floor+2", "percents": {}, "floor": 2},
+		{"name": "Ward in lower case", "text": "ward+4", "percents": {}, "ward": 4.0},
 		{"name": "empty", "text": "", "percents": {}},
 		{"name": "spaces only", "text": "   ", "percents": {}},
 	]

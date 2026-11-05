@@ -107,6 +107,10 @@ func test_stat_bonus_is_the_rounded_down_percent_with_the_item_floor() -> void:
 		{"name": "the percent above the floor", "percent": 0.25, "floor": 2, "trained": 20.0, "expected": 5.0},
 		{"name": "rounded down", "percent": 0.25, "floor": 1, "trained": 18.0, "expected": 4.0},
 		{"name": "a floor of 1 under a small percent", "percent": 0.05, "floor": 1, "trained": 10.0, "expected": 1.0},
+		# Each product below is a hair under its whole number as a double.
+		{"name": "116% of 25 is 29", "percent": 1.16, "floor": 1, "trained": 25.0, "expected": 29.0},
+		{"name": "58% of 50 is 29", "percent": 0.58, "floor": 1, "trained": 50.0, "expected": 29.0},
+		{"name": "70% of 90 is 63", "percent": 0.7, "floor": 1, "trained": 90.0, "expected": 63.0},
 	]
 	for case: Dictionary in cases:
 		var item := GearFixture.item({&"strength": case.percent}, case.floor)

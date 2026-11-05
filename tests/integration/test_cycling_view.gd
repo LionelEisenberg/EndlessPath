@@ -378,7 +378,7 @@ func test_the_core_shows_the_xp_as_its_pellets_land() -> void:
 	for pellet: LacquerPellet in pellets:
 		pellet._process(10.0)
 	assert_eq(_plate_text("LevelLabel"), "Level %d" % floori(CultivationManager.get_core_density_level()))
-	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), floori(CultivationManager.get_xp_for_next_level())], "all of it has landed")
+	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), ceili(CultivationManager.get_xp_for_next_level())], "all of it has landed")
 
 ## A hidden board frees its pellets, and what they carried shows at once.
 func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
@@ -389,7 +389,7 @@ func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
 	assert_gt(_pellets().size(), 0, "precondition: pellets in flight")
 	_view.hide()
 	assert_eq(_plate_text("MadraValueLabel"), str(floori(ResourceManager.get_madra())))
-	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), floori(CultivationManager.get_xp_for_next_level())])
+	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), ceili(CultivationManager.get_xp_for_next_level())])
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------

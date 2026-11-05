@@ -217,7 +217,7 @@ func _show_session() -> void:
 ## "Preset: Tribulation ready · in memory, not saved", "Your save · user://save.tres"
 ## or "File · <path>"; then "Saving is off: <why>" when it is; then "Built from preset
 ## '<id>'" when the save's play stats name the preset that built it; then the save's
-## "Version 1 · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold".
+## "Version 2 · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold".
 func _session_text() -> String:
 	var where: String = _IN_MEMORY if PersistenceManager.is_in_memory() else PersistenceManager.save_path
 	var lines := PackedStringArray(["%s · %s" % [_session_name(), where]])

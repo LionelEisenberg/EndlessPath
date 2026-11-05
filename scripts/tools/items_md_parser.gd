@@ -14,8 +14,9 @@ const GENERATED_FIELDS: Array[StringName] = [
 ## Parses a stats cell like "STRENGTH+30%, AGILITY+10%, FLOOR+2" into an
 ## EquipmentDefinitionData with only its four stat fields set: a stat word's
 ## N% stores N / 100 under the stat's key, ARMOR+N and WARD+N store N, and
-## FLOOR+N stores the floor (1 when absent). Blank text gives no bonuses. The
-## first bad token pushes an error naming it, and the result is null.
+## FLOOR+N stores the floor (1 when absent). Every word matches in any case.
+## Blank text gives no bonuses. The first bad token pushes an error naming it,
+## and the result is null.
 static func parse_stats(s: String) -> EquipmentDefinitionData:
 	var stats := EquipmentDefinitionData.new()
 	# Set here rather than left to the class defaults, so the shipped-gear test
@@ -76,20 +77,22 @@ static func _read_stats_token(t: String, stats: EquipmentDefinitionData, seen_wo
 	if t[sign_idx] == "-":
 		return "no negative bonuses: '%s'" % t
 	var word := t.substr(0, sign_idx).strip_edges()
-	# Upper-cased because a stat word matches in any case (stat_from_key() below):
-	# two spellings of one word would write the same field.
-	if seen_words.has(word.to_upper()):
+	# Every word matches in any case (the stat words through stat_from_key()
+	# below, FLOOR, ARMOR and WARD through this upper-cased copy), so two
+	# spellings of one word would write the same field.
+	var keyword := word.to_upper()
+	if seen_words.has(keyword):
 		return "'%s' appears twice" % word
-	seen_words[word.to_upper()] = true
+	seen_words[keyword] = true
 	var number_text := t.substr(sign_idx + 1).strip_edges()
 	var has_percent := number_text.contains("%")
-	if word == "FLOOR":
+	if keyword == "FLOOR":
 		if has_percent or not number_text.is_valid_int() or number_text.to_int() < 1:
 			return "'%s' must be a whole number of at least 1" % t
 		stats.stat_bonus_floor = number_text.to_int()
 		return ""
 	var stat: int = -1
-	if word == "ARMOR" or word == "WARD":
+	if keyword == "ARMOR" or keyword == "WARD":
 		if has_percent:
 			return "'%s' is flat: drop the %%" % t
 	else:
@@ -104,7 +107,7 @@ static func _read_stats_token(t: String, stats: EquipmentDefinitionData, seen_wo
 	var value := number.to_float()
 	if value <= 0.0:
 		return "'%s' must be above 0" % t
-	match word:
+	match keyword:
 		"ARMOR":
 			stats.armor = value
 		"WARD":

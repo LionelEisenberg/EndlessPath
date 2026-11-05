@@ -81,9 +81,11 @@ static func format_cost(ability_data: AbilityData, cost_cut: float = 0.0) -> Str
 		parts.append("%s Stamina" % format_number(ability_data.stamina_cost))
 	return " · ".join(parts)
 
-## A duration, for example "15 s" or "0.5 s".
+## A duration to a tenth at most, for example "15 s" or "0.5 s": the seconds
+## are snapped to the nearest 0.1 first, so a cooldown Control cuts to 2.892 s
+## reads "2.9 s" and whole seconds stay whole.
 static func format_seconds(seconds: float) -> String:
-	return "%s s" % format_number(seconds)
+	return "%s s" % format_number(snappedf(seconds, 0.1))
 
 ## Roughly what the ability hits for, for example "about 25 Physical damage":
 ## its first effect on the target, valued for the caster's attributes

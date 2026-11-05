@@ -3,9 +3,10 @@ extends GutTest
 ## The pure rules behind the technique dock: how many of the cooldown sweep's
 ## 24 steps a slot shows for the time left (TechniqueSlot.sweep_step()), the
 ## whole seconds in its centre (TechniqueSlot.seconds_text()), the damage line
-## its tooltip reads (AbilityRow.format_damage()), and the cost lines
-## (AbilityRow.format_cost(), format_costs()). The dock and its tests ask these
-## statics, so the numbers here are the numbers a slot shows.
+## its tooltip reads (AbilityRow.format_damage()), the cost lines
+## (AbilityRow.format_cost(), format_costs()) and the durations in them
+## (AbilityRow.format_seconds()). The dock and its tests ask these statics, so
+## the numbers here are the numbers a slot shows.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -159,3 +160,15 @@ func test_cost_lines_show_the_cut_values() -> void:
 	for case: Dictionary in cases:
 		assert_eq(AbilityRow.format_cost(case["ability"], case["cost_cut"]), case["cost"], "%s: the cost" % case["name"])
 		assert_eq(AbilityRow.format_costs(case["ability"], case["cost_cut"], case["cooldown_cut"]), case["costs"], "%s: costs and timings" % case["name"])
+
+## A duration reads to a tenth at most, so a cooldown Control cuts (Leeching
+## Ring at Control 12 leaves 2.892 s) never prints two decimals.
+func test_seconds_read_to_a_tenth_at_most() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "whole seconds stay whole", "seconds": 10.0, "text": "10 s"},
+		{"name": "a cut cooldown rounds to the nearest tenth", "seconds": 2.892, "text": "2.9 s"},
+		{"name": "14.46 rounds up to the nearest tenth", "seconds": 14.46, "text": "14.5 s"},
+		{"name": "a tenth stays as it is", "seconds": 1.5, "text": "1.5 s"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AbilityRow.format_seconds(case["seconds"]), case["text"], case["name"])

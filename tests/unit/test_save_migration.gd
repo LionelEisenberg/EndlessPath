@@ -134,6 +134,17 @@ func test_a_newer_save_is_left_alone() -> void:
 func test_to_string_names_the_version() -> void:
 	assert_string_contains(str(SaveGameData.new_current()), "SaveVersion: %d" % SaveGameData.CURRENT_VERSION)
 
+## The dump lists the six trained levels from the training record, not the
+## legacy version 1 field, which is empty on every migrated or new save.
+func test_to_string_lists_the_stat_levels() -> void:
+	var data := SaveGameData.new_current()
+	data.stat_training.set_level(AttributeType.SPIRIT, 6)
+	var text: String = str(data)
+	for stat: AttributeType in AttributeType.values():
+		var key: StringName = CharacterAttributesData.stat_key(stat)
+		assert_string_contains(text, "%s: %d" % [key, data.stat_training.get_level(stat)], "%s's level" % key)
+	assert_false(text.contains("CharacterAttributes"), "the legacy field is gone from the dump")
+
 #-----------------------------------------------------------------------------
 # STAT TRAINING
 #-----------------------------------------------------------------------------

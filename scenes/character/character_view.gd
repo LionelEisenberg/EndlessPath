@@ -8,7 +8,8 @@ extends MenuBookView
 ## against the stage's cap and its XP, what it does now and at the next level,
 ## and where its total comes from. The right page keeps the last stat pointed
 ## at; Strength is shown when the book opens. While it is shown, the book
-## follows CharacterManager: every stat, level and XP change, gear's included.
+## follows CharacterManager: every stat, level and XP change, gear's included;
+## and the stage, whose breakthrough raises the cap.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -79,6 +80,8 @@ func _ready() -> void:
 	CharacterManager.stats_changed.connect(_refresh_if_shown)
 	CharacterManager.stat_level_changed.connect(_refresh_if_shown.unbind(2))
 	CharacterManager.stat_xp_changed.connect(_refresh_if_shown.unbind(3))
+	# The cap the pages show comes from the stage, so a breakthrough moves it.
+	CultivationManager.advancement_stage_changed.connect(_refresh_if_shown.unbind(1))
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS

@@ -106,8 +106,9 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 # DODGE
 #-----------------------------------------------------------------------------
 
-## The roll a dodge is checked against, a float in [0, 1). Tests swap in a fixed
-## one (the TribulationView.clock_usec pattern).
+## The roll a dodge is checked against, a float from 0 to 1 (randf() can return
+## 1.0, and a roll of 1.0 never dodges). Tests swap in a fixed one (the
+## TribulationView.clock_usec pattern).
 var dodge_roll: Callable = func() -> float: return randf()
 
 ## Whether the owner dodges a hit: only the player can, when dodge_roll comes in

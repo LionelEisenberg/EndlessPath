@@ -192,7 +192,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
+	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  StatLevels: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
 			save_version,
 			madra,
 			gold,
@@ -205,7 +205,7 @@ func _to_string() -> String:
 			current_selected_zone_id,
 			zone_progression_data_str,
 			inventory.equipment.size() if inventory else 0,
-			str(character_attributes) if character_attributes else "None",
+			_stat_levels_string(),
 			str(unlocked_cycling_technique_ids),
 			equipped_cycling_technique_id,
 			str(unlocked_ability_ids),
@@ -216,6 +216,16 @@ func _to_string() -> String:
 			str(merchant_ledgers)
 		]
 
+## The six stats' trained levels for _to_string(), "{strength: 1, body: 1, ...}",
+## read through the training record, so a stat it lacks shows its Lv 1. "None"
+## with no record.
+func _stat_levels_string() -> String:
+	if stat_training == null:
+		return "None"
+	var levels := PackedStringArray()
+	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
+		levels.append("%s: %d" % [CharacterAttributesData.stat_key(stat), stat_training.get_level(stat)])
+	return "{%s}" % ", ".join(levels)
 
 #-----------------------------------------------------------------------------
 # STATE FUNCTIONS AND VERIFICATION

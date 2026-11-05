@@ -194,7 +194,7 @@ func test_losing_levels_ends_core_full() -> void:
 	CultivationManager.lose_core_density_levels(5)
 	var need: float = CultivationManager.get_xp_for_next_level()
 	assert_eq(_text("LevelLabel"), "Level 95")
-	assert_eq(_text("XpLabel"), "0 / %d XP" % int(need))
+	assert_eq(_text("XpLabel"), "0 / %d XP" % ceili(need))
 	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
 	assert_almost_eq(_fill("CoreOrb"), 0.95, 0.0001)
 
@@ -203,6 +203,18 @@ func test_beads_follow_xp() -> void:
 	CultivationManager.add_core_density_xp(5.0)
 	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 9))
 	assert_eq(_text("XpLabel"), "5 / 10 XP")
+
+## The figure floors the XP and rounds the threshold up, so an unmet threshold
+## never reads as met: level 6 costs 10 × 1.02^5 = 11.04 XP, and 11 XP of it
+## reads 11 / 12, never 11 / 11.
+func test_the_xp_figure_never_shows_an_unmet_threshold_as_met() -> void:
+	_load_core_density(5.0, 11.0)
+	var need: float = CultivationManager.get_xp_for_next_level()
+	assert_ne(need, floorf(need), "precondition: level 6's threshold has decimals")
+	assert_lt(CultivationManager.get_core_density_xp(), need, "precondition: the threshold is not met")
+	var text: String = _text("XpLabel")
+	assert_string_contains(text, "/ %d" % ceili(need), "the figure holds the threshold rounded up")
+	assert_false(text.contains("/ %d " % floori(need)), "never the threshold rounded down")
 
 #-----------------------------------------------------------------------------
 # PELLETS IN FLIGHT
@@ -248,12 +260,12 @@ func test_held_xp_holds_back_a_level_up() -> void:
 	assert_eq(_text("LevelLabel"), "Level 6", "precondition: the hit levelled the core up")
 	_plate.hold_core_xp(need)
 	assert_eq(_text("LevelLabel"), "Level 5", "still the old level while the XP flies")
-	assert_eq(_text("XpLabel"), "8 / %d XP" % floori(need))
+	assert_eq(_text("XpLabel"), "8 / %d XP" % ceili(need))
 	assert_almost_eq(_fill("CoreOrb"), 0.05, 0.0001, "and the old level's spiral")
 	_plate.release_core_xp(need - 8.0)
 	assert_eq(_text("LevelLabel"), "Level 6", "crossed once enough has landed")
 	_plate.release_core_xp(8.0)
-	assert_eq(_text("XpLabel"), "8 / %d XP" % floori(CultivationManager.get_xp_for_next_level()))
+	assert_eq(_text("XpLabel"), "8 / %d XP" % ceili(CultivationManager.get_xp_for_next_level()))
 
 func test_rewind_core_within_a_level() -> void:
 	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 3.0, _cost), Vector2(4, 4.0))

@@ -41,8 +41,11 @@ extends Control
 const BOTTOM_PADDING: float = 22.0
 ## The strip at the top of the board's root that the cords hang in; the
 ## board's body starts under it. The cords (lacquer_goals_cords_ai.png, 24 px)
-## also reach 4 px above the root, since the zone view hangs the board 4 px
-## lower than the kit's 272 and they must still start at the cabinet's rings.
+## also reach 4 px above the root, since each view hangs the board 4 px under
+## its cabinet's rings and the cords must still start at them: the zone view
+## under the cultivator cabinet grown for the six stats
+## (ZoneViewState.GOALS_POSITION), a run under the vitals cabinet
+## (AdventureViewState.GOALS_POSITION).
 const CORDS_HEIGHT: float = 20.0
 ## The quest name's line is shared with the figure: the gap between them (the
 ## name row's separation).

@@ -111,9 +111,11 @@ func get_total_attributes_data() -> CharacterAttributesData:
 	totals.ward = get_stat(Stat.WARD)
 	return totals
 
-## The points the worn gear adds to the stat, exactly the flat amount get_stat()
-## adds for gear: each equipped item's and accessory's get_stat_bonus() on the
-## stat's trained value, summed.
+## The flat points the worn gear adds to the stat: each equipped item's and
+## accessory's get_stat_bonus() on the stat's trained value, summed. It is gear's
+## FLAT amount before any PERCENT modifier, which StatModifierStack applies after
+## every FLAT one, so get_stat() differs from the trained value plus this once a
+## source adds a percent to the stat.
 func get_gear_bonus(stat: AttributeType) -> float:
 	var trained_value: float = get_trained_value(stat)
 	var bonus: float = 0.0
