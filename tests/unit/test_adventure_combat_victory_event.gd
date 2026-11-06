@@ -106,3 +106,9 @@ func test_only_the_enemy_carries_a_vitals_manager_of_its_own() -> void:
 	assert_same(_combat.player_combatant.vitals_manager, PlayerManager.vitals_manager, "the player fights on PlayerManager's")
 	assert_eq(_combat.player_combatant.find_children("*", "VitalsManager", true, false).size(), 0, "with none of its own")
 	assert_eq(_combat.enemy_combatant.find_children("*", "VitalsManager", true, false).size(), 1, "the enemy has its own")
+
+## The unused VitalsManager is freed at once, not left orphaned until the frame
+## ends.
+func test_the_players_own_vitals_manager_goes_at_once() -> void:
+	_start_fight()
+	assert_no_new_orphans("the player's combatant leaves no VitalsManager orphaned")

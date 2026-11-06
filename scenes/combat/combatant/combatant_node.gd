@@ -80,12 +80,13 @@ func receive_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 const HIT_THRESHOLD: float = 0.5
 const HEAL_THRESHOLD: float = 1.0
 
-## Frees the node's own VitalsManager: the player fights on PlayerManager's,
-## so the scene's own would sit unused. An enemy keeps its own.
+## Frees the node's own VitalsManager at once, so it is never left orphaned: the
+## player fights on PlayerManager's, so the scene's own would sit unused. An
+## enemy keeps its own.
 func _free_own_vitals_manager() -> void:
 	var own: VitalsManager = %VitalsManager
 	remove_child(own)
-	own.queue_free()
+	own.free()
 
 func _update_visuals() -> void:
 	# Player art faces right; enemies stand on the right and face left.
