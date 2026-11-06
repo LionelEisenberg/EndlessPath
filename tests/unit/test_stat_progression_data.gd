@@ -3,7 +3,15 @@ extends GutTest
 ## Unit tests for StatProgressionData: the XP each stat level costs and the
 ## value each level gives, on curves built here and on the shipped one.
 
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
 const SHIPPED_PATH: String = "res://resources/character/stat_progression.tres"
+
+#-----------------------------------------------------------------------------
+# HELPERS
+#-----------------------------------------------------------------------------
 
 ## A curve with the given numbers.
 func _curve(xp_to_level_two: float, growth: float, value_per_level: float) -> StatProgressionData:
@@ -17,16 +25,29 @@ func _curve(xp_to_level_two: float, growth: float, value_per_level: float) -> St
 # XP COST
 #-----------------------------------------------------------------------------
 
+## Each cost is 1.25 times the last, rounded to a whole number: 156.25 is 156,
+## 476.84 is 477.
 func test_each_level_costs_more_than_the_last() -> void:
 	var curve := _curve(100.0, 1.25, 1.0)
 	var cases: Array[Dictionary] = [
 		{"level": 1, "xp": 100.0},
 		{"level": 2, "xp": 125.0},
-		{"level": 3, "xp": 156.25},
+		{"level": 3, "xp": 156.0},
+		{"level": 4, "xp": 195.0},
+		{"level": 8, "xp": 477.0},
+		{"level": 9, "xp": 596.0},
 	]
 	for case: Dictionary in cases:
-		assert_almost_eq(curve.get_xp_to_next(case.level), case.xp, 0.0001,
-			"Lv %d to %d" % [case.level, case.level + 1])
+		assert_eq(curve.get_xp_to_next(case.level), case.xp, "Lv %d to %d" % [case.level, case.level + 1])
+
+## Lv 1 to Foundation's cap, Lv 10, on the shipped numbers: the sum of nine
+## whole costs.
+func test_lv_1_to_10_costs_2579() -> void:
+	var curve := _curve(100.0, 1.25, 1.0)
+	var total: float = 0.0
+	for level: int in range(1, 10):
+		total += curve.get_xp_to_next(level)
+	assert_eq(total, 2579.0)
 
 #-----------------------------------------------------------------------------
 # VALUE

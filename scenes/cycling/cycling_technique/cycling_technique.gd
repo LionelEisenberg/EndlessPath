@@ -149,6 +149,9 @@ var _swirl_clock: float = 0.0
 var _breath_clock: float = 0.0
 ## Seconds toward the next Madra step. It keeps its remainder between steps.
 var _madra_timer: float = 0.0
+## Spirit's factor on the Madra a cycle draws, read from the player's total
+## stats on ready and again on every stats change, not on every step.
+var _madra_multiplier: float = 1.0
 ## The frames the Madra rate is measured over, oldest first: the newest frames that
 ## cover RATE_WINDOW seconds of the cycle. x is the frame's seconds and y the Madra
 ## the cursor drew in it: the technique's Madra per second times those seconds while
@@ -165,6 +168,8 @@ var _result: CycleResult = CycleResult.new()
 
 func _ready() -> void:
 	_ball.input_event.connect(_on_ball_input_event)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
+	_on_stats_changed()
 	setup(technique_data_input)
 
 func _process(delta: float) -> void:
@@ -353,12 +358,12 @@ func _draw_madra_step() -> void:
 	_result.madra_added += added
 	madra_particle_requested.emit(_ball_drawn, added)
 
-## Returns the Madra one step adds: the technique's Madra per cycle spread over
-## the steps of a cycle.
+## Returns the Madra one step adds: the technique's Madra per cycle at Spirit's
+## multiplier, spread over the steps of a cycle.
 func _madra_per_step() -> float:
 	if technique_data.cycle_duration <= 0.0:
 		return 0.0
-	return technique_data.base_madra_per_cycle * MADRA_PARTICLE_INTERVAL / technique_data.cycle_duration
+	return technique_data.get_madra_per_cycle(_madra_multiplier) * MADRA_PARTICLE_INTERVAL / technique_data.cycle_duration
 
 ## Returns the ACTIVE zone nearest the true ball, or null when none is active.
 func _active_zone() -> CyclingZone:
@@ -404,7 +409,7 @@ func _record_rate(delta: float, drawing: bool) -> void:
 ## Writes the session snapshot: the time elapsed and the Madra rate, which is the
 ## Madra drawn over the rate window divided by the time it covers (0 with nothing
 ## in it). Steady tracking with room under the max reads the technique's Madra per
-## second, base_madra_per_cycle / cycle_duration, at any frame rate. Within
+## second at Spirit's multiplier, get_madra_per_second(), at any frame rate. Within
 ## RATE_WINDOW seconds of the cursor starting or stopping, or of the max being
 ## met, the rate rises to that or falls to 0.
 func _update_session() -> void:
@@ -548,3 +553,8 @@ func _on_ball_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -
 	var press: InputEventMouseButton = event as InputEventMouseButton
 	if press != null and press.pressed and press.button_index == MOUSE_BUTTON_LEFT:
 		press_ball()
+
+## Spirit's multiplier follows every stats change: a Spirit level, Spirit gear
+## put on or taken off, a save reset.
+func _on_stats_changed() -> void:
+	_madra_multiplier = CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier()

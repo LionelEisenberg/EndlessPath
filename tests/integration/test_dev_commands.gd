@@ -284,6 +284,18 @@ func test_set_madra_refuses_more_than_the_max() -> void:
 	assert_eq(DevCommands.set_madra(100.0), "", "the max itself is fine")
 	assert_eq(ResourceManager.get_madra(), 100.0)
 
+## Set Health writes the saved pool exactly, up to the max, and refuses below 0 or
+## past the max, leaving the pool as it was.
+func test_set_health_sets_exactly_and_refuses_past_the_max() -> void:
+	assert_eq(ResourceManager.get_health(), 100.0, "precondition: a new save binds at a new character's max")
+	assert_eq(DevCommands.set_health(40.0), "")
+	assert_eq(ResourceManager.get_health(), 40.0)
+	assert_ne(DevCommands.set_health(150.0), "", "150 is past a new character's max of 100")
+	assert_ne(DevCommands.set_health(-1.0), "", "Health can't be negative")
+	assert_eq(ResourceManager.get_health(), 40.0, "Health is left as it was")
+	assert_eq(DevCommands.set_health(100.0), "", "the max itself is fine")
+	assert_eq(ResourceManager.get_health(), 100.0)
+
 func test_add_path_points_adds_to_the_balance() -> void:
 	assert_eq(DevCommands.add_path_points(3), "")
 	assert_eq(DevCommands.add_path_points(2), "")

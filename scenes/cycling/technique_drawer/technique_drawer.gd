@@ -5,8 +5,9 @@ extends Control
 ## detail line. It copies ZoneActionButton's nodes and positions (lacquer kit
 ## §5.5 › Card internals, positions local to the drawer). It is 392 x 72 while
 ## its name and its detail line fit a line each. A longer one wraps, never cut,
-## and the drawer grows by its extra lines, never wider: its face stretches the
-## plain band under the icon socket, and the list that holds it re-measures.
+## and the drawer grows by its extra lines, never wider, on the cards' faces (a
+## 9-slice with the socket as its own piece, ZoneActionButton.fit_face), and the
+## list that holds it re-measures.
 ##
 ## The drawer in use (the equipped technique) is pulled out to (-2, -2) on the
 ## running face and tagged IN USE. A left press on any other drawer equips its
@@ -17,9 +18,12 @@ extends Control
 ## turns to the drawers under the cursor that has just clicked the Wilderness
 ## Cycling card, so its first move could land on a seal the player never saw.
 ##
-## The drawer does not listen to CyclingManager: the list that holds the
-## drawers calls refresh() on every one of them when the equipped technique
-## changes.
+## The detail line's Madra figure is Madra a cycle at the player's Spirit now,
+## gear included.
+##
+## The drawer does not listen to CyclingManager or CharacterManager: the list
+## that holds the drawers calls refresh() on every one of them when the equipped
+## technique changes, and refresh_detail() when the player's stats change.
 
 ## Emitted when the drawer's height changes: its name or its detail line took
 ## more lines or fewer.
@@ -42,13 +46,6 @@ const SHORT_HEIGHT: float = 72.0
 ## detail at 38).
 const DETAIL_GAP: float = 4.0
 const ROOM_UNDER_DETAIL: float = 16.0
-## The faces grow by stretching their rows 60 and 61, the plain band under the
-## icon socket, which match: the rows above and under them show as drawn.
-const FACE_STRETCH_ROW: int = 60
-const FACE_STRETCH_ROWS: int = 2
-
-const DRAWER_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_ai.png")
-const DRAWER_RUN_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_run_ai.png")
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -92,9 +89,10 @@ func setup(data: CyclingTechniqueData) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns a technique's detail line: "200 Madra · 15 s cycle · 4 zones", with
-## "no zones" or "1 zone" where the count is 0 or 1.
-static func detail_text(data: CyclingTechniqueData) -> String:
+## Returns a technique's detail line: "80 Madra · 15 s cycle · 4 zones", with
+## "no zones" or "1 zone" where the count is 0 or 1. The figure is Madra a cycle
+## at `madra_multiplier` (Spirit's), rounded to a whole number.
+static func detail_text(data: CyclingTechniqueData, madra_multiplier: float = 1.0) -> String:
 	var zones: String
 	match data.cycling_zones.size():
 		0:
@@ -103,17 +101,16 @@ static func detail_text(data: CyclingTechniqueData) -> String:
 			zones = "1 zone"
 		var count:
 			zones = "%d zones" % count
-	return "%d Madra · %d s cycle · %s" % [roundi(data.base_madra_per_cycle), roundi(data.cycle_duration), zones]
+	return "%d Madra · %d s cycle · %s" % [roundi(data.get_madra_per_cycle(madra_multiplier)), roundi(data.cycle_duration), zones]
 
-## Re-applies what depends on state: the face and its offset, the IN USE tag and
-## its colour, and the NEW seal with the text laid out around it. The list
+## Re-applies what depends on state: the drawer's offset, the IN USE tag and its
+## colour, and the NEW seal with the text and the face laid out around it. The list
 ## calls it on every drawer when the equipped technique changes.
 func refresh() -> void:
 	if not is_node_ready() or technique == null:
 		return
 	var in_use: bool = is_in_use()
 	_drawer.position = IN_USE_OFFSET if in_use else Vector2.ZERO
-	_face.texture = DRAWER_RUN_TEXTURE if in_use else DRAWER_TEXTURE
 	_tag.visible = in_use
 	_tag_label.text = IN_USE_TAG_TEXT
 	if in_use:
@@ -121,6 +118,15 @@ func refresh() -> void:
 	else:
 		_tag_label.remove_theme_color_override(&"font_color")
 	_refresh_new_seal()
+
+## Re-reads the detail line at the player's Spirit now and lays the text out
+## again, since the line can take more lines or fewer. The list calls it on
+## every drawer when the player's stats change.
+func refresh_detail() -> void:
+	if not is_node_ready() or technique == null:
+		return
+	_detail.text = detail_text(technique, CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier())
+	_layout_text()
 
 ## Returns true when the drawer's technique is the equipped one.
 func is_in_use() -> bool:
@@ -141,7 +147,7 @@ func flash() -> void:
 func _apply_technique() -> void:
 	_icon.texture = technique.icon
 	_title.text = technique.technique_name
-	_detail.text = detail_text(technique)
+	_detail.text = detail_text(technique, CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier())
 	refresh()
 
 ## Shows the NEW seal while the technique is unseen, then lays the text out
@@ -155,7 +161,7 @@ func _refresh_new_seal() -> void:
 ## drawer tall enough for both, on even px. Tells the list when the height
 ## changes.
 func _layout_text() -> void:
-	ZoneActionButton.layout_title_row(_title, _new_seal, _tag, true)
+	ZoneActionButton.layout_title_row(_title, _new_seal, _tag)
 	_detail.position.y = _title.position.y + _title.size.y + DETAIL_GAP
 	_detail.size = Vector2(_detail.size.x, 2.0 * ceilf(_detail.get_minimum_size().y / 2.0))
 	var height: float = maxf(SHORT_HEIGHT, _detail.position.y + _detail.size.y + ROOM_UNDER_DETAIL)
@@ -167,13 +173,10 @@ func _layout_text() -> void:
 	if changed:
 		height_changed.emit()
 
-## Fits the face to the drawer: its texture at file size, taller by what the
-## drawer grew, which the band under the socket takes.
+## Fits the face to the drawer: the cards' running face while the technique is in
+## use, their resting face otherwise.
 func _fit_face() -> void:
-	var texture_size: Vector2 = _face.texture.get_size()
-	_face.patch_margin_top = FACE_STRETCH_ROW
-	_face.patch_margin_bottom = int(texture_size.y) - FACE_STRETCH_ROW - FACE_STRETCH_ROWS
-	_face.size = texture_size + Vector2(0.0, custom_minimum_size.y - SHORT_HEIGHT)
+	ZoneActionButton.fit_face(_face, is_in_use(), custom_minimum_size)
 
 func _mark_seen() -> void:
 	if technique == null:

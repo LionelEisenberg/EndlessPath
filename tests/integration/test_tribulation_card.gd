@@ -5,8 +5,8 @@ extends GutTest
 ## on a line under it, the main stats still short, tagged TRIAL, and refuses a
 ## click with a log line per missing requirement. Ready (a full core, Strength and
 ## Spirit at the cap), it shows the ready frame, the ENTER tag and the trial's
-## length and penalty on its detail line, which wraps in a taller card when it
-## runs long. It follows the core's level, the stage and the stat levels, and lets
+## length and penalty on its detail line. Nothing on it is cut off: the stat line
+## and a long ready line wrap, and the card grows by their lines. It follows the core's level, the stage and the stat levels, and lets
 ## them go when it leaves the tree. Cards are built with setup_action, as the zone
 ## panel builds them, on a fresh save with the card's unlock condition forced and
 ## Strength and Spirit at the cap; the trial itself is test_tribulation_flow.gd's.
@@ -23,8 +23,10 @@ const AURA_WELL_ID: String = "aura_well_training"
 const FULL_CORE_CONDITION: String = "core_density_full"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 
-const SHORT_HEIGHT: float = 72.0
-const TALL_HEIGHT: float = 96.0
+## The card is 72 px with one detail line, and 18 more for each line under it:
+## 90 with the Core row and one stat line.
+const MIN_HEIGHT: float = 72.0
+const DETAIL_LINE: float = 18.0
 ## The core rod has the adventure's Madra rod's 74 steps.
 const ROD_STEPS: int = 74
 
@@ -128,12 +130,16 @@ func _tag_text(card: ZoneActionButton) -> String:
 func _ready_frame(card: ZoneActionButton) -> LacquerFrameOverlay:
 	return card.get_node("%ReadyFrame") as LacquerFrameOverlay
 
-## The Core figure and its rod, in the card's footer.
+## The Core row (the figure and its rod) with the stat line under it, a row of the
+## card's detail slot.
 func _need_row(card: ZoneActionButton) -> Control:
-	return card.get_footer_slot().find_child("NeedGroup", true, false) as Control
+	return card.get_detail_slot().find_child("NeedGroup", true, false) as Control
 
 func _core_rod(card: ZoneActionButton) -> LacquerRod:
-	return card.get_footer_slot().find_child("CoreRod", true, false) as LacquerRod
+	return card.get_detail_slot().find_child("CoreRod", true, false) as LacquerRod
+
+func _stat_line(card: ZoneActionButton) -> Label:
+	return card.get_detail_slot().find_child("StatNeedLabel", true, false) as Label
 
 ## The ready line, on the card's detail line.
 func _ready_label(card: ZoneActionButton) -> Label:
@@ -165,7 +171,7 @@ func test_below_the_cap_shows_the_core_figure() -> void:
 	assert_false(_has_text_containing(card, "About"), "the ready line is hidden")
 	assert_eq(_tag_text(card), "TRIAL")
 	var rod: LacquerRod = _core_rod(card)
-	assert_not_null(rod, "the core rod sits in the footer")
+	assert_not_null(rod, "the core rod sits on the detail line")
 	if rod:
 		assert_eq(rod.get_step(), roundi(0.95 * ROD_STEPS), "95 / 100 of 74 steps")
 	assert_false(_ready_frame(card).visible, "no ready frame below the cap")
@@ -182,7 +188,7 @@ func test_at_the_cap_the_card_is_ready() -> void:
 	assert_eq(_tag_text(card), "ENTER")
 	assert_true(_ready_frame(card).visible, "the ready frame")
 	var row: Control = _need_row(card)
-	assert_not_null(row, "the Core figure and its rod sit in the footer")
+	assert_not_null(row, "the Core figure and its rod sit on the detail line")
 	if row:
 		assert_false(row.visible, "and hide once the card is ready")
 
@@ -312,16 +318,32 @@ func test_card_follows_a_stage_change() -> void:
 # LONG TEXT
 #-----------------------------------------------------------------------------
 
-## A ready line too wide for the detail line wraps in the tall drawer instead of
-## being cut, and the card is short again once it is not ready. Here the penalty
-## runs past half the line, so the right column wraps; Label.text holds the whole
-## left part whatever fit_detail_label() does to it (an ellipsis, two lines at
-## most), so the label's own lines are counted once it has been laid out: every
-## one shows.
+## The stat line sits under the Core row and grows the card by its lines; the
+## Core row stays the detail line's first row. With the stats at the cap again the
+## card is ready and 72 px.
+func test_the_stat_line_grows_the_card_and_the_core_row_stays() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_set_core_level(FULL_CORE)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap - 1)
+	var card: ZoneActionButton = _card()
+	var stat_line: Label = _stat_line(card)
+	assert_true(stat_line.visible, "precondition: Strength is a level short")
+	assert_eq(stat_line.get_visible_line_count(), stat_line.get_line_count(), "every stat line shows")
+	assert_eq(card.size.y, MIN_HEIGHT + DETAIL_LINE, "the card grows by the stat line")
+	assert_eq(card.custom_minimum_size.y, MIN_HEIGHT + DETAIL_LINE, "and the list reads it")
+	var row: Control = _need_row(card)
+	assert_eq(row.get_index(), _first_visible_row(card).get_index(), "the Core row is the detail line's first row")
+	assert_eq(row.position.y, 0.0, "at its top")
+	CharacterManager.add_stat_levels(Attribute.STRENGTH, 1)
+	assert_eq(_tag_text(card), "ENTER", "precondition: ready again")
+	assert_eq(card.size.y, MIN_HEIGHT, "one line again")
+
+## A ready line too wide for its room wraps instead of being cut, and the card is
+## 72 again once it is not ready. Here the penalty runs past half the line, so the
+## right column wraps too.
 func test_a_long_ready_line_grows_the_card_and_it_shrinks_back() -> void:
 	_set_core_level(FULL_CORE)
 	var card: ZoneActionButton = _card_for(_action_with_trial(SLOW_TEMPO, HEAVY_PENALTY))
-	await wait_process_frames(2)
 	var line: Label = _ready_label(card)
 	var right: RichTextLabel = card.get_node("%DetailRight") as RichTextLabel
 	assert_not_null(line, "the ready line sits on the detail line")
@@ -329,11 +351,18 @@ func test_a_long_ready_line_grows_the_card_and_it_shrinks_back() -> void:
 		assert_eq(line.get_visible_line_count(), line.get_line_count(), "no line of the left part is cut")
 	assert_eq(card.get_detail_right_text(), "failure costs %d levels" % HEAVY_PENALTY, "the right column keeps its whole text")
 	assert_gt(right.get_line_count(), 1, "and wraps")
-	assert_eq(card.size.y, TALL_HEIGHT, "the line wraps in the tall drawer")
+	var lines: int = maxi(line.get_line_count() if line else 1, right.get_line_count())
+	assert_eq(card.size.y, MIN_HEIGHT + DETAIL_LINE * (lines - 1), "the card grows by the taller column's lines")
 	CultivationManager.lose_core_density_levels(5)
-	assert_eq(card.size.y, SHORT_HEIGHT, "below the cap the card is short again")
-	assert_eq(card.custom_minimum_size.y, SHORT_HEIGHT)
+	assert_eq(card.size.y, MIN_HEIGHT, "below the cap the card is one line again")
+	assert_eq(card.custom_minimum_size.y, MIN_HEIGHT)
 	assert_eq(card.get_detail_right_text(), "", "and its right column goes")
+
+func _first_visible_row(card: ZoneActionButton) -> Control:
+	for child: Node in card.get_detail_slot().get_children():
+		if (child as Control).visible:
+			return child as Control
+	return null
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE

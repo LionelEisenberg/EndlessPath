@@ -3,7 +3,8 @@ extends GutTest
 ## Integration tests for the technique drawer (TechniqueDrawer), the zone chest's
 ## drawer for one learned cycling technique: its detail line, icon and name, the
 ## drawer in use tagged IN USE, the NEW seal (cleared when the pointer leaves the
-## drawer or on a press), equip on click (and nothing on the drawer in use), the
+## drawer or on a press), the Madra figure at the player's Spirit, equip on
+## click (and nothing on the drawer in use), the
 ## mouse it keeps from its parts, and a long name, which wraps and grows the
 ## drawer (never wider).
 ## Drawers are built with setup on a fresh save with smooth_flow unlocked, as
@@ -94,6 +95,16 @@ func test_detail_text() -> void:
 	assert_eq(TechniqueDrawer.detail_text(_fixture("B", 200.0, 15.0, 4)), "200 Madra · 15 s cycle · 4 zones")
 	assert_eq(TechniqueDrawer.detail_text(_fixture("C", 250.0, 8.0, 1)), "250 Madra · 8 s cycle · 1 zone")
 
+## The figure is Madra a cycle at the multiplier, rounded to a whole number.
+func test_detail_text_at_a_multiplier() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Smooth Flow at Spirit Lv 10", "madra": 80.0, "multiplier": 1.9, "text": "152 Madra · 15 s cycle · 4 zones"},
+		{"name": "Spirit Lv 1", "madra": 80.0, "multiplier": 1.0, "text": "80 Madra · 15 s cycle · 4 zones"},
+		{"name": "a half rounds up", "madra": 25.0, "multiplier": 1.9, "text": "48 Madra · 15 s cycle · 4 zones"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(TechniqueDrawer.detail_text(_fixture("A", case.madra, 15.0, 4), case.multiplier), case.text, case.name)
+
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
@@ -105,8 +116,19 @@ func test_setup_shows_icon_name_and_detail() -> void:
 	assert_not_null(smooth.icon, "precondition: the shipped technique has an icon")
 	assert_eq(icon.texture, smooth.icon)
 	assert_eq((_node(drawer, "Title") as Label).text, "Smooth Flow Technique")
-	assert_eq((_node(drawer, "Detail") as Label).text, "200 Madra · 15 s cycle · 4 zones")
+	assert_eq((_node(drawer, "Detail") as Label).text, "80 Madra · 15 s cycle · 4 zones")
 	assert_eq(drawer.technique, smooth)
+
+func test_setup_shows_madra_at_the_players_spirit() -> void:
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
+	assert_eq((_node(drawer, "Detail") as Label).text, "152 Madra · 15 s cycle · 4 zones", "80 at 1.9x")
+
+func test_refresh_detail_reads_the_spirit_now() -> void:
+	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	drawer.refresh_detail()
+	assert_eq((_node(drawer, "Detail") as Label).text, "152 Madra · 15 s cycle · 4 zones")
 
 #-----------------------------------------------------------------------------
 # THE DRAWER IN USE
@@ -215,6 +237,26 @@ func test_a_name_that_wraps_beside_the_seal_fits_once_it_clears() -> void:
 	assert_eq(drawer.size, DRAWER_SIZE, "and the drawer is 72 again")
 	assert_signal_emitted(drawer, "height_changed", "which the list hears")
 	_assert_the_list_reads_its_height(drawer)
+
+## The drawer in use grows on the cards' running face, a 9-slice that keeps its
+## brass caps in its corners: the face is the drawer's size plus its 4 px shadow
+## at any height. (A face that stretched a band under the socket would drag the
+## caps along.)
+func test_the_drawer_in_use_grows_on_the_running_face() -> void:
+	var foundation: CyclingTechniqueData = _technique(FOUNDATION_ID)
+	var name_before: String = foundation.technique_name
+	foundation.technique_name = LONG_NAME
+	var drawer: TechniqueDrawer = _drawer_for(foundation)
+	foundation.technique_name = name_before
+	assert_true(drawer.is_in_use(), "precondition: foundation is equipped")
+	assert_gt(drawer.size.y, DRAWER_SIZE.y, "precondition: its long name grew the drawer")
+	var face := _node(drawer, "Face") as NinePatchRect
+	assert_eq(face.texture, ZoneActionButton.RUNNING_FACE_TEXTURE, "the running 9-slice")
+	assert_eq(face.size, drawer.size + Vector2(4, 4), "as tall as the drawer, with its shadow")
+	CyclingManager.equip_technique(SMOOTH_ID)
+	drawer.refresh()
+	assert_eq(face.texture, ZoneActionButton.FACE_TEXTURE, "out of use, the resting face")
+	assert_eq(face.size, drawer.size + Vector2(2, 2))
 
 #-----------------------------------------------------------------------------
 # THE MOUSE

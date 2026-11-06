@@ -5,16 +5,17 @@ extends Control
 ## Cards are grouped Talk, Cultivate, Gather, Venture, Visit
 ## (ZoneActionGroups), each group under a tan label with a carved groove.
 ## The flow, from content y 0: a group label row (18) and a 6 px gap, cards
-## 8 px apart, groups 14 apart, 4 px under the last card. An empty list
-## reads "Nothing to do here yet.".
+## 8 px apart whatever their height (a card grows with its text), groups 14
+## apart, 4 px under the last card. An empty list reads "Nothing to do here
+## yet.".
 ## The list scrolls under its own brass rail (LacquerRail) with the native
 ## scrollbar hidden, and a hard shelf lip shows at an edge the list is
 ## scrolled away from. The zone panel sizes the list: it reads the content
 ## height and the fold heights (8 px under each whole drawer) to pick a
 ## height that never cuts a drawer.
 
-## Emitted when the content height changes (a rebuild, or a card switching
-## between the short and the tall drawer).
+## Emitted when the content height changes (a rebuild, or a card growing or
+## shrinking with its text).
 signal layout_changed
 
 ## Emitted when the player clicks the card of the idle action that runs.

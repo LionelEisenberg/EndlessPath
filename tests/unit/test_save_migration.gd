@@ -2,8 +2,9 @@ extends GutTest
 
 ## Unit tests for SaveGameData: its version stamp and the migrations behind it
 ## (version 1 moves the old accessories; version 2 turns the stat values a
-## version 1 save kept into trained levels, capped by the save's own stage),
-## repair(), reset(), the training record a new or reset save writes out, and
+## version 1 save kept into trained levels, capped by the save's own stage;
+## version 3 leaves Health unset for the bind to fill), a version step that
+## cannot run, repair(), reset(), the training record a new or reset save writes out, and
 ## the save fields added for the map-first zone view. A save written before
 ## those fields existed must load with their defaults, and a save standing in
 ## the hidden Test Zone must move to Spirit Valley before verify() runs.
@@ -15,6 +16,9 @@ const AttributeType = CharacterAttributesData.AttributeType
 const Stage := CultivationManager.AdvancementStage
 
 const TMP_OLD_SAVE_PATH: String = "user://__test_old_save_migration.tres"
+
+## A SaveGameData that finds CultivationManager missing.
+const StagelessSave: GDScript = preload("res://tests/helpers/stageless_save_game_data.gd")
 
 ## Where a save from before commit 0652b49 kept its two accessories in
 ## InventoryData.equipped_gear: the old EquipmentSlot ACCESSORY_1 and ACCESSORY_2.
@@ -256,6 +260,80 @@ func test_v2_skips_a_current_save() -> void:
 	assert_same(data.character_attributes, old_values, "the old values are left as they were")
 
 #-----------------------------------------------------------------------------
+# HEALTH
+#-----------------------------------------------------------------------------
+
+## A save from before the Health pool comes out with Health unset, written out
+## whatever it held, so the bind fills it to the max.
+func test_v3_leaves_health_for_the_bind_to_fill() -> void:
+	var data := SaveGameData.new()
+	data.save_version = 2
+	data.health = 40.0
+	data.migrate()
+	assert_eq(data.health, SaveGameData.HEALTH_UNSET, "the step writes the sentinel")
+	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
+func test_v3_skips_a_current_save() -> void:
+	var data := SaveGameData.new_current()
+	data.health = 40.0
+	data.migrate()
+	assert_eq(data.health, 40.0, "a current save's Health is its own")
+
+## Both bind full, as an old save does.
+func test_a_new_and_a_reset_save_hold_health_unset() -> void:
+	assert_eq(SaveGameData.new_current().health, SaveGameData.HEALTH_UNSET, "a new save")
+	var reset := SaveGameData.new_current()
+	reset.health = 40.0
+	reset.reset()
+	assert_eq(reset.health, SaveGameData.HEALTH_UNSET, "a reset save")
+
+## A version 2 file holds no health key.
+func test_an_old_file_loads_health_unset() -> void:
+	var loaded := _load_hand_written_save("""[gd_resource type="Resource" script_class="SaveGameData" format=3]
+
+[ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
+
+[resource]
+script = ExtResource("1_save")
+save_version = 2
+gold = 42.0
+""")
+	assert_not_null(loaded, "the version 2 file loads")
+	if loaded == null:
+		return
+	loaded.migrate()
+	assert_eq(loaded.health, SaveGameData.HEALTH_UNSET)
+
+func test_to_string_names_health() -> void:
+	var data := SaveGameData.new_current()
+	data.health = 40.0
+	assert_string_contains(str(data), "Health: 40.00")
+
+#-----------------------------------------------------------------------------
+# A STEP THAT CANNOT RUN
+#-----------------------------------------------------------------------------
+
+## With CultivationManager missing, the version 2 step cannot read the stat caps:
+## migrate() stops before it, leaves the old values as they were, and never
+## stamps the save current. The steps before it and the zone move still run.
+func test_migrate_never_stamps_a_save_it_could_not_convert() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a version 1 save", "version": 1, "left_at": 1},
+		{"name": "an unversioned save still gets step 1", "version": 0, "left_at": 1},
+	]
+	for case: Dictionary in cases:
+		var data: SaveGameData = StagelessSave.new()
+		data.save_version = case.version
+		data.current_selected_zone_id = "TestZone"
+		var old_values := CharacterAttributesData.make({&"spirit": 13.0})
+		data.character_attributes = old_values
+		data.migrate()
+		assert_eq(data.save_version, case.left_at, "%s: stays at the last step it finished" % case.name)
+		assert_same(data.character_attributes, old_values, "%s: the old values are kept" % case.name)
+		assert_false(data.stat_training.levels.has(&"spirit"), "%s: no levels are written" % case.name)
+		assert_eq(data.current_selected_zone_id, "SpiritValley", "%s: the zone move runs on every load" % case.name)
+
+#-----------------------------------------------------------------------------
 # REPAIR
 #-----------------------------------------------------------------------------
 
@@ -392,14 +470,14 @@ script = ExtResource("1_save")
 save_version = 1
 character_attributes = SubResource("Resource_attrs")
 """)
-	assert_not_null(loaded)
+	assert_not_null(loaded, "the version 1 file loads")
 	if loaded == null:
 		return
 	loaded.migrate()
-	assert_eq(loaded.save_version, SaveGameData.CURRENT_VERSION)
+	assert_eq(loaded.save_version, SaveGameData.CURRENT_VERSION, "the migrated save is stamped current")
 	assert_eq(_levels(loaded), {AttributeType.STRENGTH: 3, AttributeType.BODY: 1, AttributeType.AGILITY: 1,
-		AttributeType.SPIRIT: 4, AttributeType.MIND: 1, AttributeType.CONTROL: 1})
-	assert_null(loaded.character_attributes)
+		AttributeType.SPIRIT: 4, AttributeType.MIND: 1, AttributeType.CONTROL: 1}, "Strength 12.5 is Lv 3 and the Aura Well's Spirit 13 is Lv 4")
+	assert_null(loaded.character_attributes, "the old values are cleared")
 
 #-----------------------------------------------------------------------------
 # RESET

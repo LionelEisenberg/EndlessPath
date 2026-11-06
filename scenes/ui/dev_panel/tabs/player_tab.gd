@@ -1,8 +1,9 @@
 extends ScrollContainer
 
 ## The dev panel's Player tab: the player's resources and progress, each set through
-## DevCommands, which logs the change and says why it refused. Madra and gold are set
-## to a value. Core Density is reached through real XP, so the milestones pay, and the
+## DevCommands, which logs the change and says why it refused. Madra, the saved Health
+## pool and gold are set to a value, and a line shows Health over its max as both
+## change: until runs read the pool, it is the only place the pool shows. Core Density is reached through real XP, so the milestones pay, and the
 ## stage shows next to it with a button to break through to the next. Path Points are
 ## added to. A stat is set to a level, past the stage's cap too, and to XP toward the
 ## next level. A cycling technique or a combat ability is unlocked, or equipped (an
@@ -16,6 +17,9 @@ extends ScrollContainer
 @onready var _status: Label = %PlayerStatus
 @onready var _madra_spin: SpinBox = %MadraSpin
 @onready var _madra_set: Button = %MadraSet
+@onready var _health_spin: SpinBox = %HealthSpin
+@onready var _health_set: Button = %HealthSet
+@onready var _health_label: Label = %HealthLabel
 @onready var _gold_spin: SpinBox = %GoldSpin
 @onready var _gold_set: Button = %GoldSet
 @onready var _level_spin: SpinBox = %LevelSpin
@@ -43,8 +47,8 @@ extends ScrollContainer
 #-----------------------------------------------------------------------------
 
 ## Lists the stats, the techniques and the abilities in their pickers, each item's
-## metadata what its command takes (the stat's key, the others' ids), shows the stage,
-## and keeps it showing as the core and the stage change.
+## metadata what its command takes (the stat's key, the others' ids), shows the stage
+## and Health, and keeps them showing as the core, the stage, Health and its max change.
 func _ready() -> void:
 	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
 		_stat_option.add_item(CharacterManager.get_attribute_display_name(stat))
@@ -56,7 +60,9 @@ func _ready() -> void:
 		_ability_option.add_item(ability.ability_name)
 		_ability_option.set_item_metadata(_ability_option.item_count - 1, ability.ability_id)
 	_show_stage()
+	_show_health()
 	_madra_set.pressed.connect(_on_madra_set_pressed)
+	_health_set.pressed.connect(_on_health_set_pressed)
 	_gold_set.pressed.connect(_on_gold_set_pressed)
 	_level_reach.pressed.connect(_on_level_reach_pressed)
 	_advance_stage.pressed.connect(_on_advance_stage_pressed)
@@ -70,6 +76,8 @@ func _ready() -> void:
 	_unlock_all_abilities.pressed.connect(_on_unlock_all_abilities_pressed)
 	CultivationManager.core_density_level_updated.connect(_show_stage.unbind(2))
 	CultivationManager.advancement_stage_changed.connect(_show_stage.unbind(1))
+	ResourceManager.health_changed.connect(_show_health.unbind(1))
+	CharacterManager.stats_changed.connect(_show_health)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -77,6 +85,9 @@ func _ready() -> void:
 
 func _on_madra_set_pressed() -> void:
 	_show_result(DevCommands.set_madra(_madra_spin.value))
+
+func _on_health_set_pressed() -> void:
+	_show_result(DevCommands.set_health(_health_spin.value))
 
 func _on_gold_set_pressed() -> void:
 	_show_result(DevCommands.set_gold(_gold_spin.value))
@@ -128,6 +139,10 @@ func _show_stage() -> void:
 		int(CultivationManager.get_core_density_level()),
 		CultivationManager.get_core_density_cap(),
 	]
+
+## Shows the saved Health pool over its max, as "Health 40 / 100".
+func _show_health() -> void:
+	_health_label.text = "Health %d / %d" % [int(ResourceManager.get_health()), int(ResourceManager.get_max_health())]
 
 ## The id of the item the picker shows, or "" when it has none, which the commands refuse
 ## as an unknown id.

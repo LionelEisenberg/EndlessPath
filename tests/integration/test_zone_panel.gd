@@ -56,9 +56,12 @@ const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
-## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
+## A technique drawer or an activity card is 72 tall with a line each, with 8
+## between them (kit §5.5); each line more is 18.
 const DRAWER_HEIGHT: float = 72.0
 const DRAWER_GAP: float = 8.0
+const STAT_LINE: float = 18.0
+const StatCaps := preload("res://tests/helpers/stat_caps.gd")
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -586,6 +589,35 @@ func test_focus_request_scrolls() -> void:
 	assert_true(_card_fully_visible(ADVENTURE_ID))
 	assert_true(_card_flashing(ADVENTURE_ID))
 
+## A card that grows where it stands (the Tribulation's stat line appearing)
+## moves every fold under it down by its new line and none above it, the list
+## measures the taller card, and it still folds under a whole card.
+func test_the_list_refolds_when_a_card_grows() -> void:
+	await _add_panel()
+	_unlock_everything()
+	StatCaps.cap_main_stats()
+	await wait_process_frames(2)
+	var list := _list() as ActivityList
+	var card: ZoneActionButton = _panel.get_card(TRIBULATION_ID) as ZoneActionButton
+	assert_not_null(card, "precondition: the Tribulation is listed")
+	assert_eq(card.size.y, DRAWER_HEIGHT, "precondition: with the stats at the cap, one line")
+	var folds_before: Array[float] = list.get_fold_heights()
+	var content_before: float = list.get_content_height()
+	var top_before: float = card.get_global_rect().position.y - _scroll().get_global_rect().position.y
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.STRENGTH, CharacterManager.get_stat_level_cap() - 1)
+	await wait_process_frames(2)
+	assert_eq(card.size.y, DRAWER_HEIGHT + STAT_LINE, "the stat line grows the card")
+	assert_eq(list.get_content_height(), content_before + STAT_LINE, "the list measures it")
+	var folds_after: Array[float] = list.get_fold_heights()
+	assert_eq(folds_after.size(), folds_before.size(), "precondition: the same cards")
+	for index: int in folds_before.size():
+		var moved: float = folds_after[index] - folds_before[index]
+		if folds_before[index] <= top_before:
+			assert_eq(moved, 0.0, "a fold above the card stays: %d" % index)
+		else:
+			assert_eq(moved, STAT_LINE, "a fold under the card moves down a line: %d" % index)
+	assert_true(folds_after.has(list.size.y) or is_equal_approx(list.size.y, list.get_content_height()), "the list folds under a whole card")
+
 #-----------------------------------------------------------------------------
 # LORE
 #-----------------------------------------------------------------------------
@@ -815,6 +847,32 @@ func _header_text() -> String:
 
 func _count_text() -> String:
 	return (_node("CountLabel") as Label).text
+
+## A Spirit level-up moves every drawer's Madra figure with the chest open, not
+## at the next rebuild: Smooth Flow's 80 a cycle reads 152 at Spirit Lv 10.
+func test_drawers_follow_a_spirit_level() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(1)
+	var detail := _technique_list().get_drawer(SMOOTH_ID).get_node("%Detail") as Label
+	assert_eq(detail.text, "80 Madra · 15 s cycle · 4 zones", "precondition: Spirit Lv 1")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	assert_eq(detail.text, "152 Madra · 15 s cycle · 4 zones")
+
+## The rate's slot is as wide as the technique's top rate at the player's Spirit:
+## Smooth Flow tops out at +5.3 / s at Lv 1 and +10.1 / s at Lv 10, a digit wider,
+## so a Spirit level-up widens it while the tray shows the cycle.
+func test_the_rate_slot_follows_a_spirit_level() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	CyclingManager.equip_technique(SMOOTH_ID)
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(1)
+	var slot := _strip_node("RateGroup") as Control
+	var width_at_lv_1: float = slot.custom_minimum_size.x
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	assert_gt(slot.custom_minimum_size.x, width_at_lv_1, "a whole digit wider")
 
 func test_techniques_mode_lists_unlocked_techniques() -> void:
 	_unlock_all_techniques()

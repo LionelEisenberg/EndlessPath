@@ -217,6 +217,13 @@ func get_stat_level_cap() -> int:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.stat_level_cap if res else 0
 
+## The stat level cap of the given stage, or 0 when no stage resource has it.
+## Reads the stage list, not the bound save, so it works before the managers
+## bind: the version 2 save step calls it from migrate().
+func get_stat_level_cap_of(stage: AdvancementStage) -> int:
+	var res: AdvancementStageResource = _get_stage_resource(stage)
+	return res.stat_level_cap if res else 0
+
 ## True when Core Density has reached the current stage's cap.
 func is_core_full() -> bool:
 	var cap: int = get_core_density_cap()

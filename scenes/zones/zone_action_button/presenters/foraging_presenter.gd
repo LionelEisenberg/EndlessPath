@@ -4,19 +4,22 @@ extends ZoneActionPresenter
 ## icon and item name ([dewdrop] Dewdrop Tear  [fern] Spirit Fern), and, only
 ## when foraging costs Madra, "costs <n> Madra / s" in the right column. One
 ## ForageYield scene is instanced per loot entry, with the item's mini icon
-## (ItemDefinitionData.get_mini_icon). A line wider than its room ends in an
-## ellipsis. The ranges, the haul timer and the haul text live in the Now strip
-## and on the map, not on the card (the user's review, 2026-10-24).
+## (ItemDefinitionData.get_mini_icon), into lines (ForageYieldLine) that step
+## 18 px: a find that would pass the line's room moves to the next line whole,
+## and a find too wide for a line of its own wraps its name. Nothing is cut off.
+## The ranges, the haul timer and the haul text live in the Now strip and on
+## the map, not on the card (the user's review, 2026-10-24).
 
 const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
+const FORAGE_YIELD_LINE_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield_line.tscn")
 
-@onready var _yield_row: HBoxContainer = %YieldRow
+@onready var _yield_lines: VBoxContainer = %YieldLines
 
-## Moves the detail into the card and fills it.
+## Moves the finds into the card and fills them.
 func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	action_data = data
 	button = owner_button
-	_yield_row.reparent(button.get_detail_slot(), false)
+	_yield_lines.reparent(button.get_detail_slot(), false)
 	_fill()
 
 ## Nothing to undo: the detail line never changes.
@@ -27,10 +30,8 @@ func teardown() -> void:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## One yield per loot entry. Each name gets what is left of the line's room
-## after the pieces before it, so the end of a long line, not its start, gives
-## way to the ellipsis. A cut name ends the line: its ellipsis stands for the
-## finds after it, and a yield left no room for its name does not show.
+## The cost first, so the finds know the room it leaves; then one yield per loot
+## entry, each on the current line while it fits, else on a new one.
 func _fill() -> void:
 	var forage := action_data as ForageActionData
 	if forage == null:
@@ -38,30 +39,50 @@ func _fill() -> void:
 	if forage.madra_cost_per_second > 0.0:
 		button.set_detail_right("costs %s Madra / s" % _number(forage.madra_cost_per_second))
 	if forage.loot_table == null:
+		button.relayout()
 		return
-	var x: float = 0.0
+	var room: float = button.get_detail_room()
+	var line: HBoxContainer = null
+	var line_width: float = 0.0
 	for entry: LootTableEntry in forage.loot_table.entries:
 		if entry == null or entry.item == null:
 			continue
 		var yield_row: HBoxContainer = FORAGE_YIELD_SCENE.instantiate() as HBoxContainer
-		_yield_row.add_child(yield_row)
 		var icon_rect: TextureRect = yield_row.get_node("%Icon") as TextureRect
 		icon_rect.texture = entry.item.get_mini_icon()
-		icon_rect.visible = icon_rect.texture != null
-		x += _icon_width(yield_row)
+		var icon_box: Control = yield_row.get_node("%IconBox") as Control
+		icon_box.visible = icon_rect.texture != null
 		var yield_text: RichTextLabel = yield_row.get_node("%YieldText") as RichTextLabel
-		x += button.fit_detail_rich_text(yield_text, entry.item.item_name, maxf(button.get_detail_room() - x, 0.0))
-		x += _yield_row.get_theme_constant(&"separation")
-		yield_row.visible = yield_text.text != ""
-		if yield_text.text != LacquerText.decimal_bbcode(entry.item.item_name):
-			break
+		yield_text.text = LacquerText.decimal_bbcode(entry.item.item_name)
+		if line == null:
+			line = _add_line()
+		line.add_child(yield_row)
+		var icon_width: float = icon_box.custom_minimum_size.x + yield_row.get_theme_constant(&"separation") if icon_box.visible else 0.0
+		var yield_width: float = icon_width + yield_text.get_content_width()
+		var gap: float = line.get_theme_constant(&"separation")
+		if line_width > 0.0 and line_width + gap + yield_width > room:
+			line.remove_child(yield_row)
+			line = _add_line()
+			line.add_child(yield_row)
+			line_width = 0.0
+		if yield_width > room:
+			_wrap_name(yield_text, room - icon_width)
+			yield_width = room
+		line_width += (gap if line_width > 0.0 else 0.0) + yield_width
+	button.relayout()
 
-## The icon and the gap after it, when the yield shows an icon.
-func _icon_width(yield_row: HBoxContainer) -> float:
-	var icon_rect: TextureRect = yield_row.get_node("%Icon") as TextureRect
-	if not icon_rect.visible:
-		return 0.0
-	return icon_rect.get_combined_minimum_size().x + yield_row.get_theme_constant(&"separation")
+func _add_line() -> HBoxContainer:
+	var line: HBoxContainer = FORAGE_YIELD_LINE_SCENE.instantiate() as HBoxContainer
+	_yield_lines.add_child(line)
+	return line
+
+## A name too wide for a line of its own wraps by word at width.
+func _wrap_name(yield_text: RichTextLabel, width: float) -> void:
+	yield_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	yield_text.custom_minimum_size.x = width
+	yield_text.size = Vector2(width, yield_text.size.y)
+	# The boxes above it measured its one long line: let them measure its lines.
+	yield_text.update_minimum_size()
 
 ## A number with no sign and no trailing zeros: 5.0 → "5", 2.5 → "2.5".
 func _number(value: float) -> String:

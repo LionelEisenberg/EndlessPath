@@ -1,7 +1,8 @@
 extends GutTest
 
 ## Unit tests for the ResourceManager autoload: the one Madra pool and its max
-## (the max Madra stat), the over-max rule, gold, award_resource dispatch, the
+## (the max Madra stat), the one Health pool and its max (the max Health stat),
+## the over-max rule, Health's fill at bind and low Health, gold, award_resource dispatch, the
 ## adventure threshold, the madra_changed / gold_changed signals and the
 ## player-facing log lines. Every test calls the real singleton, bound to a
 ## fresh save the way a load binds one.
@@ -14,6 +15,8 @@ const AttributeType = CharacterAttributesData.AttributeType
 const TEST_SOURCE: StringName = &"test_resource_manager"
 ## A new character's max: Mind Lv 1 (10) x 10.
 const NEW_MAX_MADRA: float = 100.0
+## A new character's max: Body Lv 1 (10) x 10.
+const NEW_MAX_HEALTH: float = 100.0
 
 var _save: SaveGameData
 var _original_save: SaveGameData
@@ -23,6 +26,7 @@ func before_each() -> void:
 	_use_save(SaveGameData.new_current())
 	_save.madra = 0.0
 	_save.gold = 0.0
+	_save.health = 0.0
 
 func after_each() -> void:
 	CharacterManager.remove_modifier_source(TEST_SOURCE)
@@ -47,8 +51,16 @@ func _raise_max_by(amount: float) -> void:
 
 ## A modifier source that adds `amount` to the max Madra stat.
 func _max_madra_source(amount: float) -> Callable:
+	return _flat_source(StatModifierData.Stat.MAX_MADRA, amount)
+
+## Puts a flat bonus on the max Health stat.
+func _raise_max_health_by(amount: float) -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _flat_source(StatModifierData.Stat.MAX_HEALTH, amount))
+
+## A modifier source that adds `amount` to the stat.
+func _flat_source(stat: StatModifierData.Stat, amount: float) -> Callable:
 	return func() -> Array[StatModifierData]:
-		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)]
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(stat, StatModifierData.Kind.FLAT, amount)]
 		return modifiers
 
 ## The first message_logged text since watch_signals(LogManager).
@@ -236,6 +248,168 @@ func test_a_save_reset_leaves_the_old_saves_pool_alone() -> void:
 	assert_eq(ResourceManager.get_madra(), 150.0, "precondition: Mind Lv 6 holds 150")
 	_use_save(SaveGameData.new_current())
 	assert_eq(old.madra, 150.0, "the save left behind is not cut to the new save's max of 100")
+
+#-----------------------------------------------------------------------------
+# HEALTH
+#-----------------------------------------------------------------------------
+
+## The max is the max Health stat: Body x 10, then its modifiers.
+func test_max_health_is_the_max_health_stat() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a new character", "body_level": 1, "bonus": 0.0, "max": 100.0},
+		{"name": "Body Lv 3", "body_level": 3, "bonus": 0.0, "max": 120.0},
+		{"name": "a +40 bonus on max Health", "body_level": 1, "bonus": 40.0, "max": 140.0},
+	]
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(AttributeType.BODY, case.body_level)
+		_raise_max_health_by(case.bonus)
+		assert_eq(ResourceManager.get_max_health(), case.max, case.name)
+
+## add_health() keeps the pool between 0 and the max and returns what it added.
+func test_add_health_keeps_the_pool_between_zero_and_the_max() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "an add with room", "health": 10.0, "amount": 5.0, "expected": 15.0, "added": 5.0},
+		{"name": "the max absorbs the overflow", "health": 95.0, "amount": 20.0, "expected": NEW_MAX_HEALTH, "added": 5.0},
+		{"name": "an add at the max stays at the max", "health": NEW_MAX_HEALTH, "amount": 50.0, "expected": NEW_MAX_HEALTH, "added": 0.0},
+		{"name": "a negative amount past the pool stops at 0", "health": 10.0, "amount": -50.0, "expected": 0.0, "added": -10.0},
+	]
+	for case: Dictionary in cases:
+		_save.health = case.health
+		var added: float = ResourceManager.add_health(case.amount, true)
+		assert_eq(_save.health, case.expected, "%s: the pool" % case.name)
+		assert_eq(added, case.added, "%s: what it added" % case.name)
+
+func test_add_health_emits_health_changed_with_new_total() -> void:
+	_save.health = 10.0
+	watch_signals(ResourceManager)
+	ResourceManager.add_health(5.0)
+	assert_signal_emit_count(ResourceManager, "health_changed", 1)
+	assert_signal_emitted_with_parameters(ResourceManager, "health_changed", [15.0])
+
+## A whole gain logs; a quiet one, a fraction and one at the max don't.
+func test_add_health_logs_only_whole_loud_gains() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a whole gain", "health": 10.0, "amount": 5.0, "quiet": false, "logged": "Gained 5 Health"},
+		{"name": "a quiet gain", "health": 10.0, "amount": 5.0, "quiet": true, "logged": ""},
+		{"name": "a fraction", "health": 10.0, "amount": 0.5, "quiet": false, "logged": ""},
+		{"name": "at the max", "health": NEW_MAX_HEALTH, "amount": 5.0, "quiet": false, "logged": ""},
+	]
+	for case: Dictionary in cases:
+		_save.health = case.health
+		watch_signals(LogManager)
+		ResourceManager.add_health(case.amount, case.quiet)
+		if case.logged == "":
+			assert_signal_not_emitted(LogManager, "message_logged", case.name)
+		else:
+			assert_string_contains(_first_log_message(), case.logged, case.name)
+		clear_signal_watcher()
+
+## A spend the pool covers deducts and emits; one it doesn't changes nothing.
+func test_spend_health_refuses_more_than_the_pool() -> void:
+	_save.health = 30.0
+	watch_signals(ResourceManager)
+	assert_false(ResourceManager.spend_health(30.5), "more than the pool is refused")
+	assert_eq(_save.health, 30.0, "and spends nothing")
+	assert_signal_not_emitted(ResourceManager, "health_changed")
+	assert_true(ResourceManager.spend_health(30.0), "the whole pool can be spent")
+	assert_eq(_save.health, 0.0)
+	assert_signal_emitted_with_parameters(ResourceManager, "health_changed", [0.0])
+
+func test_set_health_keeps_the_pool_between_zero_and_the_max() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a value in range", "amount": 40.0, "expected": 40.0},
+		{"name": "past the max", "amount": 150.0, "expected": NEW_MAX_HEALTH},
+		{"name": "below 0", "amount": -5.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		watch_signals(ResourceManager)
+		ResourceManager.set_health(case.amount)
+		assert_eq(ResourceManager.get_health(), case.expected, case.name)
+		assert_eq(get_signal_parameters(ResourceManager, "health_changed"), [case.expected], "%s: announced" % case.name)
+		clear_signal_watcher()
+
+## A new save holds the sentinel, as a reset one and one from before the pool
+## do, and binds full: at Body and gear's max, announced once.
+func test_an_unset_health_binds_full() -> void:
+	var save := SaveGameData.new_current()
+	save.stat_training.set_level(AttributeType.BODY, 3)
+	watch_signals(ResourceManager)
+	_use_save(save)
+	assert_eq(ResourceManager.get_health(), 120.0, "Body Lv 3's max")
+	assert_eq(save.health, 120.0, "written into the save, so the next write keeps it")
+	assert_signal_emit_count(ResourceManager, "health_changed", 1, "the bind announces it once")
+	assert_signal_emitted_with_parameters(ResourceManager, "health_changed", [120.0])
+
+## Body gear off, say.
+func test_a_falling_max_brings_health_down() -> void:
+	_raise_max_health_by(40.0)
+	ResourceManager.set_health(140.0)
+	watch_signals(ResourceManager)
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_eq(ResourceManager.get_health(), NEW_MAX_HEALTH)
+	assert_signal_emit_count(ResourceManager, "health_changed", 1, "announced once")
+	assert_signal_emitted_with_parameters(ResourceManager, "health_changed", [NEW_MAX_HEALTH])
+
+func test_a_falling_max_above_health_leaves_it_alone() -> void:
+	_raise_max_health_by(40.0)
+	ResourceManager.set_health(80.0)
+	watch_signals(ResourceManager)
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_eq(ResourceManager.get_health(), 80.0)
+	assert_signal_not_emitted(ResourceManager, "health_changed")
+
+func test_a_save_loads_with_its_health_at_most_the_max() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Health past the max", "health": 600.0, "expected": NEW_MAX_HEALTH},
+		{"name": "Health under the max", "health": 45.0, "expected": 45.0},
+		{"name": "no Health left", "health": 0.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		var save := SaveGameData.new_current()
+		save.health = case.health
+		watch_signals(ResourceManager)
+		_use_save(save)
+		assert_eq(ResourceManager.get_health(), case.expected, "%s: the pool" % case.name)
+		assert_eq(save.health, case.expected, "%s: the save" % case.name)
+		assert_signal_emit_count(ResourceManager, "health_changed", 1, "%s: every bind announces Health once" % case.name)
+		clear_signal_watcher()
+
+## On a save reset CharacterManager announces the new save's stats while this
+## manager still holds the old save: the old save is not cut to the new max.
+func test_a_save_reset_leaves_the_old_saves_health_alone() -> void:
+	var old := SaveGameData.new_current()
+	old.stat_training.set_level(AttributeType.BODY, 6)
+	old.health = 150.0
+	_use_save(old)
+	assert_eq(ResourceManager.get_health(), 150.0, "precondition: Body Lv 6 holds 150")
+	_use_save(SaveGameData.new_current())
+	assert_eq(old.health, 150.0, "the save left behind is not cut to the new save's max of 100")
+
+## Should CharacterManager bind after this manager, the fill waits until the max
+## reads the same save, and CharacterManager's stats_changed fills it.
+func test_an_unset_health_waits_for_character_manager_to_hold_the_save() -> void:
+	var save := SaveGameData.new_current()
+	save.stat_training.set_level(AttributeType.BODY, 3)
+	PersistenceManager.save_game_data = save
+	_save = save
+	# The two binds in the other order: this manager first.
+	ResourceManager._update_resources()
+	assert_eq(save.health, SaveGameData.HEALTH_UNSET, "not filled from the old save's max")
+	CharacterManager._update_resources()
+	assert_eq(save.health, 120.0, "filled once CharacterManager holds the save")
+
+## Low means below half the max.
+func test_health_is_low_below_half() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "just below half", "health": 49.9, "bonus": 0.0, "low": true},
+		{"name": "at half", "health": 50.0, "bonus": 0.0, "low": false},
+		{"name": "empty", "health": 0.0, "bonus": 0.0, "low": true},
+		{"name": "under half of a raised max", "health": 60.0, "bonus": 40.0, "low": true},
+	]
+	for case: Dictionary in cases:
+		_raise_max_health_by(case.bonus)
+		_save.health = case.health
+		assert_eq(ResourceManager.is_health_low(), case.low, case.name)
 
 #-----------------------------------------------------------------------------
 # GOLD

@@ -47,6 +47,7 @@ func _full_save() -> SaveGameData:
 	var save := SaveGameData.new()
 	save.save_version = SaveGameData.CURRENT_VERSION
 	save.madra = 61.5
+	save.health = 72.5
 	save.gold = 130.0
 	_fill_inventory(save.inventory)
 	save.character_attributes = CharacterAttributesData.make({
