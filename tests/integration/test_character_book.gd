@@ -297,7 +297,8 @@ func test_in_a_fight_lists_every_total() -> void:
 
 func test_the_fight_block_shows_a_row_per_total() -> void:
 	_view.refresh()
-	assert_eq(_view.get_node("%FightRows").get_child_count(), CharacterView.fight_lines().size(), "a row per fight total")
+	var rows: int = _view.get_node("%FightLeftColumn").get_child_count() + _view.get_node("%FightRightColumn").get_child_count()
+	assert_eq(rows, CharacterView.fight_lines().size(), "a row per fight total")
 
 #-----------------------------------------------------------------------------
 # OPENING

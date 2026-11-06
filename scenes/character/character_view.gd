@@ -36,17 +36,14 @@ const TableRowScene := preload("res://scenes/inventory/pressed/table_row/table_r
 ## block's Madra and Mind's Max Madra.
 const _MADRA_LABELS: Array[String] = ["Madra", "Max Madra"]
 
-## The widths of the In a fight block's left and right columns, as board 3
-## draws them. The right one fits TECHNIQUE COST CUT with a percent beside it.
-const _FIGHT_COLUMN_WIDTHS: Array[float] = [196.0, 240.0]
-
 #-----------------------------------------------------------------------------
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
 @onready var _physical_tiles: GridContainer = %PhysicalTiles
 @onready var _spiritual_tiles: GridContainer = %SpiritualTiles
-@onready var _fight_rows: GridContainer = %FightRows
+@onready var _fight_left_column: VBoxContainer = %FightLeftColumn
+@onready var _fight_right_column: VBoxContainer = %FightRightColumn
 @onready var _detail_plaque: PageTitle = %DetailPlaque
 @onready var _detail_group: Label = %DetailGroup
 @onready var _detail_icon: TextureRect = %DetailIcon
@@ -99,7 +96,7 @@ func refresh() -> void:
 			CharacterManager.is_stat_capped(stat),
 			CharacterManager.get_stat(StatModifierData.for_attribute(stat)),
 		)
-	_fill_fight_rows(fight_lines())
+	_rebuild_fight_rows()
 	if _selected_tile:
 		_show_details(_selected_tile)
 
@@ -254,19 +251,17 @@ func _next_level_block(stat: CharacterAttributesData.AttributeType, now: Charact
 	next.set_attribute(stat, now.get_attribute(stat) + progression.get_value_for_level(level + 1) - progression.get_value_for_level(level))
 	return next
 
-## Rebuilds the In a fight block from `lines` in two columns: the first half of
-## the lines runs down the left column and the rest down the right, so grid row
-## r holds line r and line r + half.
-func _fill_fight_rows(lines: Array[Dictionary]) -> void:
-	_clear_rows(_fight_rows)
+## Rebuilds the In a fight block from fight_lines() in its two columns, whose
+## widths the scene sets: the first half of the lines runs down the left column
+## and the rest down the right.
+func _rebuild_fight_rows() -> void:
+	var lines: Array[Dictionary] = fight_lines()
 	var half: int = ceili(lines.size() / 2.0)
-	for r: int in half:
-		for column: int in _FIGHT_COLUMN_WIDTHS.size():
-			var index: int = r + column * half
-			if index >= lines.size():
-				continue
-			var row: TableRow = _add_row(_fight_rows, lines[index].label, lines[index].value)
-			row.custom_minimum_size.x = _FIGHT_COLUMN_WIDTHS[column]
+	_clear_rows(_fight_left_column)
+	_clear_rows(_fight_right_column)
+	for index: int in lines.size():
+		var column: VBoxContainer = _fight_left_column if index < half else _fight_right_column
+		_add_row(column, lines[index].label, lines[index].value)
 
 ## Adds a TableRow to `container`: `label` in capitals, and the value with its
 ## decimal points set for the page, a Madra amount in Madra ink.
