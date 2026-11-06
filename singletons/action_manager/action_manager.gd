@@ -37,6 +37,10 @@ signal stop_merchant()
 signal start_tribulation(action_data: TribulationActionData)
 signal stop_tribulation()
 
+## body refining signals
+signal start_body_refining(action_data: BodyRefiningActionData)
+signal stop_body_refining()
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -142,9 +146,9 @@ func select_action(action_data: ZoneActionData) -> void:
 			ZoneManager.set_last_idle_action_id(zone_id, action_data.action_id)
 	_execute_action(action_data)
 
-## Stop the current action. When a session action (cycling, an adventure,
-## dialogue, the merchant, the Tribulation, a zone event) stops, the zone's idle
-## action resumes. Stopping an idle action resumes nothing.
+## Stop the current action. When a session action (cycling, body refining, an
+## adventure, dialogue, the merchant, the Tribulation, a zone event) stops, the
+## zone's idle action resumes. Stopping an idle action resumes nothing.
 func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
 	_stop_executing_current_action(successful)
@@ -268,6 +272,11 @@ func _execute_action(action_data: ZoneActionData) -> void:
 				_execute_tribulation_action(action_data as TribulationActionData)
 			else:
 				Log.error("ActionManager: Tribulation action data is not a TribulationActionData: %s" % action_data.action_name)
+		ZoneActionData.ActionType.BODY_REFINING:
+			if action_data is BodyRefiningActionData:
+				_execute_body_refining_action(action_data as BodyRefiningActionData)
+			else:
+				Log.error("ActionManager: Body refining action data is not a BodyRefiningActionData: %s" % action_data.action_name)
 		_:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
@@ -293,6 +302,8 @@ func _stop_executing_current_action(successful: bool = true) -> void:
 				_stop_merchant_action(successful)
 			ZoneActionData.ActionType.TRIBULATION:
 				_stop_tribulation_action(successful)
+			ZoneActionData.ActionType.BODY_REFINING:
+				_stop_body_refining_action(successful)
 			_:
 				Log.error("ActionManager: Unknown action type: %s" % current_action.action_type)
 	
@@ -409,6 +420,13 @@ func _execute_tribulation_action(action_data: TribulationActionData) -> void:
 	Log.info("ActionManager: Executing tribulation action: %s" % action_data.action_name)
 	start_tribulation.emit(action_data)
 
+## Handle body refining action - open the body refining board. The action stays
+## current until the board closes it with stop_action() (Escape or its close
+## button), the way cycling does.
+func _execute_body_refining_action(action_data: BodyRefiningActionData) -> void:
+	Log.info("ActionManager: Executing body refining action: %s" % action_data.action_name)
+	start_body_refining.emit(action_data)
+
 #-----------------------------------------------------------------------------
 # ACTION STOP EXECUTION HANDLERS
 #-----------------------------------------------------------------------------
@@ -460,6 +478,13 @@ func _stop_merchant_action(successful: bool) -> void:
 func _stop_tribulation_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping tribulation action")
 	stop_tribulation.emit()
+	_process_completion_effects(successful)
+
+## Handle body refining action stop - close the board, then run completion
+## effects. The reps already played have paid through BodyRefiningManager.
+func _stop_body_refining_action(successful: bool) -> void:
+	Log.info("ActionManager: Stopping body refining action")
+	stop_body_refining.emit()
 	_process_completion_effects(successful)
 
 ## Runs the current action's completion effects, only in the save it started

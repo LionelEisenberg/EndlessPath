@@ -26,13 +26,13 @@ const _GROUP_LABELS: Dictionary = {
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## The group an action type is listed under. The Tribulation is cultivation, so
-## it goes in Cultivate; ZONE_EVENT goes in Visit.
+## The group an action type is listed under. The Tribulation and body refining
+## are cultivation, so they go in Cultivate; ZONE_EVENT goes in Visit.
 static func group_of(action_type: ZoneActionData.ActionType) -> Group:
 	match action_type:
 		ActionType.NPC_DIALOGUE:
 			return Group.TALK
-		ActionType.CYCLING, ActionType.TRAIN_STATS, ActionType.TRIBULATION:
+		ActionType.CYCLING, ActionType.TRAIN_STATS, ActionType.TRIBULATION, ActionType.BODY_REFINING:
 			return Group.CULTIVATE
 		ActionType.FORAGE:
 			return Group.GATHER
@@ -60,7 +60,7 @@ static func mode_tag(action: ZoneActionData) -> String:
 	match action.action_type:
 		ActionType.FORAGE, ActionType.TRAIN_STATS:
 			return "IDLE"
-		ActionType.CYCLING, ActionType.ADVENTURE:
+		ActionType.CYCLING, ActionType.ADVENTURE, ActionType.BODY_REFINING:
 			return "ACTIVE"
 		ActionType.MERCHANT:
 			return "SHOP"

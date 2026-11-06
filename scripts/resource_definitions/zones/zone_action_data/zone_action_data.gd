@@ -10,6 +10,7 @@ enum ActionType {
 	CYCLING,
 	ZONE_EVENT,  # Story/scripted events
 	TRIBULATION,  # A stage's breakthrough trial. Appended: saved .tres files store the number
+	BODY_REFINING,  # Drills on the body refining board. Appended: saved .tres files store the number
 }
 
 @export var action_id: String = ""
