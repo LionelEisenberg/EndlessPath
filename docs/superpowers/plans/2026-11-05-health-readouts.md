@@ -32,12 +32,12 @@
 
 ## Mock-up answers
 
-Canvas "One Health pool": https://claude.ai/artifact/Tb2mF2n82eQmR2tLh3hQnN. **Waiting for Lionel.** Tasks 4 to 7 build the proposals below; they wait for the approval, and this section takes the answers once given.
+Canvas "One Health pool": https://claude.ai/artifact/Tb2mF2n82eQmR2tLh3hQnN, **approved as drawn by Lionel on 2026-11-05**; the answers are recorded on #98.
 
-- Proposed Q1, the cabinet's readout: A, a Health orb row on top in the vitals plate's order (Health, Madra, Core Density), each row at the plate's offsets.
-- Proposed Q2, the cabinet grows 92 px (board 504 → 596, new art). The Goals board hangs at (24, 616); the full log is 440 px, 13 whole lines. Runs keep (24, 368).
-- Proposed Q3, Health pellets: land on the Health orb, held until each lands; crimson strip row after Control's.
-- Proposed Q4, the book: HEALTH reads "62 / 100" in Health ink (#5A1626), live; Body's MAX HEALTH in Health ink too.
+- Q1, the cabinet's readout: A, a Health orb row on top in the vitals plate's order (Health, Madra, Core Density), each row at the plate's offsets.
+- Q2, the cabinet grows 92 px (board 504 → 596, new art). The Goals board hangs at (24, 616); the full log is 440 px, 13 whole lines. Runs keep (24, 368).
+- Q3, Health pellets: land on the Health orb, held until each lands; crimson strip row after Control's.
+- Q4, the book: HEALTH reads "62 / 100" in Health ink (#5A1626), live; Body's MAX HEALTH in Health ink too.
 
 ---
 
