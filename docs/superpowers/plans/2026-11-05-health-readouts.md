@@ -263,7 +263,18 @@ and `test_in_a_fight_lists_every_total`'s Health assertion reads `VitalsText.hea
 
 ## Checks run
 
-(Filled in as they run.)
+#98's Done-when checks, on `-- --save=user://dev/runs/health-readouts.tres` (and a preset per check), through a scratch scene that instances `main_game.tscn` and calls the dev commands the dev panel calls. Damage was applied through the player's `apply_vitals_change()`, the call a hit makes, and the rest tile by processing the Aura Well choice's effects, as the map does.
+
+- A new save (`fresh`): the cabinet reads 100 / 100 and the book's Health row 100 / 100.
+- With the book open, Set Health 37: the row reads 37 / 100 at once; the cabinet 37 / 100 once it closes.
+- A run (`adventure_open`) starts at 100 / 100. After 38.7 damage the vitals plate reads 62 / 100 (61.3 in the pool); Exit as defeat: the end card reads 62 / 100; home, the cabinet and the book read 62 / 100. The next run starts at 100 / 100.
+- Hurt to 30, then the Aura Well rest tile: the plate reads 80 / 100; Exit as defeat: the end card reads 80 / 100, and home the cabinet 80 / 100.
+- Reinforced Robes on (`merchant_open`): the cabinet and the book read 100 / 140. Set to full (140 / 140), robes off: both read 100 / 100.
+- Mid-run at 57.2, the SaveTimer's write (`PersistenceManager.save_data()`), quit; reloading the file shows the cabinet at 58 / 100 (57.2).
+- A won fight, then Set Health 0 on the map: no "Combat Defeat..." line, and the run goes on; Set Health 0 at home: none either, and the cabinet reads 0 / 100 with an empty orb.
+- The zone view's Goals board hangs at (24, 616), and the open full log runs from 616 to the bottom, 13 lines, over the Goals board and not the cabinet. In a run the Goals board sits at (24, 368).
+- An old save (a copy of a version 1 save from 2026-10-28) loads at full Health, 120 / 120 with its gear, starts a run at 120 / 120, and comes home at 108 / 120, as its end card read.
+- `tests/run_tests.ps1`: all tests pass (the count is in the PR).
 
 ## What was built differently
 
