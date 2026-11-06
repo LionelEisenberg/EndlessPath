@@ -98,6 +98,21 @@ func test_a_retreat_counts_nothing() -> void:
 	var stats: PlayStatsData = _stats()
 	assert_eq(stats.adventures_won + stats.adventures_lost + stats.adventures_timed_out, 0, "a retreat is no win, loss or timeout")
 
+## The run spends from the saved pool, so a quit mid-run saves what it spent
+## and what is left, and the end card is told the pool as it stands.
+func test_a_run_quit_midway_keeps_what_it_spent_and_what_is_left() -> void:
+	_set_player_health(40.0)
+	ResourceManager.set_madra(80.0)
+	_begin_a_run_without_a_map(300.0)
+	PlayerManager.vitals_manager.apply_vitals_change(0.0, 0.0, -30.0)
+	assert_eq(PersistenceManager.save_game_data.madra, 50.0, "mid-run, the save already holds what is left")
+	_view.stop_adventure()
+	assert_eq(ResourceManager.get_madra(), 50.0, "what the run spent stays spent, and the rest stays in the pool")
+	assert_eq(_results.size(), 1, "the retreat ended the run once")
+	if _results.size() == 1:
+		assert_eq(_results[0].madra_left, 50.0, "the end card is told the Madra left")
+		assert_eq(_results[0].madra_max, 100.0, "over the pool's max")
+
 func test_zero_health_counts_a_lost_adventure() -> void:
 	_set_player_health(0.0)
 	_begin_a_run_without_a_map(300.0)

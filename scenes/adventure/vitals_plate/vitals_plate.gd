@@ -157,15 +157,16 @@ func _disconnect_vitals() -> void:
 static func _fraction(current: float, maximum: float) -> float:
 	return clampf(current / maximum, 0.0, 1.0) if maximum > 0.0 else 0.0
 
-## Health / max and the orb's liquid at Health / max. Health rounds up, so the
-## figure never reads 0 while the player is alive; the max follows the vitals
-## manager, which has no signal for it, so every change re-reads it.
+## Health / max and the orb's liquid at Health / max, rounded as every Health
+## readout is (VitalsText), so the figure never reads 0 while the player is
+## alive; the max follows the vitals manager, which has no signal for it, so
+## every change re-reads it.
 func _update_health() -> void:
 	var health: float = _vitals.current_health
 	var max_health: float = _vitals.max_health
 	_health_fill.set_shader_parameter(FILL_PARAMETER, _fraction(health, max_health))
-	_health_value_label.text = str(ceili(health))
-	_health_max_label.text = " / %d" % floori(max_health)
+	_health_value_label.text = VitalsText.health_figure(health)
+	_health_max_label.text = " / %s" % VitalsText.health_max_figure(max_health)
 
 func _update_madra() -> void:
 	var madra: float = _vitals.current_madra

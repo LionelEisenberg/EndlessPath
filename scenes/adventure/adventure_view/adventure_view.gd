@@ -373,6 +373,8 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	result.health_max = PlayerManager.vitals_manager.max_health
 	result.tiles_explored = adventure_tilemap.get_visited_tile_count()
 	result.tiles_total = adventure_tilemap.get_total_tile_count()
+	result.madra_left = ResourceManager.get_madra()
+	result.madra_max = ResourceManager.get_max_madra()
 	result.loot_items = _loot_items.duplicate()
 	return result
 
