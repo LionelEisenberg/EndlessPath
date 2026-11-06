@@ -170,6 +170,19 @@ func test_xp_at_the_cap_is_lost() -> void:
 	assert_signal_emitted_with_parameters(CharacterManager, "stat_xp_changed",
 		[AttributeType.SPIRIT, 0.0, CharacterManager.get_stat_xp_to_next(AttributeType.SPIRIT)])
 
+## add_stat_xp() answers with the XP the stat took: all of it short of the cap,
+## only what buys the level that reaches the cap, and none at the cap.
+func test_add_stat_xp_returns_the_xp_the_stat_took() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "short of a level", "level": 1, "held": 0.0, "xp": 5.0, "took": 5.0},
+		{"name": "across a level", "level": 1, "held": 0.0, "xp": 13.0, "took": 13.0},
+		{"name": "the level that reaches the cap", "level": TEST_CAP - 1, "held": 70.0, "xp": 50.0, "took": 10.0},
+		{"name": "at the cap", "level": TEST_CAP, "held": 0.0, "xp": 50.0, "took": 0.0},
+	]
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(AttributeType.SPIRIT, case.level, case.held)
+		assert_eq(CharacterManager.add_stat_xp(AttributeType.SPIRIT, case.xp), case.took, "%s: the XP taken" % case.name)
+
 func test_each_level_gained_signals_and_logs_once() -> void:
 	watch_signals(CharacterManager)
 	watch_signals(LogManager)

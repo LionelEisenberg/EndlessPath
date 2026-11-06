@@ -114,8 +114,7 @@ func get_total_attributes_data() -> CharacterAttributesData:
 ## The flat points the worn gear adds to the stat: each equipped item's and
 ## accessory's get_stat_bonus() on the stat's trained value, summed. It is gear's
 ## FLAT amount before any PERCENT modifier, which StatModifierStack applies after
-## every FLAT one, so get_stat() differs from the trained value plus this once a
-## source adds a percent to the stat.
+## every FLAT one.
 func get_gear_bonus(stat: AttributeType) -> float:
 	var trained_value: float = get_trained_value(stat)
 	var bonus: float = 0.0
@@ -184,20 +183,23 @@ func get_trained_values() -> Dictionary:
 ## it held) is lost, and the level-up that reaches the cap drops the XP left
 ## over. Emits stat_level_changed and logs a line for each level gained,
 ## stat_xp_changed once, and stats_changed once when a level was gained.
-func add_stat_xp(stat: AttributeType, amount: float) -> void:
+## Returns the XP the stat took: all of `amount` short of the cap, only what
+## bought the level that reaches it, and none at the cap.
+func add_stat_xp(stat: AttributeType, amount: float) -> float:
 	if live_save_data == null:
 		Log.error("CharacterManager: Cannot add stat XP - live_save_data is null")
-		return
+		return 0.0
 	var training: StatTrainingData = live_save_data.stat_training
 
 	# A capped stat holds no XP, so what arrives (and what it held) is lost
 	if is_stat_capped(stat):
 		training.set_xp(stat, 0.0)
 		stat_xp_changed.emit(stat, 0.0, get_stat_xp_to_next(stat))
-		return
+		return 0.0
 
 	var start_level: int = training.get_level(stat)
 	var cap: int = get_stat_level_cap()
+	var taken: float = amount
 	training.set_xp(stat, training.get_xp(stat) + amount)
 	var cost: float = get_stat_xp_to_next(stat)
 	while training.get_xp(stat) >= cost:
@@ -212,6 +214,8 @@ func add_stat_xp(stat: AttributeType, amount: float) -> void:
 		var level: int = training.get_level(stat) + 1
 		var reached_cap: bool = level >= cap
 		# The level-up that reaches the cap drops the XP left over
+		if reached_cap:
+			taken -= training.get_xp(stat) - cost
 		training.set_xp(stat, 0.0 if reached_cap else training.get_xp(stat) - cost)
 		_raise_stat_level(stat, level)
 		if reached_cap:
@@ -221,6 +225,7 @@ func add_stat_xp(stat: AttributeType, amount: float) -> void:
 	stat_xp_changed.emit(stat, training.get_xp(stat), get_stat_xp_to_next(stat))
 	if training.get_level(stat) != start_level:
 		stats_changed.emit()
+	return taken
 
 ## Raises the stat `count` levels, one at a time, up to the stage's cap: the
 ## levels past it are lost, and a stat at or past the cap stays where it is.

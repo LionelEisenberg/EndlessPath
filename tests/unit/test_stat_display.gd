@@ -40,6 +40,12 @@ func test_every_stat_has_a_name_an_icon_and_a_side() -> void:
 		assert_eq(StatDisplay.side_name(case.stat), case.side, "%s is %s" % [case.name, case.side])
 		assert_not_null(StatDisplay.icon_of(case.stat), "%s has an icon" % case.name)
 
+## A stat the map has no icon for, one past the last, gets none (and the error is
+## logged, not pushed).
+func test_a_stat_with_no_icon_has_none() -> void:
+	var unknown: int = CharacterAttributesData.AttributeType.size()
+	assert_null(StatDisplay.icon_of(unknown as CharacterAttributesData.AttributeType))
+
 func test_no_two_stats_share_an_icon() -> void:
 	var seen: Array[Texture2D] = []
 	for stat: CharacterAttributesData.AttributeType in Attribute.values():
