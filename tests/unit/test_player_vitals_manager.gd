@@ -2,16 +2,19 @@ extends GutTest
 
 ## Unit tests for the player's VitalsManager following CharacterManager's stats:
 ## its maximum Health, Stamina and Madra move with equipped gear, with trained
-## levels, and with any modifier source, while an enemy's do not. Each test
-## builds a VitalsManager the way PlayerManager does (is_player, no attribute
-## data of its own), on a fresh SaveGameData every manager is re-bound to. The
-## original save is restored in after_each().
+## levels, and with any modifier source, while an enemy's do not. Its Madra is
+## ResourceManager's saved pool: reads, writes and changes go through it, while
+## an enemy keeps Madra of its own. Each test builds a VitalsManager the way
+## PlayerManager does (is_player, no attribute data of its own), on a fresh
+## SaveGameData every manager is re-bound to, holding 25 Madra. The original
+## save is restored in after_each().
 
 const AttributeType = CharacterAttributesData.AttributeType
 const EquipmentSlot = EquipmentDefinitionData.EquipmentSlot
 const Stat = StatModifierData.Stat
 const Kind = StatModifierData.Kind
 const GearFixture := preload("res://tests/helpers/gear_fixture.gd")
+const CRUDE_SCALE: ConsumableDefinitionData = preload("res://resources/items/consumables/crude_scale.tres")
 
 ## The modifier source these tests set; after_each() removes it.
 const TEST_SOURCE: StringName = &"test"
@@ -127,3 +130,69 @@ func test_an_enemys_vitals_ignore_player_modifiers() -> void:
 	add_child_autofree(enemy)
 	assert_eq(_vitals.max_health, 120.0, "precondition: the player's maximum moves")
 	assert_eq(enemy.max_health, 100.0, "an enemy's is its own Body x 10")
+
+#-----------------------------------------------------------------------------
+# MADRA: THE ONE POOL
+#-----------------------------------------------------------------------------
+
+func _max_madra_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(Stat.MAX_MADRA, Kind.FLAT, amount)]
+		return modifiers
+
+func test_the_players_madra_reads_the_pool() -> void:
+	ResourceManager.set_madra(46.0)
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(20.0))
+	assert_eq(_vitals.current_madra, 46.0, "current Madra is the pool")
+	assert_eq(_vitals.max_madra, 120.0, "max Madra is the pool's max")
+
+func test_madra_changes_land_in_the_pool() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Empty Palm's cost", "madra": 50.0, "change": -8.0, "expected": 42.0},
+		{"name": "a Scale's refill", "madra": 50.0, "change": 20.0, "expected": 70.0},
+		{"name": "a refill past the max stops at it", "madra": 90.0, "change": 20.0, "expected": 100.0},
+		{"name": "a cost past the pool stops at 0", "madra": 5.0, "change": -8.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		ResourceManager.set_madra(case.madra)
+		_vitals.apply_vitals_change(0.0, 0.0, case.change)
+		assert_eq(ResourceManager.get_madra(), case.expected, case.name)
+
+func test_writing_current_madra_sets_the_pool() -> void:
+	_vitals.current_madra = 33.0
+	assert_eq(ResourceManager.get_madra(), 33.0)
+
+func test_each_pool_change_reaches_the_vitals_once() -> void:
+	watch_signals(_vitals)
+	ResourceManager.add_madra(5.0, true)
+	_vitals.apply_vitals_change(0.0, 0.0, -10.0)
+	assert_signal_emit_count(_vitals, "madra_changed", 2, "cycling's add and a technique's cost, once each")
+	assert_signal_emitted_with_parameters(_vitals, "madra_changed", [20.0])
+
+## A hit or a step changes no Madra, so the pool stays quiet: each of its
+## signals sweeps every unlock condition.
+func test_a_change_with_no_madra_leaves_the_pool_quiet() -> void:
+	watch_signals(ResourceManager)
+	_vitals.apply_vitals_change(-10.0, -5.0, 0.0)
+	assert_signal_not_emitted(ResourceManager, "madra_changed")
+
+## In-run refills stay quiet: no "Gained" line.
+func test_a_scale_refills_the_pool_quietly() -> void:
+	watch_signals(LogManager)
+	CRUDE_SCALE.effects[0].process()
+	assert_eq(ResourceManager.get_madra(), 45.0, "25 + 20")
+	assert_signal_not_emitted(LogManager, "message_logged")
+
+func test_initialize_current_values_leaves_the_pool_alone() -> void:
+	ResourceManager.set_madra(30.0)
+	_vitals.initialize_current_values()
+	assert_eq(ResourceManager.get_madra(), 30.0)
+
+func test_an_enemys_madra_is_its_own() -> void:
+	var enemy := VitalsManager.new()
+	enemy.character_attributes_data = CharacterAttributesData.make()
+	add_child_autofree(enemy)
+	enemy.initialize_current_values()
+	enemy.apply_vitals_change(0.0, 0.0, -30.0)
+	assert_eq(enemy.current_madra, 70.0, "100 of its own, less 30")
+	assert_eq(ResourceManager.get_madra(), 25.0, "the pool is untouched")

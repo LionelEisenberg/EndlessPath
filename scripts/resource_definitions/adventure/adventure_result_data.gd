@@ -38,8 +38,11 @@ var tiles_explored: int = 0
 ## Total number of tiles on the map
 var tiles_total: int = 0
 
-## Madra budget spent to start the adventure
-var madra_spent: float = 0.0
+## The Madra the pool held when the run ended: it stays there.
+var madra_left: float = 0.0
+
+## The pool's max when the run ended.
+var madra_max: float = 0.0
 
 ## Items received from loot drops during the adventure
 var loot_items: Array[Resource] = []

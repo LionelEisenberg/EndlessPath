@@ -41,8 +41,8 @@ func teardown() -> void
 func set_is_current(_is_current: bool) -> void:
 	pass
 
-## Gate for click activation. Return false to veto activation (e.g. adventure
-## with insufficient Madra). Default: always allow.
+## Gate for click activation. Return false to veto activation (e.g. a
+## Tribulation the player isn't ready for). Default: always allow.
 func can_activate() -> bool:
 	return true
 

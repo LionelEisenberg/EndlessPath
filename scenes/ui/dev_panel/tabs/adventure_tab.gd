@@ -69,7 +69,7 @@ func set_adventure_view(view: AdventureView) -> void:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-func _on_adventure_started(_action: AdventureActionData, _madra_budget: float) -> void:
+func _on_adventure_started(_action: AdventureActionData) -> void:
 	_show_run(true)
 
 func _on_adventure_stopped() -> void:

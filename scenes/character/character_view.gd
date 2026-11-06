@@ -36,17 +36,14 @@ const TableRowScene := preload("res://scenes/inventory/pressed/table_row/table_r
 ## block's Madra and Mind's Max Madra.
 const _MADRA_LABELS: Array[String] = ["Madra", "Max Madra"]
 
-## The widths of the In a fight block's left and right columns, as board 3
-## draws them. The right one fits TECHNIQUE COST CUT with a percent beside it.
-const _FIGHT_COLUMN_WIDTHS: Array[float] = [196.0, 240.0]
-
 #-----------------------------------------------------------------------------
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
 @onready var _physical_tiles: GridContainer = %PhysicalTiles
 @onready var _spiritual_tiles: GridContainer = %SpiritualTiles
-@onready var _fight_rows: GridContainer = %FightRows
+@onready var _fight_left_column: VBoxContainer = %FightLeftColumn
+@onready var _fight_right_column: VBoxContainer = %FightRightColumn
 @onready var _detail_plaque: PageTitle = %DetailPlaque
 @onready var _detail_group: Label = %DetailGroup
 @onready var _detail_icon: TextureRect = %DetailIcon
@@ -82,6 +79,8 @@ func _ready() -> void:
 	CharacterManager.stat_xp_changed.connect(_refresh_if_shown.unbind(3))
 	# The cap the pages show comes from the stage, so a breakthrough moves it.
 	CultivationManager.advancement_stage_changed.connect(_refresh_if_shown.unbind(1))
+	# The Madra row shows the pool, which cycling and runs move.
+	ResourceManager.madra_changed.connect(_on_madra_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -99,7 +98,7 @@ func refresh() -> void:
 			CharacterManager.is_stat_capped(stat),
 			CharacterManager.get_stat(StatModifierData.for_attribute(stat)),
 		)
-	_fill_fight_rows(fight_lines())
+	_rebuild_fight_rows()
 	if _selected_tile:
 		_show_details(_selected_tile)
 
@@ -167,11 +166,12 @@ static func source_lines(stat: CharacterAttributesData.AttributeType) -> Array[D
 
 ## The totals a fight reads, a line each, as {"label", "value"}, from
 ## CharacterManager.get_stat(): Health, Madra, Stamina, Dodge chance,
-## Technique cost cut, Cooldown cut, Armor and Ward.
+## Technique cost cut, Cooldown cut, Armor and Ward. Madra is the saved pool
+## over its max, "46 / 100".
 static func fight_lines() -> Array[Dictionary]:
 	var lines: Array[Dictionary] = [
 		{"label": "Health", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))},
-		{"label": "Madra", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA))},
+		{"label": "Madra", "value": "%d / %d" % [floori(ResourceManager.get_madra()), floori(ResourceManager.get_max_madra())]},
 		{"label": "Stamina", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_STAMINA))},
 		{"label": "Dodge chance", "value": _percent(CharacterManager.get_stat(StatModifierData.Stat.DODGE_CHANCE))},
 		{"label": "Technique cost cut", "value": _percent(CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT))},
@@ -206,6 +206,11 @@ func _find_all_tiles() -> Array[AttributeTile]:
 func _refresh_if_shown() -> void:
 	if is_visible_in_tree():
 		refresh()
+
+## A pool change rebuilds only the In a fight rows, while the book is shown.
+func _on_madra_changed(_amount: float) -> void:
+	if is_visible_in_tree():
+		_rebuild_fight_rows()
 
 func _show_details(tile: AttributeTile) -> void:
 	var stat: CharacterAttributesData.AttributeType = tile.attribute_type
@@ -254,19 +259,17 @@ func _next_level_block(stat: CharacterAttributesData.AttributeType, now: Charact
 	next.set_attribute(stat, now.get_attribute(stat) + progression.get_value_for_level(level + 1) - progression.get_value_for_level(level))
 	return next
 
-## Rebuilds the In a fight block from `lines` in two columns: the first half of
-## the lines runs down the left column and the rest down the right, so grid row
-## r holds line r and line r + half.
-func _fill_fight_rows(lines: Array[Dictionary]) -> void:
-	_clear_rows(_fight_rows)
+## Rebuilds the In a fight block from fight_lines() in its two columns, whose
+## widths the scene sets: the first half of the lines runs down the left column
+## and the rest down the right.
+func _rebuild_fight_rows() -> void:
+	var lines: Array[Dictionary] = fight_lines()
 	var half: int = ceili(lines.size() / 2.0)
-	for r: int in half:
-		for column: int in _FIGHT_COLUMN_WIDTHS.size():
-			var index: int = r + column * half
-			if index >= lines.size():
-				continue
-			var row: TableRow = _add_row(_fight_rows, lines[index].label, lines[index].value)
-			row.custom_minimum_size.x = _FIGHT_COLUMN_WIDTHS[column]
+	_clear_rows(_fight_left_column)
+	_clear_rows(_fight_right_column)
+	for index: int in lines.size():
+		var column: VBoxContainer = _fight_left_column if index < half else _fight_right_column
+		_add_row(column, lines[index].label, lines[index].value)
 
 ## Adds a TableRow to `container`: `label` in capitals, and the value with its
 ## decimal points set for the page, a Madra amount in Madra ink.

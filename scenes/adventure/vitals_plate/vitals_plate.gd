@@ -3,8 +3,8 @@ extends Control
 
 ## The adventure's vitals cabinet at the view's top left, where the zone view
 ## keeps its cultivator cabinet (lacquer kit §5.1). On the same lacquer board:
-## the Health orb with Health / max, the Madra orb with Madra / max, and the
-## Stamina rod with its figures. During a fight, up to three buff sockets sit
+## the Health orb with Health / max, the Madra orb with Madra / max, the Core
+## row and the Stamina rod with its figures. During a fight, up to three buff sockets sit
 ## beside the Health figures: each shows its buff's icon, a count seal while it
 ## stacks and a brass flash when it lands, and hovering one opens a BuffTooltip
 ## beside the cabinet.
@@ -13,6 +13,11 @@ extends Control
 ## orb keeps the shader's Madra colours); this script only hands them the
 ## fill. The Stamina row shakes in the soft shake's steps (the zone map's lock
 ## shake at half its travel) when a walk is refused.
+## The Core row is the zone cabinet's core block (CultivatorPlate): the core orb,
+## the stage, the level, the XP beads and "xp / need XP", following
+## CultivationManager. A reward's Core Density flies to its orb as beads
+## (AdventureView), and the row holds that XP back until each bead lands
+## (hold_core_xp(), release_core_xp()), so the core climbs as they land.
 ## setup_vitals() reads the figures once and then follows the VitalsManager's
 ## signals; the AdventureView calls it at every run's start. bind_buffs() and
 ## unbind_buffs() bracket a fight.
@@ -40,6 +45,12 @@ const TOOLTIP_GAP: float = 8.0
 @onready var _madra_fill: ShaderMaterial = _madra_orb.material
 @onready var _madra_value_label: Label = %MadraValueLabel
 @onready var _madra_max_label: Label = %MadraMaxLabel
+@onready var _core_orb: LacquerStripRect = %CoreOrb
+@onready var _core_fill: ShaderMaterial = _core_orb.material
+@onready var _stage_label: Label = %StageLabel
+@onready var _level_label: Label = %LevelLabel
+@onready var _xp_beads: LacquerStripRect = %XpBeads
+@onready var _xp_label: Label = %XpLabel
 @onready var _stamina_row: Control = %StaminaRow
 @onready var _stamina_rod: LacquerRod = %StaminaRod
 @onready var _stamina_value_label: Label = %StaminaValueLabel
@@ -65,6 +76,8 @@ var _buffs: Array[ActiveBuff] = []
 var _tooltip_buff: ActiveBuff = null
 var _stamina_shake_tween: Tween = null
 var _stamina_home_x: float = 0.0
+## Core Density XP on its way to the Core orb, left out of the row until it lands.
+var _held_core_xp: float = 0.0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -76,6 +89,10 @@ func _ready() -> void:
 		_buff_sockets[index].mouse_entered.connect(_on_socket_mouse_entered.bind(index))
 		_buff_sockets[index].mouse_exited.connect(_on_socket_mouse_exited)
 	_refresh_buff_sockets()
+	CultivationManager.core_density_level_updated.connect(_on_core_density_changed)
+	CultivationManager.core_density_xp_updated.connect(_on_core_density_changed)
+	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
+	_update_core_density()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -136,6 +153,23 @@ func shake_stamina() -> void:
 	_stamina_shake_tween = create_tween()
 	_stamina_shake_tween.tween_method(_apply_stamina_shake, 0.0, MapGlyph.SHAKE_SECONDS, MapGlyph.SHAKE_SECONDS)
 
+## Leaves `amount` of the Core Density XP out of the Core row: it is on its way
+## to the Core orb.
+func hold_core_xp(amount: float) -> void:
+	_held_core_xp += amount
+	_update_core_density()
+
+## Shows `amount` of the held Core Density XP: it has reached the Core orb.
+func release_core_xp(amount: float) -> void:
+	_held_core_xp = maxf(_held_core_xp - amount, 0.0)
+	if _held_core_xp < CultivatorPlate.HELD_EPSILON:
+		_held_core_xp = 0.0
+	_update_core_density()
+
+## Returns the global position of the Core orb's centre, where a reward's beads land.
+func get_core_orb_global_position() -> Vector2:
+	return _core_orb.global_position + _core_orb.size * 0.5
+
 ## True while the Stamina row is shaking.
 func is_stamina_shaking() -> bool:
 	return _stamina_shake_tween != null and _stamina_shake_tween.is_valid() and _stamina_shake_tween.is_running()
@@ -157,15 +191,16 @@ func _disconnect_vitals() -> void:
 static func _fraction(current: float, maximum: float) -> float:
 	return clampf(current / maximum, 0.0, 1.0) if maximum > 0.0 else 0.0
 
-## Health / max and the orb's liquid at Health / max. Health rounds up, so the
-## figure never reads 0 while the player is alive; the max follows the vitals
-## manager, which has no signal for it, so every change re-reads it.
+## Health / max and the orb's liquid at Health / max, rounded as every Health
+## readout is (VitalsText), so the figure never reads 0 while the player is
+## alive; the max follows the vitals manager, which has no signal for it, so
+## every change re-reads it.
 func _update_health() -> void:
 	var health: float = _vitals.current_health
 	var max_health: float = _vitals.max_health
 	_health_fill.set_shader_parameter(FILL_PARAMETER, _fraction(health, max_health))
-	_health_value_label.text = str(ceili(health))
-	_health_max_label.text = " / %d" % floori(max_health)
+	_health_value_label.text = VitalsText.health_figure(health)
+	_health_max_label.text = " / %s" % VitalsText.health_max_figure(max_health)
 
 func _update_madra() -> void:
 	var madra: float = _vitals.current_madra
@@ -180,6 +215,32 @@ func _update_stamina() -> void:
 	_stamina_rod.set_fraction(_fraction(stamina, max_stamina))
 	_stamina_value_label.text = str(floori(stamina))
 	_stamina_max_label.text = " / %d" % floori(max_stamina)
+
+## The Core row, as the zone cabinet draws its core (CultivatorPlate): the stage,
+## the level, the core orb's spiral at min(level, cap) / cap (the dormant pebble at
+## level 0) and the XP beads, a bead lit only once its share of the XP is earned,
+## beside "xp / need XP". A full core reads "Core full" with every bead lit. With
+## XP held, the core shows as it stood that much XP ago (CultivatorPlate.rewind_core()).
+func _update_core_density() -> void:
+	var level: int = int(CultivationManager.get_core_density_level())
+	var xp: float = CultivationManager.get_core_density_xp()
+	if _held_core_xp > 0.0:
+		var shown: Vector2 = CultivatorPlate.rewind_core(level, xp, _held_core_xp, CultivationManager.get_xp_for_level)
+		level = int(shown.x)
+		xp = shown.y
+	var cap: int = CultivationManager.get_core_density_cap()
+	_stage_label.text = CultivationManager.get_current_advancement_stage_name()
+	_level_label.text = "Level %d" % level
+	_core_orb.set_frame(CultivatorPlate.CORE_ORB_SOCKET_COLUMN if level > 0 else CultivatorPlate.CORE_ORB_DORMANT_COLUMN)
+	_core_fill.set_shader_parameter(FILL_PARAMETER, float(clampi(level, 0, cap)) / cap if cap > 0 else 0.0)
+	if CultivationManager.is_core_full() and _held_core_xp <= 0.0:
+		_xp_beads.set_frame(0, CultivatorPlate.XP_BEADS_LAST_ROW)
+		_xp_label.text = CultivationManager.CORE_FULL_TEXT
+	else:
+		var need: float = CultivationManager.get_xp_for_level(level + 1)
+		var lit_beads: int = floori(xp * CultivatorPlate.XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
+		_xp_beads.set_frame(0, clampi(lit_beads, 0, CultivatorPlate.XP_BEADS_LAST_ROW))
+		_xp_label.text = "%d / %d XP" % [floori(xp), ceili(need)]
 
 #-----------------------------------------------------------------------------
 # STAMINA SHAKE
@@ -224,6 +285,12 @@ func _on_health_changed(_new_health: float) -> void:
 
 func _on_madra_changed(_new_madra: float) -> void:
 	_update_madra()
+
+func _on_core_density_changed(_xp: float, _level: float) -> void:
+	_update_core_density()
+
+func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
+	_update_core_density()
 
 func _on_stamina_changed(_new_stamina: float) -> void:
 	_update_stamina()

@@ -117,14 +117,6 @@ func get_madra() -> float:
 func get_max_madra() -> float:
 	return CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA)
 
-## The Madra a run needs to start: half the max, so Mind and gear move it.
-func get_adventure_madra_threshold() -> float:
-	return get_max_madra() * 0.5
-
-## True when the pool holds at least the adventure threshold.
-func can_start_adventure() -> bool:
-	return get_madra() >= get_adventure_madra_threshold()
-
 ## Lowers a pool above the max to the max, emitting nothing. Returns whether
 ## it did.
 func _clamp_to_max() -> bool:

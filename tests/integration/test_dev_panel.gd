@@ -525,7 +525,7 @@ func test_player_tab_unlocks_and_equips_drills() -> void:
 func test_adventure_tab_follows_the_run() -> void:
 	var adventure: Control = _open_tab(_add_panel(), "AdventureTab")
 	var no_run: Label = adventure.get_node("%NoRunLabel")
-	ActionManager.start_adventure.emit(AdventureActionData.new(), 50.0)
+	ActionManager.start_adventure.emit(AdventureActionData.new())
 	assert_false(no_run.is_visible_in_tree(), "a run began, so the tab no longer says none is on")
 	for control_name: String in ["ExitVictory", "ExitDefeat", "ShowWholeMap", "RefillVitals"]:
 		assert_true((adventure.get_node("%" + control_name) as Control).is_visible_in_tree(), "%s shows during a run" % control_name)

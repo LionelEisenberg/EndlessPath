@@ -8,13 +8,17 @@ const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adven
 const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixture.gd")
 const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 
 var _view: AdventureView
 var _results: Array[AdventureResultData] = []
 ## The player's vitals as a test that sets them found them, put back after it.
 var _saved_vitals: Dictionary[StringName, float] = {}
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	# Ending a run resumes the zone's idle action, which writes to the save.
 	# Run on a fresh one, never the developer's save loaded in memory.
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -30,6 +34,7 @@ func before_each() -> void:
 	_view.adventure_completed.connect(func(result: AdventureResultData) -> void: _results.append(result))
 
 func after_each() -> void:
+	CoreCurve.restore(_original_stages)
 	if ActionManager.get_current_action() is AdventureActionData:
 		ActionManager.clear_current_action()
 	# Ending a run resumes the zone's idle action. Stop it properly, since
@@ -83,6 +88,49 @@ func test_boss_win_ends_the_adventure_once_as_a_victory() -> void:
 	assert_eq(stats.adventures_won, 1, "and so is the win")
 	assert_eq(_view.adventure_tilemap.get_visited_tile_count(), 0, "the repeat marked nothing on the cleared map")
 
+## The boss's win ends the run in the same frame. Its Core Density is already in
+## the save when the run ends, and a repeat of the win pays nothing more.
+func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
+	_start_adventure(300)
+	var xp_when_the_run_ended: Array[float] = []
+	_view.adventure_completed.connect(func(_result: AdventureResultData) -> void:
+		xp_when_the_run_ended.append(CultivationManager.get_core_density_xp()))
+	var boss_choice := _boss_choice(RecordingEffect.new())
+	# 9 is under Foundation's level-1 cost of 10, so the boss's XP stays in the
+	# save's core_density_xp at level 0.
+	var award := AwardCoreDensityXpEffectData.new()
+	award.amount = 9.0
+	boss_choice.success_effects.append(award)
+	_view.adventure_tilemap._current_combat_choice = boss_choice
+	_view._on_start_combat(boss_choice)
+
+	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.combat.trigger_combat_end.emit(true, 0)
+
+	assert_eq(xp_when_the_run_ended.size(), 1, "the run ended once")
+	if xp_when_the_run_ended.size() == 1:
+		assert_eq(xp_when_the_run_ended[0], 9.0, "with the boss's XP already in the save")
+	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "a repeat of the win pays nothing more")
+	assert_eq(_view.adventure_tilemap.get_core_density_xp_earned(), 9.0, "and the run's total keeps it")
+
+## The chest stays in sight beside the end card, and its Run ledger counts the
+## boss's Core Density: the boss's win announces the run's figures before it ends
+## the run.
+func test_the_ledger_counts_the_boss() -> void:
+	_start_adventure(300)
+	var boss_choice := _boss_choice(RecordingEffect.new())
+	var award := AwardCoreDensityXpEffectData.new()
+	award.amount = 9.0
+	boss_choice.success_effects.append(award)
+	_view.adventure_tilemap._current_combat_choice = boss_choice
+	_view._on_start_combat(boss_choice)
+
+	_view.combat.trigger_combat_end.emit(true, 0)
+
+	assert_eq(_results.size(), 1, "precondition: the boss's win ended the run")
+	var core_value := _view.adventure_chest.get_expedition_page().get_node("%CoreValue") as Label
+	assert_eq(core_value.text, "9", "the ledger beside the end card counts the boss")
+
 #-----------------------------------------------------------------------------
 # HOW A STOP COUNTS
 #-----------------------------------------------------------------------------
@@ -98,6 +146,21 @@ func test_a_retreat_counts_nothing() -> void:
 	var stats: PlayStatsData = _stats()
 	assert_eq(stats.adventures_won + stats.adventures_lost + stats.adventures_timed_out, 0, "a retreat is no win, loss or timeout")
 
+## The run spends from the saved pool, so a quit mid-run saves what it spent
+## and what is left, and the end card is told the pool as it stands.
+func test_a_run_quit_midway_keeps_what_it_spent_and_what_is_left() -> void:
+	_set_player_health(40.0)
+	ResourceManager.set_madra(80.0)
+	_begin_a_run_without_a_map(300.0)
+	PlayerManager.vitals_manager.apply_vitals_change(0.0, 0.0, -30.0)
+	assert_eq(PersistenceManager.save_game_data.madra, 50.0, "mid-run, the save already holds what is left")
+	_view.stop_adventure()
+	assert_eq(ResourceManager.get_madra(), 50.0, "what the run spent stays spent, and the rest stays in the pool")
+	assert_eq(_results.size(), 1, "the retreat ended the run once")
+	if _results.size() == 1:
+		assert_eq(_results[0].madra_left, 50.0, "the end card is told the Madra left")
+		assert_eq(_results[0].madra_max, 100.0, "over the pool's max")
+
 func test_zero_health_counts_a_lost_adventure() -> void:
 	_set_player_health(0.0)
 	_begin_a_run_without_a_map(300.0)
@@ -108,7 +171,7 @@ func test_zero_health_counts_a_lost_adventure() -> void:
 	assert_eq(stats.adventures_won + stats.adventures_timed_out, 0, "and no win or timeout")
 
 func test_stopping_with_no_run_counts_nothing() -> void:
-	# The adventure action is current while its Madra drains, before any run has
+	# The adventure action is current while the start's zoom runs, before any run has
 	# started, and a save switch can stop it then: that is no end. Health at 0 and a
 	# stopped timer would read as a loss or a timeout.
 	_set_player_health(0.0)
@@ -117,8 +180,8 @@ func test_stopping_with_no_run_counts_nothing() -> void:
 	var stats: PlayStatsData = _stats()
 	assert_eq(stats.adventures_won + stats.adventures_lost + stats.adventures_timed_out, 0, "no run ended")
 
-func test_a_save_switch_during_the_drain_counts_nothing_in_the_new_save() -> void:
-	# The pick makes the adventure action current, and its Madra drains before the
+func test_a_save_switch_during_the_start_counts_nothing_in_the_new_save() -> void:
+	# The pick makes the adventure action current, and the start's zoom runs before the
 	# run starts. A save switch (a restart, a restore) stops the action then, and
 	# ActionManager hands that stop to the view with the new save already live.
 	_set_player_health(40.0)
@@ -150,13 +213,13 @@ func _begin_a_run_without_a_map(time_left: float) -> void:
 	_view.current_action_data = ADVENTURE_ACTION
 	_view.get_run_timer().start(time_left)
 
-## Starts the Shallow Woods adventure the way the zone does once the Madra
-## drain finishes, with the given time limit.
+## Starts the Shallow Woods adventure the way the zone does once the start's
+## zoom ends, with the given time limit.
 func _start_adventure(time_limit_seconds: int) -> void:
 	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
 	action.time_limit_seconds = time_limit_seconds
 	ActionManager._set_current_action(action)
-	ActionManager.confirm_adventure_start(action, 50.0)
+	ActionManager.confirm_adventure_start(action)
 
 func _boss_choice(failure_effect: EffectData) -> CombatChoice:
 	var choice := CombatChoice.new()
