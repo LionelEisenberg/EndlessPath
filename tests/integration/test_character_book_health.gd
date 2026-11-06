@@ -61,3 +61,23 @@ func test_the_health_row_follows_the_pool_and_its_max_while_open() -> void:
 	assert_eq(_health_row_text(), "40 / 100", "the dev panel's Set Health")
 	CharacterManager.set_modifier_source(TEST_SOURCE, _max_health_source(40.0))
 	assert_eq(_health_row_text(), "40 / 140", "a bonus on max Health")
+
+## A max that drops under the pool brings the pool down, and the open book shows
+## the lower figure.
+func test_a_falling_max_brings_the_row_down_while_open() -> void:
+	_view.show()
+	_view.refresh()
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_health_source(40.0))
+	ResourceManager.set_health(140.0)
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_eq(_health_row_text(), "100 / 100")
+
+## A save that loads while the book is open shows its own Health at once.
+func test_a_loaded_save_shows_its_health_while_open() -> void:
+	_view.show()
+	_view.refresh()
+	var save := SaveGameData.new_current()
+	save.health = 37.0
+	PersistenceManager.save_game_data = save
+	PersistenceManager.save_data_reset.emit()
+	assert_eq(_health_row_text(), "37 / 100")
