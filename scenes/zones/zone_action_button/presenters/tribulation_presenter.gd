@@ -9,7 +9,8 @@ extends ZoneActionPresenter
 ##     brass ready frame and the ENTER tag.
 ## The card is ready while TribulationActionData.can_attempt(): the stage before
 ## the trial's target, a full core, and Strength and Spirit at the cap. It
-## follows the core's level, the stage and the stat levels, and gates activation
+## follows the core's level, the stage, the stat levels and a save reset (which
+## swaps them all at once), and gates activation
 ## on the same question. A rejected click shakes the Core row softly in even-px
 ## steps (MapGlyph's soft shake, through its offset transform, which the detail
 ## slot's layout leaves alone) and logs a line per missing requirement.
@@ -42,6 +43,7 @@ func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	CharacterManager.stat_level_changed.connect(_on_stat_level_changed)
+	PersistenceManager.save_data_reset.connect(_on_save_data_reset)
 	_update_state()
 
 ## Disconnects from the managers and stops a running shake.
@@ -52,6 +54,8 @@ func teardown() -> void:
 		CultivationManager.advancement_stage_changed.disconnect(_on_advancement_stage_changed)
 	if CharacterManager.stat_level_changed.is_connected(_on_stat_level_changed):
 		CharacterManager.stat_level_changed.disconnect(_on_stat_level_changed)
+	if PersistenceManager.save_data_reset.is_connected(_on_save_data_reset):
+		PersistenceManager.save_data_reset.disconnect(_on_save_data_reset)
 	_stop_shake()
 
 ## True while the player may face the trial now: a full core and Strength and
@@ -135,4 +139,9 @@ func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) 
 
 ## A stat's new level moves the stat line, and can ready the card or take it back.
 func _on_stat_level_changed(_stat: CharacterAttributesData.AttributeType, _level: int) -> void:
+	_update_state()
+
+## A save reset swaps the core, the stage and the stat levels at once, with no
+## stat level signal: the card re-reads them all.
+func _on_save_data_reset() -> void:
 	_update_state()

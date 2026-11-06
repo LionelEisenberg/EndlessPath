@@ -6,7 +6,7 @@ extends GutTest
 ## click with a log line per missing requirement. Ready (a full core, Strength and
 ## Spirit at the cap), it shows the ready frame, the ENTER tag and the trial's
 ## length and penalty on its detail line. Nothing on it is cut off: the stat line
-## and a long ready line wrap, and the card grows by their lines. It follows the core's level, the stage and the stat levels, and lets
+## and a long ready line wrap, and the card grows by their lines. It follows the core's level, the stage, the stat levels and a save reset, and lets
 ## them go when it leaves the tree. Cards are built with setup_action, as the zone
 ## panel builds them, on a fresh save with the card's unlock condition forced and
 ## Strength and Spirit at the cap; the trial itself is test_tribulation_flow.gd's.
@@ -314,6 +314,19 @@ func test_card_follows_a_stage_change() -> void:
 	assert_eq(_tag_text(card), "TRIAL")
 	assert_false(_ready_frame(card).visible)
 
+## A save reset swaps every level at once (a dev switch, New game): the card
+## re-reads the new save's stat levels at once, not at the next level-up (LL-01).
+func test_card_follows_a_save_reset() -> void:
+	_set_core_level(FULL_CORE)
+	var card: ZoneActionButton = _card()
+	assert_eq(_tag_text(card), "ENTER", "precondition: ready")
+	var fresh := SaveGameData.new()
+	fresh.core_density_level = FULL_CORE
+	PersistenceManager.save_game_data = fresh
+	PersistenceManager.save_data_reset.emit()
+	assert_eq(_tag_text(card), "TRIAL", "the new save's stats are short")
+	assert_true(_has_text_containing(card, "Strength Lv 1 / %d" % CharacterManager.get_stat_level_cap()), "and the card names them")
+
 #-----------------------------------------------------------------------------
 # LONG TEXT
 #-----------------------------------------------------------------------------
@@ -389,4 +402,14 @@ func test_leaving_the_tree_disconnects_from_the_stat_levels() -> void:
 	assert_eq(CharacterManager.stat_level_changed.get_connections().size(), stat_levels + 1, "precondition: the card follows the stat levels")
 	remove_child(card)
 	assert_eq(CharacterManager.stat_level_changed.get_connections().size(), stat_levels, "the stat levels are let go")
+	card.free()
+
+func test_leaving_the_tree_disconnects_from_the_save_reset() -> void:
+	var resets: int = PersistenceManager.save_data_reset.get_connections().size()
+	var card: ZoneActionButton = CARD_SCENE.instantiate() as ZoneActionButton
+	card.setup_action(ZoneManager.get_action_by_id(TRIBULATION_ID))
+	add_child(card)
+	assert_eq(PersistenceManager.save_data_reset.get_connections().size(), resets + 1, "precondition: the card follows a save reset")
+	remove_child(card)
+	assert_eq(PersistenceManager.save_data_reset.get_connections().size(), resets, "the save reset is let go")
 	card.free()
