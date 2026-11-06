@@ -404,6 +404,17 @@ func test_a_loaded_save_shows_its_levels() -> void:
 	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv 6", "read on _ready")
 	assert_eq(_ring("MindCell"), Vector2i(15, 0), "read on _ready")
 
+## Each side's label row is the zone chest's group row, named for its side.
+func test_the_side_rows_are_the_shared_group_row() -> void:
+	var cases: Array[Dictionary] = [
+		{"side": "PhysicalCells", "text": "Physical"},
+		{"side": "SpiritualCells", "text": "Spiritual"},
+	]
+	for case: Dictionary in cases:
+		var row: Node = _node(case.side).get_node("SideRow")
+		assert_true(row is LacquerGroupRow, "%s's row is a LacquerGroupRow" % case.side)
+		assert_eq((row.get_node("%GroupLabel") as Label).text, case.text, "%s's row names its side" % case.side)
+
 #-----------------------------------------------------------------------------
 # ROOT
 #-----------------------------------------------------------------------------

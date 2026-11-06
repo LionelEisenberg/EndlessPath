@@ -162,7 +162,7 @@ func _clear() -> void:
 func _add_group(label_text: String) -> VBoxContainer:
 	var group: Control = GROUP_SCENE.instantiate() as Control
 	_content.add_child(group)
-	(group.get_node("%GroupLabel") as Label).text = label_text
+	(group.get_node("%LabelRow") as LacquerGroupRow).text = label_text
 	_groups.append([])
 	return group.get_node("%Cards") as VBoxContainer
 
