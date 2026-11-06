@@ -40,6 +40,16 @@ func test_every_stat_has_a_name_an_icon_and_a_side() -> void:
 		assert_eq(StatDisplay.side_name(case.stat), case.side, "%s is %s" % [case.name, case.side])
 		assert_not_null(StatDisplay.icon_of(case.stat), "%s has an icon" % case.name)
 
+## Strength has a 16 px mini of its icon, for the lines that name it beside a
+## figure: the body refining board, its card and its floaters. The other stats'
+## minis come with the drills that train them (#106).
+func test_strength_has_a_mini_icon() -> void:
+	var mini: Texture2D = StatDisplay.mini_icon_of(Attribute.STRENGTH)
+	assert_not_null(mini, "Strength has a mini icon")
+	if mini != null:
+		assert_eq(mini.get_size(), Vector2(16, 16), "16 px, as the other mini icons")
+		assert_ne(mini, StatDisplay.icon_of(Attribute.STRENGTH), "not the full icon")
+
 ## A stat the map has no icon for, one past the last, gets none (and the error is
 ## logged, not pushed).
 func test_a_stat_with_no_icon_has_none() -> void:

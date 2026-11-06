@@ -34,6 +34,9 @@ extends Resource
 ## Cycles that ran to their end.
 @export var cycles_finished: int = 0
 
+## Body refining sets played to their last rep. A set stopped midway is not one.
+@export var sets_finished: int = 0
+
 ## Adventures started: counted when the run begins, after the start's zoom.
 @export var adventures_started: int = 0
 
@@ -106,6 +109,13 @@ func count_cycle_finished() -> void:
 		return
 	cycles_finished += 1
 
+## Counts a body refining set played to its last rep. Does nothing while
+## recording is paused.
+func count_set_finished() -> void:
+	if recording_paused:
+		return
+	sets_finished += 1
+
 ## Counts an adventure whose run began. Does nothing while recording is paused.
 func count_adventure_started() -> void:
 	if recording_paused:
@@ -143,11 +153,12 @@ func add_gold_earned(amount: float) -> void:
 	gold_earned += amount
 
 func _to_string() -> String:
-	return "PlayStatsData(PlayTime: %.1f, Events: %d, Conditions: %d, Cycles: %d, Adventures: %d started / %d won / %d lost / %d timed out, FightsWon: %d, GoldEarned: %.1f, BuiltFromPreset: %s)" % [
+	return "PlayStatsData(PlayTime: %.1f, Events: %d, Conditions: %d, Cycles: %d, Sets: %d, Adventures: %d started / %d won / %d lost / %d timed out, FightsWon: %d, GoldEarned: %.1f, BuiltFromPreset: %s)" % [
 		play_time,
 		event_first_times.size(),
 		condition_first_times.size(),
 		cycles_finished,
+		sets_finished,
 		adventures_started,
 		adventures_won,
 		adventures_lost,

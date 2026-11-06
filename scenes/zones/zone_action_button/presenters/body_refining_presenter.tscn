@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/body_refining_presenter.gd" id="1_refine"]
+[ext_resource type="PackedScene" path="res://scenes/zones/zone_action_button/presenters/forage_yield.tscn" id="2_reward"]
+
+[node name="BodyRefiningPresenter" type="Node" unique_id=1590472863]
+script = ExtResource("1_refine")
+
+[node name="Rewards" type="HFlowContainer" parent="." unique_id=1093825147]
+unique_name_in_owner = true
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 0
+
+[node name="HealthReward" parent="Rewards" unique_id=718263950 instance=ExtResource("2_reward")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="StrengthReward" parent="Rewards" unique_id=1426390581 instance=ExtResource("2_reward")]
+unique_name_in_owner = true
+layout_mode = 2

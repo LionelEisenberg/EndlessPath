@@ -1,0 +1,335 @@
+class_name DrillPlay
+extends Control
+
+## DrillPlay
+## The Stone Lifting stage on the body refining board, standing over the carved
+## figure: a carved track with the stone riding a jade column, the tiers' marks on
+## rails beside it, ten rep beads under the figure and a pair of floaters beside
+## the stone. DrillRun judges; this plays it.
+##
+## The first press of the drill's input (drill_press: Space or the left mouse
+## button) starts a set at that moment on clock_usec, and lifts. A press or a
+## release is judged on the clock as it arrives, and each frame judges what the
+## passing of time decided (a drop at the top, a rep nobody lifted). Each judged
+## rep is paid at once through BodyRefiningManager.pay_rep() into the set's
+## result, a MISS included (it pays nothing), so a set stopped midway keeps what
+## its reps paid. Its bead lights in its tier's colour, its tier pops beside the
+## stone in that colour, and under it a Miss's reason, or, in tan, the part a
+## scored rep could not pay: Strength's icon with "capped", the Health heart with
+## "full". Then rep_judged reports the rep, the Health it restored and the XP each
+## stat took, for the board's pellets. Every timed effect reads clock_usec.
+##
+## While a set runs it keeps BodyRefiningManager's set session up to date for the
+## Now strip. Once its last rep is judged and the stone is down it counts the set
+## (finish_set()) and emits set_completed; the next press starts another set,
+## with its beads empty. The hold belongs to the kind of input that started it,
+## key or mouse button: only that kind coming up lets it go, a key repeat is no
+## press, and a focus loss always lets go: the window's, which every build sends
+## (the Web build sends no other), or the application's. stop_set() drops a set in
+## progress, counting nothing, and so does hiding the stage.
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+## The first press started a set.
+signal set_started
+## A rep was judged and paid: what it restored and the XP each stat took
+## (AttributeType to float), for the board's pellets.
+signal rep_judged(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary)
+## A set was played to its last rep, and counted.
+signal set_completed(result: DrillSetResult)
+
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+const Tier = DrillRules.Tier
+const Miss = DrillRun.Miss
+const AttributeType = CharacterAttributesData.AttributeType
+
+## The drill's input.
+const PRESS_ACTION: StringName = &"drill_press"
+
+## The stone's base at rest, where it meets the jade, and its travel to the top,
+## in the stage's px; it moves in 2 px steps.
+const REST_BASE_Y: float = 492.0
+const TRAVEL_PX: float = 400.0
+const STONE_HEIGHT: float = 56.0
+
+## Where the tier word pops, from the stone's top left, and how far under it the
+## second line stands.
+const FLOATER_OFFSET: Vector2 = Vector2(84, 6)
+const LINE_DROP: float = 30.0
+
+## Each tier's word and colour (a hit's as cycling's; a Miss in the warning
+## colour, as the Tribulation's), and a Miss's reasons.
+const TIER_WORDS: Dictionary = {Tier.PERFECT: "Perfect", Tier.GOOD: "Good", Tier.OK: "OK", Tier.MISS: "Miss"}
+const MISS_REASONS: Dictionary = {Miss.TOO_LOW: "Too low", Miss.DROPPED: "Dropped", Miss.TOO_LATE: "Too late"}
+
+## What a scored rep could not pay, after its icon, and the gap between two parts.
+const CAPPED_TEXT: String = " capped"
+const FULL_TEXT: String = " full"
+const PART_GAP: String = "  "
+const HEALTH_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
+
+## The bead strip's frame for each tier; frame 0 is the empty socket.
+const EMPTY_BEAD: int = 0
+const BEAD_FRAMES: Dictionary = {Tier.PERFECT: 1, Tier.GOOD: 2, Tier.OK: 3, Tier.MISS: 4}
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var _stone: TextureRect = %Stone
+@onready var _fill: NinePatchRect = %Fill
+@onready var _beads_box: HBoxContainer = %Beads
+@onready var _word_floater: LacquerFloater = %WordFloater
+@onready var _line_floater: LacquerFloater = %LineFloater
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
+
+## The clock every judgement and timed effect reads, in microseconds. Tests replace it.
+var clock_usec: Callable = Time.get_ticks_usec
+
+var _drill: DrillData = null
+var _run: DrillRun = null
+var _result: DrillSetResult = null
+var _set_running: bool = false
+## The clock at the set's first press: the set's time 0.
+var _start_usec: int = 0
+## Whether the input is held, and whether the mouse button holds it (a key otherwise).
+var _holding: bool = false
+var _hold_by_mouse: bool = false
+## Where the tier word popped, before its rise.
+var _word_at: Vector2 = Vector2.ZERO
+var _beads: Array[LacquerStripRect] = []
+
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
+func _ready() -> void:
+	for child: Node in _beads_box.get_children():
+		_beads.append(child as LacquerStripRect)
+	visibility_changed.connect(_on_visibility_changed)
+	_on_visibility_changed()
+
+func _process(_delta: float) -> void:
+	if _set_running:
+		var t: int = _set_time()
+		_apply(_run.advance(t))
+		if _set_running:
+			_draw_stone(_run.height_at(t))
+			BodyRefiningManager.update_set_session(_run.rep_at(t) + 1, _run.rep_progress_at(t))
+			var end_usec: int = _run.get_end_usec()
+			if end_usec >= 0 and t >= end_usec:
+				_finish()
+	_place_floaters()
+
+func _notification(what: int) -> void:
+	var focus_lost: bool = what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT
+	if focus_lost and _holding:
+		_let_go()
+
+#-----------------------------------------------------------------------------
+# PUBLIC API
+#-----------------------------------------------------------------------------
+
+## Readies the stage for `drill`: no set, the beads empty, the stone at rest and
+## no floater. A set in progress is dropped.
+func setup(drill: DrillData) -> void:
+	stop_set()
+	_drill = drill
+	_run = null
+	_result = null
+	for bead: LacquerStripRect in _beads:
+		bead.set_frame(EMPTY_BEAD)
+
+## Takes an event of the drill's input and returns true for each one of them,
+## false for any other event. A press starts a set when none runs, and lifts; a
+## release lets go when it comes from the kind of input that holds; a key repeat
+## does nothing. Each is judged on clock_usec as it arrives.
+func handle_press_event(event: InputEvent) -> bool:
+	if not event.is_action(PRESS_ACTION):
+		return false
+	var key := event as InputEventKey
+	if key != null and key.echo:
+		return true
+	if event.is_action_pressed(PRESS_ACTION):
+		_on_press(event)
+	elif event.is_action_released(PRESS_ACTION):
+		_on_release(event)
+	return true
+
+## Drops a set in progress: its reps stay paid, but it is neither counted nor
+## reported. The session ends, the hold is let go, the floaters hide and the stone
+## goes back to rest. The beads keep what they showed.
+func stop_set() -> void:
+	if _set_running:
+		_set_running = false
+		BodyRefiningManager.end_set_session()
+	_holding = false
+	if is_node_ready():
+		_word_floater.stop()
+		_line_floater.stop()
+		_draw_stone(0.0)
+
+## Returns whether a set is being played.
+func is_set_running() -> bool:
+	return _set_running
+
+## Returns the set being played, or the last one played, or null before the first.
+func get_result() -> DrillSetResult:
+	return _result
+
+## Returns the run of the set being played or last played, or null before the first.
+func get_run() -> DrillRun:
+	return _run
+
+## Returns the stone's centre in the screen's space, where a rep's pellets start.
+func get_stone_global_center() -> Vector2:
+	return _stone.global_position + _stone.size / 2.0
+
+#-----------------------------------------------------------------------------
+# INPUT
+#-----------------------------------------------------------------------------
+
+func _on_press(event: InputEvent) -> void:
+	if _drill == null or _holding:
+		return
+	_holding = true
+	_hold_by_mouse = event is InputEventMouseButton
+	if not _set_running:
+		_start_set()
+	_apply(_run.press(_set_time()))
+
+func _on_release(event: InputEvent) -> void:
+	if _holding and (event is InputEventMouseButton) == _hold_by_mouse:
+		_let_go()
+
+func _let_go() -> void:
+	_holding = false
+	if _set_running:
+		_apply(_run.release(_set_time()))
+
+#-----------------------------------------------------------------------------
+# THE SET
+#-----------------------------------------------------------------------------
+
+## Starts a set now: a new run and result, the beads empty and the floaters
+## hidden, and the session running.
+func _start_set() -> void:
+	_run = DrillRun.new(_drill)
+	_result = DrillSetResult.new(_drill)
+	_start_usec = clock_usec.call()
+	_set_running = true
+	for bead: LacquerStripRect in _beads:
+		bead.set_frame(EMPTY_BEAD)
+	_word_floater.stop()
+	_line_floater.stop()
+	BodyRefiningManager.start_set_session(_drill.reps_per_set)
+	set_started.emit()
+
+## The set's time now, in microseconds from its first press.
+func _set_time() -> int:
+	return clock_usec.call() - _start_usec
+
+## Pays and shows each judged rep, in order. A listener of rep_judged can stop the
+## action, and the stop drops the set: nothing more is shown after that.
+func _apply(judgements: Array[DrillRun.Judgement]) -> void:
+	for judgement: DrillRun.Judgement in judgements:
+		var before: Dictionary = _stat_xp_now()
+		var health: float = BodyRefiningManager.pay_rep(_drill, judgement.tier, _result)
+		var stat_xp: Dictionary = {}
+		for stat: AttributeType in before:
+			stat_xp[stat] = _result.get_stat_xp(stat) - before[stat]
+		_beads[judgement.rep].set_frame(BEAD_FRAMES[judgement.tier])
+		_draw_stone(judgement.height)
+		_pop(judgement, health, stat_xp)
+		rep_judged.emit(judgement, health, stat_xp)
+		if not _set_running:
+			return
+
+## The XP each stat the drill trains has taken this set so far.
+func _stat_xp_now() -> Dictionary:
+	var xp: Dictionary = {AttributeType.STRENGTH: _result.get_stat_xp(AttributeType.STRENGTH)}
+	if _drill.has_minor_stat():
+		xp[_drill.minor_stat as AttributeType] = _result.get_stat_xp(_drill.minor_stat as AttributeType)
+	return xp
+
+## The set's last rep is judged and its stone is down: it is counted and reported.
+func _finish() -> void:
+	_set_running = false
+	_draw_stone(0.0)
+	BodyRefiningManager.finish_set(_result)
+	set_completed.emit(_result)
+
+#-----------------------------------------------------------------------------
+# DRAWING
+#-----------------------------------------------------------------------------
+
+## Stands the stone at `height` of its travel (0 at rest, 1 at the top), on the
+## 2 px grid, with the jade from its base down to the rest line.
+func _draw_stone(height: float) -> void:
+	var base: float = REST_BASE_Y - snappedf(height * TRAVEL_PX, 2.0)
+	_stone.position.y = base - STONE_HEIGHT
+	_fill.position.y = base
+	_fill.size.y = REST_BASE_Y - base
+
+## Pops the rep's tier beside the stone in its colour, and under it a Miss's
+## reason, or what a scored rep could not pay; hides the line when there is none.
+func _pop(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary) -> void:
+	_word_at = _stone.position + FLOATER_OFFSET
+	_word_floater.pop(TIER_WORDS[judgement.tier], _tier_color(judgement.tier))
+	if judgement.tier == Tier.MISS:
+		_line_floater.pop(MISS_REASONS[judgement.miss], ThemeConstants.LACQUER_HEALTH)
+	else:
+		var parts: Array = _unpaid_parts(health, stat_xp)
+		if parts.is_empty():
+			_line_floater.stop()
+		else:
+			_line_floater.pop_parts(parts, ThemeConstants.LACQUER_TAN)
+	_place_floaters()
+
+## What a scored rep could not pay: Strength's icon with "capped" when Strength
+## took none of its XP, the Health heart with "full" when it restored no Health.
+func _unpaid_parts(health: float, stat_xp: Dictionary) -> Array:
+	var parts: Array = []
+	if stat_xp.get(AttributeType.STRENGTH, 0.0) <= 0.0:
+		parts.append_array([StatDisplay.mini_icon_of(AttributeType.STRENGTH), CAPPED_TEXT])
+	if health <= 0.0:
+		if not parts.is_empty():
+			parts.append(PART_GAP)
+		parts.append_array([HEALTH_ICON, FULL_TEXT])
+	return parts
+
+## Stands each floater that shows on its spot, raised by its rise.
+func _place_floaters() -> void:
+	if _word_floater.visible:
+		_word_floater.position = _word_at - Vector2(0, _word_floater.get_rise())
+	if _line_floater.visible:
+		_line_floater.position = _word_at + Vector2(0, LINE_DROP - _line_floater.get_rise())
+
+static func _tier_color(tier: Tier) -> Color:
+	match tier:
+		Tier.PERFECT:
+			return ThemeConstants.LACQUER_BRASS
+		Tier.GOOD:
+			return ThemeConstants.LACQUER_CREAM
+		Tier.OK:
+			return ThemeConstants.LACQUER_TAN
+	return ThemeConstants.LACQUER_HEALTH
+
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
+
+## The stage plays only while it shows; hiding it drops a set in progress.
+func _on_visibility_changed() -> void:
+	var showing: bool = is_visible_in_tree()
+	set_process(showing)
+	if not showing:
+		stop_set()

@@ -153,6 +153,7 @@ func test_is_idle_action_is_foraging_and_training_only() -> void:
 		ZoneActionData.ActionType.CYCLING: false,
 		ZoneActionData.ActionType.ZONE_EVENT: false,
 		ZoneActionData.ActionType.TRIBULATION: false,
+		ZoneActionData.ActionType.BODY_REFINING: false,
 	}
 	assert_eq(expected.size(), ZoneActionData.ActionType.size(), "every action type is classified in this test")
 	for action_type: ZoneActionData.ActionType in expected:

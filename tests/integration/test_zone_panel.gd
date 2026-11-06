@@ -1,8 +1,9 @@
 extends GutTest
 
 ## Integration tests for the zone chest (ZonePanel, lacquer kit §5.5 and §0):
-## the header, the Now strip for each idle action and for the cycle (read from
-## CyclingManager's session snapshot, which the tests drive directly), the
+## the header, the Now strip for each idle action, for the cycle (read from
+## CyclingManager's session snapshot, which the tests drive directly) and for the
+## body refining set (read from BodyRefiningManager's set session, the same way), the
 ## grouped activity list and its rebuilds, the rail, scrolling to a card, the
 ## lore panel and who takes Esc, the techniques mode a cycling session turns
 ## the chest to, and what the chest tells MainView's slide. The panel is built
@@ -21,6 +22,7 @@ const FORAGING_ID: String = "sprint_forest_foraging_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
 const TRIBULATION_ID: String = "spirit_valley_tribulation"
+const BODY_REFINING_ID: String = "riverbank_training_action"
 
 ## The unlock condition that reveals the Tribulation's card.
 const FULL_CORE_CONDITION: String = "core_density_full"
@@ -35,6 +37,8 @@ const TORRENTIAL_ID: String = "torrential_flow"
 
 const THUMB_RIVER: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ai.png")
 const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_basic_ai.png")
+const MADRA_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_madra_ai.png")
+const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
 
 ## Chest layout, local to the chest (kit §0, §5.5). The Now tray always
 ## keeps its space, so the header and the list never move up.
@@ -95,6 +99,7 @@ func after_each() -> void:
 	# the next test.
 	CyclingManager.end_cycle_session()
 	CyclingManager.clear_last_cycle_result()
+	BodyRefiningManager.end_set_session()
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	if _relored_zone != null:
@@ -467,6 +472,91 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
 
+func test_tray_shows_the_set_ready() -> void:
+	# Body refining is a session action the tray shows, as it shows the cycle: the
+	# action, the Health a Perfect rep restores beside the Health heart, the
+	# equipped drill and its reps, with the ring dark and the rod empty until a
+	# set runs. The board covers the chest while the player drills, so the tray
+	# takes no clicks.
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	await wait_process_frames(2)
+	assert_eq(_texts(_strip()), ["Riverbank Training", "+4 / rep", "Stone Lifting", "10 reps", "Now"] as Array[String])
+	assert_eq((_strip_node("RateIcon") as TextureRect).texture, HEALTH_MINI, "the rate is Health's")
+	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(BODY_REFINING_ID).icon, "the action's icon")
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is empty")
+	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE)
+
+func test_tray_follows_the_running_set() -> void:
+	# Halfway through rep 4 of 10: the ring lights floor(0.5 x 13) = 6 beads over
+	# the rep, and the rod (144 steps) stands at round(0.35 x 144) = 50 over the set.
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.update_set_session(4, 0.5)
+	await wait_process_frames(1)
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(6, 0), "six beads")
+	assert_eq((_strip_node("TicksLabel") as Label).text, "Rep 4 / 10")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(0.35 * 144.0))
+	assert_has(_texts(_strip()), "Stone Lifting", "the detail stays the drill's name")
+
+## A set stopped midway, or finished, ends the session: the tray reads the reps
+## again, the ring dark and the rod empty.
+func test_tray_goes_back_to_ready_when_the_set_ends() -> void:
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.update_set_session(2, 0.8)
+	await wait_process_frames(1)
+	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
+	BodyRefiningManager.end_set_session()
+	await wait_process_frames(1)
+	assert_eq(_texts(_strip()), ["Riverbank Training", "+4 / rep", "Stone Lifting", "10 reps", "Now"] as Array[String])
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark again")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "and the rod empty")
+
+## Strength raises the Health a rep restores: at Strength Lv 10 (Strength 19) a
+## Perfect rep of Stone Lifting restores 4 x 1.9.
+func test_tray_rate_follows_strength() -> void:
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	await wait_process_frames(2)
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.STRENGTH, 10)
+	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+7.6 / rep")
+
+## The drill's name, its reps and its Health follow the equipped drill at once.
+func test_tray_follows_the_equipped_drill() -> void:
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	await wait_process_frames(2)
+	BodyRefiningManager.unlock_drill("falling_leaf")
+	BodyRefiningManager.equip_drill("falling_leaf")
+	assert_eq(_texts(_strip()), ["Riverbank Training", "+2 / rep", "Falling Leaf", "10 reps", "Now"] as Array[String])
+
+func test_tray_gives_the_set_back_to_the_idle_action() -> void:
+	# The set and the Aura Well share the tray's name, detail, figure, rod and
+	# rate: when body refining stops and the Aura Well resumes, the Aura Well's
+	# own texts, rod and rate come back, its Madra icon with them, and the tray
+	# takes clicks again.
+	PersistenceManager.save_game_data.madra = 0.0
+	await _add_panel()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.update_set_session(3, 0.4)
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "Riverbank Training", "precondition: the set shows")
+	BodyRefiningManager.end_set_session()
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well resumed")
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "Full in 67 s", "0 / 100", "Now"] as Array[String])
+	assert_eq((_strip_node("RateIcon") as TextureRect).texture, MADRA_MINI, "the Madra icon is back")
+	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
+	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
+
 func test_tray_reads_paused_with_the_shop_open() -> void:
 	# The paused name is the idle action that resumes when the shop closes:
 	# the zone's last idle action (foraging), not the first idle card (the
@@ -556,7 +646,7 @@ func test_count_label() -> void:
 	assert_eq((_node("CountLabel") as Label).text, "1 here")
 	_unlock_everything()
 	await wait_process_frames(2)
-	assert_eq((_node("CountLabel") as Label).text, "10 here")
+	assert_eq((_node("CountLabel") as Label).text, "11 here")
 
 func test_rebuilds_on_unlock() -> void:
 	await _add_panel()
@@ -1045,6 +1135,19 @@ func test_cycling_card_shows_new_after_a_technique_unlock() -> void:
 	CyclingManager.unlock_technique(SMOOTH_ID)
 	await wait_process_frames(2)
 	assert_true((_panel.get_card(CYCLING_ID) as ZoneActionButton).is_new_shown())
+
+func test_body_refining_card_shows_new_after_a_drill_unlock() -> void:
+	# ZoneManager marks the body refining action unseen when a drill unlocks; the
+	# chest's rebuild is what shows the card's NEW seal again.
+	UnlockManager.force_unlock_condition(FORAGING_EVENT)
+	ZoneManager.mark_action_seen(BODY_REFINING_ID)
+	await _add_panel()
+	var card: ZoneActionButton = _panel.get_card(BODY_REFINING_ID) as ZoneActionButton
+	assert_not_null(card, "precondition: the body refining card is listed")
+	assert_false(card.is_new_shown(), "precondition: the card counts as seen")
+	BodyRefiningManager.unlock_drill("horse_stance")
+	await wait_process_frames(2)
+	assert_true((_panel.get_card(BODY_REFINING_ID) as ZoneActionButton).is_new_shown())
 
 func test_a_hidden_technique_list_stays_current() -> void:
 	await _add_panel()

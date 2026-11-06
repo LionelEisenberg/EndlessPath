@@ -404,10 +404,12 @@ func test_switching_ends_a_dialogue_no_action_started() -> void:
 func test_teardown_clears_the_runtime_state() -> void:
 	CyclingManager.start_cycle_session(10.0)
 	CyclingManager.set_last_cycle_result(CycleResult.new())
+	BodyRefiningManager.start_set_session(10)
 	var old_vitals: VitalsManager = PlayerManager.vitals_manager
 	DevManager.play_preset(_preset("test_runtime", ""))
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_false(CyclingManager.is_cycle_running(), "the cycle session ended")
+	assert_false(BodyRefiningManager.is_set_running(), "the body refining set session ended")
 	assert_null(CyclingManager.get_last_cycle_result(), "and the last cycle's result is forgotten")
 	assert_not_same(PlayerManager.vitals_manager, old_vitals, "the player gets fresh vitals")
 

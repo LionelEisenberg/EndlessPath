@@ -5,7 +5,8 @@ extends Control
 ## A short gain rising on a small lacquer token (kit §0, §6.3): a few words
 ## such as "+1.5 Madra" in Madra blue (pop), or a foraging haul in cream, each
 ## count followed by its item's 16 px icon, "+3 [dewdrop]  +4 [fern]"
-## (pop_items: the user's review, 2026-10-24, icons over names). The token
+## (pop_items: the user's review, 2026-10-24, icons over names), or any icons
+## and text in order, "[arm] capped" (pop_parts). The token
 ## is 28 px tall and even(content width + 28) wide, its 2 px shadow baked into
 ## the 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright. It
 ## does not move itself: the placer positions it each frame and raises it by
@@ -95,6 +96,24 @@ func pop_items(items: Dictionary, color: Color) -> void:
 		_icons.append(icon)
 		_text.add_image(icon, ITEM_ICON_SIZE, ITEM_ICON_SIZE)
 	_plain_text = ITEM_SEPARATOR.join(counts)
+	_start(color)
+
+## Shows icons and text in color on the token, in the order given, and starts its
+## rise: each part a String, or a Texture2D drawn at ITEM_ICON_SIZE ("[arm]
+## capped", the body refining board's line under a rep's tier). get_text() gives
+## the text parts joined, get_icons() the icons.
+func pop_parts(parts: Array, color: Color) -> void:
+	var texts: PackedStringArray = []
+	_icons.clear()
+	_text.clear()
+	for part: Variant in parts:
+		if part is Texture2D:
+			_icons.append(part as Texture2D)
+			_text.add_image(part as Texture2D, ITEM_ICON_SIZE, ITEM_ICON_SIZE)
+		else:
+			texts.append(str(part))
+			_text.add_text(str(part))
+	_plain_text = "".join(texts)
 	_start(color)
 
 ## Hides the floater outright.

@@ -24,6 +24,14 @@ const SPIRITUAL: Array[CharacterAttributesData.AttributeType] = [
 	CharacterAttributesData.AttributeType.CONTROL,
 ]
 
+## Each stat's 16 px mini icon, drawn from its icon, for a line that names the
+## stat beside a figure (the body refining board, its card and floaters). Only
+## Strength has one so far: the drills that train Body and Agility bring theirs
+## (#106).
+const _MINI_ICONS: Dictionary = {
+	CharacterAttributesData.AttributeType.STRENGTH: preload("res://assets/ui/lacquer/lacquer_mini_strength_ai.png"),
+}
+
 ## Each stat's icon. Mind keeps the icon Foundation had.
 const _ICONS: Dictionary = {
 	CharacterAttributesData.AttributeType.STRENGTH: preload("res://assets/sprites/ui/attribute_icons/strength_icon.png"),
@@ -48,6 +56,11 @@ static func icon_of(stat: CharacterAttributesData.AttributeType) -> Texture2D:
 		Log.error("StatDisplay: No icon for attribute type %s" % stat)
 		return null
 	return _ICONS[stat]
+
+## The stat's 16 px mini icon, or null for a stat whose mini is not drawn yet: a
+## line then names the stat in words.
+static func mini_icon_of(stat: CharacterAttributesData.AttributeType) -> Texture2D:
+	return _MINI_ICONS.get(stat, null)
 
 ## The side the stat sits on: "Physical" for Strength, Body and Agility, and
 ## "Spiritual" for the rest.
