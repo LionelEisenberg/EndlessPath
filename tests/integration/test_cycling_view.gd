@@ -719,3 +719,32 @@ func test_press_seal_reaches_the_technique() -> void:
 func test_the_board_s_buttons_take_no_keyboard_focus() -> void:
 	assert_eq((_node("CloseButton") as Control).focus_mode, Control.FOCUS_NONE)
 	assert_eq((_node("AutoToggle") as Control).focus_mode, Control.FOCUS_NONE)
+
+## The scenes that stay on screen beside the board while the player cycles.
+const SCENES_BESIDE_THE_BOARD: Array[String] = [
+	VIEW_SCENE_PATH,
+	"res://scenes/zones/zone_panel/zone_panel.tscn",
+	"res://scenes/cycling/technique_drawer/technique_drawer.tscn",
+	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
+	"res://scenes/ui/dock/dock.tscn",
+	"res://scenes/ui/goals_panel/goals_panel.tscn",
+	"res://scenes/ui/log_window/log_window.tscn",
+	"res://scenes/ui/quest_toast/quest_toast.tscn",
+]
+
+## The arrow keys are also the GUI's focus keys: while any Control holds
+## keyboard focus, the viewport spends them moving it, and they never reach the
+## seals. So nothing on screen beside the board may take focus from a click or
+## the keys. (Rich text and scroll bars keep Godot's accessibility-only focus,
+## which only a screen reader moves.)
+func test_nothing_beside_the_board_takes_keyboard_focus() -> void:
+	for path: String in SCENES_BESIDE_THE_BOARD:
+		var scene: Node = (load(path) as PackedScene).instantiate()
+		add_child_autofree(scene)
+		var controls: Array[Node] = scene.find_children("*", "Control", true, false)
+		if scene is Control:
+			controls.append(scene)
+		for node: Node in controls:
+			var mode: Control.FocusMode = (node as Control).focus_mode
+			assert_false(mode == Control.FOCUS_CLICK or mode == Control.FOCUS_ALL, "%s in %s takes no focus" % [node.name, path.get_file()])
+	await _await_queued_frees()
