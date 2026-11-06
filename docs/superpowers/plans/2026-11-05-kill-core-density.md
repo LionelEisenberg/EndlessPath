@@ -23,7 +23,7 @@
 | Where does a kill's amount show? | Gold and Core Density by icons, not words, on the tile's line; the Run ledger's total in layout B (two by two); beads that fly to a core in the run's cabinet and bump it up. No floater. |
 | The boss's tile and the end card | Out of scope (#103): the boss's tile stays unresolved as today. |
 
-**Round 2, waiting for Lionel** (Claude's picks): icons at 32 px in the line; the ledger's figures with icons only, no captions; the run's cabinet gains a Core row drawn as the zone cabinet's core block, 96 px taller, the Goals board 96 px lower; the beads burst from the hex the player stands on, brass, one per 4 XP up to 16; a kill at a full core pays nothing (no beads, no icon, no total).
+**Round 2, approved by Lionel:** icons at 32 px in the line; the ledger's figures by icons only, no captions, each centred beside its icon, Core Density and gold on the left and fights and tiles explored on the right; the run's cabinet gains a Core row drawn as the zone cabinet's core block, 96 px taller, the Goals board 96 px lower; the beads burst from the hex the player stands on, brass, one per 4 XP up to 16; a kill at a full core pays nothing (no beads, no icon, no total).
 
 ## Global Constraints
 
@@ -65,21 +65,21 @@
 
 - [x] Tests: `test_a_won_fight_pays_its_core_density_once`, `test_a_choice_without_the_reward_pays_nothing`, `test_any_choice_with_the_reward_pays_it`, `test_core_density_is_kept_when_a_later_fight_is_lost`, `test_a_new_run_starts_its_total_at_zero`, `test_a_kill_at_a_full_core_pays_nothing`, `test_a_boss_win_pays_the_boss_amount`; `test_the_boss_pays_its_core_density_before_the_run_ends`.
 
-### Task 3: Icons on the tile's line (after round 2)
+### Task 3: Icons on the tile's line (built)
 
 **Files:** `adventure_tilemap.gd`, `expedition_page.tscn` and `.gd`; tests `test_adventure_tilemap_events.gd`, `test_expedition_page.gd`.
 
 **Interfaces:** `static func summary_for(choice: EncounterChoice, gold_earned: int, core_density_xp: float = 0.0) -> String` returns BBCode: a fight reads `Won`, then ` · ` and the gold icon and figure when gold > 0, then ` · ` and the core icon and figure when the XP is above 0; any other choice lists its effects' words as today, then the core icon and figure. The icons are constants on `AdventureTilemap` (`GOLD_ICON`, `CORE_ICON`) at the approved size. `handle_combat_result()` and the other two callers pass what `_apply_effects()` returned. `%LineLabel` becomes a `RichTextLabel` (`RichTextLacquer`, BBCode, fit content, word-smart wrap), and the page's content height is still right without waiting a frame.
 
-- [ ] Tests: `test_summary_for` gains the icon cases (expected strings built from the constants); `test_won_fight_summary` expects the core icon and 7; the page's `test_content_height_is_right_without_waiting_a_frame` and the trim test still pass.
+- [x] Tests: `test_summary_for` gains the icon cases (expected strings built from the constants); `test_won_fight_summary` expects the core icon and 7; the page's `test_content_height_is_right_without_waiting_a_frame` and the trim test still pass.
 
-### Task 4: The Run ledger, two by two (after round 2)
+### Task 4: The Run ledger, two by two (built)
 
 **Files:** `expedition_page.tscn` and `.gd`, `adventure_view.gd`; tests `test_expedition_page.gd`, `test_adventure_end_flow.gd`.
 
 **Interfaces:** `ExpeditionPage.set_run_stats(fights: int, fights_total: int, gold: int, explored: int, explored_total: int, loot: Array[ItemDefinitionData], core_density_xp: float = 0.0) -> void`. In the scene: `CoreIcon` (`lacquer_ic_core_ai.png`) and `CoreValue` beside Fights; gold and explored on the second row; the loot row 46 px lower; `RunLedger` 174 tall; captions as approved. `AdventureView._on_run_stats_changed()` passes `adventure_tilemap.get_core_density_xp_earned()`, and `_on_boss_defeated()` announces the run's figures so the ledger counts the boss before the run ends.
 
-- [ ] Tests: `test_run_ledger_values` and `test_a_new_run_clears_the_ledger` read `%CoreValue`; `test_the_ledger_counts_the_boss` (end flow).
+- [x] Tests: `test_run_ledger_values` and `test_a_new_run_clears_the_ledger` read `%CoreValue`; `test_the_ledger_counts_the_boss` (end flow).
 
 ### Task 5: The Core row and the beads (after round 2)
 
