@@ -2,12 +2,13 @@ extends GutTest
 
 ## Unit tests for the player's VitalsManager following CharacterManager's stats:
 ## its maximum Health, Stamina and Madra move with equipped gear, with trained
-## levels, and with any modifier source, while an enemy's do not. Its Madra is
-## ResourceManager's saved pool: reads, writes and changes go through it, while
-## an enemy keeps Madra of its own. Each test builds a VitalsManager the way
-## PlayerManager does (is_player, no attribute data of its own), on a fresh
-## SaveGameData every manager is re-bound to, holding 25 Madra. The original
-## save is restored in after_each().
+## levels, and with any modifier source, while an enemy's do not. Its Madra and
+## its Health are ResourceManager's saved pools: reads, writes and changes go
+## through it, while an enemy keeps Madra and Health of its own. Each test
+## builds a VitalsManager the way PlayerManager does (is_player, no attribute
+## data of its own), on a fresh SaveGameData every manager is re-bound to,
+## holding 25 Madra and full Health (100). The original save is restored in
+## after_each().
 
 const AttributeType = CharacterAttributesData.AttributeType
 const EquipmentSlot = EquipmentDefinitionData.EquipmentSlot
@@ -74,6 +75,11 @@ func test_unequipping_body_gear_lowers_max_health_again() -> void:
 	_equip(_make_gear(EquipmentSlot.ARMOR, {&"body": 0.4}), EquipmentSlot.ARMOR)
 	InventoryManager.unequip_item(EquipmentSlot.ARMOR)
 	assert_eq(_vitals.max_health, 100.0, "back to 10 Body x 10")
+
+func test_unequipping_agility_gear_lowers_max_stamina_again() -> void:
+	_equip(_make_gear(EquipmentSlot.MAIN_HAND, {&"agility": 0.4}), EquipmentSlot.MAIN_HAND)
+	InventoryManager.unequip_item(EquipmentSlot.MAIN_HAND)
+	assert_eq(_vitals.max_stamina, 50.0, "back to 10 Agility x 5")
 
 func test_equipping_a_mind_accessory_raises_max_madra() -> void:
 	_equip(_make_gear(EquipmentSlot.ACCESSORY, {&"mind": 0.2}), EquipmentSlot.ACCESSORY, 1)
@@ -192,3 +198,67 @@ func test_an_enemys_madra_is_its_own() -> void:
 	enemy.apply_vitals_change(0.0, 0.0, -30.0)
 	assert_eq(enemy.current_madra, 70.0, "100 of its own, less 30")
 	assert_eq(ResourceManager.get_madra(), 25.0, "the pool is untouched")
+
+#-----------------------------------------------------------------------------
+# HEALTH: THE ONE POOL
+#-----------------------------------------------------------------------------
+
+func test_the_players_health_reads_the_pool() -> void:
+	ResourceManager.set_health(46.0)
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_health_source(20.0))
+	assert_eq(_vitals.current_health, 46.0, "current Health is the pool")
+	assert_eq(_vitals.max_health, 120.0, "max Health is the pool's max")
+
+func test_health_changes_land_in_the_pool() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a hit", "health": 50.0, "change": -8.0, "expected": 42.0},
+		{"name": "a rest tile", "health": 50.0, "change": 20.0, "expected": 70.0},
+		{"name": "a heal past the max stops at it", "health": 90.0, "change": 20.0, "expected": 100.0},
+		{"name": "a hit past the pool stops at 0", "health": 5.0, "change": -8.0, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		ResourceManager.set_health(case.health)
+		_vitals.apply_vitals_change(case.change)
+		assert_eq(ResourceManager.get_health(), case.expected, case.name)
+
+func test_writing_current_health_sets_the_pool() -> void:
+	_vitals.current_health = 33.0
+	assert_eq(ResourceManager.get_health(), 33.0)
+
+func test_each_health_change_reaches_the_vitals_once() -> void:
+	watch_signals(_vitals)
+	ResourceManager.add_health(-5.0, true)
+	_vitals.apply_vitals_change(-10.0)
+	assert_signal_emit_count(_vitals, "health_changed", 2, "a pool change and a hit, once each")
+	assert_signal_emitted_with_parameters(_vitals, "health_changed", [85.0])
+
+## A step on the map changes only Stamina, so the pool stays quiet.
+func test_a_change_with_no_health_leaves_the_pool_quiet() -> void:
+	watch_signals(ResourceManager)
+	_vitals.apply_vitals_change(0.0, -5.0, -3.0)
+	assert_signal_not_emitted(ResourceManager, "health_changed")
+
+## In-run heals stay quiet: no "Gained" line.
+func test_a_rest_tile_heals_the_pool_quietly() -> void:
+	ResourceManager.set_health(50.0)
+	var heal := ChangeVitalsEffectData.new()
+	heal.health_change = 10.0
+	watch_signals(LogManager)
+	heal.process()
+	assert_eq(ResourceManager.get_health(), 60.0)
+	assert_signal_not_emitted(LogManager, "message_logged")
+
+## Until body refining refills Health at home, every run start fills the pool.
+func test_initialize_current_values_fills_the_pool() -> void:
+	ResourceManager.set_health(30.0)
+	_vitals.initialize_current_values()
+	assert_eq(ResourceManager.get_health(), 100.0)
+
+func test_an_enemys_health_is_its_own() -> void:
+	var enemy := VitalsManager.new()
+	enemy.character_attributes_data = CharacterAttributesData.make()
+	add_child_autofree(enemy)
+	enemy.initialize_current_values()
+	enemy.apply_vitals_change(-30.0)
+	assert_eq(enemy.current_health, 70.0, "100 of its own, less 30")
+	assert_eq(ResourceManager.get_health(), 100.0, "the pool is untouched")

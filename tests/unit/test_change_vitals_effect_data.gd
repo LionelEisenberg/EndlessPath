@@ -66,3 +66,11 @@ func test_final_changes_are_flat_plus_scaled_attribute() -> void:
 func test_multipliers_default_to_zero() -> void:
 	assert_eq(_effect.body_hp_multiplier, 0.0)
 	assert_eq(_effect.mind_madra_multiplier, 0.0)
+
+## The effect itself is unchanged, and the player's Health is the saved pool, so
+## a rest tile or a trap moves the pool.
+func test_process_heals_the_saved_pool() -> void:
+	ResourceManager.set_health(40.0)
+	_effect.health_change = 15.0
+	_effect.process()
+	assert_eq(ResourceManager.get_health(), 55.0)

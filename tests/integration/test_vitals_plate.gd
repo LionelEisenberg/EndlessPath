@@ -5,8 +5,8 @@ extends GutTest
 ## the player's VitalsManager and how it follows that manager's signals, the
 ## Stamina rod, the three buff sockets (they fill from the left, show a count
 ## seal for stacks and clear when the buffs go), and the tooltip a hovered
-## socket opens. The player's Madra is the saved pool, set through
-## ResourceManager, with a modifier source on its max.
+## socket opens. The player's Health and Madra are the saved pools, set
+## through ResourceManager, each with a modifier source on its max.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -23,6 +23,8 @@ const EMPTY_PALM_ICON: Texture2D = preload("res://assets/sprites/abilities/empty
 const POWER_FONT_ICON: Texture2D = preload("res://assets/sprites/abilities/power_font.png")
 ## The modifier source _set_madra() sets on max Madra; after_each() removes it.
 const TEST_SOURCE: StringName = &"test_vitals_plate"
+## The modifier source _set_vitals() sets on max Health, removed again at 100.
+const TEST_HEALTH_SOURCE: StringName = &"test_vitals_plate_health"
 ## GUT's output window covers the screen on this canvas layer; a pointer test
 ## shows what it moves over above it.
 const GUT_OUTPUT_LAYER: int = 128
@@ -79,11 +81,16 @@ func _add_plate() -> VitalsPlate:
 	add_child_autofree(plate)
 	return plate
 
-## Sets the player's Health and Stamina and their maxima.
+## Sets the player's Health and Stamina and their maxima. Health is the saved
+## pool, whose max is the max Health stat: a bonus on it over a new
+## character's 100, and none at 100.
 func _set_vitals(health: float, max_health: float, stamina: float, max_stamina: float) -> void:
-	_vitals.max_health = max_health
+	if max_health == 100.0:
+		CharacterManager.remove_modifier_source(TEST_HEALTH_SOURCE)
+	else:
+		CharacterManager.set_modifier_source(TEST_HEALTH_SOURCE, _max_health_source(max_health - 100.0))
 	_vitals.max_stamina = max_stamina
-	_vitals.current_health = health
+	ResourceManager.set_health(health)
 	_vitals.current_stamina = stamina
 
 ## Sets the Madra pool and its max: a bonus on max Madra over a new
@@ -96,6 +103,11 @@ func _set_madra(madra: float, max_madra: float) -> void:
 func _max_madra_source(amount: float) -> Callable:
 	return func() -> Array[StatModifierData]:
 		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)]
+		return modifiers
+
+func _max_health_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_HEALTH, StatModifierData.Kind.FLAT, amount)]
 		return modifiers
 
 ## A player combatant (a real CombatantNode, so the buff manager is the real

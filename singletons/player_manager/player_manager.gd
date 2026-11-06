@@ -1,8 +1,8 @@
 extends Node
-## Holds the player's VitalsManager: a run's Health and Stamina, with their
-## maxima and regen, and the player's Madra, which is ResourceManager's saved
-## pool seen through it. Combat, the vitals plate, the technique dock and the
-## dev tools all reach the player's vitals here.
+## Holds the player's VitalsManager: a run's Stamina, with its max and regen,
+## and the player's Health and Madra, which are ResourceManager's saved pools
+## seen through it. Combat, the vitals plate, the technique dock and the dev
+## tools all reach the player's vitals here.
 
 ## The player's vitals. reset_vitals() replaces it, so hold it only as long as
 ## a run.
@@ -12,9 +12,10 @@ func _ready() -> void:
 	_create_vitals_manager()
 
 ## Replaces the player's VitalsManager with a new one, built as at boot, so
-## nothing of a run carries over: not its Health or Stamina, nor its regen.
-## Madra is ResourceManager's saved pool and stays. The old one leaves the tree at once and is freed at the end of the
-## frame, so a board that still holds it never reads a freed object meanwhile.
+## nothing of a run carries over: not its Stamina, nor any regen. The new one
+## reads the save's Health and Madra, ResourceManager's pools, as they stand.
+## The old one leaves the tree at once and is freed at the end of the frame, so
+## a board that still holds it never reads a freed object meanwhile.
 func reset_vitals() -> void:
 	if is_instance_valid(vitals_manager):
 		remove_child(vitals_manager)
