@@ -15,9 +15,13 @@
 ## while the board closes turns the close around, and the state stays on the stack.
 ##
 ## Esc. close_cycling_view stops the action, unless the board is closing: the
-## action that resumed when cycling stopped must not be stopped by it. Nothing else
-## is handled here, so the menu keys do nothing until the close has ended and the
-## zone view is the current state again.
+## action that resumed when cycling stopped must not be stopped by it.
+##
+## Seal keys. A fresh press of a seal action (W A S D or the arrow keys, see
+## arrow_for()) keys that arrow on the board's seal, unless the board is closing;
+## a held key's echoes key nothing. Nothing else is handled here, so the menu keys
+## do nothing until the close has ended and the zone view is the current state
+## again.
 ##
 ## The spec. The state keeps one BoardTransitionSpec for every run, because the
 ## transition keeps the first spec object of a run. Its view and board rectangle are
@@ -25,6 +29,18 @@
 ## of a board that scales is not where the transition scales it about.
 class_name CyclingViewState
 extends MainViewState
+
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+## Each seal action and the arrow it keys (CyclingRules.Arrow).
+const SEAL_ACTIONS: Dictionary = {
+	&"cycling_seal_up": CyclingRules.Arrow.UP,
+	&"cycling_seal_left": CyclingRules.Arrow.LEFT,
+	&"cycling_seal_down": CyclingRules.Arrow.DOWN,
+	&"cycling_seal_right": CyclingRules.Arrow.RIGHT,
+}
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -56,13 +72,26 @@ func enter() -> void:
 func exit() -> void:
 	_block_full_log(false)
 
-## Handle input events in this state. Esc stops the cycling action, unless the
-## board is already closing.
+## Handle input events in this state. Esc stops the cycling action and a seal key
+## keys its arrow on the board, unless the board is already closing.
 func handle_input(event: InputEvent) -> void:
 	if scene_root.is_board_closing():
 		return
 	if event.is_action_pressed("close_cycling_view"):
 		ActionManager.stop_action()
+		return
+	var arrow: int = arrow_for(event)
+	var view := scene_root.cycling_view as CyclingView
+	if arrow >= 0 and view != null:
+		view.press_seal(arrow)
+
+## Returns the arrow (CyclingRules.Arrow) a fresh press of a seal action keys, or
+## -1 for any other event: another action, a release, or a held key's echo.
+static func arrow_for(event: InputEvent) -> int:
+	for action: StringName in SEAL_ACTIONS:
+		if event.is_action_pressed(action):
+			return SEAL_ACTIONS[action]
+	return -1
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS

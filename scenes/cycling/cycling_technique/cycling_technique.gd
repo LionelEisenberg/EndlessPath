@@ -22,7 +22,13 @@ extends Node2D
 ## the only thing the player presses: from ready a press
 ## starts a cycle, and during one a press while the ball is over an active zone
 ## scores that zone by how near the ball's centre is to the zone's (see
-## CyclingRules).
+## CyclingRules), paying the technique's other stat (Control) its tier's XP.
+## Seal nodes sit on the path where the ball reaches each of the technique's
+## seal_seconds. CyclingRules.SEAL_LEAD before the ball arrives, a node shows a
+## seal of arrows drawn from seal_rng, and press_seal() keys them. As the ball
+## arrives an open node bursts, paying the other stat (Mind) seal_xp, and one
+## still showing fizzles. A stop or a switch before the ball arrives drops an
+## open seal.
 ## Everything steps: the ball is drawn at its path position snapped to even px,
 ## its swirl steps through SWIRL_FRAMES frames at SWIRL_FPS, and a zone shows its
 ## state as a frame. While the ball waits for a press it breathes: it and its
@@ -56,15 +62,24 @@ signal cycle_completed(result: CycleResult)
 ## global centre, for the view to fly a pellet from, and the Madra the step
 ## added, which the pellet carries.
 signal madra_particle_requested(from_pos: Vector2, amount: float)
-## Emitted when a press scores a zone, with how well and the Core Density XP the
-## zone was worth. The XP has gone to Core Density by then (a full core takes
-## none), so a listener reading the core finds it as this hit left it.
-signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
+## Emitted when a press scores a zone, with how well, the XP of the technique's
+## other stat the zone was worth and the XP that stat took: all of it short of
+## the cap, less once it reaches the cap, none at the cap or for a technique that
+## trains Spirit alone. The XP is in the stat by then.
+signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int, taken: float)
 ## Emitted after a payment of stat XP that the stat took XP from, with the drawn
 ## ball's global centre, for the view to fly pellets from, and the XP the stat
 ## took (all of the payment short of the cap, never 0). The XP is in the stat by
 ## then. A capped stat takes none, and nothing is emitted.
 signal stat_xp_paid(stat: CharacterAttributesData.AttributeType, from_pos: Vector2, amount: float)
+## Emitted when a seal node shows its seal, SEAL_LEAD before the ball arrives.
+signal seal_shown(seal: SealNode)
+## Emitted when the ball bursts through an open seal node, after the payment,
+## with the XP of the technique's other stat the seal was worth and the XP that
+## stat took (none at its cap).
+signal seal_burst(seal: SealNode, xp: float, taken: float)
+## Emitted when the ball reaches a seal node whose seal was not keyed in time.
+signal seal_missed(seal: SealNode)
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -118,6 +133,7 @@ const _RING_FOLLOWING: int = 1
 const _RING_READY_BY_BREATH: Array[int] = [_RING_READY, 2, 3]
 
 const _ZONE_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique/cycling_zone.tscn")
+const _SEAL_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique/seal_node.tscn")
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -156,6 +172,12 @@ var technique_data: CyclingTechniqueData = null
 
 ## The technique's zones, in the order of its data.
 var cycling_zones: Array[CyclingZone] = []
+
+## The technique's seal nodes, in the order of its seal_seconds.
+var seal_nodes: Array[SealNode] = []
+
+## Draws each seal's arrows (CyclingRules.random_seal()).
+var seal_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var _cycling: bool = false
 ## Whether the cursor follows the ball this frame: the follow window's verdict.
@@ -226,6 +248,7 @@ func setup(data: CyclingTechniqueData) -> void:
 	_path_length = _path.curve.get_baked_length() if _path.curve.point_count > 0 else 0.0
 	_groove.setup(curve)
 	_build_zones()
+	_build_seals()
 	_return_to_ready()
 
 ## Starts a cycle, from ready only. Every zone goes back to IDLE (clearing the
@@ -245,6 +268,8 @@ func start_cycle(starts_following: bool = true) -> bool:
 	_result = _new_result()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
+	for seal: SealNode in seal_nodes:
+		seal.reset()
 	_groove.set_lit_length(-1.0)
 	_groove.set_swept_length(-1.0)
 	_ball_ring.visible = false
@@ -289,6 +314,7 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 		_follow_spirit(cycle_delta)
 	_result.followed_ratio = _followed_seconds / duration if duration > 0.0 else 0.0
 	_update_zones()
+	_update_seals(cycle_delta)
 	_groove.set_swept_length(_path_length * minf(_elapsed / GROOVE_SWEEP_SECONDS, 1.0))
 	_groove.set_lit_length(_follow.progress)
 	_record_rate(cycle_delta, drawing)
@@ -305,25 +331,34 @@ func press_ball() -> bool:
 	var zone: CyclingZone = _active_zone()
 	return zone != null and try_score_zone(zone)
 
+## The player keyed `arrow` (a CyclingRules.Arrow): the seal that shows takes it
+## (SealNode.press()). Returns whether a seal took it as its next arrow: false
+## for a wrong key, and while no seal shows.
+func press_seal(arrow: int) -> bool:
+	if not _cycling:
+		return false
+	for seal: SealNode in seal_nodes:
+		if seal.get_state() == SealNode.State.SHOWING:
+			return seal.press(arrow)
+	return false
+
 ## Scores `zone`, which succeeds only while a cycle runs and the zone is ACTIVE.
-## The tier comes from how far the true ball is from the zone's centre. The XP
-## goes to Core Density (a full core takes none, and the result notes it), the
-## zone takes its stud and zone_scored is emitted. Returns whether it scored.
+## The tier comes from how far the true ball is from the zone's centre. Its XP
+## goes to the technique's other stat through CharacterManager (a capped stat
+## takes none, and the result notes it), the zone takes its stud and zone_scored
+## is emitted. Cycling pays no Core Density. Returns whether it scored.
 func try_score_zone(zone: CyclingZone) -> bool:
 	if not _cycling or not cycling_zones.has(zone) or zone.get_state() != CyclingZone.State.ACTIVE:
 		return false
 	var distance: float = _follow.global_position.distance_to(zone.global_position)
 	var tier: CyclingRules.Tier = CyclingRules.tier_for_distance(distance)
 	var xp: int = CyclingRules.xp_for_tier(zone.zone_data, tier)
-	CultivationManager.add_core_density_xp(xp)
+	var taken: float = _pay_other_stat(xp)
 	_result.zones_scored += 1
-	_result.xp += xp
-	# Read after the XP is in: the zone that fills the core marks the result too.
-	_result.core_full = CultivationManager.is_core_full()
 	if tier == CyclingRules.Tier.PERFECT:
 		_result.perfect_count += 1
 	zone.set_state(CyclingZone.state_for_tier(tier))
-	zone_scored.emit(zone, tier, xp)
+	zone_scored.emit(zone, tier, xp, taken)
 	return true
 
 ## Returns the waiting ball's breath level `seconds` into its wait: 0, 1 or 2,
@@ -366,8 +401,12 @@ func get_current_result() -> CycleResult:
 ## Returns the ball's share of the path at the elapsed time: a sine ease in and
 ## out, 0 at the start and 1 once the cycle's time is up.
 func _eased_ratio() -> float:
+	return _eased_ratio_at(_elapsed)
+
+## Returns the ball's share of the path `seconds` into a cycle.
+func _eased_ratio_at(seconds: float) -> float:
 	var duration: float = technique_data.cycle_duration
-	var fraction: float = 1.0 if duration <= 0.0 else minf(_elapsed / duration, 1.0)
+	var fraction: float = 1.0 if duration <= 0.0 else minf(seconds / duration, 1.0)
 	return 0.5 - 0.5 * cos(PI * fraction)
 
 ## Adds the Madra the cursor draws in `delta` seconds: a step for every
@@ -409,6 +448,17 @@ func _pay_spirit(seconds: float) -> void:
 	_result.record_stat_xp(spirit, taken, taken < xp - _STEP_EPSILON)
 	if taken > 0.0:
 		stat_xp_paid.emit(spirit, _ball_drawn, taken)
+
+## Pays `xp` to the technique's other stat and records it on the result, capped
+## when the stat took less. Returns what the stat took: 0 for a technique that
+## trains Spirit alone.
+func _pay_other_stat(xp: float) -> float:
+	if technique_data.minor_stat < 0 or xp <= 0.0:
+		return 0.0
+	var stat := technique_data.minor_stat as CharacterAttributesData.AttributeType
+	var taken: float = CharacterManager.add_stat_xp(stat, xp)
+	_result.record_stat_xp(stat, taken, taken < xp - _STEP_EPSILON)
+	return taken
 
 ## Returns true when the pool is at its max, so the cursor adds nothing.
 func _madra_full() -> bool:
@@ -464,6 +514,29 @@ func _update_zones() -> void:
 		elif zone.get_state() == CyclingZone.State.ACTIVE:
 			zone.set_state(CyclingZone.State.SPENT)
 
+## Moves each seal node on by the frame's `delta` seconds of cycle: its flash and
+## plate timers run (SealNode.advance()), an IDLE node shows its seal once the
+## elapsed time reaches SEAL_LEAD before its second, and a node the ball reaches
+## this frame bursts if open, paying the other stat seal_xp, or fizzles if its
+## seal still shows. One long frame can show a seal and fizzle it.
+func _update_seals(delta: float) -> void:
+	var before: float = _elapsed - delta
+	for seal: SealNode in seal_nodes:
+		seal.advance(delta)
+		if seal.get_state() == SealNode.State.IDLE and _elapsed >= seal.arrive_seconds - CyclingRules.SEAL_LEAD - _STEP_EPSILON:
+			seal.show_seal(CyclingRules.random_seal(seal_rng))
+			seal_shown.emit(seal)
+		var arrives_now: bool = before < seal.arrive_seconds - _STEP_EPSILON and _elapsed >= seal.arrive_seconds - _STEP_EPSILON
+		if not arrives_now:
+			continue
+		if seal.get_state() == SealNode.State.OPEN:
+			seal.burst()
+			var taken: float = _pay_other_stat(technique_data.seal_xp)
+			seal_burst.emit(seal, technique_data.seal_xp, taken)
+		elif seal.get_state() == SealNode.State.SHOWING:
+			seal.fizzle()
+			seal_missed.emit(seal)
+
 ## Adds a running frame to the rate window: its `delta` seconds and the Madra the
 ## cursor drew in it, which is the technique's Madra per second over those seconds
 ## when `drawing`, else 0. Then drops the oldest frames while the rest still cover
@@ -503,6 +576,10 @@ func _finish_cycle() -> void:
 	for zone: CyclingZone in cycling_zones:
 		if zone.is_open():
 			zone.set_state(CyclingZone.State.SPENT)
+	for zone: CyclingZone in cycling_zones:
+		_result.zone_states.append(zone.get_state())
+	for seal: SealNode in seal_nodes:
+		_result.seal_states.append(seal.get_state())
 	var carried: bool = _following
 	_pay_unpaid_spirit()
 	_cycling = false
@@ -537,6 +614,8 @@ func _return_to_ready() -> void:
 		CyclingManager.end_cycle_session()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
+	for seal: SealNode in seal_nodes:
+		seal.reset()
 	_groove.light_all()
 	_breath_clock = 0.0
 	_show_ready()
@@ -586,6 +665,25 @@ func _build_zones() -> void:
 		# stay on the 2 px grid.
 		zone.position = _snap_even(_scaled_point(data.position))
 		cycling_zones.append(zone)
+
+## Replaces the seal nodes with one for each of the technique's seal_seconds,
+## IDLE and in place under the path where the ball is at that second, snapped to
+## even px. The old nodes leave the tree at once, like the zones.
+func _build_seals() -> void:
+	for seal: SealNode in seal_nodes:
+		_path.remove_child(seal)
+		seal.queue_free()
+	seal_nodes.clear()
+	if technique_data == null or _path_length <= 0.0:
+		return
+	for index: int in technique_data.seal_seconds.size():
+		var seconds: float = technique_data.seal_seconds[index]
+		var seal: SealNode = _SEAL_SCENE.instantiate() as SealNode
+		seal.name = "SealNode%d" % (index + 1)
+		_path.add_child(seal)
+		seal.setup(seconds)
+		seal.position = _snap_even(_path.curve.sample_baked(_eased_ratio_at(seconds) * _path_length))
+		seal_nodes.append(seal)
 
 #-----------------------------------------------------------------------------
 # THE BALL ON SCREEN

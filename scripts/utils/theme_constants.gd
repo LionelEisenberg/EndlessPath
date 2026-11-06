@@ -46,3 +46,5 @@ const LACQUER_VERMILION: Color = Color("#A83C30")
 const LACQUER_HEALTH: Color = Color("#E8737A")
 ## Stamina text (floaters): the second step of the bamboo ramp
 const LACQUER_STAMINA: Color = Color("#C9DB86")
+## Mind's gains (an opened seal's floater): Mind's pellet green
+const LACQUER_MIND: Color = Color("#A8DE78")

@@ -11,16 +11,22 @@ extends Control
 ## it under its Now tray.
 ## The cabinet on the left is the Madra, Core Density and stat readout, so the
 ## view has none of its own: the Madra pellets fly from the ball into the
-## cabinet's Madra orb, the XP pellets from a zone into its Core orb (none while
-## the core is full, which takes no XP), and each payment of a stat's XP for
-## following bursts from the ball into that stat's cell as a puff of STAT_PELLETS
-## (none for a capped stat, which takes no XP). The cabinet holds what each pellet
-## carries out of its readout until the pellet lands, so its orbs and cells fill
-## as the pellets arrive. MainView hands the cabinet over in cultivator_plate;
-## with none, no pellet is sent, and none flies from a hidden board.
+## cabinet's Madra orb, and each payment of a stat's XP bursts into that stat's
+## cell. Following pays Spirit, a puff of STAT_PELLETS from the ball; a hit pays
+## the technique's other stat (Smooth Flow's Control) its tier's pellets from the
+## zone, and an opened seal (Torrential Flow's Mind) SEAL_PELLETS from its node.
+## A capped stat takes no XP, and no pellet flies to it. The cabinet holds what
+## each pellet carries out of its readout until the pellet lands, so its orbs and
+## cells fill as the pellets arrive. MainView hands the cabinet over in
+## cultivator_plate; with none, no pellet is sent, and none flies from a hidden
+## board.
+## Each zone and each seal node has a floater that pops what a hit or an opened
+## seal paid, with the stat's icon and name ("PERFECT +12 [icon] Control"), or
+## that the cap took it ("OPEN · Mind capped", in brass). A floater stays
+## FLOATER_BOARD_MARGIN px inside the board's sides.
 ## The view shows and hides outright, or a transition scales it out of the cultivator
 ## into the board's rect (get_board_rect()) and back. While it shows it updates the status
-## line, the zone floaters and the cursor every frame and the technique plays;
+## line, the floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
 ## the pellets in flight are freed. Opening it again forgets the last cycle's
 ## result, so reopening starts clean. A press on the
@@ -32,20 +38,32 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The status line: the instruction to start while the ball waits, and the
-## instructions while it runs, FOLLOW_ZONES for a technique with zones. It
-## changes only as a cycle starts or ends.
+## The status line: the instruction to start while the ball waits, and while it
+## runs FOLLOW, then the clause of each game the technique has, ZONES_CLAUSE for
+## zones and SEALS_CLAUSE for seals, with its other stat's name. The clause drops
+## while that stat is capped, read as a cycle starts, so the line changes only
+## as a cycle starts or ends.
 const READY: String = "Click the Madra ball to begin a cycle."
 const FOLLOW: String = "Follow the ball for Madra and Spirit."
-const FOLLOW_ZONES: String = "Follow the ball for Madra and Spirit. Click it over a zone for Core XP."
+const ZONES_CLAUSE: String = " Click it over a zone for %s XP."
+const SEALS_CLAUSE: String = " Open each seal with W A S D for %s XP."
+
+## The floater of a hit or an opened seal the cap took everything from, in
+## brass: the hit's tier, or SEAL_OPEN_TEXT, then the stat's name.
+const CAPPED_FORMAT: String = "%s · %s capped"
+const SEAL_OPEN_TEXT: String = "OPEN"
 
 ## The Auto toggle's text.
 const AUTO_ON_TEXT: String = "Auto · on"
 const AUTO_OFF_TEXT: String = "Auto · off"
 
-## Px between a zone's centre and the top of its floater as it pops. The
-## floater rises from there by get_rise().
+## Px between a zone's or a seal node's centre and the top of its floater as it
+## pops. The floater rises from there by get_rise().
 const FLOATER_LIFT: float = 56.0
+
+## A floater keeps this many px inside the board's left and right sides, so the
+## floater of a zone near a side stays on the board.
+const FLOATER_BOARD_MARGIN: float = 22.0
 
 ## A Madra pellet's flight to the cabinet's Madra orb in seconds, and how far
 ## its path bows off the straight line in px: the stream sways from that far to
@@ -53,12 +71,15 @@ const FLOATER_LIFT: float = 56.0
 const MADRA_PELLET_FLIGHT: float = 0.6
 const MADRA_PELLET_BOW: float = 60.0
 
-## A hit's XP pellets pop out of the zone up to XP_BURST_REACH px, then home into
-## the Core orb (PelletFlight.burst): the first lands XP_PELLET_FLIGHT s after
-## the hit, each next one XP_PELLET_FLIGHT_STEP s after the one before.
+## A hit's or an opened seal's pellets pop out of the zone or the seal node up
+## to XP_BURST_REACH px, then home into the cell of the technique's other stat
+## (PelletFlight.burst): the first lands XP_PELLET_FLIGHT s after the hit, each
+## next one XP_PELLET_FLIGHT_STEP s after the one before. A hit sends its tier's
+## CyclingRules.pellet_count(), an opened seal SEAL_PELLETS.
 const XP_PELLET_FLIGHT: float = 0.6
 const XP_PELLET_FLIGHT_STEP: float = 0.04
 const XP_BURST_REACH: float = 36.0
+const SEAL_PELLETS: int = 5
 
 ## A payment of a stat's XP is a puff of STAT_PELLETS pellets in the stat's ramp:
 ## they pop out of the ball up to STAT_BURST_REACH px, then home into the stat's
@@ -114,6 +135,13 @@ var cultivator_plate: CultivatorPlate = null
 ## One floater for each zone of the technique, in the order of the zones.
 var _floaters: Array[LacquerFloater] = []
 
+## One floater for each seal node of the technique, in the order of the nodes.
+var _seal_floaters: Array[LacquerFloater] = []
+
+## Whether the technique's other stat was capped as the running cycle started:
+## its clause stays off the status line until the next cycle starts.
+var _other_capped: bool = false
+
 ## How many Madra pellets the view has sent: the index that sways the stream.
 var _madra_pellets_sent: int = 0
 
@@ -122,10 +150,12 @@ var _madra_pellets_sent: int = 0
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
+	_technique.cycling_started.connect(_on_cycling_started)
 	_technique.cycle_completed.connect(_on_cycle_completed)
 	_technique.madra_particle_requested.connect(_on_madra_particle_requested)
 	_technique.zone_scored.connect(_on_zone_scored)
 	_technique.stat_xp_paid.connect(_on_stat_xp_paid)
+	_technique.seal_burst.connect(_on_seal_burst)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
 	ActionManager.stop_cycling.connect(_on_stop_cycling)
 	_close_button.pressed.connect(_on_close_pressed)
@@ -147,16 +177,32 @@ func _process(_delta: float) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns the status line: READY while no cycle runs, and while one runs
-## FOLLOW_ZONES for a technique that `has_zones`, FOLLOW for one with none.
-static func status_line(running: bool, has_zones: bool) -> String:
+## Returns the status line: READY while no cycle runs; while one runs, FOLLOW,
+## then ZONES_CLAUSE if `technique` has zones and SEALS_CLAUSE if it has seals,
+## each with its other stat's name, unless it has no other stat or that stat is
+## `other_capped`.
+static func status_line(running: bool, technique: CyclingTechniqueData, other_capped: bool) -> String:
 	if not running:
 		return READY
-	return FOLLOW_ZONES if has_zones else FOLLOW
+	if technique == null or technique.minor_stat < 0 or other_capped:
+		return FOLLOW
+	var stat_name: String = StatDisplay.name_of(technique.minor_stat as CharacterAttributesData.AttributeType)
+	var line: String = FOLLOW
+	if not technique.cycling_zones.is_empty():
+		line += ZONES_CLAUSE % stat_name
+	if not technique.seal_seconds.is_empty():
+		line += SEALS_CLAUSE % stat_name
+	return line
 
 ## Returns the status line's text.
 func get_status_text() -> String:
 	return _status_label.text
+
+## The player keyed `arrow` (a CyclingRules.Arrow) on the seal that shows, if
+## any (CyclingTechnique.press_seal()). CyclingViewState hands it the seal keys.
+## Returns whether the seal took it as its next arrow.
+func press_seal(arrow: int) -> bool:
+	return _technique.press_seal(arrow)
 
 ## Returns the board's rect in the screen's space, as laid out now: where a transition
 ## scales the view out of the cultivator to, and back into.
@@ -179,8 +225,8 @@ func _load_equipped_technique() -> void:
 		CyclingManager.equip_technique(unlocked[0].id)
 
 ## Sets the board up for `technique`: the technique plays it, ready; the title
-## names it; each zone gets a floater; and the last technique's cycle leaves
-## no result behind.
+## names it; each zone and each seal node gets a floater; and the last
+## technique's cycle leaves no result behind.
 func _apply_technique(technique: CyclingTechniqueData) -> void:
 	_technique.setup(technique)
 	_title_label.text = technique.technique_name
@@ -195,7 +241,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## Shows the status line for the technique's state this frame, and lays the
 ## board out again when the line changes.
 func _update_status() -> void:
-	var line: String = status_line(_technique.is_cycling(), not _technique.cycling_zones.is_empty())
+	var line: String = status_line(_technique.is_cycling(), _technique.technique_data, _other_capped)
 	if line == _status_label.text:
 		return
 	_status_label.text = line
@@ -257,40 +303,67 @@ func _free_pellets() -> void:
 			_effects_layer.remove_child(child)
 			child.queue_free()
 
-## Returns the XP pellets' ramp for a hit of `tier`: the tier's colour.
-static func _pellet_ramp(tier: CyclingRules.Tier) -> LacquerPellet.Ramp:
-	match tier:
-		CyclingRules.Tier.PERFECT:
-			return LacquerPellet.Ramp.BRASS
-		CyclingRules.Tier.GOOD:
-			return LacquerPellet.Ramp.CREAM
-		_:
-			return LacquerPellet.Ramp.TAN
+## Returns whether stat pellets fly: the board shows and has a cabinet. None
+## flies from a hidden board: the XP is in the stat already, and its cell shows
+## it at once.
+func _sends_pellets() -> bool:
+	return cultivator_plate != null and is_visible_in_tree()
 
-## Replaces the floaters with one for each zone of the technique, all hidden.
+## Bursts `count` pellets in `stat`'s ramp from `from_pos` to the stat's cell, as
+## a hit's or an opened seal's (the XP_PELLET_ and XP_BURST_ constants),
+## together carrying `amount`. None from a hidden board.
+func _send_xp_burst(stat: CharacterAttributesData.AttributeType, from_pos: Vector2, count: int, amount: float) -> void:
+	if not _sends_pellets():
+		return
+	var cell: Vector2 = cultivator_plate.get_stat_cell_global_position(stat)
+	_send_stat_pellets(stat, PelletFlight.burst(from_pos, cell, count, XP_PELLET_FLIGHT, XP_PELLET_FLIGHT_STEP, XP_BURST_REACH), amount)
+
+## Sends `stat`'s pellets along `flights`, each carrying an even share of
+## `amount`, which the cabinet holds out of the stat's cell until it lands.
+func _send_stat_pellets(stat: CharacterAttributesData.AttributeType, flights: Array[PelletFlight], amount: float) -> void:
+	var share: float = amount / flights.size()
+	for flight: PelletFlight in flights:
+		var pellet: LacquerPellet = _send_pellet(flight, LacquerPellet.stat_ramp(stat))
+		cultivator_plate.hold_stat_xp(stat, share)
+		pellet.delivered.connect(cultivator_plate.release_stat_xp.bind(stat, share))
+
+## Replaces the floaters with one for each zone and one for each seal node of
+## the technique, all hidden.
 func _rebuild_floaters() -> void:
-	for floater: LacquerFloater in _floaters:
+	for floater: LacquerFloater in _floaters + _seal_floaters:
 		_effects_layer.remove_child(floater)
 		floater.queue_free()
-	_floaters.clear()
-	for _zone: CyclingZone in _technique.cycling_zones:
+	_floaters = _new_floaters(_technique.cycling_zones.size())
+	_seal_floaters = _new_floaters(_technique.seal_nodes.size())
+
+## Returns `count` new floaters in the effects layer, all hidden.
+func _new_floaters(count: int) -> Array[LacquerFloater]:
+	var made: Array[LacquerFloater] = []
+	for _index: int in count:
 		var floater: LacquerFloater = _FLOATER_SCENE.instantiate() as LacquerFloater
 		_effects_layer.add_child(floater)
-		_floaters.append(floater)
+		made.append(floater)
+	return made
 
-## Places every floater that shows over its zone.
+## Places every floater that shows over its zone or seal node.
 func _place_floaters() -> void:
 	for index: int in mini(_floaters.size(), _technique.cycling_zones.size()):
 		if _floaters[index].visible:
-			_place_floater(index)
+			_place_floater(_floaters[index], _technique.cycling_zones[index].global_position)
+	for index: int in mini(_seal_floaters.size(), _technique.seal_nodes.size()):
+		if _seal_floaters[index].visible:
+			_place_floater(_seal_floaters[index], _technique.seal_nodes[index].global_position)
 
-## Puts the floater of zone `index` FLOATER_LIFT px above the zone's centre and
-## raises it by its rise, centred on the zone on the 2 px grid. The floater does
-## not move itself.
-func _place_floater(index: int) -> void:
-	var floater: LacquerFloater = _floaters[index]
+## Puts `floater` FLOATER_LIFT px above `centre` and raises it by its rise,
+## centred on it on the 2 px grid, but kept FLOATER_BOARD_MARGIN px inside the
+## board's left and right sides. The floater does not move itself.
+func _place_floater(floater: LacquerFloater, centre: Vector2) -> void:
 	var half_width: float = snappedf(floater.get_token_width() / 2.0, 2.0)
-	floater.global_position = _technique.cycling_zones[index].global_position - Vector2(half_width, FLOATER_LIFT + floater.get_rise())
+	var board: Rect2 = get_board_rect()
+	var leftmost: float = 2.0 * ceilf((board.position.x + FLOATER_BOARD_MARGIN) / 2.0)
+	var rightmost: float = 2.0 * floorf((board.end.x - FLOATER_BOARD_MARGIN - floater.size.x) / 2.0)
+	var x: float = clampf(centre.x - half_width, leftmost, maxf(leftmost, rightmost))
+	floater.global_position = Vector2(x, centre.y - FLOATER_LIFT - floater.get_rise())
 
 #-----------------------------------------------------------------------------
 # AUTO
@@ -335,12 +408,18 @@ func _on_shown() -> void:
 ## hides and the pellets in flight are freed, so none shows up mid-flight.
 func _on_hidden() -> void:
 	_technique.stop_cycling()
-	for floater: LacquerFloater in _floaters:
+	for floater: LacquerFloater in _floaters + _seal_floaters:
 		floater.stop()
 	_free_pellets()
 
 func _on_equipped_technique_changed(technique: CyclingTechniqueData) -> void:
 	_apply_technique(technique)
+
+## A cycle started: whether the technique's other stat is capped is read now, so
+## the status line keeps or drops its clause for the whole cycle.
+func _on_cycling_started() -> void:
+	var stat: int = _technique.technique_data.minor_stat
+	_other_capped = stat >= 0 and CharacterManager.is_stat_capped(stat as CharacterAttributesData.AttributeType)
 
 ## A cycle ran to its end: its result goes to CyclingManager for the chest, and
 ## one line goes to the log.
@@ -359,35 +438,40 @@ func _on_madra_particle_requested(from_pos: Vector2, amount: float) -> void:
 	cultivator_plate.hold_madra(amount)
 	pellet.delivered.connect(cultivator_plate.release_madra.bind(amount))
 
-## A zone scored: its floater pops with the hit and its XP in the tier's colour,
-## and the tier's pellets burst out of the zone and home into the cabinet's Core
-## orb, each carrying an even share of the XP, which the cabinet shows as each
-## lands. A full core takes no XP, so the floater says "Core full" where the XP
-## would be ("PERFECT · Core full") and no pellet flies. Short of full the core
-## took every XP of the hit, so the shares add up to what it gained.
-func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:
-	var core_full: bool = CultivationManager.is_core_full()
+## A zone scored: its floater pops the tier and what the hit was worth, with the
+## other stat's icon and name, in the tier's colour, and the tier's pellets fly
+## from the zone to that stat's cell carrying what it took. A hit the cap took
+## everything from pops the tier and the cap in brass, and sends none.
+func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int, taken: float) -> void:
 	var zone_index: int = _technique.cycling_zones.find(zone)
-	if zone_index >= 0 and zone_index < _floaters.size():
-		var hit_text: String = "%s +%d XP" % [CyclingRules.tier_name(tier), xp]
-		if core_full:
-			hit_text = "%s · %s" % [CyclingRules.tier_name(tier), CultivationManager.CORE_FULL_TEXT]
-		_floaters[zone_index].pop(hit_text, CyclingRules.tier_color(tier))
-		_place_floater(zone_index)
-	if cultivator_plate == null or core_full:
+	if zone_index < 0 or zone_index >= _floaters.size():
 		return
-	var flights: Array[PelletFlight] = PelletFlight.burst(
-		zone.global_position,
-		cultivator_plate.get_core_orb_global_position(),
-		CyclingRules.pellet_count(tier),
-		XP_PELLET_FLIGHT,
-		XP_PELLET_FLIGHT_STEP,
-		XP_BURST_REACH)
-	var share: float = float(xp) / flights.size()
-	for flight: PelletFlight in flights:
-		var pellet: LacquerPellet = _send_pellet(flight, _pellet_ramp(tier))
-		cultivator_plate.hold_core_xp(share)
-		pellet.delivered.connect(cultivator_plate.release_core_xp.bind(share))
+	var floater: LacquerFloater = _floaters[zone_index]
+	var stat := _technique.technique_data.minor_stat as CharacterAttributesData.AttributeType
+	var tier_name: String = CyclingRules.tier_name(tier)
+	if taken > 0.0:
+		floater.pop_stat("%s +%d" % [tier_name, xp], stat, CyclingRules.tier_color(tier))
+		_send_xp_burst(stat, zone.global_position, CyclingRules.pellet_count(tier), taken)
+	else:
+		floater.pop(CAPPED_FORMAT % [tier_name, StatDisplay.name_of(stat)], ThemeConstants.LACQUER_BRASS)
+	_place_floater(floater, zone.global_position)
+
+## The ball burst through an opened seal: its node's floater pops the seal's XP
+## with the other stat's icon and name in Mind's green, and SEAL_PELLETS pellets
+## fly from the node to that stat's cell carrying what it took. A seal the cap
+## took everything from pops "OPEN" and the cap in brass, and sends none.
+func _on_seal_burst(seal: SealNode, xp: float, taken: float) -> void:
+	var seal_index: int = _technique.seal_nodes.find(seal)
+	if seal_index < 0 or seal_index >= _seal_floaters.size():
+		return
+	var floater: LacquerFloater = _seal_floaters[seal_index]
+	var stat := _technique.technique_data.minor_stat as CharacterAttributesData.AttributeType
+	if taken > 0.0:
+		floater.pop_stat("+%d" % roundi(xp), stat, ThemeConstants.LACQUER_MIND)
+		_send_xp_burst(stat, seal.global_position, SEAL_PELLETS, taken)
+	else:
+		floater.pop(CAPPED_FORMAT % [SEAL_OPEN_TEXT, StatDisplay.name_of(stat)], ThemeConstants.LACQUER_BRASS)
+	_place_floater(floater, seal.global_position)
 
 ## A payment of a stat's XP for following landed in the stat: a puff of
 ## STAT_PELLETS pellets in the stat's ramp bursts from the ball and homes into the
@@ -395,20 +479,10 @@ func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> voi
 ## cabinet holds out of the cell until each lands. A hidden board sends nothing:
 ## the XP is in the stat already, and its cell shows it at once.
 func _on_stat_xp_paid(stat: CharacterAttributesData.AttributeType, from_pos: Vector2, amount: float) -> void:
-	if cultivator_plate == null or not is_visible_in_tree():
+	if not _sends_pellets():
 		return
-	var flights: Array[PelletFlight] = PelletFlight.burst(
-		from_pos,
-		cultivator_plate.get_stat_cell_global_position(stat),
-		STAT_PELLETS,
-		STAT_PELLET_FLIGHT,
-		STAT_PELLET_FLIGHT_STEP,
-		STAT_BURST_REACH)
-	var share: float = amount / flights.size()
-	for flight: PelletFlight in flights:
-		var pellet: LacquerPellet = _send_pellet(flight, LacquerPellet.stat_ramp(stat))
-		cultivator_plate.hold_stat_xp(stat, share)
-		pellet.delivered.connect(cultivator_plate.release_stat_xp.bind(stat, share))
+	var cell: Vector2 = cultivator_plate.get_stat_cell_global_position(stat)
+	_send_stat_pellets(stat, PelletFlight.burst(from_pos, cell, STAT_PELLETS, STAT_PELLET_FLIGHT, STAT_PELLET_FLIGHT_STEP, STAT_BURST_REACH), amount)
 
 func _on_auto_toggled(on: bool) -> void:
 	_technique.auto_cycle = on

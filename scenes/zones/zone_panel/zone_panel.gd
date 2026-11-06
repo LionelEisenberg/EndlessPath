@@ -21,9 +21,10 @@ extends Control
 ## While the player cycles (set_techniques_mode), the header reads "Techniques"
 ## with "N learned" and a TechniqueList, one drawer per unlocked cycling
 ## technique, takes the activity list's place. It does not scroll or fold, so
-## the chest hugs it like a short list. Once a cycle has ended, its result line
-## ("Last cycle · ...", from CyclingManager) sits right under the Now tray and
-## pushes the lore, the header and the list down 26 px.
+## the chest hugs it like a short list. Once a cycle has ended, the last cycle
+## card (LastCycleCard, showing CyclingManager's last result) stands 20 px under
+## the Now tray and pushes the lore, the header and the list down by its height
+## and 20 (84 px while its chips fit one line).
 ## It rebuilds on zone_changed, action_completed, condition_unlocked,
 ## advancement_stage_changed (a passed Tribulation's card hides),
 ## technique_unlocked (which lights NEW on the cycling card again) and
@@ -81,10 +82,10 @@ const LORE_GAP_UNDER_STRIP: float = 12.0
 const LORE_GAP_UNDER_LORE: float = 12.0
 const LORE_MIN_HEIGHT: float = 264.0
 const LORE_BOTTOM_ROOM: float = 16.0
-## The last cycle's line, 10 px under the Now strip, pushes the lore, the header
-## and the list down by its height (18 px a line, on even px: a line too long
-## for the tray wraps) and this gap.
-const LAST_CYCLE_GAP: float = 8.0
+## The last cycle card stands this far under the Now strip (its tag rises 10 px
+## into the gap) and pushes the lore, the header and the list down by its
+## height and this gap.
+const LAST_CYCLE_GAP: float = 20.0
 ## About's word sits 2 px lower while it is pressed in (the lore is open).
 const ABOUT_TEXT_DROP: float = 2.0
 
@@ -106,7 +107,7 @@ const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ba
 @onready var _about_label: Label = %AboutLabel
 @onready var _about_hover: LacquerFrameOverlay = %AboutHover
 @onready var _now_strip: NowStrip = %NowStrip
-@onready var _last_cycle_label: Label = %LastCycleLabel
+@onready var _last_cycle_card: LastCycleCard = %LastCycleCard
 @onready var _activities_header: Control = %ActivitiesHeader
 @onready var _header_label: Label = %HeaderLabel
 @onready var _count_label: Label = %CountLabel
@@ -153,6 +154,7 @@ func _ready() -> void:
 	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
 	BodyRefiningManager.drill_unlocked.connect(_on_drill_unlocked)
 	CyclingManager.last_cycle_changed.connect(_on_last_cycle_changed)
+	_last_cycle_card.height_changed.connect(_relayout)
 	_about_button.toggled.connect(_on_about_toggled)
 	_about_button.mouse_entered.connect(_about_hover.show)
 	_about_button.mouse_exited.connect(_about_hover.hide)
@@ -326,30 +328,28 @@ func _apply_about() -> void:
 	if not _about_button.visible:
 		_close_lore()
 
-## Shows the last finished cycle's line under the Now tray while the player
-## cycles and a cycle has ended, and hides it otherwise. The line's box is as
-## tall as its lines, on even px.
+## Shows the last finished cycle on its card under the Now tray while the
+## player cycles and a cycle has ended, and hides the card otherwise.
 func _apply_last_cycle() -> void:
 	var result: CycleResult = CyclingManager.get_last_cycle_result()
-	_last_cycle_label.visible = _techniques_mode and result != null
-	_last_cycle_label.text = result.result_line() if result != null else ""
-	_last_cycle_label.size.y = 2.0 * ceilf(_last_cycle_label.get_minimum_size().y / 2.0)
+	_last_cycle_card.visible = _techniques_mode and result != null
+	if result != null:
+		_last_cycle_card.show_result(result)
 
 #-----------------------------------------------------------------------------
 # LAYOUT
 #-----------------------------------------------------------------------------
 
-## Places the last cycle's line (when it shows), the lore (when it is open), the
+## Places the last cycle card (when it shows), the lore (when it is open), the
 ## header and the list that shows (the techniques while the player cycles)
 ## under the Now strip's bottom, and sizes the list and the chest (kit §0). The
-## last cycle's line stands where the header would, 10 px under the strip. A
-## height override holds the chest frame to its height; the lists are laid out
-## the same.
+## card stands LAST_CYCLE_GAP under the strip. A height override holds the chest
+## frame to its height; the lists are laid out the same.
 func _relayout() -> void:
 	if not is_node_ready():
 		return
 	var strip_bottom: float = _strip_bottom()
-	_last_cycle_label.position.y = strip_bottom + HEADER_GAP_UNDER_STRIP
+	_last_cycle_card.position.y = strip_bottom + LAST_CYCLE_GAP
 	_lore_panel.position.y = strip_bottom + LORE_GAP_UNDER_STRIP + _last_cycle_push(_techniques_mode)
 	var header_top: float = _header_top_for(_techniques_mode)
 	var list_top: float = header_top + LIST_GAP
@@ -376,20 +376,20 @@ func _place_technique_list(list_top: float) -> void:
 	_technique_list.position.y = list_top
 	_technique_list.size.y = _technique_list.get_content_height()
 
-## The Now strip's bottom edge, which the last cycle's line, the lore, the header
+## The Now strip's bottom edge, which the last cycle card, the lore, the header
 ## and the list stand under.
 func _strip_bottom() -> float:
 	return _now_strip.position.y + _now_strip.size.y
 
-## What the last cycle's line pushes the lore, the header and the list down by in
-## the mode: its height and the gap under it, or nothing where it hides (it shows
+## What the last cycle card pushes the lore, the header and the list down by in
+## the mode: its height and LAST_CYCLE_GAP, or nothing where it hides (it shows
 ## in the techniques mode only, once a cycle has ended).
 func _last_cycle_push(techniques: bool) -> float:
 	var shows: bool = techniques and CyclingManager.get_last_cycle_result() != null
-	return _last_cycle_label.size.y + LAST_CYCLE_GAP if shows else 0.0
+	return _last_cycle_card.size.y + LAST_CYCLE_GAP if shows else 0.0
 
 ## The top of the Activities header's line in the mode: under the Now strip, the
-## last cycle's line and the lore when it is open.
+## last cycle card and the lore when it is open.
 func _header_top_for(techniques: bool) -> float:
 	var lore_push: float = _lore_panel.size.y + LORE_GAP_UNDER_LORE if _lore_panel.visible else 0.0
 	return _strip_bottom() + HEADER_GAP_UNDER_STRIP + _last_cycle_push(techniques) + lore_push

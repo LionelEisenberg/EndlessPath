@@ -139,6 +139,18 @@ theme_override_colors/font_color = Color(0.5803922, 0.5019608, 0.41568628, 1)
 text = "Found 2 Dewdrop Tear, 1 Spirit Fern"
 text_overrun_behavior = 3
 
+[node name="LineIcons4" type="RichTextLabel" parent="Board/Line4" unique_id=483975070]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+scroll_active = false
+autowrap_mode = 0
+
 [node name="Line3" type="Control" parent="Board" unique_id=152243654]
 unique_name_in_owner = true
 layout_mode = 1
@@ -171,6 +183,18 @@ theme_override_colors/font_color = Color(0.5803922, 0.5019608, 0.41568628, 1)
 text = "Aura Well reached level 2 · +1 Spirit"
 text_overrun_behavior = 3
 
+[node name="LineIcons3" type="RichTextLabel" parent="Board/Line3" unique_id=1387285677]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+scroll_active = false
+autowrap_mode = 0
+
 [node name="Line2" type="Control" parent="Board" unique_id=802798348]
 unique_name_in_owner = true
 layout_mode = 1
@@ -201,6 +225,18 @@ offset_bottom = 18.0
 theme_type_variation = &"LabelLacquerDetail"
 text = "Travelled to Spirit Valley · resumed Aura Well"
 text_overrun_behavior = 3
+
+[node name="LineIcons2" type="RichTextLabel" parent="Board/Line2" unique_id=529658751]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+scroll_active = false
+autowrap_mode = 0
 
 [node name="Line1" type="Control" parent="Board" unique_id=1303643959]
 unique_name_in_owner = true
@@ -234,6 +270,18 @@ theme_override_colors/font_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
 text = "Returned from The Shallow Woods · +34 gold"
 text_overrun_behavior = 3
 
+[node name="LineIcons1" type="RichTextLabel" parent="Board/Line1" unique_id=917660058]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+scroll_active = false
+autowrap_mode = 0
+
 [node name="Line0" type="Control" parent="Board" unique_id=339391161]
 unique_name_in_owner = true
 layout_mode = 1
@@ -264,6 +312,18 @@ offset_bottom = 18.0
 theme_type_variation = &"LabelLacquerDetail"
 text = "Resumed Aura Well"
 text_overrun_behavior = 3
+
+[node name="LineIcons0" type="RichTextLabel" parent="Board/Line0" unique_id=967536308]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+scroll_active = false
+autowrap_mode = 0
 
 [node name="FullBoard" type="Control" parent="." unique_id=214385379]
 unique_name_in_owner = true
