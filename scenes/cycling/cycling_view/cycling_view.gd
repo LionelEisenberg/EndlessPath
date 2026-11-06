@@ -32,35 +32,12 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The status line when no cycle runs: before the first cycle (READY_NO_ZONES
-## for a technique with no zones to press), and after one.
-const READY_FIRST: String = "Click the Madra ball to begin a cycle."
-const READY_NO_ZONES: String = "No zones to press: click the ball and follow it."
-const READY_AGAIN: String = "Click the ball for another cycle."
-
-## The status line while a cycle runs: the whole seconds gone and the cycle's
-## length, then FOLLOW_SUFFIX while the cursor does not follow the ball.
-const CYCLING_FORMAT: String = "Cycling · %d / %d s"
-const FOLLOW_SUFFIX: String = " · follow the ball"
-
-## The status line while a cycle runs with Madra at its max: no Madra is drawn,
-## but following still trains Spirit. The _ZONES lines are for a technique whose
-## zones still pay XP: it has zones and the core has room for the XP (a full core
-## takes none).
-const MADRA_FULL_FOLLOWING: String = "Madra full · following still trains Spirit"
-const MADRA_FULL_OFF: String = "Madra full · follow the ball to train Spirit"
-const MADRA_FULL_ZONES_FOLLOWING: String = "Madra full · following and zones still pay XP"
-const MADRA_FULL_ZONES_OFF: String = "Madra full · follow the ball · zones still pay XP"
-
-## The status line while a cycle runs with Spirit at the stage's cap: following
-## pays no Spirit XP, but still draws Madra.
-const SPIRIT_CAPPED_FOLLOWING: String = "Spirit capped · following still fills Madra"
-const SPIRIT_CAPPED_OFF: String = "Spirit capped · follow the ball for Madra"
-
-## The status line while a cycle runs with Madra full and Spirit capped:
-## following pays nothing, so the line gives no hint to follow.
-const MADRA_FULL_CAPPED: String = "Madra full · Spirit capped"
-const MADRA_FULL_CAPPED_ZONES: String = "Madra full · Spirit capped · zones still pay XP"
+## The status line: the instruction to start while the ball waits, and the
+## instructions while it runs, FOLLOW_ZONES for a technique with zones. It
+## changes only as a cycle starts or ends.
+const READY: String = "Click the Madra ball to begin a cycle."
+const FOLLOW: String = "Follow the ball for Madra and Spirit."
+const FOLLOW_ZONES: String = "Follow the ball for Madra and Spirit. Click it over a zone for Core XP."
 
 ## The Auto toggle's text.
 const AUTO_ON_TEXT: String = "Auto · on"
@@ -134,10 +111,6 @@ const BOARD_ROOM: float = 30.0
 ## pellet is sent.
 var cultivator_plate: CultivatorPlate = null
 
-## Whether a cycle has ended since the board was shown or the technique was
-## switched: the ready line says "another cycle" once one has.
-var _cycled_before: bool = false
-
 ## One floater for each zone of the technique, in the order of the zones.
 var _floaters: Array[LacquerFloater] = []
 
@@ -174,32 +147,12 @@ func _process(_delta: float) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns the status line for the board's state. While no cycle runs it is
-## READY_AGAIN once a cycle has ended, else READY_NO_ZONES for a `zoneless`
-## technique (one with no zones, never no technique) and READY_FIRST for any
-## other. While one runs, Madra at its max comes first: MADRA_FULL_CAPPED when
-## Spirit is capped too, else the MADRA_FULL_ lines, by whether the cursor
-## follows. Then Spirit at the cap: the SPIRIT_CAPPED_ lines. Otherwise it is
-## "Cycling · 9 / 15 s" (the whole seconds gone, floored, and the cycle's
-## length), with FOLLOW_SUFFIX added while the cursor does not follow.
-## `zones_pay_xp` is true for a technique with zones while the core is not full:
-## a full core takes no XP, so then its zones pay none and the line must not say
-## they do.
-static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, following: bool, madra_full: bool, spirit_capped: bool, zoneless: bool, zones_pay_xp: bool) -> String:
+## Returns the status line: READY while no cycle runs, and while one runs
+## FOLLOW_ZONES for a technique that `has_zones`, FOLLOW for one with none.
+static func status_line(running: bool, has_zones: bool) -> String:
 	if not running:
-		if cycled_before:
-			return READY_AGAIN
-		return READY_NO_ZONES if zoneless else READY_FIRST
-	if madra_full:
-		if spirit_capped:
-			return MADRA_FULL_CAPPED_ZONES if zones_pay_xp else MADRA_FULL_CAPPED
-		if zones_pay_xp:
-			return MADRA_FULL_ZONES_FOLLOWING if following else MADRA_FULL_ZONES_OFF
-		return MADRA_FULL_FOLLOWING if following else MADRA_FULL_OFF
-	if spirit_capped:
-		return SPIRIT_CAPPED_FOLLOWING if following else SPIRIT_CAPPED_OFF
-	var line: String = CYCLING_FORMAT % [floori(elapsed), roundi(duration)]
-	return line if following else line + FOLLOW_SUFFIX
+		return READY
+	return FOLLOW_ZONES if has_zones else FOLLOW
 
 ## Returns the status line's text.
 func get_status_text() -> String:
@@ -226,15 +179,14 @@ func _load_equipped_technique() -> void:
 		CyclingManager.equip_technique(unlocked[0].id)
 
 ## Sets the board up for `technique`: the technique plays it, ready; the title
-## names it; each zone gets a floater; and nothing is left of the last
-## technique's cycle, neither its result nor its ready text.
+## names it; each zone gets a floater; and the last technique's cycle leaves
+## no result behind.
 func _apply_technique(technique: CyclingTechniqueData) -> void:
 	_technique.setup(technique)
 	_title_label.text = technique.technique_name
 	_relayout_board()
 	_rebuild_floaters()
 	CyclingManager.clear_last_cycle_result()
-	_cycled_before = false
 
 #-----------------------------------------------------------------------------
 # THE STATUS LINE AND THE CURSOR
@@ -243,20 +195,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## Shows the status line for the technique's state this frame, and lays the
 ## board out again when the line changes.
 func _update_status() -> void:
-	var madra_full: bool = ResourceManager.get_madra() >= ResourceManager.get_max_madra()
-	var spirit_capped: bool = CharacterManager.is_stat_capped(CharacterAttributesData.AttributeType.SPIRIT)
-	var zoneless: bool = _technique.technique_data != null and _technique.cycling_zones.is_empty()
-	var zones_pay_xp: bool = not _technique.cycling_zones.is_empty() and not CultivationManager.is_core_full()
-	var line: String = status_line(
-		_cycled_before,
-		_technique.is_cycling(),
-		CyclingManager.get_cycle_elapsed(),
-		CyclingManager.get_cycle_duration(),
-		_technique.is_following(),
-		madra_full,
-		spirit_capped,
-		zoneless,
-		zones_pay_xp)
+	var line: String = status_line(_technique.is_cycling(), not _technique.cycling_zones.is_empty())
 	if line == _status_label.text:
 		return
 	_status_label.text = line
@@ -380,7 +319,7 @@ func _on_visibility_changed() -> void:
 		_on_hidden()
 
 ## The board shows: the labels name the running action and the technique, and
-## the last session's result and ready text are gone.
+## the last session's result is gone.
 func _on_shown() -> void:
 	var action: ZoneActionData = ActionManager.get_current_action()
 	if action != null:
@@ -388,7 +327,6 @@ func _on_shown() -> void:
 	if _technique.technique_data != null:
 		_title_label.text = _technique.technique_data.technique_name
 	CyclingManager.clear_last_cycle_result()
-	_cycled_before = false
 	_update_status()
 	_relayout_board()
 
@@ -404,12 +342,11 @@ func _on_hidden() -> void:
 func _on_equipped_technique_changed(technique: CyclingTechniqueData) -> void:
 	_apply_technique(technique)
 
-## A cycle ran to its end: its result goes to CyclingManager for the chest, one
-## line goes to the log and the ready line reads "another cycle".
+## A cycle ran to its end: its result goes to CyclingManager for the chest, and
+## one line goes to the log.
 func _on_cycle_completed(result: CycleResult) -> void:
 	CyclingManager.set_last_cycle_result(result)
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
-	_cycled_before = true
 
 ## A step of Madra left the ball: the stream's next pellet carries it to the
 ## cabinet's Madra orb, which shows it once the pellet lands.

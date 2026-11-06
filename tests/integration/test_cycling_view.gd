@@ -1,7 +1,7 @@
 extends GutTest
 
-## Integration tests for the cycling board (CyclingView): the status line and
-## what it says when Madra or the core is full, a long name and status line that
+## Integration tests for the cycling board (CyclingView): the status line's two
+## instructions, which change only as a cycle starts or ends, a long name and status line that
 ## wrap and keep the board on screen, the title that follows the equipped
 ## technique, the result a cycle leaves for the chest and the one log line it
 ## writes, the Madra and XP pellets that bring what a cycle drew to the cabinet
@@ -169,77 +169,48 @@ func _press_at(position: Vector2) -> void:
 # THE STATUS LINE
 #-----------------------------------------------------------------------------
 
-## Every line the board can show, as approved (#94's canvas, board 6). While a
-## cycle runs Madra full wins over Spirit capped, and both take the seconds'
-## place; the follow hint shows only while following still pays something.
+## Two lines, as Lionel set them after playing: the instruction to start while
+## the ball waits, and the instructions while it runs, with the zones' part only
+## for a technique that has zones.
 func test_status_line_copy() -> void:
-	# cycled before, running, elapsed, duration, following, Madra full, Spirit capped, zoneless, zones pay XP
-	var cases: Array[Array] = [
-		[[false, false, 0.0, 15.0, false, false, false, false, true], "Click the Madra ball to begin a cycle.", "before the first cycle"],
-		[[false, false, 0.0, 8.0, false, false, false, true, false], "No zones to press: click the ball and follow it.", "before the first cycle, no zones"],
-		[[false, false, 0.0, 0.0, false, false, false, false, false], "Click the Madra ball to begin a cycle.", "no technique"],
-		[[true, false, 0.0, 8.0, false, false, false, true, false], "Click the ball for another cycle.", "after a cycle, no zones"],
-		[[true, true, 9.4, 15.0, true, false, false, false, true], "Cycling · 9 / 15 s", "following"],
-		[[true, true, 9.4, 15.0, false, false, false, false, true], "Cycling · 9 / 15 s · follow the ball", "not following"],
-		[[true, true, 3.0, 8.0, true, true, false, true, false], "Madra full · following still trains Spirit", "Madra full, following"],
-		[[true, true, 3.0, 8.0, false, true, false, true, false], "Madra full · follow the ball to train Spirit", "Madra full, not following"],
-		[[true, true, 9.4, 15.0, true, true, false, false, true], "Madra full · following and zones still pay XP", "Madra full, zones pay, following"],
-		[[true, true, 9.4, 15.0, false, true, false, false, true], "Madra full · follow the ball · zones still pay XP", "Madra full, zones pay, not following"],
-		[[true, true, 9.4, 15.0, true, false, true, false, true], "Spirit capped · following still fills Madra", "Spirit capped, following"],
-		[[true, true, 9.4, 15.0, false, false, true, false, true], "Spirit capped · follow the ball for Madra", "Spirit capped, not following"],
-		[[true, true, 3.0, 8.0, true, true, true, true, false], "Madra full · Spirit capped", "both, following"],
-		[[true, true, 3.0, 8.0, false, true, true, true, false], "Madra full · Spirit capped", "both, not following"],
-		[[true, true, 9.4, 15.0, true, true, true, false, true], "Madra full · Spirit capped · zones still pay XP", "both, zones pay"],
+	var cases: Array[Dictionary] = [
+		{"running": false, "zones": true, "line": "Click the Madra ball to begin a cycle.", "name": "waiting, zones"},
+		{"running": false, "zones": false, "line": "Click the Madra ball to begin a cycle.", "name": "waiting, no zones"},
+		{"running": true, "zones": false, "line": "Follow the ball for Madra and Spirit.", "name": "running, no zones"},
+		{"running": true, "zones": true, "line": "Follow the ball for Madra and Spirit. Click it over a zone for Core XP.", "name": "running, zones"},
 	]
-	for case: Array in cases:
-		var args: Array = case[0]
-		assert_eq(CyclingView.status_line(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]), case[1], case[2])
+	for case: Dictionary in cases:
+		assert_eq(CyclingView.status_line(case.running, case.zones), case.line, case.name)
 
-func test_the_status_label_follows_the_cycle() -> void:
-	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "ready before the first cycle")
+## The line changes only as a cycle starts or ends: not with the seconds, the
+## cursor, a full pool or a capped Spirit.
+func test_the_status_line_changes_only_as_a_cycle_starts_or_ends() -> void:
+	assert_eq(_view.get_status_text(), CyclingView.READY, "waiting before the first cycle")
 	_technique.start_cycle()
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), "Cycling · 0 / 15 s", "the cursor follows the ball")
-	_technique.advance(FRAME, FAR)
-	_view._process(0.0)
-	assert_eq(_view.get_status_text(), "Cycling · 0 / 15 s · follow the ball", "the cursor drifted off")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running, following")
 	_run(6.0, 60.0, false)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), "Cycling · 6 / 15 s · follow the ball")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running, six seconds on, off the ball")
+	ResourceManager.set_madra(ResourceManager.get_max_madra())
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
+	_run(1.0, 60.0, true)
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running with the pool full and Spirit capped")
 	_run(CYCLE_SECONDS, 60.0, false)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.READY_AGAIN, "ready again after a cycle")
+	assert_eq(_view.get_status_text(), CyclingView.READY, "waiting again after the cycle")
 
-## A full core takes no XP, so a technique's zones pay none and the line must not
-## say they do. The board was built with room in the core: the line follows the
-## core as it stands this frame.
-func test_the_status_label_stops_promising_xp_at_a_full_core() -> void:
-	PersistenceManager.save_game_data.core_density_level = 100.0
-	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
-	assert_false(_technique.cycling_zones.is_empty(), "precondition: the technique has zones")
-	ResourceManager.set_madra(ResourceManager.get_max_madra())
-	_technique.start_cycle()
-	_technique.advance(FRAME, _technique.get_ball_global_position())
-	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL_FOLLOWING)
-
-func test_the_status_line_says_spirit_is_capped() -> void:
-	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
-	_technique.start_cycle()
-	_technique.advance(FRAME, _technique.get_ball_global_position())
-	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.SPIRIT_CAPPED_FOLLOWING)
-
-## The Foundational has no sockets on the board: its first ready line says so.
-func test_a_technique_with_no_zones_says_so() -> void:
+## The Foundational has no zones, so its running line leaves them out.
+func test_a_technique_with_no_zones_leaves_them_out() -> void:
 	CyclingManager.equip_technique(FOUNDATION_ID)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.READY_NO_ZONES)
+	assert_eq(_view.get_status_text(), CyclingView.READY)
 	_technique.start_cycle()
-	_run(8.0 + FRAME, 60.0, false)
+	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.READY_AGAIN, "after a cycle it reads as for any technique")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW)
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
@@ -303,7 +274,7 @@ func test_a_save_with_no_techniques_leaves_the_board_idle() -> void:
 	bare_technique.set_process(false)
 	assert_null(bare_technique.technique_data, "nothing to play")
 	bare._process(0.0)
-	assert_eq(bare.get_status_text(), CyclingView.READY_FIRST)
+	assert_eq(bare.get_status_text(), CyclingView.READY)
 	assert_false(bare_technique.start_cycle(), "and no cycle starts")
 	bare.hide()
 	bare.show()
@@ -328,7 +299,7 @@ func test_switching_technique_clears_the_result_line_and_the_ready_text() -> voi
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	_view._process(0.0)
 	assert_eq(_last_line(), "")
-	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "a new technique has not been cycled yet")
+	assert_eq(_view.get_status_text(), CyclingView.READY, "the new technique waits for a press")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
@@ -538,7 +509,7 @@ func test_reopening_starts_clean() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
 	_view._process(0.0)
-	assert_true(_view.get_status_text().begins_with("Cycling · "), "precondition: the status line shows the cycle")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "precondition: the status line shows the running cycle's instructions")
 	_view.hide()
 	_view.show()
 	assert_eq(_last_line(), "", "no stale result line")
@@ -546,7 +517,7 @@ func test_reopening_starts_clean() -> void:
 		assert_eq(each.get_state(), CyclingZone.State.IDLE, "%s is idle" % each.name)
 	assert_false(_technique.is_cycling(), "the cycle ended")
 	assert_false(CyclingManager.is_cycle_running(), "and its session")
-	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "and the status reads as the first time again")
+	assert_eq(_view.get_status_text(), CyclingView.READY, "and the ball waits for a press")
 	await _await_queued_frees()
 
 func test_showing_names_whatever_action_runs() -> void:
