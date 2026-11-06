@@ -18,4 +18,7 @@ action_type = 4
 description = "Sit at the Aura Well. Let the valley's aura steep into your bones."
 icon = ExtResource("20_icon")
 unlock_conditions = Array[ExtResource("7_ucd")]([ExtResource("8_discovered")])
+tick_interval_seconds = 1.0
+ticks_per_level = Array[int]([60, 300, 600, 1200])
+tail_growth_multiplier = 2.0
 metadata/_custom_type_script = "uid://cglrs0duscknn"
