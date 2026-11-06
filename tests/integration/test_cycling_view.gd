@@ -249,11 +249,11 @@ func test_the_technique_follows_the_equipped_technique() -> void:
 	assert_eq(_technique.technique_data.id, SMOOTH_ID)
 	assert_eq(_technique.cycling_zones.size(), 4)
 	assert_eq(_floaters().size(), 4, "one floater for each zone")
-	CyclingManager.unlock_technique(TORRENTIAL_ID)
-	CyclingManager.equip_technique(TORRENTIAL_ID)
-	assert_eq(_technique.technique_data.id, TORRENTIAL_ID)
-	assert_eq(_technique.cycling_zones.size(), 1)
-	assert_eq(_floaters().size(), 1, "the floaters were rebuilt for the new zones")
+	CyclingManager.unlock_technique(FOUNDATION_ID)
+	CyclingManager.equip_technique(FOUNDATION_ID)
+	assert_eq(_technique.technique_data.id, FOUNDATION_ID)
+	assert_eq(_technique.cycling_zones.size(), 0)
+	assert_eq(_floaters().size(), 0, "the floaters were rebuilt for the new zones")
 	await _await_queued_frees()
 
 func test_the_first_unlocked_technique_is_equipped_when_none_is() -> void:
