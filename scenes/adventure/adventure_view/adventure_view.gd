@@ -22,9 +22,9 @@ extends Control
 #-----------------------------------------------------------------------------
 
 signal adventure_completed(result_data: AdventureResultData)
-## The run's figures changed (fights, gold, tiles explored, loot): after the map
-## changes, a fight ends or an item is awarded, while a run is on. The chest's
-## Run ledger shows them.
+## The run's figures changed (fights, gold, Core Density, tiles explored, loot):
+## after the map changes, a fight ends, the boss falls or an item is awarded, while
+## a run is on. The chest's Run ledger shows them.
 signal run_stats_changed
 
 #-----------------------------------------------------------------------------
@@ -386,7 +386,7 @@ func _announce_run_stats() -> void:
 
 ## The chest's Run ledger shows the run so far: the fights fought (a lost one
 ## ends the run) of the map's fights, gold earned, tiles explored of the map's
-## tiles, and the run's loot, newest last.
+## tiles, the run's loot, newest last, and the Core Density XP the map counted.
 func _on_run_stats_changed() -> void:
 	var loot: Array[ItemDefinitionData] = []
 	loot.assign(_loot_items)
@@ -396,11 +396,16 @@ func _on_run_stats_changed() -> void:
 		_gold_earned,
 		adventure_tilemap.get_visited_tile_count(),
 		adventure_tilemap.get_total_tile_count(),
-		loot
+		loot,
+		adventure_tilemap.get_core_density_xp_earned()
 	)
 
+## The boss fell: the run ends a victory. Its win ends the run before its tile
+## resolves, so the ledger is told the run's figures here, with the boss's Core
+## Density in them; the chest stays in sight beside the end card.
 func _on_boss_defeated() -> void:
 	_pending_victory = true
+	_announce_run_stats()
 
 func _on_item_awarded(item: ItemDefinitionData, _quantity: int) -> void:
 	_loot_items.append(item)

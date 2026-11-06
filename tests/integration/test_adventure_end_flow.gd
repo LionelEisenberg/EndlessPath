@@ -108,6 +108,24 @@ func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
 	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "a repeat of the win pays nothing more")
 	assert_eq(_view.adventure_tilemap.get_core_density_xp_earned(), 9.0, "and the run's total keeps it")
 
+## The chest stays in sight beside the end card, and its Run ledger counts the
+## boss's Core Density: the boss's win announces the run's figures before it ends
+## the run.
+func test_the_ledger_counts_the_boss() -> void:
+	_start_adventure(300)
+	var boss_choice := _boss_choice(RecordingEffect.new())
+	var award := AwardCoreDensityXpEffectData.new()
+	award.amount = 9.0
+	boss_choice.success_effects.append(award)
+	_view.adventure_tilemap._current_combat_choice = boss_choice
+	_view._on_start_combat(boss_choice)
+
+	_view.combat.trigger_combat_end.emit(true, 0)
+
+	assert_eq(_results.size(), 1, "precondition: the boss's win ended the run")
+	var core_value := _view.adventure_chest.get_expedition_page().get_node("%CoreValue") as Label
+	assert_eq(core_value.text, "9", "the ledger beside the end card counts the boss")
+
 #-----------------------------------------------------------------------------
 # HOW A STOP COUNTS
 #-----------------------------------------------------------------------------
