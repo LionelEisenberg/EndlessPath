@@ -79,6 +79,8 @@ func _ready() -> void:
 	CharacterManager.stat_xp_changed.connect(_refresh_if_shown.unbind(3))
 	# The cap the pages show comes from the stage, so a breakthrough moves it.
 	CultivationManager.advancement_stage_changed.connect(_refresh_if_shown.unbind(1))
+	# The Madra row shows the pool, which cycling and runs move.
+	ResourceManager.madra_changed.connect(_on_madra_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -164,11 +166,12 @@ static func source_lines(stat: CharacterAttributesData.AttributeType) -> Array[D
 
 ## The totals a fight reads, a line each, as {"label", "value"}, from
 ## CharacterManager.get_stat(): Health, Madra, Stamina, Dodge chance,
-## Technique cost cut, Cooldown cut, Armor and Ward.
+## Technique cost cut, Cooldown cut, Armor and Ward. Madra is the saved pool
+## over its max, "46 / 100".
 static func fight_lines() -> Array[Dictionary]:
 	var lines: Array[Dictionary] = [
 		{"label": "Health", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))},
-		{"label": "Madra", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA))},
+		{"label": "Madra", "value": "%d / %d" % [floori(ResourceManager.get_madra()), floori(ResourceManager.get_max_madra())]},
 		{"label": "Stamina", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_STAMINA))},
 		{"label": "Dodge chance", "value": _percent(CharacterManager.get_stat(StatModifierData.Stat.DODGE_CHANCE))},
 		{"label": "Technique cost cut", "value": _percent(CharacterManager.get_stat(StatModifierData.Stat.MADRA_COST_CUT))},
@@ -203,6 +206,11 @@ func _find_all_tiles() -> Array[AttributeTile]:
 func _refresh_if_shown() -> void:
 	if is_visible_in_tree():
 		refresh()
+
+## A pool change rebuilds only the In a fight rows, while the book is shown.
+func _on_madra_changed(_amount: float) -> void:
+	if is_visible_in_tree():
+		_rebuild_fight_rows()
 
 func _show_details(tile: AttributeTile) -> void:
 	var stat: CharacterAttributesData.AttributeType = tile.attribute_type
