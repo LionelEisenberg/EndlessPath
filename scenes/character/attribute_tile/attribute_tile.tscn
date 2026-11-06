@@ -83,6 +83,7 @@ offset_bottom = 148.0
 empty_texture = ExtResource("4_xp_empty")
 full_texture = ExtResource("5_xp_full")
 steps = 58
+round_down = true
 
 [node name="CapSeal" type="Label" parent="Face"]
 unique_name_in_owner = true

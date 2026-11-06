@@ -329,6 +329,7 @@ offset_bottom = 62.0
 empty_texture = ExtResource("7_xp_empty")
 full_texture = ExtResource("8_xp_full")
 steps = 98
+round_down = true
 
 [node name="DetailXpLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
 unique_name_in_owner = true

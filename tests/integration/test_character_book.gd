@@ -111,7 +111,7 @@ func test_a_tile_shows_its_level_xp_and_total() -> void:
 	assert_eq((tile.get_node("%LevelLabel") as Label).text, "Lv 4", "the tile shows Spirit's level")
 	assert_eq((tile.get_node("%ValueLabel") as Label).text, "%.0f" % CharacterManager.get_stat(Stat.SPIRIT),
 		"the tag shows Spirit's total")
-	assert_eq(bar.get_step(), roundi(30.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
+	assert_eq(bar.get_step(), floori(30.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
 		"the bar holds Spirit's XP toward its next level")
 	assert_false((tile.get_node("%CapSeal") as Label).visible, "a stat under the cap shows no seal")
 
@@ -140,6 +140,17 @@ func test_the_xp_fraction_both_bars_share() -> void:
 		assert_almost_eq(AttributeTile.xp_fraction(case[0], case[1], case[2]), case[3], 0.0001,
 			"%s of %s XP, capped %s" % [case[0], case[1], case[2]])
 
+## Just short of a level, neither XP bar reads full: each shows only the steps
+## the XP has earned.
+func test_the_bars_never_read_full_short_of_a_level() -> void:
+	CharacterManager.set_stat_level(Attribute.BODY, 3)
+	CharacterManager.add_stat_xp(Attribute.BODY, CharacterManager.get_stat_xp_to_next(Attribute.BODY) - 0.4)
+	assert_eq(CharacterManager.get_stat_level(Attribute.BODY), 3, "precondition: Body is still Lv 3")
+	_view.select_attribute(Attribute.BODY)
+	_view.refresh()
+	for bar: LacquerRod in [_tile("BodyTile").get_node("%XpBar"), _view.get_node("%DetailXpBar")]:
+		assert_lt(bar.get_step(), bar.steps, "%s is not full 0.4 XP short of the level" % bar.get_parent().name)
+
 func test_the_book_follows_stats_while_open() -> void:
 	_view.show()
 	_view.refresh()
@@ -148,7 +159,7 @@ func test_the_book_follows_stats_while_open() -> void:
 	assert_eq((tile.get_node("%LevelLabel") as Label).text, "Lv 2", "a level gained shows on the open book")
 	CharacterManager.add_stat_xp(Attribute.SPIRIT, 10.0)
 	var bar := tile.get_node("%XpBar") as LacquerRod
-	assert_eq(bar.get_step(), roundi(10.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
+	assert_eq(bar.get_step(), floori(10.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
 		"XP gained moves the open book's bar")
 
 func test_the_book_follows_gear_while_open() -> void:
