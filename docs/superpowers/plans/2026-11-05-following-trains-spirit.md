@@ -131,7 +131,7 @@ Lionel approved the canvas as drawn.
 - Consumes: `FollowWindow`, `CyclingRules.is_following()`.
 - Produces: `CyclingTechnique.start_cycle(starts_following: bool = true) -> bool` (a press, or an Auto restart carrying the last frame's verdict); `is_following() -> bool` replaces `is_tracking()`. `advance()` judges each frame with the reach against the drawn ball and the window against the true ball; the tan ring and the Madra steps follow the verdict; the rate window records a frame as drawing only while following with room under the max. `wants_pointer()` keeps the reach alone.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 - `test_a_cursor_resting_on_the_path_draws_nothing`: the Foundational (path start, middle and end at (322, 400) drawn); the cursor rests there from the second frame (the first is far); a whole cycle requests no Madra step and the ring never shows.
 - `test_a_cursor_resting_after_the_press_draws_only_the_creeping_start`: the same with the cursor there from the first frame: it follows only until the ball has gone 16 px over the last quarter second (about 0.64 s on the unscaled path), at most 10 steps, none after 0.8 s, and nothing at the middle or the end.
 - `test_following_needs_the_cursor_on_the_ball_and_moving_with_it` (rewrites `test_tracking_needs_the_cursor_on_the_ball`): not before a cycle; the first frame off the ball, no; jumping onto the ball mid-cycle, not until the window passes; past the 36 px reach, no.
@@ -139,10 +139,10 @@ Lionel approved the canvas as drawn.
 - `test_auto_carries_following_into_the_next_cycle` and `test_auto_never_starts_following_for_a_resting_cursor`.
 - `test_rate_rises_and_falls_within_a_second` takes the window: half a second on the ball after a second off reads a quarter of the steady rate (0.25 s drew).
 - `test_cycling_view.gd`: the status tests read `is_following()` through the view; no copy changes yet.
-- [ ] **Step 2: Run both files: the new tests fail**
-- [ ] **Step 3: Replace `_tracking` with the window's verdict**
-- [ ] **Step 4: Run both files: PASS**
-- [ ] **Step 5: Commit** `feat(cycling): draw Madra only while following the ball`
+- [x] **Step 2: Run both files: the new tests fail**
+- [x] **Step 3: Replace `_tracking` with the window's verdict**
+- [x] **Step 4: Run both files: PASS**
+- [x] **Step 5: Commit** `feat(cycling): draw Madra only while following the ball`
 
 ### Task 5: Spirit XP for following
 

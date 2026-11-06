@@ -212,7 +212,7 @@ func _update_status() -> void:
 		_technique.is_cycling(),
 		CyclingManager.get_cycle_elapsed(),
 		CyclingManager.get_cycle_duration(),
-		_technique.is_tracking(),
+		_technique.is_following(),
 		madra_full,
 		zones_pay_xp)
 	if line == _status_label.text:
