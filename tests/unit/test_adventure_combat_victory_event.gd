@@ -98,3 +98,11 @@ func test_health_at_zero_after_the_fight_reports_nothing() -> void:
 	_combat.stop()
 	PlayerManager.vitals_manager.apply_vitals_change(LETHAL_DAMAGE)
 	assert_eq(_combat_ends.size(), 1, "only the won fight ended")
+
+## The player fights on PlayerManager's vitals manager, so its combatant carries
+## none of its own; the enemy's is its own.
+func test_only_the_enemy_carries_a_vitals_manager_of_its_own() -> void:
+	_start_fight()
+	assert_same(_combat.player_combatant.vitals_manager, PlayerManager.vitals_manager, "the player fights on PlayerManager's")
+	assert_eq(_combat.player_combatant.find_children("*", "VitalsManager", true, false).size(), 0, "with none of its own")
+	assert_eq(_combat.enemy_combatant.find_children("*", "VitalsManager", true, false).size(), 1, "the enemy has its own")
