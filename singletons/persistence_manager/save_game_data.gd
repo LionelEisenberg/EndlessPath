@@ -7,7 +7,7 @@ extends Resource
 
 ## The save format this build writes. migrate() brings an older save up to it,
 ## and a save with a higher number was written by a newer build.
-const CURRENT_VERSION: int = 4
+const CURRENT_VERSION: int = 5
 
 ## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
 @export var save_version: int = 0
@@ -337,6 +337,10 @@ func _run_version_steps() -> bool:
 	# starting drill, unlocked and equipped), so the step moves nothing.
 	if save_version < 4:
 		save_version = 4
+	# Version 5 added the play stats' set count. Its default of 0 suits an old
+	# save, so the step moves nothing.
+	if save_version < 5:
+		save_version = 5
 	return true
 
 ## True when CultivationManager, which the version 2 step reads the stat caps

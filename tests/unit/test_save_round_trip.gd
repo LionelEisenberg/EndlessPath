@@ -116,6 +116,7 @@ func _full_save() -> SaveGameData:
 	stats.event_first_times["merchant_discovered"] = 3100.5
 	stats.condition_first_times["merchant_discovered"] = 3100.5
 	stats.cycles_finished = 14
+	stats.sets_finished = 7
 	stats.adventures_started = 5
 	stats.adventures_won = 3
 	stats.adventures_lost = 1
