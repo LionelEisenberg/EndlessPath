@@ -28,6 +28,7 @@ text = "Spirit Lv 4"
 
 [node name="FigureLabel" type="Label" parent="Content"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(172, 0)
 layout_mode = 2
 theme_type_variation = &"LabelLacquerDetail"
 text = "105 / 196 XP to Lv 5"

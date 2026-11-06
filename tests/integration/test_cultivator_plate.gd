@@ -565,10 +565,13 @@ func test_the_hover_figure_follows_the_cell() -> void:
 ## A long figure wraps and the board grows to an even height.
 func test_the_hover_board_grows_with_its_figure() -> void:
 	var cell: StatCell = _cell("ControlCell")
+	var figure: Label = _tooltip().get_node("%FigureLabel") as Label
 	cell.hover_changed.emit(true)
+	assert_eq(figure.get_line_count(), 1, "the XP figure takes one line, measured at the board's width")
 	var one_line: float = _tooltip().size.y
 	CharacterManager.set_stat_level(Attribute.CONTROL, CharacterManager.get_stat_level_cap())
-	assert_gt(_tooltip().size.y, one_line, "the cap's two sentences wrap and the board grows")
+	assert_gt(figure.get_line_count(), 1, "the cap's two sentences wrap")
+	assert_gt(_tooltip().size.y, one_line, "and the board grows")
 	assert_eq(fmod(_tooltip().size.y, 2.0), 0.0, "an even height, on the 2 px grid")
 
 #-----------------------------------------------------------------------------
