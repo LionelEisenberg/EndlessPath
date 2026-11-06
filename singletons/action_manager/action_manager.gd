@@ -20,7 +20,7 @@ signal stop_cycling()
 
 ## adventure signals
 signal adventure_start_requested(action_data: AdventureActionData)
-signal start_adventure(action_data: AdventureActionData, madra_budget: float)
+signal start_adventure(action_data: AdventureActionData)
 signal stop_adventure()
 
 ## training signals
@@ -328,13 +328,14 @@ func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
 	adventure_start_requested.emit(action_data)
 
-## Confirm adventure start after drain animation completes. This is the real
-## start, so it is the one that counts in the save's play stats: the request
-## (adventure_start_requested) can repeat.
-func confirm_adventure_start(action_data: AdventureActionData, madra_budget: float) -> void:
-	Log.info("ActionManager: Confirming adventure start: %s (budget: %.1f)" % [action_data.action_name, madra_budget])
+## Confirm adventure start once the start's pellets have flown. This is the
+## real start, so it is the one that counts in the save's play stats: the
+## request (adventure_start_requested) can repeat. The run spends from the
+## saved pool as it plays, so starting spends nothing.
+func confirm_adventure_start(action_data: AdventureActionData) -> void:
+	Log.info("ActionManager: Confirming adventure start: %s" % action_data.action_name)
 	PersistenceManager.save_game_data.stats.count_adventure_started()
-	start_adventure.emit(action_data, madra_budget)
+	start_adventure.emit(action_data)
 
 ## Handle cycling action - switch to cycling view.
 func _execute_cycling_action(action_data: CyclingActionData) -> void:

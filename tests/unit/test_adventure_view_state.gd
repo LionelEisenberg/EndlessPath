@@ -62,12 +62,12 @@ func _new_state(state: MainViewState) -> MainViewState:
 #-----------------------------------------------------------------------------
 
 func test_starting_the_adventure_dissolves_the_zone_view_away() -> void:
-	_adventure_state._on_start_adventure(null, 100.0)
+	_adventure_state._on_start_adventure(null)
 	assert_eq(_dissolve.plays, 1, "one dissolve into the adventure")
 	assert_eq(_main_view.base_current_state, _adventure_state, "the adventure view is up under it")
 
 func test_the_still_is_the_zone_view() -> void:
-	_adventure_state._on_start_adventure(null, 100.0)
+	_adventure_state._on_start_adventure(null)
 	assert_eq(_dissolve.zone_view_showed, [true], "taken while the zone view still showed")
 	assert_eq(_dissolve.adventure_view_showed, [false], "before the adventure view showed")
 
@@ -76,7 +76,7 @@ func test_the_still_is_the_zone_view() -> void:
 #-----------------------------------------------------------------------------
 
 func test_returning_from_the_end_card_dissolves_the_adventure_away() -> void:
-	_adventure_state._on_start_adventure(null, 100.0)
+	_adventure_state._on_start_adventure(null)
 	_main_view.push_state(_main_view.adventure_end_card_state)
 	_adventure_state._on_end_card_return()
 	assert_eq(_dissolve.plays, 2, "a second dissolve, back to the zone")
@@ -86,5 +86,5 @@ func test_returning_from_the_end_card_dissolves_the_adventure_away() -> void:
 
 func test_no_dissolve_without_one() -> void:
 	_main_view.view_dissolve = null
-	_adventure_state._on_start_adventure(null, 100.0)
+	_adventure_state._on_start_adventure(null)
 	assert_eq(_main_view.base_current_state, _adventure_state, "the views still change")

@@ -108,7 +108,7 @@ func test_zero_health_counts_a_lost_adventure() -> void:
 	assert_eq(stats.adventures_won + stats.adventures_timed_out, 0, "and no win or timeout")
 
 func test_stopping_with_no_run_counts_nothing() -> void:
-	# The adventure action is current while its Madra drains, before any run has
+	# The adventure action is current while the start's pellets fly, before any run has
 	# started, and a save switch can stop it then: that is no end. Health at 0 and a
 	# stopped timer would read as a loss or a timeout.
 	_set_player_health(0.0)
@@ -118,7 +118,7 @@ func test_stopping_with_no_run_counts_nothing() -> void:
 	assert_eq(stats.adventures_won + stats.adventures_lost + stats.adventures_timed_out, 0, "no run ended")
 
 func test_a_save_switch_during_the_drain_counts_nothing_in_the_new_save() -> void:
-	# The pick makes the adventure action current, and its Madra drains before the
+	# The pick makes the adventure action current, and the start's pellets fly before the
 	# run starts. A save switch (a restart, a restore) stops the action then, and
 	# ActionManager hands that stop to the view with the new save already live.
 	_set_player_health(40.0)
@@ -150,13 +150,13 @@ func _begin_a_run_without_a_map(time_left: float) -> void:
 	_view.current_action_data = ADVENTURE_ACTION
 	_view.get_run_timer().start(time_left)
 
-## Starts the Shallow Woods adventure the way the zone does once the Madra
-## drain finishes, with the given time limit.
+## Starts the Shallow Woods adventure the way the zone does once the start's
+## pellets have flown, with the given time limit.
 func _start_adventure(time_limit_seconds: int) -> void:
 	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
 	action.time_limit_seconds = time_limit_seconds
 	ActionManager._set_current_action(action)
-	ActionManager.confirm_adventure_start(action, 50.0)
+	ActionManager.confirm_adventure_start(action)
 
 func _boss_choice(failure_effect: EffectData) -> CombatChoice:
 	var choice := CombatChoice.new()

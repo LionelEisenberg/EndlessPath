@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for ZoneTransition, the adventure drain (spec: Cultivator
 ## plate › Lookups; lacquer kit §1 rules 4 and 6). It finds the cultivator
-## plate and the zone map by name among its parent's descendants, pours the
-## Madra budget out as pellets on its own clock, then confirms the adventure.
+## plate and the zone map by name among its parent's descendants, pours pellets
+## as a flourish on its own clock, spending nothing, then confirms the adventure.
 ## The map's camera holds still from the push until the way back has put it
 ## back. main_game.tscn is only read, never instanced: the scenes it needs are
 ## built on their own instead.
@@ -145,9 +145,21 @@ func test_drain_pours_pellets_then_starts_the_adventure() -> void:
 	assert_true(_transition.is_transitioning())
 	assert_eq(_pellet_count(), 1, "the first pellet leaves the orb at once")
 	_run_to_the_end()
-	assert_signal_emitted(ActionManager, "start_adventure", "the drain confirms the adventure")
+	assert_signal_emitted_with_parameters(ActionManager, "start_adventure", [ZoneManager.get_action_by_id(ADVENTURE_ID)])
 	assert_false(_transition.is_transitioning())
-	assert_almost_eq(ResourceManager.get_madra(), 0.0, 0.01, "the whole budget drained into the pellets")
+	assert_eq(ResourceManager.get_madra(), ResourceManager.get_max_madra(), "the pellets spend nothing: the run spends from the pool")
+
+## A fuller pool pours more pellets: from DRAIN_MIN_PARTICLES (empty) to
+## DRAIN_MAX_PARTICLES (full).
+func test_a_fuller_pool_pours_more_pellets() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "an empty pool", "madra": 0.0, "max": 100.0, "pellets": 8},
+		{"name": "half full", "madra": 50.0, "max": 100.0, "pellets": 16},
+		{"name": "full", "madra": 100.0, "max": 100.0, "pellets": 25},
+		{"name": "no max", "madra": 10.0, "max": 0.0, "pellets": 8},
+	]
+	for case: Dictionary in cases:
+		assert_eq(ZoneTransition.drain_pellet_count(case.madra, case.max), case.pellets, case.name)
 
 ## 0.3 s in, the pellets due at 0, 0.04, ... 0.28 s have left (none has landed:
 ## each flies 0.6 s), however long the frames are.

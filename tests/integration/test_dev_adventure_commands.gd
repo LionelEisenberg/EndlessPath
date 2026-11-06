@@ -99,8 +99,8 @@ func _stop_actions() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 
-## Starts the Shallow Woods the way the zone does once its Madra drain ends: the
-## action becomes the current one and the run is confirmed with its budget. The run
+## Starts the Shallow Woods the way the zone does once the start's pellets have
+## flown: the action becomes the current one and the run is confirmed. The run
 ## plays on the fixture map, which the tilemap is handed in place of a generated one.
 func _start_run() -> void:
 	var generator := FixedMapGenerator.new()
@@ -110,7 +110,7 @@ func _start_run() -> void:
 	tilemap.adventure_map_generator = generator
 	_action = ADVENTURE_ACTION.duplicate()
 	ActionManager._set_current_action(_action)
-	ActionManager.confirm_adventure_start(_action, RUN_MADRA)
+	ActionManager.confirm_adventure_start(_action)
 
 ## Starts a run and puts a fight under way, as picking its combat card does: the
 ## tilemap remembers the choice and the view starts the fight. The fight is the

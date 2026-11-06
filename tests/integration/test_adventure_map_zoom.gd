@@ -24,8 +24,6 @@ const ADVENTURE_ACTION := AdventureMapFixture.ADVENTURE_ACTION
 const START := AdventureMapFixture.START
 const FIGHT := AdventureMapFixture.FIGHT
 
-## The Madra the zone's drain hands each run in these tests.
-const MADRA_BUDGET: float = 50.0
 ## GUT draws its own window on this canvas layer, over the whole screen; the view
 ## goes above it, or GUT's window would take every press.
 const GUT_LAYER: int = 128
@@ -102,9 +100,9 @@ class FixedMapGenerator extends AdventureMapGenerator:
 	func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 		return map
 
-## Starts the Shallow Woods on the fixture map the way the zone does once its
-## Madra drain ends: the action becomes the current one and the run is confirmed
-## with its budget.
+## Starts the Shallow Woods on the fixture map the way the zone does once the
+## start's pellets have flown: the action becomes the current one and the run is
+## confirmed.
 func _start_run() -> void:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	var generator := FixedMapGenerator.new()
@@ -113,7 +111,7 @@ func _start_run() -> void:
 	tilemap.adventure_map_generator = generator
 	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
 	ActionManager._set_current_action(action)
-	ActionManager.confirm_adventure_start(action, MADRA_BUDGET)
+	ActionManager.confirm_adventure_start(action)
 
 func _stop_every_action() -> void:
 	while ActionManager.get_current_action() != null:

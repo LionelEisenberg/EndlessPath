@@ -3,8 +3,10 @@ extends Node
 
 ## ZoneTransition
 ## Handles the animated transition out of the zone view into an adventure.
-## Coordinates the Madra pellet drain, camera zoom, and Madra spending
-## before the adventure view opens.
+## Coordinates the Madra pellet drain and the camera zoom before the adventure
+## view opens. The pellets are a flourish and spend nothing: the run spends from
+## the saved pool itself as it plays, so a fuller pool only pours more of them
+## (drain_pellet_count()).
 ## The drain runs on its own clock in _process, so it takes as long at any
 ## frame rate: the pellets leave the orb DRAIN_SPAWN_INTERVAL apart and all of
 ## them land on the character. The zoom starts as the last one lands (its
@@ -49,12 +51,8 @@ var _camera: Camera2D = null
 var _character: Node2D = null
 var _is_transitioning: bool = false
 var _pending_adventure_data: AdventureActionData = null
-var _drain_budget: float = 0.0
-var _drain_budget_ratio: float = 0.0
 var _drain_particles_spawned: int = 0
-var _drain_total_particles: int = 0  # includes the extra deficit particle when there is one
-var _drain_madra_per_particle: float = 0.0  # whole-madra amount per "base" particle
-var _drain_deficit_particle_amount: float = 0.0  # leftover carried by one extra particle; 0 if none
+var _drain_total_particles: int = 0
 var _drain_target_pos: Vector2 = Vector2.ZERO
 ## Whether the drain's clock runs, from the first pellet leaving to the last.
 var _is_draining: bool = false
@@ -88,6 +86,13 @@ func _process(delta: float) -> void:
 func is_transitioning() -> bool:
 	return _is_transitioning
 
+## The pellets a run's start pours for `madra` out of `max_madra`: from
+## DRAIN_MIN_PARTICLES at an empty pool (or no max) to DRAIN_MAX_PARTICLES at a
+## full one.
+static func drain_pellet_count(madra: float, max_madra: float) -> int:
+	var fullness: float = clampf(madra / max_madra, 0.0, 1.0) if max_madra > 0.0 else 0.0
+	return int(lerpf(DRAIN_MIN_PARTICLES, DRAIN_MAX_PARTICLES, fullness))
+
 ## Eases the camera back from the adventure zoom to where the player left it
 ## over duration seconds (called when returning to zone view), then lets the
 ## map's camera go. Does nothing without an adventure zoom to undo, or while
@@ -118,18 +123,7 @@ func _on_adventure_start_requested(action_data: AdventureActionData) -> void:
 		return
 	_is_transitioning = true
 	_pending_adventure_data = action_data
-	# The whole pool, which never holds more than the max
-	_drain_budget = ResourceManager.get_madra()
-	var max_madra: float = ResourceManager.get_max_madra()
-	_drain_budget_ratio = clampf(_drain_budget / max_madra, 0.0, 1.0) if max_madra > 0.0 else 0.0
-	var base_particles: int = int(lerpf(DRAIN_MIN_PARTICLES, DRAIN_MAX_PARTICLES, _drain_budget_ratio))
-	# Use whole-madra amounts per particle so the bar drains in clean integer
-	# steps. Any leftover from the floor (e.g. budget=100, base=19 -> per=5,
-	# 19*5=95 leaves 5) gets carried by one extra particle at the end. This
-	# avoids float accumulation in the per-particle subtraction path.
-	_drain_madra_per_particle = floor(_drain_budget / base_particles)
-	_drain_deficit_particle_amount = _drain_budget - (_drain_madra_per_particle * base_particles)
-	_drain_total_particles = base_particles + (1 if _drain_deficit_particle_amount > 0.001 else 0)
+	_drain_total_particles = drain_pellet_count(ResourceManager.get_madra(), ResourceManager.get_max_madra())
 	_drain_particles_spawned = 0
 
 	# Cache node references for this transition
@@ -166,17 +160,6 @@ func _spawn_drain_particle() -> void:
 	# lands last: the zoom starts as it lands.
 	if _drain_particles_spawned == _drain_total_particles - 1:
 		pellet.delivered.connect(_on_drain_complete, CONNECT_ONE_SHOT)
-
-	# The final particle carries the leftover deficit (when budget doesn't
-	# divide evenly by base count). Every other particle spends the whole-
-	# madra per-particle amount.
-	var is_deficit_particle: bool = (
-		_drain_deficit_particle_amount > 0.001
-		and _drain_particles_spawned == _drain_total_particles - 1
-	)
-	var amount: float = _drain_deficit_particle_amount if is_deficit_particle else _drain_madra_per_particle
-	ResourceManager.spend_madra(amount)
-
 	_drain_particles_spawned += 1
 
 #-----------------------------------------------------------------------------
@@ -210,7 +193,7 @@ func _on_drain_complete() -> void:
 func _on_zoom_complete() -> void:
 	_is_transitioning = false
 	if _pending_adventure_data:
-		ActionManager.confirm_adventure_start(_pending_adventure_data, _drain_budget)
+		ActionManager.confirm_adventure_start(_pending_adventure_data)
 		_pending_adventure_data = null
 
 #-----------------------------------------------------------------------------

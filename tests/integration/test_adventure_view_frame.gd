@@ -35,8 +35,8 @@ const REST := AdventureMapFixture.REST
 
 const Slot := TechniqueSlot.SlotState
 
-## The Madra the zone's drain hands each run in these tests.
-const MADRA_BUDGET: float = 50.0
+## The pool each run starts on: exactly half a new character's 100, the threshold.
+const RUN_START_MADRA: float = 50.0
 ## The Shallow Woods' time limit, in seconds.
 const TIME_LIMIT: float = 300.0
 ## A run this short shows the clock's low seal from its start.
@@ -123,8 +123,9 @@ class FixedMapGenerator extends AdventureMapGenerator:
 	func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 		return map
 
-## Starts the Shallow Woods the way the zone does once its Madra drain ends: the
-## action becomes the current one and the run is confirmed with its budget. The
+## Starts the Shallow Woods the way the zone does once the start's pellets have
+## flown, on a pool of RUN_START_MADRA: the action becomes the current one and the
+## run is confirmed. The
 ## run plays on `_map` (the fixture map, unless the test set another): the
 ## tilemap is handed a generator that returns it, so no random map is generated
 ## and none can fail. A time limit of 0 keeps the action's own. A modifier below
@@ -141,8 +142,8 @@ func _start_run(time_limit_seconds: int = 0, stamina_regen_modifier: float = -1.
 	if stamina_regen_modifier >= 0.0:
 		action.stamina_regen_modifier = stamina_regen_modifier
 	ActionManager._set_current_action(action)
-	ResourceManager.set_madra(MADRA_BUDGET)
-	ActionManager.confirm_adventure_start(action, MADRA_BUDGET)
+	ResourceManager.set_madra(RUN_START_MADRA)
+	ActionManager.confirm_adventure_start(action)
 
 func _stop_every_action() -> void:
 	while ActionManager.get_current_action() != null:
@@ -424,6 +425,7 @@ func test_start_fills_the_frame() -> void:
 	assert_almost_eq(timer.time_left, TIME_LIMIT, 1.0, "from the action's time limit")
 	assert_has(["5:00", "4:59"], _clock_text(), "the chest's clock reads the run's Timer")
 	assert_eq(_plate_text("MadraValueLabel"), "50", "the cabinet shows the pool the run plays on")
+	assert_eq(ResourceManager.get_madra(), RUN_START_MADRA, "starting the run spent none of it")
 	assert_false(_view.technique_dock.is_active(), "the dock takes no presses on the map")
 	assert_eq(_slot_states(), [Slot.PREVIEW, Slot.PREVIEW, Slot.PREVIEW, Slot.EMPTY], "it previews the loadout as the run starts")
 	assert_eq(_page_text("NameLabel"), "Open ground", "the chest stands on the start tile")
