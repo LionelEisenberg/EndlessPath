@@ -2,9 +2,8 @@ class_name LacquerPellet
 extends Node2D
 
 ## LacquerPellet
-## One opaque pellet that flies a PelletFlight, then frees itself. The adventure's
-## Madra drain sends it from the cabinet's Madra orb to the character, the cycling
-## view from the ball to the Madra orb (Madra) and from a zone to the Core orb (XP,
+## One opaque pellet that flies a PelletFlight, then frees itself. The cycling
+## view sends it from the ball to the Madra orb (Madra) and from a zone to the Core orb (XP,
 ## in the tier's ramp), and the tribulation off its ring and into its core.
 ## Lacquer kit §1 rules 4 and 6: no glow, halo, alpha or eased colour. Every look
 ## is a frame of one strip (lacquer_pellet_strip_ai.png, a row per Ramp), and every

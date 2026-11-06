@@ -1,114 +1,44 @@
 class_name AdventurePresenter
 extends ZoneActionPresenter
-## Presenter for ADVENTURE cards, 72 px in both states while their text fits:
-##   below the threshold: the Madra row on the detail line, `mini_madra`, the
-##     Madra rod (Madra / threshold) and "<madra> / <threshold>" in tan, then
-##     "~<n> s" in cream, right-aligned, only while a Madra action runs: on the
-##     figure's line while the two fit right of the rod, on a line of its own
-##     under it past that; tag ACTIVE.
-##   at the threshold: "<minutes> min run" in brass on the left of the detail
-##     line and "carries <capacity> Madra" in brass in its right column (each
-##     wraps past its room, and the card grows), the card's steady brass ready
-##     frame and the ENTER tag.
-## Capacity is the total max Madra and the threshold half of it, so gear that
-## adds Foundation changes both: the card follows equipment changes too.
-## Gates activation on ResourceManager.can_start_adventure(); a rejected click
-## shakes the Madra row softly in even-px steps (MapGlyph's soft shake, through
-## its offset transform, which the detail slot's layout leaves alone) and logs
-## why.
+## Presenter for ADVENTURE cards, 72 px while their text fits. A run starts on
+## whatever the saved Madra pool holds, so the card is always ready: the card's
+## steady brass ready frame, the ENTER tag, "<minutes> min run" in brass on the
+## left of the detail line and the pool, "<madra> / <max> Madra", in Madra ink
+## in its right column (each wraps past its room, and the card grows). It
+## follows the pool, and the max Mind and gear set.
 
-## The Madra row: one detail line, as wide as the detail line, with the figure
-## at x 184 and the hint 8 px after it at the latest.
-const ROW_WIDTH: float = ZoneActionButton.DETAIL_WIDTH
-const ROW_HEIGHT: float = 18.0
-const HINT_GAP: float = 8.0
-
-@onready var _need_group: Control = %NeedGroup
-@onready var _madra_rod: LacquerRod = %MadraRod
-@onready var _madra_figure: Label = %MadraFigure
-@onready var _hint_label: Label = %HintLabel
 @onready var _ready_text: RichTextLabel = %ReadyText
 
-var _is_affordable: bool = false
-var _shake_tween: Tween = null
-
-## Moves the Madra row and the ready line onto the card's detail line, and shows
-## the state for the current Madra.
+## Moves the ready line onto the card's detail line and shows the pool.
 func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	action_data = data
 	button = owner_button
-	_need_group.reparent(button.get_detail_slot(), false)
 	_ready_text.reparent(button.get_detail_slot(), false)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
-	ActionManager.current_action_changed.connect(_on_current_action_changed)
 	CharacterManager.stats_changed.connect(_on_stats_changed)
 	_update_state()
 
-## Disconnects from the managers and stops a running shake.
+## Disconnects from the managers.
 func teardown() -> void:
 	if ResourceManager.madra_changed.is_connected(_on_madra_changed):
 		ResourceManager.madra_changed.disconnect(_on_madra_changed)
-	if ActionManager.current_action_changed.is_connected(_on_current_action_changed):
-		ActionManager.current_action_changed.disconnect(_on_current_action_changed)
 	if CharacterManager.stats_changed.is_connected(_on_stats_changed):
 		CharacterManager.stats_changed.disconnect(_on_stats_changed)
-	_stop_shake()
 
-## True once Madra reaches the adventure threshold.
-func can_activate() -> bool:
-	return _is_affordable
-
-## Shakes the Madra row and logs the shortfall.
-func on_activation_rejected() -> void:
-	_shake_reject()
-	var threshold: float = ResourceManager.get_adventure_madra_threshold()
-	var current: float = ResourceManager.get_madra()
-	LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
+## "60 / 100 Madra": the pool the run starts on, over its max.
+static func pool_text() -> String:
+	return "%d / %d Madra" % [floori(ResourceManager.get_madra()), floori(ResourceManager.get_max_madra())]
 
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
 
 func _update_state() -> void:
-	_is_affordable = ResourceManager.can_start_adventure()
-	_need_group.visible = not _is_affordable
-	_ready_text.visible = _is_affordable
-	button.set_ready_frame(_is_affordable)
-	if _is_affordable:
-		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
-		button.set_detail_right("carries %d Madra" % floori(ResourceManager.get_max_madra()), ThemeConstants.LACQUER_BRASS)
-		button.set_detail_rich_text(_ready_text, _run_length_text())
-	else:
-		button.set_mode_tag(ZoneActionGroups.mode_tag(action_data), ZoneActionButton.TagStyle.CARVED)
-		button.set_detail_right("")
-		_update_need()
+	button.set_ready_frame(true)
+	button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
+	button.set_detail_right(pool_text(), ThemeConstants.LACQUER_MADRA)
+	button.set_detail_rich_text(_ready_text, _run_length_text())
 	button.relayout()
-
-func _update_need() -> void:
-	var threshold: float = ResourceManager.get_adventure_madra_threshold()
-	var madra: float = ResourceManager.get_madra()
-	_madra_figure.text = "%d / %d" % [floori(madra), ceili(threshold)]
-	_madra_rod.set_fraction(madra / threshold if threshold > 0.0 else 0.0)
-	var rate: float = ActionManager.get_current_madra_per_second()
-	_hint_label.visible = rate > 0.0
-	if rate > 0.0:
-		_hint_label.text = "~%d s" % ceili(maxf(threshold - madra, 0.0) / rate)
-	_place_hint()
-
-## Right-aligns the hint at the row's end, on the figure's line while the two fit
-## with 8 px between them, else on a line of its own under it; the row is as
-## tall as its lines.
-func _place_hint() -> void:
-	_madra_figure.reset_size()
-	var row_height: float = ROW_HEIGHT
-	if _hint_label.visible:
-		_hint_label.reset_size()
-		var hint_width: float = _hint_label.size.x
-		var fits: bool = _madra_figure.position.x + _madra_figure.size.x + HINT_GAP + hint_width <= ROW_WIDTH
-		_hint_label.position = Vector2(ROW_WIDTH - hint_width, 0.0 if fits else ROW_HEIGHT)
-		if not fits:
-			row_height += ROW_HEIGHT
-	_need_group.custom_minimum_size = Vector2(ROW_WIDTH, row_height)
 
 ## "5 min run": the run's time limit.
 func _run_length_text() -> String:
@@ -116,31 +46,9 @@ func _run_length_text() -> String:
 	var minutes: float = adventure.time_limit_seconds / 60.0 if adventure else 0.0
 	return "%s min run" % LacquerText.rate(minutes).trim_prefix("+")
 
-## Shakes the Madra row left and right in whole even-px steps (no easing, no
-## scale): the soft shake a refused technique shakes its slot by, the map lock's
-## rhythm at half its travel, 0, -4, 4, -2, 2, 0 over 0.44 s.
-func _shake_reject() -> void:
-	_stop_shake()
-	_shake_tween = create_tween()
-	_shake_tween.tween_method(_apply_shake, 0.0, MapGlyph.SHAKE_SECONDS, MapGlyph.SHAKE_SECONDS)
-
-func _apply_shake(elapsed: float) -> void:
-	_need_group.offset_transform_position = Vector2(MapGlyph.shake_offset_at(elapsed, MapGlyph.SOFT_SHAKE_KEYFRAMES), 0.0)
-
-func _stop_shake() -> void:
-	if _shake_tween != null and _shake_tween.is_valid():
-		_shake_tween.kill()
-	_shake_tween = null
-	if is_instance_valid(_need_group):
-		_need_group.offset_transform_position = Vector2.ZERO
-
 func _on_madra_changed(_amount: float) -> void:
 	_update_state()
 
-func _on_current_action_changed(_action: ZoneActionData) -> void:
-	_update_state()
-
-## Training, gear and any modifier source move the max Madra stat, and with
-## it the capacity and threshold.
+## Training, gear and any modifier source move the max Madra stat.
 func _on_stats_changed() -> void:
 	_update_state()

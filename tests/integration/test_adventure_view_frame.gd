@@ -123,8 +123,8 @@ class FixedMapGenerator extends AdventureMapGenerator:
 	func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 		return map
 
-## Starts the Shallow Woods the way the zone does once the start's pellets have
-## flown, on a pool of RUN_START_MADRA: the action becomes the current one and the
+## Starts the Shallow Woods the way the zone does once the start's zoom
+## ends, on a pool of RUN_START_MADRA: the action becomes the current one and the
 ## run is confirmed. The
 ## run plays on `_map` (the fixture map, unless the test set another): the
 ## tilemap is handed a generator that returns it, so no random map is generated

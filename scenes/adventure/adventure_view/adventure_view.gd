@@ -143,7 +143,7 @@ func stop_adventure() -> void:
 
 	# Determine end condition from current state. The save's play stats count a win,
 	# Health at 0 and a timeout; a retreat counts nothing. Neither does a stop with
-	# no run on: the adventure action is current while the start's pellets fly, before the
+	# no run on: the adventure action is current while the start's zoom runs, before the
 	# run starts, and a save switch can stop it then, with the timer stopped and
 	# Health as the last run left it.
 	var is_victory: bool = false

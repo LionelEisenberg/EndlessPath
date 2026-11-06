@@ -99,8 +99,8 @@ func _stop_actions() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 
-## Starts the Shallow Woods the way the zone does once the start's pellets have
-## flown: the action becomes the current one and the run is confirmed. The run
+## Starts the Shallow Woods the way the zone does once the start's zoom
+## ends: the action becomes the current one and the run is confirmed. The run
 ## plays on the fixture map, which the tilemap is handed in place of a generated one.
 func _start_run() -> void:
 	var generator := FixedMapGenerator.new()

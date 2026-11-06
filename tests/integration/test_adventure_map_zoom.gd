@@ -101,7 +101,7 @@ class FixedMapGenerator extends AdventureMapGenerator:
 		return map
 
 ## Starts the Shallow Woods on the fixture map the way the zone does once the
-## start's pellets have flown: the action becomes the current one and the run is
+## start's zoom ends: the action becomes the current one and the run is
 ## confirmed.
 func _start_run() -> void:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap

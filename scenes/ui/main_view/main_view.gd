@@ -71,7 +71,7 @@ var _hud_board_visibility: Dictionary[Control, bool] = {}
 ## null when there is none: the MainViews the view-state tests build never run
 ## _ready(), so they have none and their boards open and close at once.
 var board_transition: BoardTransition = null
-## The zone map and the adventure entry's drain and zoom, whose camera moves the
+## The zone map and the adventure entry's zoom, whose camera moves the
 ## board transition's camera push holds still while it runs, or null when
 ## missing, as on the MainViews the view-state tests build.
 var zone_map: ZoneTilemap = null

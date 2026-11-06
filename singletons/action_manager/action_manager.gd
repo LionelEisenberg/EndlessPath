@@ -114,19 +114,15 @@ func _on_condition_unlocked(condition_id: String) -> void:
 #-----------------------------------------------------------------------------
 
 ## Select an action to execute, replacing the current one, and mark it seen.
-## An idle action becomes its zone's last idle action. An adventure the player
-## can't afford and a Tribulation the player isn't ready for are refused before
-## anything stops, so the current action runs on.
+## An idle action becomes its zone's last idle action. A Tribulation the player
+## isn't ready for is refused before anything stops, so the current action runs
+## on. An adventure always starts: it plays on the Madra pool as it stands.
 func select_action(action_data: ZoneActionData) -> void:
 	if not action_data:
 		Log.error("ActionManager: select_action called with null action_data")
 		return
 
 	ZoneManager.mark_action_seen(action_data.action_id)
-	if action_data.action_type == ZoneActionData.ActionType.ADVENTURE and not ResourceManager.can_start_adventure():
-		Log.info("ActionManager: Cannot start adventure - need %.0f Madra, have %.0f" % [
-			ResourceManager.get_adventure_madra_threshold(), ResourceManager.get_madra()])
-		return
 	var tribulation := action_data as TribulationActionData
 	if tribulation != null and not tribulation.can_attempt():
 		Log.info("ActionManager: Cannot start the Tribulation - %s (%s)" % [
@@ -322,13 +318,13 @@ func _on_forage_timer_finished(action_data: ForageActionData) -> void:
 	foraging_completed.emit(rolled_items)
 
 
-## Handle adventure action - request start (zone view plays drain animation first).
+## Handle adventure action - request start (the zone view zooms in first).
 ## select_action() has already checked the Madra threshold.
 func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
 	adventure_start_requested.emit(action_data)
 
-## Confirm adventure start once the start's pellets have flown. This is the
+## Confirm adventure start once the zone view's zoom ends. This is the
 ## real start, so it is the one that counts in the save's play stats: the
 ## request (adventure_start_requested) can repeat. The run spends from the
 ## saved pool as it plays, so starting spends nothing.

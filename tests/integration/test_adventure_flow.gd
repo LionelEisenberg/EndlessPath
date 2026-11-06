@@ -1,9 +1,9 @@
 extends GutTest
 
 ## Integration tests for the Madra side of starting an adventure with one pool:
-## the threshold is half the pool's max, and Mind gear moves both through the
-## real InventoryManager and CharacterManager. Taking the gear off brings a
-## pool above the new max down to it (plan Review Focus 5).
+## a run starts on whatever the pool holds, and Mind gear moves the pool's max
+## through the real InventoryManager and CharacterManager. Taking the gear off
+## brings a pool above the new max down to it (plan Review Focus 5).
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -28,7 +28,7 @@ func after_each() -> void:
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## Wears a ring of +50% Mind: +5 at Lv 1, so 150 max Madra and a threshold of 75.
+## Wears a ring of +50% Mind: +5 at Lv 1, so 150 max Madra.
 func _wear_mind_ring() -> void:
 	var percents: Dictionary[StringName, float] = {&"mind": 0.5}
 	var ring := EquipmentDefinitionData.new()
@@ -41,26 +41,24 @@ func _wear_mind_ring() -> void:
 	InventoryManager.equip_item(instance, ACCESSORY, -1, 0)
 
 #-----------------------------------------------------------------------------
-# THE THRESHOLD
+# NO THRESHOLD
 #-----------------------------------------------------------------------------
 
-func test_mind_gear_raises_the_threshold() -> void:
-	ResourceManager.set_madra(60.0)
-	assert_true(ResourceManager.can_start_adventure(), "precondition: 60 clears a threshold of 50")
-	_wear_mind_ring()
-	assert_eq(ResourceManager.get_adventure_madra_threshold(), 75.0, "half of the ring's 150")
-	assert_false(ResourceManager.can_start_adventure(), "60 falls short of 75")
-
-## The lock-out the old cap hid: a full pool always clears the threshold.
-func test_a_full_pool_clears_the_threshold_at_any_mind() -> void:
+## The run plays on the pool as it stands: an empty pool, a little and a full
+## pool all start it, whatever Mind sets the max to.
+func test_any_pool_starts_an_adventure() -> void:
+	var adventure: ZoneActionData = ZoneManager.get_action_by_id("shallow_woods_adventure_action")
 	var cases: Array[Dictionary] = [
-		{"name": "a new character", "mind_level": 1},
-		{"name": "Mind Lv 15, past the old cap's reach", "mind_level": 15},
+		{"name": "an empty pool", "madra": 0.0, "mind_level": 1},
+		{"name": "a little Madra", "madra": 10.0, "mind_level": 1},
+		{"name": "a full pool at Mind Lv 15", "madra": 250.0, "mind_level": 15},
 	]
 	for case: Dictionary in cases:
 		CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.MIND, case.mind_level)
-		ResourceManager.set_madra(ResourceManager.get_max_madra())
-		assert_true(ResourceManager.can_start_adventure(), case.name)
+		ResourceManager.set_madra(case.madra)
+		ActionManager.select_action(adventure)
+		assert_eq(ActionManager.get_current_action(), adventure, case.name)
+		ActionManager.stop_action()
 
 #-----------------------------------------------------------------------------
 # THE OVER-MAX RULE
@@ -72,4 +70,3 @@ func test_taking_mind_gear_off_brings_the_pool_down() -> void:
 	assert_eq(ResourceManager.get_madra(), 140.0, "precondition: the ring makes room past 100")
 	InventoryManager.unequip_item(ACCESSORY, 0)
 	assert_eq(ResourceManager.get_madra(), 100.0, "the pool comes down to the max without the ring")
-	assert_true(ResourceManager.can_start_adventure(), "100 still clears a threshold of 50")

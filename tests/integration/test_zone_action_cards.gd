@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for the lacquer activity cards (ZoneActionButton and its
 ## presenters): the running tag, clicks, the NEW seal and when it clears, what
-## each presenter's detail line and right column show, the adventure's Madra
-## states and how gear moves them, and long text: no card cuts its text, a long
+## each presenter's detail line and right column show, the adventure's pool
+## and how gear moves its max, and long text: no card cuts its text, a long
 ## title, detail, figure or list of finds wraps and the card grows by its lines.
 ## Cards are built with setup_action on a fresh save, as the zone panel builds
 ## them.
@@ -33,9 +33,6 @@ const DETAIL_WIDTH: float = 316.0
 const RIGHT_MAX_WIDTH: float = 158.0
 const RIGHT_GAP: float = 12.0
 
-## Player-log lines since the test started.
-var _logged: Array[String] = []
-
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
@@ -43,16 +40,10 @@ var _logged: Array[String] = []
 func before_each() -> void:
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
-	_logged.clear()
-	LogManager.message_logged.connect(_on_message_logged)
 
 func after_each() -> void:
-	LogManager.message_logged.disconnect(_on_message_logged)
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
-
-func _on_message_logged(bbcode_message: String) -> void:
-	_logged.append(bbcode_message)
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -196,15 +187,12 @@ func test_click_on_running_card_signals_and_keeps_it() -> void:
 	assert_signal_emitted(card, "card_pressed_while_running")
 	assert_eq(_current_id(), AURA_WELL_ID)
 
-func test_unaffordable_click_does_not_select() -> void:
+## A fresh save's 25 Madra starts a run: no Madra figure refuses the click.
+func test_a_click_on_the_adventure_starts_it_on_any_pool() -> void:
 	_run_aura_well()
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	_logged.clear()
 	_click(card)
-	assert_eq(_current_id(), AURA_WELL_ID, "the idle action runs on")
-	assert_eq(_logged.size(), 1, "the reject writes one log line")
-	if _logged.size() == 1:
-		assert_string_contains(_logged[0], "Not enough Madra")
+	assert_eq(_current_id(), ADVENTURE_ID, "the adventure takes over")
 
 #-----------------------------------------------------------------------------
 # NEW SEAL
@@ -291,36 +279,19 @@ func test_story_detail_is_the_description() -> void:
 # ADVENTURE
 #-----------------------------------------------------------------------------
 
-func test_adventure_below_threshold_shows_the_madra_figure() -> void:
+## A run starts on any pool, so the card is always ready and shows the pool.
+func test_adventure_shows_the_pool_and_enter() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "an empty pool", "madra": 0.0, "right": "0 / 100 Madra"},
+		{"name": "a new character's 25", "madra": 25.0, "right": "25 / 100 Madra"},
+		{"name": "a full pool", "madra": 100.0, "right": "100 / 100 Madra"},
+	]
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	assert_true(_has_text_containing(card, "25 / 50"), "Madra / threshold beside the rod")
-	assert_false(_has_text_containing(card, "~"), "no countdown without a Madra action")
-
-func test_adventure_hint_only_while_a_madra_action_runs() -> void:
-	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	_run_aura_well()
-	assert_true(_has_text_containing(card, "~17 s"), "ceil((50 - 25) / 1.5) = 17")
-	EventManager.trigger_event(FORAGING_EVENT)
-	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
-	assert_eq(_current_id(), FORAGING_ID, "precondition: foraging runs, which makes no Madra")
-	assert_false(_has_text_containing(card, "~"), "the hint hides")
-
-func test_adventure_ready_copy_and_enter() -> void:
-	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	ResourceManager.set_madra(60.0)
-	assert_has(_texts(card.get_detail_slot()), "5 min run", "the run's length on the left")
-	assert_eq(card.get_detail_right_text(), "carries 100 Madra", "the Madra it carries in the right column")
-	assert_eq(_tag_text(card), "ENTER")
-	assert_false(_has_text_containing(card, "/ 50"), "the Madra row hides at the threshold")
-
-func test_adventure_drops_back_below_threshold() -> void:
-	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	ResourceManager.set_madra(60.0)
-	ResourceManager.set_madra(10.0)
-	assert_eq(_tag_text(card), "ACTIVE")
-	assert_true(_has_text_containing(card, "10 / 50"))
-	assert_false(_has_text_containing(card, "min run"), "the ready line hides")
-	assert_eq(card.get_detail_right_text(), "", "and so does its right column")
+	for case: Dictionary in cases:
+		ResourceManager.set_madra(case.madra)
+		assert_has(_texts(card.get_detail_slot()), "5 min run", "%s: the run's length on the left" % case.name)
+		assert_eq(card.get_detail_right_text(), case.right, "%s: the pool in the right column" % case.name)
+		assert_eq(_tag_text(card), "ENTER", "%s: always ready" % case.name)
 
 #-----------------------------------------------------------------------------
 # LONG TEXT: NO CARD CUTS ITS TEXT, IT GROWS
@@ -421,33 +392,17 @@ func test_a_find_too_long_for_the_line_wraps_inside_it() -> void:
 	assert_lte(name_text.get_global_rect().end.x, slot_right, "inside the detail line")
 	assert_eq(card.size.y, _height_for(card, name_text.get_line_count()), "the card grows by the name's lines")
 
-## A time hint too wide to sit beside the Madra figure takes a line of its own
-## instead of covering the rod (Review Focus 5).
-func test_the_madra_hint_takes_its_own_line_when_it_does_not_fit() -> void:
-	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	_run_aura_well()
-	assert_eq(card.size.y, MIN_HEIGHT, "precondition: the figure and its hint share a line")
-	_equip_mind_ring(5000.0)
-	var figure := card.get_detail_slot().find_child("MadraFigure", true, false) as Label
-	var hint := card.get_detail_slot().find_child("HintLabel", true, false) as Label
-	assert_true(hint.visible, "precondition: a Madra action runs")
-	assert_eq(hint.position.y - figure.position.y, DETAIL_LINE, "the hint takes the next line")
-	assert_eq(card.size.y, MIN_HEIGHT + DETAIL_LINE, "and the card grows")
-
 #-----------------------------------------------------------------------------
 # ADVENTURE AND EQUIPMENT
 #-----------------------------------------------------------------------------
 
-func test_adventure_follows_equipment_capacity() -> void:
-	# Capacity is max Madra (Mind x 10) and the threshold half of it, so
-	# gear that adds Mind moves both without any Madra change.
+func test_adventure_follows_the_max_madra() -> void:
+	# Gear that adds Mind moves the pool's max without any Madra change.
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	ResourceManager.set_madra(60.0)
-	assert_eq(_tag_text(card), "ENTER", "precondition: 60 of 50 Madra is ready")
 	_equip_mind_ring(5.0)
-	assert_eq(_tag_text(card), "ACTIVE", "the threshold is now 75")
-	assert_true(_has_text_containing(card, "60 / 75"))
-	ResourceManager.set_madra(80.0)
-	assert_true(_has_text_containing(card, "carries 150 Madra"))
+	assert_eq(card.get_detail_right_text(), "60 / 150 Madra", "the ring raises the max to 150")
+	ResourceManager.set_madra(140.0)
+	assert_eq(card.get_detail_right_text(), "140 / 150 Madra")
 	InventoryManager.unequip_item(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, 0)
-	assert_true(_has_text_containing(card, "carries 100 Madra"), "taking the ring off shrinks it again")
+	assert_eq(card.get_detail_right_text(), "100 / 100 Madra", "taking the ring off brings the pool down to the new max")
