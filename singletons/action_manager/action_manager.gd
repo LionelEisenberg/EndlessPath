@@ -214,12 +214,15 @@ func is_idle_action(action_data: ZoneActionData) -> bool:
 
 ## Madra per second the running action earns: the running cycle's measured rate
 ## while the cycling action runs (0 while no cycle is drawing Madra), a training
-## action's trickle (the Aura Well's 1.5), or 0 when anything else or nothing runs.
+## action's trickle (the Aura Well's 1.5; 0 while the pool is full, where it adds
+## nothing), or 0 when anything else or nothing runs.
 func get_current_madra_per_second() -> float:
 	if current_action != null and current_action.action_type == ZoneActionData.ActionType.CYCLING:
 		return CyclingManager.get_madra_rate()
 	var training := current_action as TrainingActionData
-	return training.get_madra_per_second() if training else 0.0
+	if training == null or ResourceManager.get_madra() >= ResourceManager.get_max_madra():
+		return 0.0
+	return training.get_madra_per_second()
 
 ## The Madra the last training tick actually added: the trickle while it fits,
 ## only what fit on the tick that fills the pool, and 0 at the max.

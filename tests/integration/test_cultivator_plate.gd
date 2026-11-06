@@ -161,6 +161,18 @@ func test_rate_shows_while_aura_well_runs() -> void:
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	assert_false(rate.visible, "hidden while cycling runs")
 
+## At the max the Aura Well adds nothing, so the cabinet shows no rate, as the
+## Now strip reads "+0 / s"; a spend brings it back.
+func test_rate_hides_while_the_pool_is_full() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var rate: RichTextLabel = _node("RateLabel")
+	assert_true(rate.visible, "precondition: shown below the max")
+	ResourceManager.add_madra(ResourceManager.get_max_madra(), true)
+	assert_false(rate.visible, "hidden at the max")
+	ResourceManager.spend_madra(1.0)
+	assert_true(rate.visible, "shown again below the max")
+	assert_eq(rate.get_parsed_text(), "+1.5 / s")
+
 ## While the cycling action runs, the rate is the Madra the ball is drawing,
 ## read to a tenth (13.333 reads +13.3), and it goes when the cycle ends.
 func test_rate_shows_the_cycling_rate() -> void:
