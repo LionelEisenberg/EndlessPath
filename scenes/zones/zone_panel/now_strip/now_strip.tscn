@@ -100,7 +100,7 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 alignment = 2
 
-[node name="MadraIconMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup" unique_id=991498686]
+[node name="RateIconMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup" unique_id=991498686]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -109,7 +109,8 @@ theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 0
 
-[node name="MadraIcon" type="TextureRect" parent="TrainingContent/TopRow/RateGroup/MadraIconMargin" unique_id=414489382]
+[node name="RateIcon" type="TextureRect" parent="TrainingContent/TopRow/RateGroup/RateIconMargin" unique_id=414489382]
+unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 texture = ExtResource("5_mini_madra")

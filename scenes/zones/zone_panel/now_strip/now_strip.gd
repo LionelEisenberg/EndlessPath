@@ -22,6 +22,14 @@ extends Control
 ## name beside it never moves; a stats change (a Spirit level, Spirit gear)
 ## sizes the slot again. The cycling card is not in the list while the player
 ## cycles, so the cycling tray takes no clicks.
+## While the player drills, the tray shows the set in the same layout, read from
+## BodyRefiningManager's set session: the ring lights over each rep, the action's
+## name with the Health heart and what a Perfect rep of the equipped drill restores
+## at the player's Strength ("+4 / rep"), the drill with "Rep 4 / 10" ("10 reps"
+## between sets) and the rod filling over the set. A stats change (a Strength
+## level, Strength gear) or another drill reads the rate again. The body refining
+## board covers the chest while the player drills, so this tray takes no clicks
+## either.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
@@ -61,6 +69,16 @@ const CYCLE_READY_FORMAT: String = "%d s cycle"
 const RATE_FORMAT: String = "%s / s"
 ## The foraging haul's countdown.
 const HAUL_FORMAT: String = "haul in %d s"
+## The set's figures: the Health a Perfect rep restores beside the Health heart,
+## the rep being played and the set's reps while a set runs, the reps alone
+## between sets.
+const REP_RATE_FORMAT: String = "%s / rep"
+const SET_REP_FORMAT: String = "Rep %d / %d"
+const SET_READY_FORMAT: String = "%d reps"
+## The rate's icon: the Madra mini beside a Madra rate, the Health heart beside
+## the Health a rep restores.
+const MADRA_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_madra_ai.png")
+const HEALTH_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
 ## The training level line: what the next level grants ("+1 Spirit at Lv 2"),
 ## or the levels alone for an action whose levels grant no attribute.
 const LEVEL_REWARD_FORMAT: String = "%s at Lv %d"
@@ -94,6 +112,7 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 @onready var _training_content: Control = %TrainingContent
 @onready var _training_name: Label = %TrainingName
 @onready var _rate_group: Control = %RateGroup
+@onready var _rate_icon: TextureRect = %RateIcon
 @onready var _rate_text: RichTextLabel = %RateText
 @onready var _level_label: Label = %LevelLabel
 @onready var _ticks_label: Label = %TicksLabel
@@ -110,7 +129,8 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 # STATE
 #-----------------------------------------------------------------------------
 
-## The idle or cycling action shown, or null while the tray is empty.
+## The idle, cycling or body refining action shown, or null while the tray is
+## empty.
 var _action: ZoneActionData = null
 
 #-----------------------------------------------------------------------------
@@ -123,6 +143,7 @@ func _ready() -> void:
 	ActionManager.training_level_gained.connect(_on_training_level_gained)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
+	BodyRefiningManager.equipped_drill_changed.connect(_on_equipped_drill_changed)
 	CharacterManager.stats_changed.connect(_on_stats_changed)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
 	gui_input.connect(_on_gui_input)
@@ -146,24 +167,28 @@ func flash() -> void:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## Shows the action when it is idle or cycling; empties the tray otherwise.
+## Shows the action when it is idle, cycling or body refining; empties the tray
+## otherwise.
 func _show_action(action: ZoneActionData) -> void:
 	var idle: bool = _is_idle(action)
 	var cycling: bool = _is_cycling(action)
-	_action = action if idle or cycling else null
+	var refining: bool = _is_body_refining(action)
+	_action = action if idle or cycling or refining else null
 	var running: bool = _action != null
 	set_process(running)
 	# A press on the tray scrolls the chest to the running card, so only an idle
-	# action takes clicks: the cycling card is not in the list while cycling.
+	# action takes clicks: the cycling card is not in the list while cycling, and
+	# the body refining board covers the chest.
 	mouse_filter = MOUSE_FILTER_STOP if idle else MOUSE_FILTER_IGNORE
 	_empty_label.visible = not running
 	if not running:
 		_show_empty()
 		return
 	_action_icon.texture = _action.icon
+	_rate_icon.texture = HEALTH_ICON if refining else MADRA_ICON
 	var training := _action as TrainingActionData
 	var forage := _action as ForageActionData
-	_training_content.visible = training != null or cycling
+	_training_content.visible = training != null or cycling or refining
 	_forage_content.visible = forage != null
 	if training != null:
 		_show_training(training)
@@ -171,6 +196,8 @@ func _show_action(action: ZoneActionData) -> void:
 		_show_forage(forage)
 	elif cycling:
 		_show_cycling()
+	elif refining:
+		_show_body_refining()
 	_update_timer_display()
 	_fit()
 
@@ -327,6 +354,61 @@ func _update_cycle_rate() -> void:
 	var rate: float = snappedf(CyclingManager.get_madra_rate(), CyclingManager.RATE_STEP)
 	_rate_text.text = LacquerText.decimal_bbcode(RATE_FORMAT % LacquerText.rate(rate))
 
+## The body refining action in the Aura Well's layout: its name, the Health a
+## Perfect rep restores, and the equipped drill where the level line goes. The
+## figure, the ring and the rod follow the set session every frame. The tray
+## takes no clicks while the player drills, so no hover frame stays from the idle
+## action's tray. The rate changes only with the player's Strength or the drill,
+## so it takes only its own width.
+func _show_body_refining() -> void:
+	_hover_frame.hide()
+	_training_name.text = _action.action_name
+	_rate_group.custom_minimum_size.x = 0.0
+	_rate_text.remove_theme_color_override(&"default_color")
+	_update_drill()
+	_update_set_figure()
+	_fit_training_labels()
+
+## The equipped drill's name, where the Aura Well shows its level line, and the
+## Health a Perfect rep of it restores at the player's Strength. With no drill
+## equipped both are empty and the rate hides.
+func _update_drill() -> void:
+	var drill: DrillData = BodyRefiningManager.get_equipped_drill()
+	_level_label.text = drill.drill_name if drill != null else ""
+	_update_rep_rate()
+
+## "+4 / rep": the Health a Perfect rep of the equipped drill restores, as the
+## board's pay line reads it.
+func _update_rep_rate() -> void:
+	var drill: DrillData = BodyRefiningManager.get_equipped_drill()
+	_rate_group.visible = drill != null
+	if drill == null:
+		return
+	var health: float = BodyRefiningManager.perfect_rep_health(drill)
+	_rate_text.text = LacquerText.decimal_bbcode(REP_RATE_FORMAT % LacquerText.rate(health))
+
+## The ring over the rep, the rod over the set and the figure, read from the set
+## session. The drill wraps beside the figure, so when the figure changes the rows
+## get their room again and the strip fits; on the frames between, nothing is
+## laid out.
+func _update_set_display() -> void:
+	_light_ring(BodyRefiningManager.get_rep_progress() if BodyRefiningManager.is_set_running() else 0.0)
+	_well_rod.set_fraction(BodyRefiningManager.get_set_progress())
+	var figure_before: String = _ticks_label.text
+	_update_set_figure()
+	if _ticks_label.text != figure_before:
+		_fit_training_labels()
+		_fit()
+
+## "Rep 4 / 10" while a set runs; between sets, the equipped drill's reps,
+## "10 reps".
+func _update_set_figure() -> void:
+	if BodyRefiningManager.is_set_running():
+		_ticks_label.text = SET_REP_FORMAT % [BodyRefiningManager.get_set_rep(), BodyRefiningManager.get_set_reps()]
+		return
+	var drill: DrillData = BodyRefiningManager.get_equipped_drill()
+	_ticks_label.text = SET_READY_FORMAT % drill.reps_per_set if drill != null else ""
+
 ## Sizes the strip to what shows in it (an even height, 88 at least): the Aura
 ## Well's rows, the forage's name and yields, or the empty tray's line.
 func _fit() -> void:
@@ -397,12 +479,17 @@ func _range_text(entry: LootTableEntry) -> String:
 ## The ring lights floor(progress × 13) beads, at most 12, where progress is
 ## how far the action timer is through its cycle; foraging also counts down
 ## to the haul. While cycling, progress is how far the session snapshot is
-## through the cycle, and the figure, the rod and the rate follow it too.
+## through the cycle, and the figure, the rod and the rate follow it too. While
+## the player drills, progress is how far the set session is through the rep,
+## and the figure and the rod follow the set.
 func _update_timer_display() -> void:
 	if _action == null:
 		return
 	if _is_cycling(_action):
 		_update_cycle_display()
+		return
+	if _is_body_refining(_action):
+		_update_set_display()
 		return
 	var timer: Timer = ActionManager.action_timer
 	var progress: float = 0.0
@@ -427,6 +514,9 @@ func _is_idle(action: ZoneActionData) -> bool:
 
 func _is_cycling(action: ZoneActionData) -> bool:
 	return action != null and action.action_type == ZoneActionData.ActionType.CYCLING
+
+func _is_body_refining(action: ZoneActionData) -> bool:
+	return action != null and action.action_type == ZoneActionData.ActionType.BODY_REFINING
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -465,12 +555,25 @@ func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 		_fit_training_labels()
 		_fit()
 
+## The drill's name, its reps and the Health a rep restores follow the equipped
+## drill at once, not at the next frame.
+func _on_equipped_drill_changed(_drill: DrillData) -> void:
+	if _is_body_refining(_action):
+		_update_drill()
+		_update_set_figure()
+		_fit_training_labels()
+		_fit()
+
 ## Spirit raises the technique's top rate, so the rate's slot is sized again
-## and the rows beside it get their room. The Aura Well's pool line follows
-## the max, which stats move.
+## and the rows beside it get their room. Strength raises the Health a rep
+## restores. The Aura Well's pool line follows the max, which stats move.
 func _on_stats_changed() -> void:
 	if _is_cycling(_action):
 		_update_technique()
+		_fit_training_labels()
+		_fit()
+	elif _is_body_refining(_action):
+		_update_rep_rate()
 		_fit_training_labels()
 		_fit()
 	elif _action is TrainingActionData:
