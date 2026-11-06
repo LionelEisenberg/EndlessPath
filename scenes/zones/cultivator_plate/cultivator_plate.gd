@@ -335,8 +335,10 @@ static func _less_held(held: float, amount: float) -> float:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
+## The rate follows the pool too: a training action's trickle reads 0 at the max.
 func _on_madra_changed(_amount: float) -> void:
 	_update_madra()
+	_update_rate()
 
 func _on_gold_changed(_amount: float) -> void:
 	_update_gold()

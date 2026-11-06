@@ -580,11 +580,13 @@ func _on_current_action_changed(action: ZoneActionData) -> void:
 func _on_zone_action_completed(_action_id: String) -> void:
 	_refresh_plates()
 
-## "+1.5 Madra" in Madra blue for each tick of the running training action.
+## "+1.5 Madra" in Madra blue for each tick of the running training action:
+## the Madra the tick actually added, so the tick that fills the pool shows only
+## what fit, and a tick at the max shows nothing.
 func _on_training_tick_processed(training: TrainingActionData, _new_tick_count: int) -> void:
 	if _idle_action == null or training != ActionManager.get_current_action():
 		return
-	var madra_per_tick: float = training.get_madra_per_second() * training.tick_interval_seconds
+	var madra_per_tick: float = ActionManager.get_last_tick_madra_gain()
 	if madra_per_tick <= 0.0:
 		return
 	_floater.pop("%s Madra" % LacquerText.rate(madra_per_tick), ThemeConstants.LACQUER_MADRA)
