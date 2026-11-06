@@ -178,7 +178,7 @@ Lionel approved the canvas as drawn.
 **Interfaces:**
 - Produces: `summary()` (the chest's `result_line()`): Madra, then each Spiritual stat with a part in StatDisplay.SPIRITUAL order ("Spirit capped" when capped, else "+N Spirit XP" when the rounded XP is 1 or more), then the zones, the PERFECTs, then "+N Core XP" or "Core full". `log_line()`: "Cycle · " with Madra, the stat parts and the Core part only.
 
-- [ ] **Step 1: Write the failing tests** (`test_result_lines`, `test_log_line`, `test_a_full_core_line_says_so` rewritten; new `test_the_lines_show_the_spirit_xp`):
+- [x] **Step 1: Write the failing tests** (`test_result_lines`, `test_log_line`, `test_a_full_core_line_says_so` rewritten; new `test_the_lines_show_the_spirit_xp`):
 - "Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 Core XP"
 - "Last cycle · +30 Madra · +12 Spirit XP · no zones"
 - "Last cycle · +80 Madra · +30 Spirit XP · 3 / 4 zones · 1 PERFECT · +75 Core XP"
@@ -186,10 +186,10 @@ Lionel approved the canvas as drawn.
 - 0.4 XP: no Spirit part
 - log: "Cycle · +80 Madra · +30 Spirit XP · +75 Core XP"; "Cycle · +30 Madra · +12 Spirit XP"; "Cycle · +57 Madra · Spirit capped"; core full: "Cycle · +186 Madra · Core full"
 - `test_zone_panel.gd`: "+75 XP" and "+99999 XP" become "+75 Core XP" and "+99999 Core XP" in the two last-cycle tests.
-- [ ] **Step 2: Run both files: they fail**
-- [ ] **Step 3: Rewrite `summary()` and `log_line()`**
-- [ ] **Step 4: Run both files: PASS**
-- [ ] **Step 5: Commit** `feat(cycling): show the Spirit XP on the cycle line`
+- [x] **Step 2: Run both files: they fail**
+- [x] **Step 3: Rewrite `summary()` and `log_line()`**
+- [x] **Step 4: Run both files: PASS**
+- [x] **Step 5: Commit** `feat(cycling): show the Spirit XP on the cycle line`
 
 ### Task 7: The board: status line and Spirit pellets
 
