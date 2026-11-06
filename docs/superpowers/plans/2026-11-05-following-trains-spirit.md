@@ -218,17 +218,17 @@ The copy, verbatim:
 | MADRA_FULL_CAPPED | Madra full · Spirit capped |
 | MADRA_FULL_CAPPED_ZONES | Madra full · Spirit capped · zones still pay XP |
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 - `test_status_line_copy` rewritten as a table of every row above.
 - `test_the_status_label_stops_promising_xp_at_a_full_core` now reads MADRA_FULL_FOLLOWING; new `test_the_status_line_says_spirit_is_capped` and `test_a_technique_with_no_zones_says_so` (the Foundational's ready line, and READY_AGAIN after a cycle).
 - `test_spirit_pellets_fly_to_spirit_s_cell`: a followed half second sends 3 pellets in Spirit's ramp, the cabinet's Spirit cell shows the XP once they land, not before.
 - `test_no_spirit_pellets_at_the_cap`.
 - `test_hiding_the_view_pays_the_spirit_xp_without_pellets`: 0.3 s followed, `hide()`: Spirit's XP is up 0.45, the effects layer holds no pellet, and the cell shows it.
 - `test_boards_never_trim_text.gd`: `cycling_view.tscn` in BOARD_SCENES, and ActionLabel, TitleLabel and StatusLabel in the wrapping table.
-- [ ] **Step 2: Run both files: they fail**
-- [ ] **Step 3: Implement the status line and `_on_stat_xp_paid()`**
-- [ ] **Step 4: Run both files: PASS**
-- [ ] **Step 5: Commit** `feat(cycling): send Spirit pellets and say what following pays`
+- [x] **Step 2: Run both files: they fail**
+- [x] **Step 3: Implement the status line and `_on_stat_xp_paid()`**
+- [x] **Step 4: Run both files: PASS**
+- [x] **Step 5: Commit** `feat(cycling): send Spirit pellets and say what following pays`
 
 ### Task 8: Wrap
 

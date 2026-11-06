@@ -169,13 +169,31 @@ func _press_at(position: Vector2) -> void:
 # THE STATUS LINE
 #-----------------------------------------------------------------------------
 
+## Every line the board can show, as approved (#94's canvas, board 6). While a
+## cycle runs Madra full wins over Spirit capped, and both take the seconds'
+## place; the follow hint shows only while following still pays something.
 func test_status_line_copy() -> void:
-	assert_eq(CyclingView.status_line(false, false, 0.0, 15.0, false, false, true), CyclingView.READY_FIRST)
-	assert_eq(CyclingView.status_line(true, false, 0.0, 15.0, false, false, true), CyclingView.READY_AGAIN)
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, true, false, true), "Cycling · 9 / 15 s")
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, false, false, true), "Cycling · 9 / 15 s · follow the ball")
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, true, true, true), CyclingView.MADRA_FULL_ZONES)
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, true, true, false), CyclingView.MADRA_FULL)
+	# cycled before, running, elapsed, duration, following, Madra full, Spirit capped, zoneless, zones pay XP
+	var cases: Array[Array] = [
+		[[false, false, 0.0, 15.0, false, false, false, false, true], "Click the Madra ball to begin a cycle.", "before the first cycle"],
+		[[false, false, 0.0, 8.0, false, false, false, true, false], "No zones to press: click the ball and follow it.", "before the first cycle, no zones"],
+		[[false, false, 0.0, 0.0, false, false, false, false, false], "Click the Madra ball to begin a cycle.", "no technique"],
+		[[true, false, 0.0, 8.0, false, false, false, true, false], "Click the ball for another cycle.", "after a cycle, no zones"],
+		[[true, true, 9.4, 15.0, true, false, false, false, true], "Cycling · 9 / 15 s", "following"],
+		[[true, true, 9.4, 15.0, false, false, false, false, true], "Cycling · 9 / 15 s · follow the ball", "not following"],
+		[[true, true, 3.0, 8.0, true, true, false, true, false], "Madra full · following still trains Spirit", "Madra full, following"],
+		[[true, true, 3.0, 8.0, false, true, false, true, false], "Madra full · follow the ball to train Spirit", "Madra full, not following"],
+		[[true, true, 9.4, 15.0, true, true, false, false, true], "Madra full · following and zones still pay XP", "Madra full, zones pay, following"],
+		[[true, true, 9.4, 15.0, false, true, false, false, true], "Madra full · follow the ball · zones still pay XP", "Madra full, zones pay, not following"],
+		[[true, true, 9.4, 15.0, true, false, true, false, true], "Spirit capped · following still fills Madra", "Spirit capped, following"],
+		[[true, true, 9.4, 15.0, false, false, true, false, true], "Spirit capped · follow the ball for Madra", "Spirit capped, not following"],
+		[[true, true, 3.0, 8.0, true, true, true, true, false], "Madra full · Spirit capped", "both, following"],
+		[[true, true, 3.0, 8.0, false, true, true, true, false], "Madra full · Spirit capped", "both, not following"],
+		[[true, true, 9.4, 15.0, true, true, true, false, true], "Madra full · Spirit capped · zones still pay XP", "both, zones pay"],
+	]
+	for case: Array in cases:
+		var args: Array = case[0]
+		assert_eq(CyclingView.status_line(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]), case[1], case[2])
 
 func test_the_status_label_follows_the_cycle() -> void:
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "ready before the first cycle")
@@ -204,7 +222,25 @@ func test_the_status_label_stops_promising_xp_at_a_full_core() -> void:
 	_technique.start_cycle()
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL)
+	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL_FOLLOWING)
+
+func test_the_status_line_says_spirit_is_capped() -> void:
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
+	_technique.start_cycle()
+	_technique.advance(FRAME, _technique.get_ball_global_position())
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.SPIRIT_CAPPED_FOLLOWING)
+
+## The Foundational has no sockets on the board: its first ready line says so.
+func test_a_technique_with_no_zones_says_so() -> void:
+	CyclingManager.equip_technique(FOUNDATION_ID)
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.READY_NO_ZONES)
+	_technique.start_cycle()
+	_run(8.0 + FRAME, 60.0, false)
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.READY_AGAIN, "after a cycle it reads as for any technique")
+	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
 # LONG TEXT
@@ -392,6 +428,45 @@ func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
 	_view.hide()
 	assert_eq(_plate_text("MadraValueLabel"), str(floori(ResourceManager.get_madra())))
 	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), ceili(CultivationManager.get_xp_for_next_level())])
+	await _await_queued_frees()
+
+## The Spirit pellets in the effects layer.
+func _spirit_pellets() -> Array[LacquerPellet]:
+	return _pellets().filter(func(pellet: LacquerPellet) -> bool: return pellet.get_ramp() == LacquerPellet.Ramp.SPIRIT)
+
+func _spirit_cell() -> StatCell:
+	return _plate.get_node("%SpiritCell") as StatCell
+
+## Each half second followed sends a puff of pellets in Spirit's colour to its
+## cell, which shows the XP as they land, not as they leave.
+func test_spirit_pellets_fly_to_spirit_s_cell() -> void:
+	_technique.start_cycle()
+	_run(0.55, 60.0, true)
+	var puff: Array[LacquerPellet] = _spirit_pellets()
+	assert_eq(puff.size(), CyclingView.STAT_PELLETS, "one puff for the first half second")
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 1.0, 0.0001, "precondition: Spirit took Smooth Flow's 1 XP")
+	assert_eq(_spirit_cell().get_shown_xp(), 0.0, "none of it has landed")
+	for pellet: LacquerPellet in puff:
+		pellet._process(10.0)
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 1.0, 0.0001, "all of it has landed")
+
+func test_no_spirit_pellets_at_the_cap() -> void:
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
+	_technique.start_cycle()
+	_run(1.1, 60.0, true)
+	assert_gt(_pellets().size(), 0, "precondition: Madra pellets still fly")
+	assert_eq(_spirit_pellets().size(), 0, "a capped Spirit takes no pellets")
+
+## A board that hides mid-cycle pays the Spirit XP followed since the last puff
+## straight into the cell: nothing flies from a hidden board, and nothing stays held.
+func test_hiding_the_view_pays_the_spirit_xp_without_pellets() -> void:
+	_technique.start_cycle()
+	_run(0.3, 60.0, true)
+	assert_eq(_spirit_pellets().size(), 0, "precondition: no half second paid yet")
+	_view.hide()
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.6, 0.0001, "0.3 s of Smooth Flow's 2 a second")
+	assert_eq(_spirit_pellets().size(), 0, "no pellet flies from the hidden board")
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.6, 0.0001, "and the cell shows it at once")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------

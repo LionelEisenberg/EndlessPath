@@ -9,13 +9,15 @@ extends Control
 ## line too long for its line wraps, never cut, and the board grows under it.
 ## A finished cycle's result goes to CyclingManager, and the zone chest shows
 ## it under its Now tray.
-## The cabinet on the left is the Madra and Core Density readout, so the view
-## has none of its own: the Madra pellets fly from the ball into the cabinet's
-## Madra orb and the XP pellets from a zone into its Core orb (none while the
-## core is full, which takes no XP). The cabinet holds what each pellet carries
-## out of its readout until the pellet lands, so its orbs fill as the pellets
-## arrive. MainView hands the cabinet over in cultivator_plate; with none, no
-## pellet is sent.
+## The cabinet on the left is the Madra, Core Density and stat readout, so the
+## view has none of its own: the Madra pellets fly from the ball into the
+## cabinet's Madra orb, the XP pellets from a zone into its Core orb (none while
+## the core is full, which takes no XP), and each payment of a stat's XP for
+## following bursts from the ball into that stat's cell as a puff of STAT_PELLETS
+## (none for a capped stat, which takes no XP). The cabinet holds what each pellet
+## carries out of its readout until the pellet lands, so its orbs and cells fill
+## as the pellets arrive. MainView hands the cabinet over in cultivator_plate;
+## with none, no pellet is sent, and none flies from a hidden board.
 ## The view shows and hides outright, or a transition scales it out of the cultivator
 ## into the board's rect (get_board_rect()) and back. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
@@ -30,20 +32,35 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The status line when no cycle runs: before the first cycle, and after one.
+## The status line when no cycle runs: before the first cycle (READY_NO_ZONES
+## for a technique with no zones to press), and after one.
 const READY_FIRST: String = "Click the Madra ball to begin a cycle."
+const READY_NO_ZONES: String = "No zones to press: click the ball and follow it."
 const READY_AGAIN: String = "Click the ball for another cycle."
 
 ## The status line while a cycle runs: the whole seconds gone and the cycle's
-## length, then FOLLOW_SUFFIX while the cursor is off the ball.
+## length, then FOLLOW_SUFFIX while the cursor does not follow the ball.
 const CYCLING_FORMAT: String = "Cycling · %d / %d s"
 const FOLLOW_SUFFIX: String = " · follow the ball"
 
-## The status line while a cycle runs with Madra at its max: no Madra is drawn.
-## MADRA_FULL_ZONES is for a technique whose zones still pay XP: it has zones and
-## the core has room for the XP (a full core takes none).
-const MADRA_FULL: String = "Madra full"
-const MADRA_FULL_ZONES: String = "Madra full · zones still pay XP"
+## The status line while a cycle runs with Madra at its max: no Madra is drawn,
+## but following still trains Spirit. The _ZONES lines are for a technique whose
+## zones still pay XP: it has zones and the core has room for the XP (a full core
+## takes none).
+const MADRA_FULL_FOLLOWING: String = "Madra full · following still trains Spirit"
+const MADRA_FULL_OFF: String = "Madra full · follow the ball to train Spirit"
+const MADRA_FULL_ZONES_FOLLOWING: String = "Madra full · following and zones still pay XP"
+const MADRA_FULL_ZONES_OFF: String = "Madra full · follow the ball · zones still pay XP"
+
+## The status line while a cycle runs with Spirit at the stage's cap: following
+## pays no Spirit XP, but still draws Madra.
+const SPIRIT_CAPPED_FOLLOWING: String = "Spirit capped · following still fills Madra"
+const SPIRIT_CAPPED_OFF: String = "Spirit capped · follow the ball for Madra"
+
+## The status line while a cycle runs with Madra full and Spirit capped:
+## following pays nothing, so the line gives no hint to follow.
+const MADRA_FULL_CAPPED: String = "Madra full · Spirit capped"
+const MADRA_FULL_CAPPED_ZONES: String = "Madra full · Spirit capped · zones still pay XP"
 
 ## The Auto toggle's text.
 const AUTO_ON_TEXT: String = "Auto · on"
@@ -65,6 +82,15 @@ const MADRA_PELLET_BOW: float = 60.0
 const XP_PELLET_FLIGHT: float = 0.6
 const XP_PELLET_FLIGHT_STEP: float = 0.04
 const XP_BURST_REACH: float = 36.0
+
+## A payment of a stat's XP is a puff of STAT_PELLETS pellets in the stat's ramp:
+## they pop out of the ball up to STAT_BURST_REACH px, then home into the stat's
+## cell on the cabinet, the first STAT_PELLET_FLIGHT s after the payment and each
+## next one STAT_PELLET_FLIGHT_STEP s after the one before (PelletFlight.burst).
+const STAT_PELLETS: int = 3
+const STAT_PELLET_FLIGHT: float = 0.6
+const STAT_PELLET_FLIGHT_STEP: float = 0.05
+const STAT_BURST_REACH: float = 28.0
 
 const _PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 const _FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
@@ -126,6 +152,7 @@ func _ready() -> void:
 	_technique.cycle_completed.connect(_on_cycle_completed)
 	_technique.madra_particle_requested.connect(_on_madra_particle_requested)
 	_technique.zone_scored.connect(_on_zone_scored)
+	_technique.stat_xp_paid.connect(_on_stat_xp_paid)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
 	ActionManager.stop_cycling.connect(_on_stop_cycling)
 	_close_button.pressed.connect(_on_close_pressed)
@@ -148,20 +175,31 @@ func _process(_delta: float) -> void:
 #-----------------------------------------------------------------------------
 
 ## Returns the status line for the board's state. While no cycle runs it is
-## READY_FIRST, or READY_AGAIN once a cycle has ended. While one runs it is
+## READY_AGAIN once a cycle has ended, else READY_NO_ZONES for a `zoneless`
+## technique (one with no zones, never no technique) and READY_FIRST for any
+## other. While one runs, Madra at its max comes first: MADRA_FULL_CAPPED when
+## Spirit is capped too, else the MADRA_FULL_ lines, by whether the cursor
+## follows. Then Spirit at the cap: the SPIRIT_CAPPED_ lines. Otherwise it is
 ## "Cycling · 9 / 15 s" (the whole seconds gone, floored, and the cycle's
-## length), with FOLLOW_SUFFIX added while the cursor is off the ball. With
-## Madra at its max it says so instead (MADRA_FULL_ZONES when `zones_pay_xp`,
-## MADRA_FULL when not), whether or not the cursor follows. `zones_pay_xp` is
-## true for a technique with zones while the core is not full: a full core takes
-## no XP, so then its zones pay none and the line must not say they do.
-static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, tracking: bool, madra_full: bool, zones_pay_xp: bool) -> String:
+## length), with FOLLOW_SUFFIX added while the cursor does not follow.
+## `zones_pay_xp` is true for a technique with zones while the core is not full:
+## a full core takes no XP, so then its zones pay none and the line must not say
+## they do.
+static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, following: bool, madra_full: bool, spirit_capped: bool, zoneless: bool, zones_pay_xp: bool) -> String:
 	if not running:
-		return READY_AGAIN if cycled_before else READY_FIRST
+		if cycled_before:
+			return READY_AGAIN
+		return READY_NO_ZONES if zoneless else READY_FIRST
 	if madra_full:
-		return MADRA_FULL_ZONES if zones_pay_xp else MADRA_FULL
+		if spirit_capped:
+			return MADRA_FULL_CAPPED_ZONES if zones_pay_xp else MADRA_FULL_CAPPED
+		if zones_pay_xp:
+			return MADRA_FULL_ZONES_FOLLOWING if following else MADRA_FULL_ZONES_OFF
+		return MADRA_FULL_FOLLOWING if following else MADRA_FULL_OFF
+	if spirit_capped:
+		return SPIRIT_CAPPED_FOLLOWING if following else SPIRIT_CAPPED_OFF
 	var line: String = CYCLING_FORMAT % [floori(elapsed), roundi(duration)]
-	return line if tracking else line + FOLLOW_SUFFIX
+	return line if following else line + FOLLOW_SUFFIX
 
 ## Returns the status line's text.
 func get_status_text() -> String:
@@ -206,6 +244,8 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## board out again when the line changes.
 func _update_status() -> void:
 	var madra_full: bool = ResourceManager.get_madra() >= ResourceManager.get_max_madra()
+	var spirit_capped: bool = CharacterManager.is_stat_capped(CharacterAttributesData.AttributeType.SPIRIT)
+	var zoneless: bool = _technique.technique_data != null and _technique.cycling_zones.is_empty()
 	var zones_pay_xp: bool = not _technique.cycling_zones.is_empty() and not CultivationManager.is_core_full()
 	var line: String = status_line(
 		_cycled_before,
@@ -214,6 +254,8 @@ func _update_status() -> void:
 		CyclingManager.get_cycle_duration(),
 		_technique.is_following(),
 		madra_full,
+		spirit_capped,
+		zoneless,
 		zones_pay_xp)
 	if line == _status_label.text:
 		return
@@ -409,6 +451,27 @@ func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> voi
 		var pellet: LacquerPellet = _send_pellet(flight, _pellet_ramp(tier))
 		cultivator_plate.hold_core_xp(share)
 		pellet.delivered.connect(cultivator_plate.release_core_xp.bind(share))
+
+## A payment of a stat's XP for following landed in the stat: a puff of
+## STAT_PELLETS pellets in the stat's ramp bursts from the ball and homes into the
+## stat's cell, each carrying an even share of what the stat took, which the
+## cabinet holds out of the cell until each lands. A hidden board sends nothing:
+## the XP is in the stat already, and its cell shows it at once.
+func _on_stat_xp_paid(stat: CharacterAttributesData.AttributeType, from_pos: Vector2, amount: float) -> void:
+	if cultivator_plate == null or not is_visible_in_tree():
+		return
+	var flights: Array[PelletFlight] = PelletFlight.burst(
+		from_pos,
+		cultivator_plate.get_stat_cell_global_position(stat),
+		STAT_PELLETS,
+		STAT_PELLET_FLIGHT,
+		STAT_PELLET_FLIGHT_STEP,
+		STAT_BURST_REACH)
+	var share: float = amount / flights.size()
+	for flight: PelletFlight in flights:
+		var pellet: LacquerPellet = _send_pellet(flight, LacquerPellet.stat_ramp(stat))
+		cultivator_plate.hold_stat_xp(stat, share)
+		pellet.delivered.connect(cultivator_plate.release_stat_xp.bind(stat, share))
 
 func _on_auto_toggled(on: bool) -> void:
 	_technique.auto_cycle = on
