@@ -468,13 +468,18 @@ func test_award_item_by_path() -> void:
 	var scale: ConsumableDefinitionData = load(CRUDE_SCALE)
 	assert_eq(InventoryManager.get_inventory().consumables.get(scale), 3)
 
-## The Items tab offers every path list_item_paths() returns, so each must award.
+## The Items tab offers every path list_item_paths() returns, so each must award:
+## a kept item lands in the inventory, and a drill manual, which isn't kept,
+## teaches its drill.
 func test_every_listed_item_can_be_awarded() -> void:
 	for path: String in DevCommands.list_item_paths():
 		var item: ItemDefinitionData = load(path)
 		assert_false(InventoryManager.has_item(item.item_id), "precondition: a fresh save holds no %s" % item.item_id)
 		assert_eq(DevCommands.award_item(path, 1), "", path)
-		assert_true(InventoryManager.has_item(item.item_id), "%s is in the inventory" % item.item_id)
+		if item is DrillManualDefinitionData:
+			assert_true(BodyRefiningManager.is_drill_unlocked((item as DrillManualDefinitionData).drill_id), "%s taught its drill" % item.item_id)
+		else:
+			assert_true(InventoryManager.has_item(item.item_id), "%s is in the inventory" % item.item_id)
 
 func test_award_item_refuses_a_path_that_is_not_an_item_and_a_quantity_below_one() -> void:
 	assert_ne(DevCommands.award_item(QUEST_FILE, 1), "", "a quest is not an item")

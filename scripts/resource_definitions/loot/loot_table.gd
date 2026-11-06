@@ -24,6 +24,7 @@ func _init() -> void:
 #-----------------------------------------------------------------------------
 
 ## Roll all loot entries and return items that passed their probability checks.
+## An entry whose item can't drop now (ItemDefinitionData.can_drop()) is skipped.
 ## Returns: Dictionary[ItemDefinitionData, int] mapping items to total quantities
 func roll_loot() -> Dictionary:
 	var result: Dictionary = {}
@@ -33,6 +34,12 @@ func roll_loot() -> Dictionary:
 	for entry in entries:
 		if not entry or not entry.item:
 			Log.warn("LootTable: Skipping invalid entry (null or missing item)")
+			continue
+
+		# An item that would be wasted (a manual whose drill is known) doesn't
+		# roll, so it never takes a loot slot.
+		if not entry.item.can_drop():
+			Log.info("LootTable: SKIPPED - %s (can't drop now)" % entry.item.item_name)
 			continue
 		
 		# Roll for this entry

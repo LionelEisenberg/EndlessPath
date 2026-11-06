@@ -8,6 +8,26 @@
 [ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_7oinx"]
 [ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="7_1gav6"]
 [ext_resource type="Script" uid="uid://c01t8okcbx2km" path="res://scripts/resource_definitions/effects/award_core_density_xp_effect_data.gd" id="20_cdxp"]
+[ext_resource type="Script" uid="uid://bbayqmvvc4hvt" path="res://scripts/resource_definitions/loot/loot_table_entries.gd" id="30_entry"]
+[ext_resource type="Script" uid="uid://b0055qxx6pmno" path="res://scripts/resource_definitions/loot/loot_table.gd" id="31_table"]
+[ext_resource type="Script" uid="uid://w0sbaux5u040" path="res://scripts/resource_definitions/effects/award_loot_table_effect_data.gd" id="32_award"]
+[ext_resource type="Resource" path="res://resources/items/drill_manuals/falling_leaf_manual.tres" id="33_manual"]
+
+[sub_resource type="Resource" id="Resource_manual_entry"]
+script = ExtResource("30_entry")
+item = ExtResource("33_manual")
+drop_chance = 0.25
+metadata/_custom_type_script = "uid://bbayqmvvc4hvt"
+
+[sub_resource type="Resource" id="Resource_manual_table"]
+script = ExtResource("31_table")
+entries = Array[ExtResource("30_entry")]([SubResource("Resource_manual_entry")])
+metadata/_custom_type_script = "uid://b0055qxx6pmno"
+
+[sub_resource type="Resource" id="Resource_manual_loot"]
+script = ExtResource("32_award")
+loot_table = SubResource("Resource_manual_table")
+metadata/_custom_type_script = "uid://w0sbaux5u040"
 
 [sub_resource type="Resource" id="Resource_core_density_xp"]
 script = ExtResource("20_cdxp")
@@ -18,7 +38,7 @@ metadata/_custom_type_script = "uid://c01t8okcbx2km"
 script = ExtResource("6_7oinx")
 enemy_pool = Array[ExtResource("2_2ug5m")]([ExtResource("3_a1f1b")])
 label = "Attack the Spirit"
-success_effects = Array[ExtResource("4_j8fil")]([SubResource("Resource_core_density_xp")])
+success_effects = Array[ExtResource("4_j8fil")]([SubResource("Resource_manual_loot"), SubResource("Resource_core_density_xp")])
 metadata/_custom_type_script = "uid://cpq8eacgl1537"
 
 [resource]
