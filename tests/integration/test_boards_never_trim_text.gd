@@ -35,6 +35,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/character/attribute_tile/attribute_tile.tscn",
 	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
 	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
+	"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn",
 ]
 
 ## Where the whole-scene walk reads.
@@ -158,6 +159,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/ui/goals_panel/goals_panel.tscn": ["QuestNameLabel", "QuestStepLabel", "MilestoneNameLabel", "MilestoneTextLabel"],
 		"res://scenes/zones/zone_panel/now_strip/now_strip.tscn": ["TrainingName", "LevelLabel", "ForageName", "EmptyLabel"],
 		"res://scenes/character/character_view.tscn": ["DetailDescription"],
+		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
 	}
 	for path: String in wrapping:
 		var board: Node = (load(path) as PackedScene).instantiate()

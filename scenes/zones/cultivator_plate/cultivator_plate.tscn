@@ -12,6 +12,7 @@
 [ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="10_madra_orb"]
 [ext_resource type="Shader" uid="uid://csri7yobignr4" path="res://assets/shaders/lacquer_core_orb.gdshader" id="11_core_orb"]
 [ext_resource type="PackedScene" uid="uid://cc2ndo21eq3ia" path="res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn" id="12_stat_cell"]
+[ext_resource type="PackedScene" path="res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn" id="15_stat_tooltip"]
 [ext_resource type="PackedScene" path="res://scenes/common/lacquer/lacquer_group_row/lacquer_group_row.tscn" id="16_group_row"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_madra_socket"]
@@ -311,3 +312,6 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelLacquerRate"
 text = "gold"
+
+[node name="StatTooltip" parent="." instance=ExtResource("15_stat_tooltip")]
+unique_name_in_owner = true
