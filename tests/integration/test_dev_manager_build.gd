@@ -22,6 +22,8 @@ extends GutTest
 const Kind = DevStepData.Kind
 const SessionKind = DevManager.SessionKind
 
+## A drill a new save leaves locked.
+const OTHER_DRILL: String = "horse_stance"
 const PURE_MADRA_TREE: String = "res://resources/path_progression/pure_madra/pure_madra_tree.tres"
 const QUEST_LIST: String = "res://resources/quests/quest_list.tres"
 const FOUNDATION_STAGE: String = "res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres"
@@ -279,6 +281,18 @@ func test_a_built_save_shows_no_new_seals() -> void:
 			assert_true(ZoneManager.is_action_seen(action.action_id), "%s shows no NEW seal" % action.action_id)
 	for technique: CyclingTechniqueData in CyclingManager.get_unlocked_techniques():
 		assert_true(CyclingManager.is_technique_seen(technique.id), "%s shows no NEW seal" % technique.id)
+	for drill: DrillData in BodyRefiningManager.get_unlocked_drills():
+		assert_true(BodyRefiningManager.is_drill_seen(drill.id), "%s shows no NEW mark" % drill.id)
+
+## No preset step unlocks a drill yet, so the build's seen pass is checked on a
+## drill unlocked after the build: it would show NEW without the pass.
+func test_the_builds_seen_pass_marks_drills_seen() -> void:
+	var preset := _preset("test_drill_seals", "", [])
+	assert_eq(DevManager.build_preset(preset), "", "precondition: the preset builds")
+	BodyRefiningManager.unlock_drill(OTHER_DRILL)
+	assert_false(BodyRefiningManager.is_drill_seen(OTHER_DRILL), "precondition: an unlock shows NEW")
+	DevManager._mark_everything_seen()
+	assert_true(BodyRefiningManager.is_drill_seen(OTHER_DRILL), "the build's pass marks it seen")
 
 func test_a_failing_step_names_itself() -> void:
 	var preset := _preset("test_failing", "", [_step(Kind.COMPLETE_ACTION, NPC_4)])

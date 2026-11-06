@@ -6,9 +6,9 @@ extends ScrollContainer
 ## change: until runs read the pool, it is the only place the pool shows. Core Density is reached through real XP, so the milestones pay, and the
 ## stage shows next to it with a button to break through to the next. Path Points are
 ## added to. A stat is set to a level, past the stage's cap too, and to XP toward the
-## next level. A cycling technique or a combat ability is unlocked, or equipped (an
-## ability in the slot picked), or all of them are unlocked. A refusal shows above the
-## controls until a command works.
+## next level. A cycling technique, a body refining drill or a combat ability is
+## unlocked, or equipped (an ability in the slot picked), or all of them are
+## unlocked. A refusal shows above the controls until a command works.
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -36,6 +36,10 @@ extends ScrollContainer
 @onready var _technique_unlock: Button = %TechniqueUnlock
 @onready var _technique_equip: Button = %TechniqueEquip
 @onready var _unlock_all_techniques: Button = %UnlockAllTechniques
+@onready var _drill_option: OptionButton = %DrillOption
+@onready var _drill_unlock: Button = %DrillUnlock
+@onready var _drill_equip: Button = %DrillEquip
+@onready var _unlock_all_drills: Button = %UnlockAllDrills
 @onready var _ability_option: OptionButton = %AbilityOption
 @onready var _ability_unlock: Button = %AbilityUnlock
 @onready var _ability_equip: Button = %AbilityEquip
@@ -46,9 +50,10 @@ extends ScrollContainer
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
-## Lists the stats, the techniques and the abilities in their pickers, each item's
-## metadata what its command takes (the stat's key, the others' ids), shows the stage
-## and Health, and keeps them showing as the core, the stage, Health and its max change.
+## Lists the stats, the techniques, the drills and the abilities in their pickers,
+## each item's metadata what its command takes (the stat's key, the others' ids),
+## shows the stage and Health, and keeps them showing as the core, the stage, Health
+## and its max change.
 func _ready() -> void:
 	for stat: CharacterAttributesData.AttributeType in CharacterAttributesData.AttributeType.values():
 		_stat_option.add_item(CharacterManager.get_attribute_display_name(stat))
@@ -56,6 +61,9 @@ func _ready() -> void:
 	for technique: CyclingTechniqueData in CyclingManager.get_all_techniques():
 		_technique_option.add_item(technique.technique_name)
 		_technique_option.set_item_metadata(_technique_option.item_count - 1, technique.id)
+	for drill: DrillData in BodyRefiningManager.get_all_drills():
+		_drill_option.add_item(drill.drill_name)
+		_drill_option.set_item_metadata(_drill_option.item_count - 1, drill.id)
 	for ability: AbilityData in AbilityManager.get_all_abilities():
 		_ability_option.add_item(ability.ability_name)
 		_ability_option.set_item_metadata(_ability_option.item_count - 1, ability.ability_id)
@@ -71,6 +79,9 @@ func _ready() -> void:
 	_technique_unlock.pressed.connect(_on_technique_unlock_pressed)
 	_technique_equip.pressed.connect(_on_technique_equip_pressed)
 	_unlock_all_techniques.pressed.connect(_on_unlock_all_techniques_pressed)
+	_drill_unlock.pressed.connect(_on_drill_unlock_pressed)
+	_drill_equip.pressed.connect(_on_drill_equip_pressed)
+	_unlock_all_drills.pressed.connect(_on_unlock_all_drills_pressed)
 	_ability_unlock.pressed.connect(_on_ability_unlock_pressed)
 	_ability_equip.pressed.connect(_on_ability_equip_pressed)
 	_unlock_all_abilities.pressed.connect(_on_unlock_all_abilities_pressed)
@@ -112,6 +123,15 @@ func _on_technique_equip_pressed() -> void:
 
 func _on_unlock_all_techniques_pressed() -> void:
 	_show_result(DevCommands.unlock_all_techniques())
+
+func _on_drill_unlock_pressed() -> void:
+	_show_result(DevCommands.unlock_drill(_picked_id(_drill_option)))
+
+func _on_drill_equip_pressed() -> void:
+	_show_result(DevCommands.equip_drill(_picked_id(_drill_option)))
+
+func _on_unlock_all_drills_pressed() -> void:
+	_show_result(DevCommands.unlock_all_drills())
 
 func _on_ability_unlock_pressed() -> void:
 	_show_result(DevCommands.unlock_ability(_picked_id(_ability_option)))
