@@ -29,5 +29,5 @@ Stats rework chunk #95 (tracking issue #85). Design: the spec's Phase 3 section 
 ## Built differently
 
 - **The tick's gain lives in `ActionManager`**, outside the issue's Touches list. The floater has to know what a tick really added, and only the tick handler sees the pool before and after the trickle. `ActionManager` outside `select_action` is one of #85's allowed overlaps.
-- **The cabinet is unchanged.** At full Madra its "+1.5 / s" stays, since it reads `ActionManager.get_current_madra_per_second()` and re-reads it only when the action or the cycle rate changes. The cabinet is a shared surface outside this chunk's Touches; it is left as a follow-up for Lionel to place.
+- **The cabinet's rate follows the pool too** (Lionel, after the first build, 2026-11-05; noted on #95 since the cabinet is a shared surface outside the Touches). `ActionManager.get_current_madra_per_second()` returns 0 for a training action at the max, and the cabinet re-reads its rate on `madra_changed`, so at full Madra it hides its rate (its rule for a +0 rate) instead of showing "+1.5 / s" beside the strip's "+0 / s".
 - **The level award path stays.** The card and the strip still show "+1 Spirit / level" and "+1 Spirit at Lv n" for a training action whose levels grant a stat: no shipped action has one now, but the data allows it, and tests keep it working.
