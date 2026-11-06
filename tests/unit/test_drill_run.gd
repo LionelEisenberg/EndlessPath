@@ -55,7 +55,7 @@ func test_each_input_gets_its_run() -> void:
 	var cases: Array[Dictionary] = [
 		{"kind": InputKind.HOLD_RELEASE, "run": "StoneLiftingRun"},
 		{"kind": InputKind.HOLD_STEADY, "run": "HorseStanceRun"},
-		{"kind": InputKind.CATCH, "run": "StoneLiftingRun"},
+		{"kind": InputKind.CATCH, "run": "FallingLeafRun"},
 		{"kind": InputKind.BEAT, "run": "WaterfallRun"},
 	]
 	for case: Dictionary in cases:
@@ -70,6 +70,7 @@ func test_only_the_hold_drills_judge_the_starting_press() -> void:
 	var cases: Array[Dictionary] = [
 		{"kind": InputKind.HOLD_RELEASE, "judged": true},
 		{"kind": InputKind.HOLD_STEADY, "judged": true},
+		{"kind": InputKind.CATCH, "judged": false},
 		{"kind": InputKind.BEAT, "judged": false},
 	]
 	for case: Dictionary in cases:
