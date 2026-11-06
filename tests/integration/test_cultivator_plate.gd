@@ -449,7 +449,7 @@ func test_a_capped_stat_takes_no_pellets() -> void:
 	assert_true(_plate.accepts_stat_xp(Attribute.MIND), "Mind under the cap takes them")
 
 ## XP on its way to a cell is left out of its ring until it lands. Spirit Lv 4
-## costs 195.3125 XP: 25 of it lights floor(25 × 24 / 195.3125) = 3 beads.
+## costs 195 XP: 25 of it lights floor(25 × 24 / 195) = 3 beads.
 func test_held_stat_xp_shows_once_released() -> void:
 	CharacterManager.set_stat_level(Attribute.SPIRIT, 4)
 	CharacterManager.add_stat_xp(Attribute.SPIRIT, 50.0)
@@ -462,7 +462,7 @@ func test_held_stat_xp_shows_once_released() -> void:
 
 ## XP that pays a level shows the old level, its beads filling, until enough of
 ## it lands to cross it; the crossing plays the level-up look. 190 of Lv 4's
-## 195.3125, plus 20: Lv 5 with 14.6875.
+## 195, plus 20: Lv 5 with 15.
 func test_held_stat_xp_holds_back_a_level_up() -> void:
 	CharacterManager.set_stat_level(Attribute.SPIRIT, 4, 190.0)
 	CharacterManager.add_stat_xp(Attribute.SPIRIT, 20.0)
@@ -471,12 +471,12 @@ func test_held_stat_xp_holds_back_a_level_up() -> void:
 	await wait_process_frames(1)
 	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 4", "the old level while the XP flies")
 	assert_false(_cell("SpiritCell").is_flashing(), "XP paid and held in one frame plays nothing yet")
-	_plate.release_stat_xp(Attribute.SPIRIT, 5.0)
+	_plate.release_stat_xp(Attribute.SPIRIT, 4.0)
 	await wait_process_frames(1)
-	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 4", "195 of 195.3125: still short")
-	assert_eq(_ring("SpiritCell"), Vector2i(23, 0), "195 × 24 / 195.3125 = 23.96, floored to 23")
+	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 4", "194 of 195: still short")
+	assert_eq(_ring("SpiritCell"), Vector2i(23, 0), "194 × 24 / 195 = 23.88, floored to 23")
 	assert_false(_cell("SpiritCell").is_flashing(), "a landing short of the level plays nothing")
-	_plate.release_stat_xp(Attribute.SPIRIT, 15.0)
+	_plate.release_stat_xp(Attribute.SPIRIT, 16.0)
 	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 5", "the level shows as its pellet lands")
 	await wait_process_frames(1)
 	assert_true(_cell("SpiritCell").is_flashing(), "and plays the level-up look then")
@@ -555,10 +555,10 @@ func test_the_hover_figure_follows_the_cell() -> void:
 	cell.hover_changed.emit(true)
 	assert_true(_tooltip().visible, "the figure shows")
 	assert_eq(_tooltip_text("TitleLabel"), "Spirit Lv 4", "the stat and its level")
-	assert_eq(_tooltip_text("FigureLabel"), "50 / 196 XP to Lv 5", "the XP the cell shows, less what flies")
+	assert_eq(_tooltip_text("FigureLabel"), "50 / 195 XP to Lv 5", "the XP the cell shows, less what flies")
 	assert_eq(_tooltip().global_position, Vector2(_plate.global_position.x + CultivatorPlate.TOOLTIP_X, cell.global_position.y + CultivatorPlate.TOOLTIP_DROP), "beside the cabinet, level with the cell")
 	_plate.release_stat_xp(Attribute.SPIRIT, 50.0)
-	assert_eq(_tooltip_text("FigureLabel"), "100 / 196 XP to Lv 5", "it follows the landing")
+	assert_eq(_tooltip_text("FigureLabel"), "100 / 195 XP to Lv 5", "it follows the landing")
 	cell.hover_changed.emit(false)
 	assert_false(_tooltip().visible, "leaving the cell hides it")
 
