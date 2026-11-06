@@ -257,8 +257,8 @@ func test_exit_as_victory_ends_the_run() -> void:
 func test_exit_as_defeat_ends_the_run() -> void:
 	_start_run()
 	assert_true(_view.is_adventure_running(), "precondition: the run is on")
-	# A run that ends at 0 Health counts as a loss in play, so a count of 0 shows the pause.
-	PlayerManager.vitals_manager.current_health = 0.0
+	# A run whose time is up counts as a timeout in play, so a count of 0 shows the pause.
+	_view.get_run_timer().stop()
 
 	assert_eq(DevCommands.exit_adventure(_view, false), "")
 
@@ -266,8 +266,8 @@ func test_exit_as_defeat_ends_the_run() -> void:
 	assert_eq(_results.size(), 1, "the adventure ended once")
 	if _results.size() == 1:
 		assert_false(_results[0].is_victory, "as a defeat")
-		assert_eq(_results[0].defeat_reason, "Your health reached zero", "precondition: the end is one that play counts")
-	assert_eq(_stats().adventures_lost, 0, "a dev exit is no loss in the play stats")
+		assert_eq(_results[0].defeat_reason, "Time ran out", "precondition: the end is one that play counts")
+	assert_eq(_stats().adventures_timed_out + _stats().adventures_lost, 0, "a dev exit is no timeout or loss in the play stats")
 
 func test_exit_refuses_without_a_run() -> void:
 	assert_false(_view.is_adventure_running(), "precondition: no run is on")
