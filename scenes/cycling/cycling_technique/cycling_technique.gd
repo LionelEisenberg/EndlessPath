@@ -14,9 +14,10 @@ extends Node2D
 ## Following also trains Spirit: a second clock gathers the time followed, and
 ## every STAT_XP_INTERVAL of it pays Spirit XP through CharacterManager, the
 ## technique's spirit_xp_per_cycle over a fully followed cycle, Madra full or not.
-## The cycle's end pays what is left, and so does a stop or a switch that cuts
-## the cycle short, so no followed time goes unpaid. Each payment that the stat
-## took XP from is announced on stat_xp_paid, for the view's pellets.
+## The cycle's end pays what is left, and so does a stop that cuts the cycle
+## short. A switch drops it, so no pellet flies from a technique the board has
+## left. Each payment that the stat took XP from is announced on stat_xp_paid,
+## for the view's pellets.
 ## The zones along the path turn active as the ball reaches them. The ball is
 ## the only thing the player presses: from ready a press
 ## starts a cycle, and during one a press while the ball is over an active zone
@@ -216,9 +217,9 @@ func _exit_tree() -> void:
 ## all ready. A cycle that runs ends without a result. A null technique leaves
 ## nothing to play.
 func setup(data: CyclingTechniqueData) -> void:
-	# A cycle the switch cuts off keeps the Spirit XP it followed, at its own rate.
-	if _cycling:
-		_pay_unpaid_spirit()
+	# A switch drops the Spirit XP of the half second not yet paid: no pellet
+	# flies from a technique the board has left.
+	_unpaid_spirit_seconds = 0.0
 	technique_data = data
 	var curve: Curve2D = _scaled_curve(data.path_curve) if data != null else null
 	_path.curve = curve if curve != null else Curve2D.new()
@@ -390,7 +391,7 @@ func _follow_spirit(seconds: float) -> void:
 		_pay_spirit(paid_seconds)
 
 ## Pays the followed time no payment has covered yet, if any: at a cycle's end,
-## and when a stop or a switch cuts one short.
+## and when a stop cuts one short.
 func _pay_unpaid_spirit() -> void:
 	if _unpaid_spirit_seconds > _STEP_EPSILON:
 		_pay_spirit(_unpaid_spirit_seconds)
@@ -518,9 +519,10 @@ func _finish_cycle() -> void:
 
 ## Ends any cycle without a result and puts the play back to ready: no time, no
 ## Madra gathered, a fresh empty result, the zones IDLE, the groove lit and the
-## ball waiting at the start of the path. A cycle cut short first pays the Spirit
-## XP it followed, from where the ball was. The session ends only if this
-## technique was cycling: a session another technique started is left running.
+## ball waiting at the start of the path. A cycle a stop cuts short first pays
+## the Spirit XP it followed, from where the ball was (a switch has dropped it
+## already). The session ends only if this technique was cycling: a session
+## another technique started is left running.
 func _return_to_ready() -> void:
 	if _cycling:
 		_pay_unpaid_spirit()

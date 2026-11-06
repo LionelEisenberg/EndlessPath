@@ -664,18 +664,15 @@ func test_a_stopped_cycle_keeps_the_spirit_xp_it_followed() -> void:
 	assert_almost_eq(amounts[2], 0.3, 0.0001, "the 0.2 s followed since the last payment")
 	assert_almost_eq(_spirit_xp(), 1.8, 0.0001, "1.2 s of following in all")
 
-func test_a_switched_cycle_pays_at_the_old_rate() -> void:
-	# Smooth Flow pays 2 Spirit XP a second, the Foundational 1.5.
+## A switch drops the Spirit XP of the half second not yet paid, so no pellet
+## flies from a technique the board has left.
+func test_a_switch_drops_the_spirit_xp_not_yet_paid() -> void:
 	watch_signals(_technique)
 	_technique.start_cycle()
 	_run(1.2, 60.0, true)
-	var ball_before: Vector2 = _technique.get_ball_global_position()
 	_technique.setup(load(FOUNDATION_PATH))
-	var amounts: Array[float] = _paid_amounts()
-	assert_eq(amounts.size(), 3, "two half seconds, then the rest at the switch")
-	assert_almost_eq(amounts[2], 0.4, 0.0001, "the 0.2 s since the last payment, at Smooth Flow's rate")
-	assert_eq(get_signal_parameters(_technique, "stat_xp_paid", 2)[1], ball_before, "from where the ball was")
-	assert_almost_eq(_spirit_xp(), 2.4, 0.0001)
+	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 2, "the two half seconds paid as they came, and nothing at the switch")
+	assert_almost_eq(_spirit_xp(), 2.0, 0.0001, "Smooth Flow's 2 a second for one second; the 0.2 s after is dropped")
 	await _await_queued_frees()
 
 func test_spirit_xp_at_the_cap_marks_the_result() -> void:
