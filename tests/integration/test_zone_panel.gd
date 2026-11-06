@@ -1136,6 +1136,19 @@ func test_cycling_card_shows_new_after_a_technique_unlock() -> void:
 	await wait_process_frames(2)
 	assert_true((_panel.get_card(CYCLING_ID) as ZoneActionButton).is_new_shown())
 
+func test_body_refining_card_shows_new_after_a_drill_unlock() -> void:
+	# ZoneManager marks the body refining action unseen when a drill unlocks; the
+	# chest's rebuild is what shows the card's NEW seal again.
+	UnlockManager.force_unlock_condition(FORAGING_EVENT)
+	ZoneManager.mark_action_seen(BODY_REFINING_ID)
+	await _add_panel()
+	var card: ZoneActionButton = _panel.get_card(BODY_REFINING_ID) as ZoneActionButton
+	assert_not_null(card, "precondition: the body refining card is listed")
+	assert_false(card.is_new_shown(), "precondition: the card counts as seen")
+	BodyRefiningManager.unlock_drill("horse_stance")
+	await wait_process_frames(2)
+	assert_true((_panel.get_card(BODY_REFINING_ID) as ZoneActionButton).is_new_shown())
+
 func test_a_hidden_technique_list_stays_current() -> void:
 	await _add_panel()
 	var chest_height: float = _panel.size.y
