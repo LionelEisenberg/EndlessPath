@@ -112,14 +112,14 @@ Lionel approved the canvas as drawn.
 - Produces `FollowWindow` (RefCounted): `reset(starts_following: bool) -> void` (an empty window; its first frame follows if the cursor is on the ball and `starts_following`); `judge(seconds: float, on_ball: bool, ball: Vector2, cursor: Vector2) -> bool` (adds a frame `seconds` long that ended with the true ball at `ball` and the cursor at `cursor`, and returns the verdict); `is_following() -> bool`. It measures `travel` (true ball) and `drift` (the cursor's offset from the true ball) against the newest frame at least `FOLLOW_WINDOW` old, or the oldest kept frame until one is, to within 0.000001 s; older frames are dropped.
 - Produces `CyclingTechniqueData.get_spirit_xp_per_second() -> float`: `spirit_xp_per_cycle / cycle_duration`, 0.0 for a cycle of no length.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 - `test_cycling_rules.gd` `test_is_following`, a table: off the ball (on false, was true, 40, 0) → false; keeps on a still ball (true, true, 0, 10) → true; keeps at speed (true, true, 60, 25) → true; loses at speed (true, true, 60, 31) → false; a resting cursor loses once the ball goes 16 px (true, true, 20, 20) → false; a hand held still on a creeping ball keeps (true, true, 12, 12) → true; starts moving with the ball (true, false, 8, 3.9) → true; no start on a creeping ball (true, false, 7.9, 0) → false; no start resting (true, false, 40, 40) → false; no start loosely (true, false, 40, 20) → false.
 - `test_follow_window.gd`, each at 30, 60 and 144 FPS with a ball moving 200 px/s along x: `test_the_press_starts_following_on_the_ball` (reset(true): first frame on the ball true, off it false; reset(false): false); `test_a_resting_cursor_never_follows` (cursor fixed on the path, `on_ball` by the 36 px reach: never true); `test_a_cursor_moving_with_the_ball_starts_and_keeps_following` (cursor 10 px ahead of the ball from the first frame, reset(false): true from the first frame the ball has gone 8 px, and every frame after); `test_catching_the_ball_takes_a_window` (cursor far for 1 s, then on the ball: false until the first frame at least 0.25 s after it arrived, then true); `test_a_still_ball_keeps_a_streak_and_starts_none`; `test_a_long_frame_is_judged_against_the_frame_before_it` (two 1/60 frames, then one 6 s frame whose cursor moved with the ball: still following).
 - `test_cycling_technique_data.gd` `test_spirit_xp_per_second`: the three shipped techniques give 1.5, 2.0 and 2.0; a cycle of no length gives 0.0.
-- [ ] **Step 2: Run the three files: they fail**
-- [ ] **Step 3: Implement the constants, `is_following()`, `FollowWindow` (an inner `Sample` class with `time`, `ball`, `offset`) and `get_spirit_xp_per_second()`**
-- [ ] **Step 4: Run the three files: PASS**
-- [ ] **Step 5: Commit** `feat(cycling): judge following by moving with the ball`
+- [x] **Step 2: Run the three files: they fail**
+- [x] **Step 3: Implement the constants, `is_following()`, `FollowWindow` (an inner `Sample` class with `time`, `ball`, `offset`) and `get_spirit_xp_per_second()`**
+- [x] **Step 4: Run the three files: PASS**
+- [x] **Step 5: Commit** `feat(cycling): judge following by moving with the ball`
 
 ### Task 4: Only following draws Madra
 

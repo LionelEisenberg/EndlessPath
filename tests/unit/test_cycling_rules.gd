@@ -48,6 +48,29 @@ func test_pellet_counts() -> void:
 	assert_eq(CyclingRules.pellet_count(CyclingRules.Tier.OK), 3, "OK sends 3")
 
 #-----------------------------------------------------------------------------
+# FOLLOWING
+#-----------------------------------------------------------------------------
+
+## Following starts once the ball has gone 8 px and the cursor's place on it
+## shifted under half of that; it keeps going while the shift stays under 16 px
+## or under half the ball's travel; off the ball it never holds.
+func test_is_following() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "off the ball", "on": false, "was": true, "travel": 40.0, "drift": 0.0, "follows": false},
+		{"name": "keeps on a still ball", "on": true, "was": true, "travel": 0.0, "drift": 10.0, "follows": true},
+		{"name": "keeps at speed", "on": true, "was": true, "travel": 60.0, "drift": 25.0, "follows": true},
+		{"name": "loses at speed", "on": true, "was": true, "travel": 60.0, "drift": 31.0, "follows": false},
+		{"name": "a resting cursor loses once the ball goes 16 px", "on": true, "was": true, "travel": 20.0, "drift": 20.0, "follows": false},
+		{"name": "a hand held still on a creeping ball keeps", "on": true, "was": true, "travel": 12.0, "drift": 12.0, "follows": true},
+		{"name": "starts moving with the ball", "on": true, "was": false, "travel": 8.0, "drift": 3.9, "follows": true},
+		{"name": "no start on a creeping ball", "on": true, "was": false, "travel": 7.9, "drift": 0.0, "follows": false},
+		{"name": "no start resting", "on": true, "was": false, "travel": 40.0, "drift": 40.0, "follows": false},
+		{"name": "no start loosely", "on": true, "was": false, "travel": 40.0, "drift": 20.0, "follows": false},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CyclingRules.is_following(case.on, case.was, case.travel, case.drift), case.follows, case.name)
+
+#-----------------------------------------------------------------------------
 # CYCLE RESULT
 #-----------------------------------------------------------------------------
 

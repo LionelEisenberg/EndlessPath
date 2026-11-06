@@ -45,6 +45,27 @@ func test_a_cycle_of_no_length_pays_no_madra_per_second() -> void:
 	assert_eq(technique.get_madra_per_second(), 0.0)
 
 #-----------------------------------------------------------------------------
+# SPIRIT XP
+#-----------------------------------------------------------------------------
+
+## A second of following pays spirit_xp_per_cycle over cycle_duration.
+func test_spirit_xp_per_second() -> void:
+	var cases: Array[Dictionary] = [
+		{"path": "res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres", "expected": 1.5},
+		{"path": "res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres", "expected": 2.0},
+		{"path": "res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres", "expected": 2.0},
+	]
+	for case: Dictionary in cases:
+		var technique: CyclingTechniqueData = load(case.path)
+		assert_almost_eq(technique.get_spirit_xp_per_second(), case.expected, 0.0001, technique.id)
+
+func test_a_cycle_of_no_length_pays_no_spirit_xp_per_second() -> void:
+	var technique := CyclingTechniqueData.new()
+	technique.spirit_xp_per_cycle = 12.0
+	technique.cycle_duration = 0.0
+	assert_eq(technique.get_spirit_xp_per_second(), 0.0)
+
+#-----------------------------------------------------------------------------
 # SEEN TECHNIQUES IN THE SAVE
 #-----------------------------------------------------------------------------
 
