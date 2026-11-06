@@ -479,6 +479,14 @@ func test_player_tab_health_line_follows_the_pool_and_its_max() -> void:
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.BODY, 3)
 	assert_eq(line.text, "Health 60 / 120", "the max")
 
+## The line prints Health by the one rule every Health readout follows: the
+## figure rounded up, the max rounded down (VitalsText).
+func test_player_tab_health_line_rounds_as_every_health_readout() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	var line: Label = player.get_node("%HealthLabel")
+	ResourceManager.set_health(61.3)
+	assert_eq(line.text, "Health 62 / 100")
+
 ## Each item's metadata is the stat key the command takes.
 func test_player_tab_lists_the_six_stats() -> void:
 	var player: Control = _open_tab(_add_panel(), "PlayerTab")

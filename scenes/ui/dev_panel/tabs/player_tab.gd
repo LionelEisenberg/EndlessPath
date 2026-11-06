@@ -160,9 +160,11 @@ func _show_stage() -> void:
 		CultivationManager.get_core_density_cap(),
 	]
 
-## Shows the saved Health pool over its max, as "Health 40 / 100".
+## Shows the saved Health pool over its max, as "Health 40 / 100", printed as
+## every Health readout prints it (VitalsText), so the panel and the cabinet
+## never show two Health numbers.
 func _show_health() -> void:
-	_health_label.text = "Health %d / %d" % [int(ResourceManager.get_health()), int(ResourceManager.get_max_health())]
+	_health_label.text = "Health %s" % VitalsText.health_pair(ResourceManager.get_health(), ResourceManager.get_max_health())
 
 ## The id of the item the picker shows, or "" when it has none, which the commands refuse
 ## as an unknown id.
