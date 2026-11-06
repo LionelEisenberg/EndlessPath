@@ -54,7 +54,7 @@ func test_drill_press_is_space_and_the_left_button() -> void:
 func test_each_input_gets_its_run() -> void:
 	var cases: Array[Dictionary] = [
 		{"kind": InputKind.HOLD_RELEASE, "run": "StoneLiftingRun"},
-		{"kind": InputKind.HOLD_STEADY, "run": "StoneLiftingRun"},
+		{"kind": InputKind.HOLD_STEADY, "run": "HorseStanceRun"},
 		{"kind": InputKind.CATCH, "run": "StoneLiftingRun"},
 		{"kind": InputKind.BEAT, "run": "StoneLiftingRun"},
 	]
