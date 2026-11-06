@@ -30,9 +30,12 @@ extends AdventureChestPage
 ## the top. Every height is an even number of px, as the mock's are: the lore
 ## Label is padded 2 px above and 1 under (a StyleBoxEmpty in the scene), which
 ## makes n wrapped lines 22 n tall and seats their glyphs as the mock's 22 px
-## line boxes do; the tray's name and line, the walk hint and the lock line are
-## padded 1 px under (wrap_pad.tres), which makes their lines 22 n and 18 n tall;
-## the walk hint's row is 10 + that.
+## line boxes do; the tray's name, the walk hint and the lock line are padded
+## 1 px under (wrap_pad.tres), which makes their lines 22 n and 18 n tall; the walk
+## hint's row is 10 + that. The tray's line is rich text, so a resolved tile's line
+## can show its rewards by their icons (AdventureTilemap.summary_for()): its line
+## separation alone makes its lines 18 n tall, and a line holding an icon grows to
+## the icon.
 ## A refused click (the encounter on the tile holds the player) shakes the tray
 ## softly and turns the lock line to the warning colour for the length of the
 ## shake.
@@ -95,7 +98,7 @@ const TRAY_GAP: float = 16.0
 @onready var _tag_label: Label = %TagLabel
 @onready var _boss_seal: Control = %BossSeal
 @onready var _boss_seal_label: Label = %BossSealLabel
-@onready var _line_label: Label = %LineLabel
+@onready var _line_label: RichTextLabel = %LineLabel
 @onready var _flow: Control = %Flow
 @onready var _lore_label: Label = %LoreLabel
 @onready var _hint_row: Control = %HintRow

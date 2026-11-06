@@ -63,7 +63,7 @@ func _control(unique_name: String) -> Control:
 	return _node(unique_name) as Control
 
 func _text(unique_name: String) -> String:
-	return (_node(unique_name) as Label).text
+	return _node(unique_name).get("text")
 
 func _shown(unique_name: String) -> bool:
 	return _control(unique_name).visible
@@ -701,7 +701,7 @@ func _tray_height() -> float:
 	return _control("HereTray").size.y
 
 func _lines(unique_name: String) -> int:
-	return (_node(unique_name) as Label).get_line_count()
+	return _node(unique_name).call("get_line_count")
 
 ## A fight whose drawer is a plain unresolved one: a long name, its choice's own label.
 func _long_name_fight() -> AdventureEncounter:

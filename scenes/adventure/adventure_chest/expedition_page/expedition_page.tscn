@@ -96,13 +96,16 @@ theme_override_styles/normal = ExtResource("17_wrap_pad")
 text = "Open ground"
 autowrap_mode = 3
 
-[node name="LineLabel" type="Label" parent="HereTray/TextColumn" unique_id=1726513862]
+[node name="LineLabel" type="RichTextLabel" parent="HereTray/TextColumn" unique_id=1726513862]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(332, 18)
 layout_mode = 2
-theme_type_variation = &"LabelLacquerDetail"
-theme_override_styles/normal = ExtResource("17_wrap_pad")
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+bbcode_enabled = true
 text = "Click a hex to walk · 5 Stamina a step"
+fit_content = true
+scroll_active = false
 autowrap_mode = 3
 
 [node name="Tag" type="TextureRect" parent="HereTray" unique_id=1166198171]

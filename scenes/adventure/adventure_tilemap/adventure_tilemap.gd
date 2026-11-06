@@ -98,6 +98,12 @@ const TOO_TIRED_LINE: String = "Too tired to walk · %d Stamina a step"
 ## The player's log line for REFUSED_ENCOUNTER.
 const CHOOSE_FIRST_LINE: String = "Choose what to do here first"
 
+## The tile's line shows a reward by its icon, at this size (the Run ledger's), then
+## its amount: the gold a fight paid and the Core Density a choice paid.
+const SUMMARY_ICON_SIZE: int = 32
+const GOLD_ICON_PATH: String = "res://assets/sprites/ui/resources/gold_icon.png"
+const CORE_DENSITY_ICON_PATH: String = "res://assets/ui/lacquer/lacquer_ic_core_ai.png"
+
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
@@ -316,6 +322,7 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		if gold_earned > 0:
 			ResourceManager.add_gold(gold_earned)
 		
+		var core_density_xp: float = 0.0
 		if _current_combat_choice:
 			# The save's play stats count the fight here, while its choice is still
 			# pending, and its effects run here: its loot and its Core Density.
@@ -324,7 +331,7 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 			# function, or just below for the boss's), so the fight counts, pays
 			# and resolves once. The boss pays here too, before its win ends the run.
 			PersistenceManager.save_game_data.stats.count_fight_won()
-			_apply_effects(_current_combat_choice.success_effects)
+			core_density_xp = _apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
 				# Let go of the choice before the win ends the run, so a repeat of
@@ -341,7 +348,7 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		# be the next run's start, which would then count as visited and show the
 		# player nothing around it.
 		if current_adventure_action_data != null:
-			_complete_current_tile(summary_for(_current_combat_choice, gold_earned))
+			_complete_current_tile(summary_for(_current_combat_choice, gold_earned, core_density_xp))
 	else:
 		if _current_combat_choice:
 			_apply_effects(_current_combat_choice.failure_effects)
@@ -379,8 +386,8 @@ func select_choice(choice: EncounterChoice) -> void:
 
 	else:
 		# Standard choice (e.g. Loot, Leave)
-		_apply_effects(choice.success_effects)
-		_complete_current_tile(summary_for(choice, 0))
+		var core_density_xp: float = _apply_effects(choice.success_effects)
+		_complete_current_tile(summary_for(choice, 0, core_density_xp))
 
 ## Returns the Core Density XP the run's choices paid through their effects: a
 ## won fight's reward, once however often the win is reported, and any other
@@ -493,18 +500,21 @@ static func camera_offset_for(zoom: float) -> Vector2:
 # PUBLIC METHODS - Summaries
 #-----------------------------------------------------------------------------
 
-## Returns the one line a resolved encounter leaves on its tile. A won fight reads
-## "Won · <gold> gold", or "Won" when it paid nothing. Any other choice lists what
-## its success effects say, joined with " · ", leaving out an effect that has
-## nothing to say (empty text, or only its debug string), and reads "Done" when
-## nothing is left. No choice reads as a choice with no effects.
-static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
-	if choice is CombatChoice:
-		if gold_earned > 0:
-			return "Won · %d gold" % gold_earned
-		return "Won"
+## Returns the one line a resolved encounter leaves on its tile, as BBCode for
+## the chest's rich text line. A won fight reads "Won", then the gold it paid by
+## its icon when it paid any (reward_bbcode()). Any other choice lists what its
+## success effects say, leaving out an effect that has nothing to say (empty text,
+## or only its debug string). Then comes the Core Density XP the choice paid
+## (`core_density_xp`), by its icon, when it paid any. The parts are joined with
+## " · ", and a choice with nothing left reads "Done". No choice reads as a choice
+## with no effects.
+static func summary_for(choice: EncounterChoice, gold_earned: int, core_density_xp: float = 0.0) -> String:
 	var parts: PackedStringArray = PackedStringArray()
-	if choice != null:
+	if choice is CombatChoice:
+		parts.append("Won")
+		if gold_earned > 0:
+			parts.append(reward_bbcode(GOLD_ICON_PATH, gold_earned))
+	elif choice != null:
 		for effect in choice.success_effects:
 			if effect == null:
 				continue
@@ -512,9 +522,16 @@ static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
 			if text.is_empty() or text == str(effect):
 				continue
 			parts.append(text)
+	if core_density_xp > 0.0:
+		parts.append(reward_bbcode(CORE_DENSITY_ICON_PATH, floori(core_density_xp)))
 	if parts.is_empty():
 		return "Done"
 	return " · ".join(parts)
+
+## Returns a reward as the tile's line shows it: the icon at `icon_path`, drawn
+## at SUMMARY_ICON_SIZE, then the amount.
+static func reward_bbcode(icon_path: String, amount: int) -> String:
+	return "[img=%dx%d]%s[/img] %d" % [SUMMARY_ICON_SIZE, SUMMARY_ICON_SIZE, icon_path, amount]
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
@@ -574,10 +591,11 @@ func _announce_arrival(coord: Vector3i, first_visit: bool) -> void:
 func _on_dialogue_ended(_resource: Resource = null) -> void:
 	Log.info("AdventureTilemap: Dialogue ended")
 	var choice: DialogueChoice = _current_dialogue_choice
+	var core_density_xp: float = 0.0
 	if choice:
-		_apply_effects(choice.success_effects)
+		core_density_xp = _apply_effects(choice.success_effects)
 		_current_dialogue_choice = null
-	_complete_current_tile(summary_for(choice, 0))
+	_complete_current_tile(summary_for(choice, 0, core_density_xp))
 
 ## Resolves the encounter on the tile the player stands on: unlocks movement,
 ## remembers `summary` for the tile and tells the boards (encounter_resolved).

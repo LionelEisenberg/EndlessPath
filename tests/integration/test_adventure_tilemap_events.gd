@@ -153,6 +153,13 @@ func _start_paying() -> void:
 	_give_core_density(_map[BOSS].choices[0], 13.0)
 	_start()
 
+## A reward as the tile's line shows it: its icon, then its amount.
+func _gold(amount: int) -> String:
+	return AdventureTilemap.reward_bbcode(AdventureTilemap.GOLD_ICON_PATH, amount)
+
+func _core_density(amount: int) -> String:
+	return AdventureTilemap.reward_bbcode(AdventureTilemap.CORE_DENSITY_ICON_PATH, amount)
+
 ## Walks to FIGHT, picks its fight and answers it as a win paying 15 gold.
 func _win_the_fight() -> void:
 	await _walk_to(FIGHT)
@@ -319,7 +326,7 @@ func test_rest_choice_resolves_with_its_effects() -> void:
 	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "the choice's effect was applied")
 
 func test_won_fight_summary() -> void:
-	_start()
+	_start_paying()
 	await _walk_to(FIGHT)
 	watch_signals(_tilemap)
 
@@ -330,10 +337,11 @@ func test_won_fight_summary() -> void:
 
 	_tilemap.handle_combat_result(true, 15)
 
+	var summary: String = "Won · %s · %s" % [_gold(15), _core_density(7)]
 	assert_signal_emit_count(_tilemap, "encounter_resolved", 1)
-	assert_signal_emitted_with_parameters(_tilemap, "encounter_resolved", [FIGHT, "Won · 15 gold"])
+	assert_signal_emitted_with_parameters(_tilemap, "encounter_resolved", [FIGHT, summary])
 	assert_true(_tilemap.is_tile_completed(FIGHT))
-	assert_eq(_tilemap.get_tile_summary(FIGHT), "Won · 15 gold")
+	assert_eq(_tilemap.get_tile_summary(FIGHT), summary, "its gold and its Core Density, by their icons")
 	assert_eq(ResourceManager.live_save_data.gold, 15.0, "the fight paid its gold")
 
 func test_dialogue_end_resolves_the_tile_with_its_summary() -> void:
@@ -476,6 +484,7 @@ func test_any_choice_with_the_reward_pays_it() -> void:
 
 	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "the event's reward")
 	assert_eq(_tilemap.get_core_density_xp_earned(), 9.0, "in the run's total too")
+	assert_eq(_tilemap.get_tile_summary(REST), "+10 Health · %s" % _core_density(9), "and on the tile's line")
 
 ## What a kill paid is in the save at once: a lost fight after it, and the run's
 ## end, leave it there.
@@ -595,10 +604,19 @@ func test_encounter_lookup() -> void:
 # SUMMARIES
 #-----------------------------------------------------------------------------
 
+func test_reward_bbcode_draws_the_icon_then_the_amount() -> void:
+	assert_eq(AdventureTilemap.reward_bbcode("res://icon.png", 15), "[img=32x32]res://icon.png[/img] 15")
+
 func test_summary_for() -> void:
 	var fight := CombatChoice.new()
-	assert_eq(AdventureTilemap.summary_for(fight, 15), "Won · 15 gold", "a won fight names its gold")
-	assert_eq(AdventureTilemap.summary_for(fight, 0), "Won", "a fight that paid nothing is just won")
+	var cases: Array[Dictionary] = [
+		{"name": "a won fight shows its gold", "gold": 15, "xp": 0.0, "summary": "Won · %s" % _gold(15)},
+		{"name": "a fight that paid nothing is just won", "gold": 0, "xp": 0.0, "summary": "Won"},
+		{"name": "its gold, then its Core Density", "gold": 15, "xp": 20.0, "summary": "Won · %s · %s" % [_gold(15), _core_density(20)]},
+		{"name": "a fight with no gold shows its Core Density alone", "gold": 0, "xp": 50.0, "summary": "Won · %s" % _core_density(50)},
+	]
+	for case: Dictionary in cases:
+		assert_eq(AdventureTilemap.summary_for(fight, case.gold, case.xp), case.summary, case.name)
 
 	var heal := ChangeVitalsEffectData.new()
 	heal.health_change = 10.0
@@ -623,6 +641,10 @@ func test_summary_for() -> void:
 	var heal_and_silent: Array[EffectData] = [trigger, heal]
 	rest.success_effects = heal_and_silent
 	assert_eq(AdventureTilemap.summary_for(rest, 0), "+10 Health", "the silent effect is left out")
+
+	# An event's Core Density follows its effects' words.
+	assert_eq(AdventureTilemap.summary_for(rest, 0, 9.0), "+10 Health · %s" % _core_density(9), "Core Density after the words")
+	assert_eq(AdventureTilemap.summary_for(EncounterChoice.new(), 0, 9.0), _core_density(9), "Core Density alone")
 
 	assert_eq(AdventureTilemap.summary_for(EncounterChoice.new(), 0), "Done", "no effects")
 	assert_eq(AdventureTilemap.summary_for(null, 0), "Done", "no choice")
