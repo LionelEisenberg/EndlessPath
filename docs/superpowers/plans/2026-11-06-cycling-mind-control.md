@@ -342,4 +342,14 @@ Lionel approved round 3 of the canvas as drawn. Round 1 drew Mind as an unbroken
 
 ## Built differently
 
-(Filled in as the build goes.)
+- **A capped hit is brass whatever its tier.** Answer 6 says both capped floaters are brass; Task 7's brief said the tier's colour.
+- **The capped card wraps to a second row.** The canvas drew the capped Smooth Flow and Torrential Flow cards on one row, but its last stud ran past the tray's edge. With 32 px chips, "capped" and four studs there is no room in 360 px, so the card follows answer 8's "grows a row rather than trim". Shrinking the gaps or the icons would keep one row, if Lionel prefers it.
+- **The seal plate sits 10 px above its socket**, where the canvas drew it (the plan said 16).
+- **SealNode runs on the technique's clock** (`advance(delta)`, no `_process`), so its flash and plate step with the cycle and in tests.
+- **`CyclingViewState.arrow_for(event)`** is a static seam the plan did not name; the state reaches the board through `as CyclingView`.
+- **`summary()` and `result_line()` lived until Task 10**, since the chest's label read them until the card replaced it.
+- **The Madra chip's icon is set by the script**, not overridden inside the instanced chip, which would need editable children. The score hides while it has no studs.
+- **The Trains row and the reward row take their icons from `StatDisplay`** at run time, so the stat-to-icon map keeps one home.
+- **`project.godot` was committed twice, alone each time**: Task 6's hand-written seal actions, then the editor's own layout of them after an import rewrote it.
+- **Tests check rules, not colours or exact copy** where CLAUDE.md says so: the capped chip's "capped" (not its brass), the path node's copy (no Core Density, names Mind, the benefit names the technique).
+- **Extra tests**: a right key during the red flash counts; each zone's outcome is kept on the result; the board's buttons take no keyboard focus; a growing card pushes the chest down; `trained_stats()`.
