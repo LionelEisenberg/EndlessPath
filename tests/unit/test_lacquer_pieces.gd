@@ -201,6 +201,19 @@ func test_floater_pops_a_haul_as_counts_and_icons() -> void:
 	floater.pop("+1.5 Madra", ThemeConstants.LACQUER_MADRA)
 	assert_true(floater.get_icons().is_empty(), "plain text clears the icons")
 
+func test_pop_stat_shows_the_stat_s_icon_and_name() -> void:
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	var control := CharacterAttributesData.AttributeType.CONTROL
+	floater.pop_stat("PERFECT +12", control, ThemeConstants.LACQUER_BRASS)
+	var parsed: String = (floater.get_node("%Text") as RichTextLabel).get_parsed_text()
+	assert_true(floater.visible, "pop_stat shows the floater")
+	assert_eq(floater.get_text(), "PERFECT +12 Control", "the lead, then the stat's name")
+	assert_eq(floater.get_icons(), [StatDisplay.icon_of(control)] as Array[Texture2D], "the stat's icon")
+	assert_true(parsed.begins_with("PERFECT +12 "), "the lead comes first: %s" % parsed)
+	assert_true(parsed.ends_with(" Control"), "the name comes after the icon: %s" % parsed)
+	assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS, "in the colour given")
+
 #-----------------------------------------------------------------------------
 # TEXT
 #-----------------------------------------------------------------------------

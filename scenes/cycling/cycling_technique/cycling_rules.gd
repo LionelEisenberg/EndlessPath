@@ -122,8 +122,8 @@ static func tier_name(tier: Tier) -> String:
 		_:
 			return "OK"
 
-## Returns the colour of a hit of `tier`, for its floater and XP pellets:
-## brass for PERFECT, cream for GOOD and tan for OK.
+## Returns the colour of a hit of `tier`, for its floater: brass for PERFECT,
+## cream for GOOD and tan for OK.
 static func tier_color(tier: Tier) -> Color:
 	match tier:
 		Tier.PERFECT:

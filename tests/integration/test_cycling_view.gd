@@ -1,12 +1,13 @@
 extends GutTest
 
-## Integration tests for the cycling board (CyclingView): the status line's two
-## instructions, which change only as a cycle starts or ends, a long name and status line that
+## Integration tests for the cycling board (CyclingView): the status line, which
+## changes only as a cycle starts or ends, a long name and status line that
 ## wrap and keep the board on screen, the title that follows the equipped
 ## technique, the result a cycle leaves for the chest and the one log line it
-## writes, the Madra and XP pellets that bring what a cycle drew to the cabinet
-## and the floater a scored zone pops, the Auto toggle, a press that reaches the
-## ball through the board, and what a close or a reopening leaves behind. The board
+## writes, the Madra and stat pellets that bring what a cycle drew to the cabinet,
+## the floater a scored zone or an opened seal pops, the Auto toggle, a press that
+## reaches the ball through the board, and what a close or a reopening leaves
+## behind. The board
 ## is built the way MainView builds it: the cabinet beside it, the view shown
 ## and the cabinet handed over, and the technique stepped by hand with advance()
 ## (its own processing is off, so the real mouse never races a test). The
@@ -23,6 +24,17 @@ const FOUNDATION_ID: String = "foundation_technique"
 const CYCLING_ACTION_ID: String = "wilderness_cycling_action"
 const AURA_WELL_ID: String = "aura_well_training"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
+const SMOOTH_PATH: String = "res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres"
+const TORRENTIAL_PATH: String = "res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres"
+const FOUNDATION_PATH: String = "res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres"
+
+const CONTROL: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.CONTROL
+const MIND: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.MIND
+
+## Smooth Flow's zones by index: zone 2, near the board's left side, and zone
+## 3, the top one, worth 12 Control XP at PERFECT.
+const LEFT_ZONE: int = 1
+const TOP_ZONE: int = 2
 
 ## A technique name and a status line too long for one line of the board.
 const LONG_TITLE: String = "The Heaven-Shaking Thousandfold Smooth Flow Technique"
@@ -118,11 +130,17 @@ func _distance_to(zone: CyclingZone) -> float:
 ## Starts a cycle and steps it until zone 0 is closer than `within` px (or just
 ## active, when within is 0).
 func _approach_zone_0(within: float) -> CyclingZone:
-	var zone: CyclingZone = _zone(0)
+	return _approach_zone(0, within)
+
+## Starts a cycle, unless one runs, and steps it until zone `index` is closer
+## than `within` px (or just active, when within is 0). A zone just active
+## scores OK, one within 6 px PERFECT.
+func _approach_zone(index: int, within: float) -> CyclingZone:
+	var zone: CyclingZone = _zone(index)
 	_technique.start_cycle()
 	var reached: bool = _step_until(func() -> bool:
 		return zone.get_state() == CyclingZone.State.ACTIVE and (within <= 0.0 or _distance_to(zone) < within))
-	assert_true(reached, "precondition: the ball comes within %s px of zone 0" % within)
+	assert_true(reached, "precondition: the ball comes within %s px of zone %d" % [within, index])
 	return zone
 
 ## The Madra and XP pellets in the effects layer, in the order they were sent.
@@ -137,7 +155,8 @@ func _pellets() -> Array[LacquerPellet]:
 func _plate_text(unique_name: String) -> String:
 	return (_plate.get_node("%" + unique_name) as Label).text.strip_edges()
 
-## The zone floaters in the effects layer, in the order of the zones.
+## The floaters in the effects layer: the zones' in their order, then the seal
+## nodes'.
 func _floaters() -> Array[LacquerFloater]:
 	var found: Array[LacquerFloater] = []
 	for child: Node in _effects.get_children():
@@ -169,38 +188,66 @@ func _press_at(position: Vector2) -> void:
 # THE STATUS LINE
 #-----------------------------------------------------------------------------
 
-## Two lines, as Lionel set them after playing: the instruction to start while
-## the ball waits, and the instructions while it runs, with the zones' part only
-## for a technique that has zones.
+## The status line, as Lionel set it: the instruction to start while the ball
+## waits, on every technique; while it runs, following, then the clause of the
+## technique's own game with its other stat's name, which drops while that stat
+## is capped.
 func test_status_line_copy() -> void:
+	var foundation: CyclingTechniqueData = load(FOUNDATION_PATH)
+	var smooth: CyclingTechniqueData = load(SMOOTH_PATH)
+	var torrential: CyclingTechniqueData = load(TORRENTIAL_PATH)
+	var ready: String = "Click the Madra ball to begin a cycle."
+	var follow: String = "Follow the ball for Madra and Spirit."
 	var cases: Array[Dictionary] = [
-		{"running": false, "zones": true, "line": "Click the Madra ball to begin a cycle.", "name": "waiting, zones"},
-		{"running": false, "zones": false, "line": "Click the Madra ball to begin a cycle.", "name": "waiting, no zones"},
-		{"running": true, "zones": false, "line": "Follow the ball for Madra and Spirit.", "name": "running, no zones"},
-		{"running": true, "zones": true, "line": "Follow the ball for Madra and Spirit. Click it over a zone for Core XP.", "name": "running, zones"},
+		{"name": "waiting, Foundational", "running": false, "technique": foundation, "capped": false, "line": ready},
+		{"name": "waiting, Smooth Flow", "running": false, "technique": smooth, "capped": false, "line": ready},
+		{"name": "waiting, Torrential Flow", "running": false, "technique": torrential, "capped": false, "line": ready},
+		{"name": "running, Foundational", "running": true, "technique": foundation, "capped": false, "line": follow},
+		{"name": "running, Smooth Flow", "running": true, "technique": smooth, "capped": false, "line": follow + " Click it over a zone for Control XP."},
+		{"name": "running, Torrential Flow", "running": true, "technique": torrential, "capped": false, "line": follow + " Open each seal with W A S D for Mind XP."},
+		{"name": "running, Smooth Flow, Control capped", "running": true, "technique": smooth, "capped": true, "line": follow},
+		{"name": "running, Torrential Flow, Mind capped", "running": true, "technique": torrential, "capped": true, "line": follow},
 	]
 	for case: Dictionary in cases:
-		assert_eq(CyclingView.status_line(case.running, case.zones), case.line, case.name)
+		assert_eq(CyclingView.status_line(case.running, case.technique, case.capped), case.line, case.name)
 
 ## The line changes only as a cycle starts or ends: not with the seconds, the
 ## cursor, a full pool or a capped Spirit.
 func test_the_status_line_changes_only_as_a_cycle_starts_or_ends() -> void:
+	var running: String = CyclingView.status_line(true, _technique.technique_data, false)
 	assert_eq(_view.get_status_text(), CyclingView.READY, "waiting before the first cycle")
 	_technique.start_cycle()
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running, following")
+	assert_eq(_view.get_status_text(), running, "running, following")
 	_run(6.0, 60.0, false)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running, six seconds on, off the ball")
+	assert_eq(_view.get_status_text(), running, "running, six seconds on, off the ball")
 	ResourceManager.set_madra(ResourceManager.get_max_madra())
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
 	_run(1.0, 60.0, true)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running with the pool full and Spirit capped")
+	assert_eq(_view.get_status_text(), running, "running with the pool full and Spirit capped")
 	_run(CYCLE_SECONDS, 60.0, false)
 	_view._process(0.0)
 	assert_eq(_view.get_status_text(), CyclingView.READY, "waiting again after the cycle")
+
+## The cap is read as a cycle starts: Control capped mid-cycle keeps the zones'
+## clause on the line until the next cycle starts.
+func test_the_status_line_reads_the_cap_as_a_cycle_starts() -> void:
+	var with_zones: String = CyclingView.status_line(true, _technique.technique_data, false)
+	_technique.start_cycle()
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), with_zones, "precondition: the zones' clause shows")
+	CharacterManager.set_stat_level(CONTROL, CharacterManager.get_stat_level_cap())
+	_run(1.0, 60.0, false)
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), with_zones, "the running cycle keeps it")
+	_run(CYCLE_SECONDS, 60.0, false)
+	assert_false(_technique.is_cycling(), "precondition: the cycle ended")
+	_technique.start_cycle()
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW, "the next cycle drops it")
 
 ## The Foundational has no zones, so its running line leaves them out.
 func test_a_technique_with_no_zones_leaves_them_out() -> void:
@@ -351,43 +398,80 @@ func test_the_madra_orb_fills_as_the_pellets_land() -> void:
 	pellets[1]._process(CyclingView.MADRA_PELLET_FLIGHT)
 	assert_eq(_plate_text("MadraValueLabel"), str(floori(drawn)), "and the second")
 
+## The pellets in the effects layer in `stat`'s ramp.
+func _stat_pellets(stat: CharacterAttributesData.AttributeType) -> Array[LacquerPellet]:
+	return _pellets().filter(func(pellet: LacquerPellet) -> bool: return pellet.get_ramp() == LacquerPellet.stat_ramp(stat))
+
+func _control_cell() -> StatCell:
+	return _plate.get_node("%ControlCell") as StatCell
+
+func _mind_cell() -> StatCell:
+	return _plate.get_node("%MindCell") as StatCell
+
+## A hit pays Control: its floater pops the tier and the XP with Control's icon
+## and name, and the tier's pellets fly in Control's ramp to its cell, which
+## shows the XP once they land.
 func test_scoring_pops_the_zone_floater_and_pellets() -> void:
-	var zone: CyclingZone = _approach_zone_0(0.0)
-	watch_signals(_technique)
+	var zone: CyclingZone = _approach_zone(TOP_ZONE, 6.0)
 	assert_true(_technique.try_score_zone(zone))
-	var params: Array = get_signal_parameters(_technique, "zone_scored", 0)
-	var tier: CyclingRules.Tier = params[1]
-	var xp: int = params[2]
-	var floater: LacquerFloater = _floaters()[0]
+	assert_eq(zone.get_state(), CyclingZone.State.PERFECT, "precondition: a PERFECT")
+	var floater: LacquerFloater = _floaters()[TOP_ZONE]
 	assert_true(floater.visible)
-	assert_eq(floater.get_text(), "%s +%d XP" % [CyclingRules.tier_name(tier), xp])
-	assert_eq(_pellets().size(), CyclingRules.pellet_count(tier), "one pellet for each XP pellet the tier sends")
-	for other: LacquerFloater in _floaters().slice(1):
-		assert_false(other.visible, "only the scored zone's floater shows")
-
-func test_a_full_core_floater_sends_no_pellets() -> void:
-	PersistenceManager.save_game_data.core_density_level = 100.0
-	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
-	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_true(_technique.try_score_zone(zone))
-	var floater: LacquerFloater = _floaters()[0]
-	assert_true(floater.visible)
-	assert_eq(floater.get_text(), "OK · Core full", "the tier and the core's state in place of the XP")
-	assert_eq(_pellets().size(), 0, "a full core takes no XP, so none flies to it")
-
-## The Core row shows the hit's XP as its pellets land: as it stood before the
-## hit while they fly, and as the hit left it once the last one is in.
-func test_the_core_shows_the_xp_as_its_pellets_land() -> void:
-	var before: String = _plate_text("XpLabel")
-	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_true(_technique.try_score_zone(zone))
+	assert_eq(floater.get_text(), "PERFECT +12 Control")
+	assert_eq(floater.get_icons(), [StatDisplay.icon_of(CONTROL)] as Array[Texture2D], "Control's icon")
+	for other: LacquerFloater in _floaters():
+		if other != floater:
+			assert_false(other.visible, "only the scored zone's floater shows")
 	var pellets: Array[LacquerPellet] = _pellets()
-	assert_gt(CultivationManager.get_core_density_xp() + CultivationManager.get_core_density_level(), 0.0, "precondition: the hit paid XP")
-	assert_eq(_plate_text("XpLabel"), before, "none of the XP has landed")
+	assert_eq(pellets.size(), CyclingRules.pellet_count(CyclingRules.Tier.PERFECT), "the tier's pellets")
+	assert_eq(_stat_pellets(CONTROL).size(), pellets.size(), "all of them in Control's ramp")
+	assert_eq(_control_cell().get_shown_xp(), 0.0, "none of it has landed")
 	for pellet: LacquerPellet in pellets:
 		pellet._process(10.0)
-	assert_eq(_plate_text("LevelLabel"), "Level %d" % floori(CultivationManager.get_core_density_level()))
-	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), ceili(CultivationManager.get_xp_for_next_level())], "all of it has landed")
+	assert_almost_eq(_control_cell().get_shown_xp(), 12.0, 0.0001, "all of it has landed")
+
+func test_a_capped_control_floater_sends_no_pellets() -> void:
+	CharacterManager.set_stat_level(CONTROL, CharacterManager.get_stat_level_cap())
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	var floater: LacquerFloater = _floaters()[0]
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "OK · Control capped", "the tier and the cap in place of the XP")
+	assert_true(floater.get_icons().is_empty(), "no icon")
+	assert_eq(_pellets().size(), 0, "a capped Control takes no XP, so none flies to it")
+
+## Control 2 XP short of the cap takes 2 of a PERFECT's 12: the floater says
+## what the hit was worth, and the pellets carry what Control took.
+func test_a_hit_that_reaches_the_cap_sends_what_control_took() -> void:
+	var below_cap: int = CharacterManager.get_stat_level_cap() - 1
+	var short_of_cap: float = CharacterManager.stat_progression.get_xp_to_next(below_cap) - 2.0
+	CharacterManager.set_stat_level(CONTROL, below_cap, short_of_cap)
+	var zone: CyclingZone = _approach_zone(TOP_ZONE, 6.0)
+	assert_true(_technique.try_score_zone(zone))
+	assert_true(CharacterManager.is_stat_capped(CONTROL), "precondition: the hit reached the cap")
+	assert_eq(_floaters()[TOP_ZONE].get_text(), "PERFECT +12 Control")
+	assert_eq(_stat_pellets(CONTROL).size(), CyclingRules.pellet_count(CyclingRules.Tier.PERFECT), "the tier's pellets fly")
+	assert_eq(_control_cell().get_shown_level(), below_cap, "the cell holds back what they carry")
+	assert_almost_eq(_control_cell().get_shown_xp(), short_of_cap, 0.0001, "2 XP in all")
+	for pellet: LacquerPellet in _stat_pellets(CONTROL):
+		pellet._process(10.0)
+	assert_true(_control_cell().is_shown_capped(), "once they land, the cell shows the cap")
+
+## A floater over a zone near the board's side stays on the board,
+## FLOATER_BOARD_MARGIN px in from it, rather than hanging off its edge.
+func test_a_floater_over_an_edge_zone_stays_on_the_board() -> void:
+	var zone: CyclingZone = _approach_zone(LEFT_ZONE, 0.0)
+	assert_true(_technique.try_score_zone(zone))
+	var floater: LacquerFloater = _floaters()[LEFT_ZONE]
+	var board: Rect2 = _view.get_board_rect()
+	var margin: float = CyclingView.FLOATER_BOARD_MARGIN
+	assert_lt(zone.global_position.x - floater.get_token_width() / 2.0, board.position.x + margin, "precondition: centred on its zone, the floater would cross the margin")
+	for step: int in 3:
+		_view._process(0.0)
+		var rect: Rect2 = floater.get_global_rect()
+		assert_gte(rect.position.x, board.position.x + margin, "it stands the margin in from the board's left side, step %d" % step)
+		assert_lte(rect.end.x, board.end.x - margin, "and from its right, step %d" % step)
+		floater._process(0.3)
 
 ## A hidden board frees its pellets, and what they carried shows at once.
 func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
@@ -395,10 +479,54 @@ func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
 	_run(0.2, 60.0, true)
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
-	assert_gt(_pellets().size(), 0, "precondition: pellets in flight")
+	assert_gt(_stat_pellets(CONTROL).size(), 0, "precondition: Control pellets in flight")
 	_view.hide()
 	assert_eq(_plate_text("MadraValueLabel"), str(floori(ResourceManager.get_madra())))
-	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), ceili(CultivationManager.get_xp_for_next_level())])
+	assert_almost_eq(_control_cell().get_shown_xp(), CharacterManager.get_stat_xp(CONTROL), 0.0001, "the hit's Control XP shows")
+	await _await_queued_frees()
+
+#-----------------------------------------------------------------------------
+# SEAL PELLETS
+#-----------------------------------------------------------------------------
+
+## Plays torrential_flow until the ball bursts through its first seal, keyed in
+## full as it shows. Returns the seal.
+func _burst_first_seal() -> SealNode:
+	_play_torrential(0.6)
+	var seal: SealNode = _technique.seal_nodes[0]
+	for arrow: int in seal.get_arrows():
+		_view.press_seal(arrow)
+	assert_eq(seal.get_state(), SealNode.State.OPEN, "precondition: the seal is open")
+	watch_signals(_technique)
+	var burst: bool = _step_until(func() -> bool: return get_signal_emit_count(_technique, "seal_burst") > 0)
+	assert_true(burst, "precondition: the ball bursts through the seal")
+	return seal
+
+## An opened seal pays Mind as the ball bursts through: its floater pops "+5"
+## with Mind's icon and name, and SEAL_PELLETS pellets fly in Mind's ramp to its
+## cell.
+func test_an_open_seal_bursts_mind_pellets() -> void:
+	_burst_first_seal()
+	var floaters: Array[LacquerFloater] = _floaters()
+	assert_eq(floaters.size(), 3, "a floater for each seal node")
+	assert_true(floaters[0].visible, "the first seal's floater pops")
+	assert_eq(floaters[0].get_text(), "+5 Mind")
+	assert_eq(floaters[0].get_icons(), [StatDisplay.icon_of(MIND)] as Array[Texture2D], "Mind's icon")
+	var pellets: Array[LacquerPellet] = _stat_pellets(MIND)
+	assert_eq(pellets.size(), CyclingView.SEAL_PELLETS)
+	assert_eq(_mind_cell().get_shown_xp(), 0.0, "none of it has landed")
+	for pellet: LacquerPellet in pellets:
+		pellet._process(10.0)
+	assert_almost_eq(_mind_cell().get_shown_xp(), 5.0, 0.0001, "all of it has landed")
+	await _await_queued_frees()
+
+func test_a_capped_mind_seal_floater() -> void:
+	CharacterManager.set_stat_level(MIND, CharacterManager.get_stat_level_cap())
+	_burst_first_seal()
+	var floater: LacquerFloater = _floaters()[0]
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "OPEN · Mind capped", "the seal and the cap in place of the XP")
+	assert_eq(_stat_pellets(MIND).size(), 0, "a capped Mind takes no XP, so none flies to it")
 	await _await_queued_frees()
 
 ## The Spirit pellets in the effects layer.
@@ -509,7 +637,7 @@ func test_reopening_starts_clean() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "precondition: the status line shows the running cycle's instructions")
+	assert_eq(_view.get_status_text(), CyclingView.status_line(true, _technique.technique_data, false), "precondition: the status line shows the running cycle's instructions")
 	_view.hide()
 	_view.show()
 	assert_eq(_last_line(), "", "no stale result line")
