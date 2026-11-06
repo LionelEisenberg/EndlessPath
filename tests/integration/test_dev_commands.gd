@@ -38,6 +38,10 @@ const PURE_MADRA_TREE: String = "res://resources/path_progression/pure_madra/pur
 ## A resource that loads fine and is not an item.
 const QUEST_FILE: String = "res://resources/quests/q_fill_core.tres"
 
+## The drill a new save starts with, and one it leaves locked.
+const STARTING_DRILL: String = "stone_lifting"
+const OTHER_DRILL: String = "horse_stance"
+
 const DEV_LINE: String = "[color=magenta][DEV][/color] "
 
 #-----------------------------------------------------------------------------
@@ -284,6 +288,18 @@ func test_set_madra_refuses_more_than_the_max() -> void:
 	assert_eq(DevCommands.set_madra(100.0), "", "the max itself is fine")
 	assert_eq(ResourceManager.get_madra(), 100.0)
 
+## Set Health writes the saved pool exactly, up to the max, and refuses below 0 or
+## past the max, leaving the pool as it was.
+func test_set_health_sets_exactly_and_refuses_past_the_max() -> void:
+	assert_eq(ResourceManager.get_health(), 100.0, "precondition: a new save binds at a new character's max")
+	assert_eq(DevCommands.set_health(40.0), "")
+	assert_eq(ResourceManager.get_health(), 40.0)
+	assert_ne(DevCommands.set_health(150.0), "", "150 is past a new character's max of 100")
+	assert_ne(DevCommands.set_health(-1.0), "", "Health can't be negative")
+	assert_eq(ResourceManager.get_health(), 40.0, "Health is left as it was")
+	assert_eq(DevCommands.set_health(100.0), "", "the max itself is fine")
+	assert_eq(ResourceManager.get_health(), 100.0)
+
 func test_add_path_points_adds_to_the_balance() -> void:
 	assert_eq(DevCommands.add_path_points(3), "")
 	assert_eq(DevCommands.add_path_points(2), "")
@@ -385,6 +401,30 @@ func test_technique_commands_refuse_an_unknown_id_and_equip_refuses_a_locked_one
 	assert_ne(DevCommands.equip_technique("torrential_flow"), "", "it is locked")
 	assert_false(CyclingManager.is_technique_unlocked("torrential_flow"), "equipping never unlocks")
 	assert_eq(CyclingManager.get_equipped_technique().id, "foundation_technique", "the equipped one stays")
+
+#-----------------------------------------------------------------------------
+# DRILLS
+#-----------------------------------------------------------------------------
+
+func test_unlock_and_equip_drill() -> void:
+	assert_false(BodyRefiningManager.is_drill_unlocked(OTHER_DRILL), "precondition: locked on a fresh save")
+	assert_eq(DevCommands.unlock_drill(OTHER_DRILL), "")
+	assert_true(BodyRefiningManager.is_drill_unlocked(OTHER_DRILL))
+	assert_eq(DevCommands.equip_drill(OTHER_DRILL), "")
+	assert_eq(BodyRefiningManager.get_equipped_drill().id, OTHER_DRILL)
+	watch_signals(LogManager)
+	assert_eq(DevCommands.unlock_drill(OTHER_DRILL), "", "unlocking it again is fine")
+	assert_eq(_dev_lines().size(), 0, "and does nothing, so logs nothing")
+
+func test_drill_commands_refuse_an_unknown_id_and_equip_refuses_a_locked_one() -> void:
+	assert_eq(DevCommands.unlock_drill("not_a_drill"), "Unknown drill: not_a_drill")
+	assert_eq(DevCommands.equip_drill("not_a_drill"), "Unknown drill: not_a_drill")
+	assert_eq(DevCommands.equip_drill(OTHER_DRILL), "%s is locked" % OTHER_DRILL)
+	assert_false(BodyRefiningManager.is_drill_unlocked(OTHER_DRILL), "equipping never unlocks")
+	assert_eq(BodyRefiningManager.get_equipped_drill().id, STARTING_DRILL, "the equipped one stays")
+
+func test_the_starting_drill_equips_on_a_fresh_save() -> void:
+	assert_eq(DevCommands.equip_drill(STARTING_DRILL), "")
 
 #-----------------------------------------------------------------------------
 # ABILITIES
@@ -581,6 +621,14 @@ func test_unlock_all_techniques_unlocks_every_one() -> void:
 	assert_eq(CyclingManager.get_unlocked_techniques().size(), catalog, "every technique is unlocked")
 	assert_eq(DevCommands.unlock_all_techniques(), "")
 
+func test_unlock_all_drills_unlocks_every_one() -> void:
+	var catalog: int = BodyRefiningManager.get_all_drills().size()
+	var new_ones: int = catalog - BodyRefiningManager.get_unlocked_drills().size()
+	assert_gt(new_ones, 0, "precondition: a fresh save leaves some locked")
+	assert_eq(DevCommands.unlock_all_drills(), "")
+	assert_eq(BodyRefiningManager.get_unlocked_drills().size(), catalog, "every drill is unlocked")
+	assert_eq(DevCommands.unlock_all_drills(), "")
+
 func test_unlock_all_abilities_unlocks_every_one() -> void:
 	var catalog: int = AbilityManager.get_all_abilities().size()
 	var new_ones: int = catalog - AbilityManager.get_unlocked_abilities().size()
@@ -667,10 +715,13 @@ func test_successful_commands_log_a_dev_line() -> void:
 		["buy_path_node", func() -> String: return DevCommands.buy_path_node("pure_core_awakening")],
 		["unlock_technique", func() -> String: return DevCommands.unlock_technique("torrential_flow")],
 		["equip_technique", func() -> String: return DevCommands.equip_technique("smooth_flow")],
+		["unlock_drill", func() -> String: return DevCommands.unlock_drill(OTHER_DRILL)],
+		["equip_drill", func() -> String: return DevCommands.equip_drill(OTHER_DRILL)],
 		["unlock_ability", func() -> String: return DevCommands.unlock_ability("power_font")],
 		["equip_ability", func() -> String: return DevCommands.equip_ability("empty_palm", 3)],
 		["award_item", func() -> String: return DevCommands.award_item(CRUDE_SCALE, 3)],
 		["unlock_all_techniques", func() -> String: return DevCommands.unlock_all_techniques()],
+		["unlock_all_drills", func() -> String: return DevCommands.unlock_all_drills()],
 		["unlock_all_abilities", func() -> String: return DevCommands.unlock_all_abilities()],
 		["travel_to_zone", func() -> String: return DevCommands.travel_to_zone(OTHER_ZONE_ID)],
 		["refill_vitals", _refill_vitals_during_an_adventure],

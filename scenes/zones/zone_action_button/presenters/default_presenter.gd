@@ -2,7 +2,8 @@ class_name DefaultZoneActionPresenter
 extends ZoneActionPresenter
 ## Presenter for story cards (NPC_DIALOGUE, ZONE_EVENT) and any type without a
 ## presenter of its own: the detail line is the action's description, and the
-## tag is the type's (STORY). A long description wraps in the tall drawer.
+## tag is the type's (STORY). A long description wraps, and the card grows by
+## its lines.
 
 @onready var _detail_label: Label = %DetailLabel
 

@@ -387,8 +387,9 @@ func get_pinned_preset_id() -> String:
 ##    manager;
 ## 3. the route's steps through the preset's beat run in order, then the preset's
 ##    own;
-## 4. every action available in every zone, and every unlocked technique, is
-##    marked seen, as on a save played to that point, so no NEW seal shows.
+## 4. every action available in every zone, and every unlocked technique and
+##    drill, is marked seen, as on a save played to that point, so no NEW seal
+##    shows.
 ## Nothing the build sets off counts as play. Returns "" once the preset is built,
 ## or "<step>: <reason>" for the first step that refused. That stops the build and
 ## leaves its save half-built: the caller decides which session comes next.
@@ -759,14 +760,16 @@ func _apply_steps(steps: Array[DevStepData]) -> String:
 			return "%s: %s" % [step.describe(), refusal]
 	return ""
 
-## Marks every action available in every zone, and every unlocked technique, as
-## seen by the player.
+## Marks every action available in every zone, and every unlocked technique and
+## drill, as seen by the player.
 func _mark_everything_seen() -> void:
 	for zone: ZoneData in ZoneManager.get_all_zones():
 		for action: ZoneActionData in ZoneManager.get_available_actions(zone.zone_id):
 			ZoneManager.mark_action_seen(action.action_id)
 	for technique: CyclingTechniqueData in CyclingManager.get_unlocked_techniques():
 		CyclingManager.mark_technique_seen(technique.id)
+	for drill: DrillData in BodyRefiningManager.get_unlocked_drills():
+		BodyRefiningManager.mark_drill_seen(drill.id)
 
 ## Logs the line as a [DEV] line in the player's log, as the commands' lines are.
 func _log_dev_line(what: String) -> void:

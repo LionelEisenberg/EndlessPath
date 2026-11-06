@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_madratrck")
+resource_type = 0
 amount = 1.5
 quiet = true
 effect_type = 2

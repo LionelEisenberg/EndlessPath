@@ -7,7 +7,7 @@ extends Resource
 
 ## The save format this build writes. migrate() brings an older save up to it,
 ## and a save with a higher number was written by a newer build.
-const CURRENT_VERSION: int = 2
+const CURRENT_VERSION: int = 4
 
 ## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
 @export var save_version: int = 0
@@ -18,6 +18,15 @@ const CURRENT_VERSION: int = 2
 
 @export var madra : float = 25.0
 @export var gold : float = 0.0
+
+## What health holds before it is ever set. ResourceManager fills it to the max
+## when the save binds, since "full" depends on Body and gear.
+const HEALTH_UNSET: float = -1.0
+
+## The saved Health pool, or HEALTH_UNSET in a new save and in one from before
+## the pool, which bind full. Written explicitly by _migrate_to_v3(), never left
+## to this default: the text saver skips a value equal to its default.
+@export var health: float = HEALTH_UNSET
 
 #-----------------------------------------------------------------------------
 # INVENTORY MANAGER
@@ -135,6 +144,20 @@ func _verify_current_selected_zone_id() -> bool:
 @export var seen_cycling_techniques_initialized: bool = false
 
 #-----------------------------------------------------------------------------
+# BODY REFINING MANAGER
+#-----------------------------------------------------------------------------
+
+## drill ids the player can play. A new save starts with the starting drill.
+@export var unlocked_drill_ids: Array[String] = ["stone_lifting"]
+@export var equipped_drill_id: String = "stone_lifting"
+## drill ids the player has already seen. An unlocked drill missing from this
+## list shows a NEW mark until it is seen or equipped.
+@export var seen_drill_ids: Array[String] = []
+## Set once BodyRefiningManager has marked every drill unlocked at the time as
+## seen, so a save from before drills doesn't light the mark on its starting drill.
+@export var seen_drills_initialized: bool = false
+
+#-----------------------------------------------------------------------------
 # ABILITY MANAGER
 #-----------------------------------------------------------------------------
 
@@ -192,9 +215,10 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  StatLevels: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
+	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Health: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  StatLevels: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedDrills: %s\n  EquippedDrillId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
 			save_version,
 			madra,
+			health,
 			gold,
 			core_density_xp,
 			core_density_level,
@@ -208,6 +232,8 @@ func _to_string() -> String:
 			_stat_levels_string(),
 			str(unlocked_cycling_technique_ids),
 			equipped_cycling_technique_id,
+			str(unlocked_drill_ids),
+			equipped_drill_id,
 			str(unlocked_ability_ids),
 			str(equipped_ability_ids),
 			current_path_id,
@@ -278,18 +304,45 @@ func repair() -> PackedStringArray:
 ## Does nothing to a save from a newer build. Runs after a save loads and before
 ## it is checked. It does two kinds of work:
 ## The version steps (_migrate_to_vN) run once per save, for a save older than N.
+## Each stamps its own number once it ran, so a step that cannot run (version 2's
+## when CultivationManager did not load) stops there, and the save stays at the
+## last step it finished, never stamped current unconverted.
 ## The zone id move runs on every load, whatever the save's version.
-## A schema change bumps CURRENT_VERSION, adds a _migrate_to_vN(), and adds an
-## "if save_version < N" line here.
+## A schema change bumps CURRENT_VERSION, adds a _migrate_to_vN(), and adds its
+## step to _run_version_steps().
 func migrate() -> void:
 	if is_from_newer_build():
 		return
+	var converted: bool = _run_version_steps()
+	_apply_zone_id_migrations()
+	if converted:
+		save_version = CURRENT_VERSION
+
+## Runs each version step the save has not had, in order, stamping each one's
+## number after it. Returns false when a step could not run.
+func _run_version_steps() -> bool:
 	if save_version < 1:
 		_migrate_to_v1()
+		save_version = 1
 	if save_version < 2:
+		if not _can_read_stage_caps():
+			Log.error("SaveGameData: CultivationManager did not load, so a version %d save cannot get its stat levels. It stays at version %d" % [save_version, save_version])
+			return false
 		_migrate_to_v2()
-	_apply_zone_id_migrations()
-	save_version = CURRENT_VERSION
+		save_version = 2
+	if save_version < 3:
+		_migrate_to_v3()
+		save_version = 3
+	# Version 4 added the drill fields. Their defaults suit an old save (the
+	# starting drill, unlocked and equipped), so the step moves nothing.
+	if save_version < 4:
+		save_version = 4
+	return true
+
+## True when CultivationManager, which the version 2 step reads the stat caps
+## from, has loaded.
+func _can_read_stage_caps() -> bool:
+	return is_instance_valid(CultivationManager)
 
 ## Version step 1, run only for a save older than version 1: moves each accessory
 ## an old save holds in equipped_gear to its slot in equipped_accessories. A slot
@@ -331,21 +384,18 @@ func _migrate_to_v2() -> void:
 		stat_training.set_xp(stat, 0.0)
 	character_attributes = null
 
-## The stat_level_cap of the save's own stage, from the entry of
-## CultivationManager.advancement_stage_resources whose stage_id it is, or 0 when
-## there is none. Read from the list itself, not CultivationManager.get_stat_level_cap(),
-## since that one reads the bound save: the managers have not bound when migrate()
-## runs, but their preloaded defaults are set.
+## The stat_level_cap of the save's own stage, or 0 when no stage resource has
+## it. CultivationManager.get_stat_level_cap_of() reads the stage list, not the
+## bound save: the managers have not bound when migrate() runs, but their
+## preloaded defaults are set.
 func _stat_level_cap_of_save_stage() -> int:
-	# Read with get() and untyped, on purpose. A typed read (of the property, or
-	# through the AdvancementStageResource class) makes this script depend on the
-	# stage script, which then compiles at boot before CultivationManager, and
-	# CultivationManager's preloaded stage files fail to load.
-	var stage_resources: Array = CultivationManager.get(&"advancement_stage_resources")
-	for stage_resource: Variant in stage_resources:
-		if stage_resource.stage_id == current_advancement_stage:
-			return stage_resource.stat_level_cap
-	return 0
+	return CultivationManager.get_stat_level_cap_of(current_advancement_stage)
+
+## Version step 3, run only for a save older than version 3: writes health out as
+## HEALTH_UNSET, so the bind fills it to the max whatever the field's default.
+## A save from before the Health pool starts full.
+func _migrate_to_v3() -> void:
+	health = HEALTH_UNSET
 
 ## Moves the current zone off an id in ZONE_ID_MIGRATIONS, such as the hidden Test
 ## Zone. Not a version step: it runs on every load. The dev panel can walk a save

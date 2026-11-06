@@ -47,6 +47,7 @@ func _full_save() -> SaveGameData:
 	var save := SaveGameData.new()
 	save.save_version = SaveGameData.CURRENT_VERSION
 	save.madra = 61.5
+	save.health = 72.5
 	save.gold = 130.0
 	_fill_inventory(save.inventory)
 	save.character_attributes = CharacterAttributesData.make({
@@ -86,11 +87,15 @@ func _full_save() -> SaveGameData:
 	save.seen_action_ids.append("aura_well_training")
 	save.seen_actions_initialized = true
 
-	# Techniques, abilities and the path.
+	# Techniques, drills, abilities and the path.
 	save.unlocked_cycling_technique_ids.append("smooth_flow")
 	save.equipped_cycling_technique_id = "smooth_flow"
 	save.seen_cycling_technique_ids.append("foundation_technique")
 	save.seen_cycling_techniques_initialized = true
+	save.unlocked_drill_ids.append("horse_stance")
+	save.equipped_drill_id = "horse_stance"
+	save.seen_drill_ids.append("stone_lifting")
+	save.seen_drills_initialized = true
 	save.unlocked_ability_ids.append("empty_palm")
 	save.equipped_ability_ids[2] = "empty_palm"
 	save.current_path_id = "pure_madra"

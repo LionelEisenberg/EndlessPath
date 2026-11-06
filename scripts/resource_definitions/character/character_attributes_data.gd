@@ -45,6 +45,9 @@ const MADRA_COST_CUT_HALF_POINT: float = 20.0
 ## COOLDOWN_CUT_HALF_POINT Control above the baseline.
 const COOLDOWN_CUT_CEILING: float = 0.4
 const COOLDOWN_CUT_HALF_POINT: float = 20.0
+## Each point of Spirit above the baseline adds this much to the Madra a cycle
+## draws: 1.0x at Spirit 10, 1.9x at 19.
+const CYCLING_MADRA_PER_SPIRIT: float = 0.1
 
 #-----------------------------------------------------------------------------
 # STATS
@@ -171,6 +174,13 @@ func get_madra_cost_cut() -> float:
 ## baseline: 0 at Lv 1, never reaching COOLDOWN_CUT_CEILING.
 func get_cooldown_cut() -> float:
 	return flattening_curve(control - STAT_BASELINE, COOLDOWN_CUT_CEILING, COOLDOWN_CUT_HALF_POINT)
+
+## The factor on the Madra a cycle draws, from the Spirit above the baseline:
+## 1.0 at Lv 1, plus CYCLING_MADRA_PER_SPIRIT a point. Points below the baseline
+## count as none. Cycling reads the player's total Spirit, gear included, as a
+## fight does.
+func get_cycling_madra_multiplier() -> float:
+	return 1.0 + maxf(0.0, spirit - STAT_BASELINE) * CYCLING_MADRA_PER_SPIRIT
 
 ## A value that grows with the points above the baseline and flattens toward
 ## the ceiling: ceiling x points / (points + half_point), so half_point points

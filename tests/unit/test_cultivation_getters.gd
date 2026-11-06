@@ -2,8 +2,8 @@ extends GutTest
 
 ## Unit tests for CultivationManager's public getters on the real Foundation
 ## stage, which callers read instead of the private stage-resource lookup: the
-## XP a level costs, and the condition that puts each stage's Breakthrough on
-## the Goals board.
+## XP a level costs, the condition that puts each stage's Breakthrough on the
+## Goals board, and a given stage's stat level cap.
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -46,3 +46,23 @@ func test_xp_for_level_follows_the_stages_curve() -> void:
 	assert_almost_eq(CultivationManager.get_xp_for_level(1), 10.0, 0.0001)
 	assert_almost_eq(CultivationManager.get_xp_for_level(2), 10.2, 0.0001)
 	assert_almost_eq(CultivationManager.get_xp_for_level(11), 10.0 * pow(1.02, 10), 0.0001)
+
+#-----------------------------------------------------------------------------
+# STAT LEVEL CAP OF A STAGE
+#-----------------------------------------------------------------------------
+
+## Each stage's own cap, read from its resource whatever stage the save is in,
+## and 0 for a stage with no resource.
+func test_stat_level_cap_of_reads_the_given_stage() -> void:
+	PersistenceManager.save_game_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	for stage_resource: AdvancementStageResource in CultivationManager.advancement_stage_resources:
+		assert_eq(CultivationManager.get_stat_level_cap_of(stage_resource.stage_id), stage_resource.stat_level_cap, "%s's cap" % stage_resource.stage_name)
+	assert_eq(CultivationManager.get_stat_level_cap_of(CultivationManager.AdvancementStage.IRON), 0, "Iron has no stage resource")
+
+## The version 2 save step calls it from migrate(), before the managers bind.
+func test_stat_level_cap_of_needs_no_bound_save() -> void:
+	var bound: SaveGameData = CultivationManager.live_save_data
+	CultivationManager.live_save_data = null
+	var cap: int = CultivationManager.get_stat_level_cap_of(CultivationManager.AdvancementStage.FOUNDATION)
+	CultivationManager.live_save_data = bound
+	assert_gt(cap, 0, "Foundation's cap reads with no save bound")

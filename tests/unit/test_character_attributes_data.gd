@@ -2,12 +2,13 @@ extends GutTest
 
 ## Unit tests for CharacterAttributesData, a combatant's stat block: the ints
 ## AttributeType is stored as, the stat keys, make(), and the derived formulas
-## (Health, Stamina, regen, Madra, dodge, Control's cuts) the game reads.
+## (Health, Stamina, regen, Madra, dodge, Control's cuts, cycling's Madra
+## multiplier) the game reads.
 
 const AttributeType = CharacterAttributesData.AttributeType
 const KEYS: Array[StringName] = [&"strength", &"body", &"agility", &"spirit", &"mind", &"control"]
 
-## The block's seven derived values, by name.
+## The block's eight derived values, by name.
 func _derived(block: CharacterAttributesData) -> Dictionary:
 	return {
 		"max_health": block.get_max_health(),
@@ -17,6 +18,7 @@ func _derived(block: CharacterAttributesData) -> Dictionary:
 		"dodge_chance": block.get_dodge_chance(),
 		"madra_cost_cut": block.get_madra_cost_cut(),
 		"cooldown_cut": block.get_cooldown_cut(),
+		"cycling_madra_multiplier": block.get_cycling_madra_multiplier(),
 	}
 
 #-----------------------------------------------------------------------------
@@ -75,6 +77,7 @@ func test_a_level_one_block_keeps_todays_numbers() -> void:
 		"dodge_chance": 0.0,
 		"madra_cost_cut": 0.0,
 		"cooldown_cut": 0.0,
+		"cycling_madra_multiplier": 1.0,
 	}
 	var derived: Dictionary = _derived(CharacterAttributesData.make())
 	for value_name: String in expected:
@@ -89,7 +92,7 @@ func test_each_derived_value_reads_only_its_stat() -> void:
 		{"key": &"mind", "raises": ["max_madra"]},
 		{"key": &"control", "raises": ["madra_cost_cut", "cooldown_cut"]},
 		{"key": &"strength", "raises": []},
-		{"key": &"spirit", "raises": []},
+		{"key": &"spirit", "raises": ["cycling_madra_multiplier"]},
 	]
 	var baseline: Dictionary = _derived(CharacterAttributesData.make())
 	for case: Dictionary in cases:
@@ -99,6 +102,22 @@ func test_each_derived_value_reads_only_its_stat() -> void:
 				assert_gt(derived[value_name], baseline[value_name], "%s 15 raises %s" % [case.key, value_name])
 			else:
 				assert_eq(derived[value_name], baseline[value_name], "%s 15 leaves %s" % [case.key, value_name])
+
+## The cycling Madra multiplier is 1.0 at the baseline and grows by
+## CYCLING_MADRA_PER_SPIRIT for each point of Spirit above it, with points below
+## the baseline counting as none.
+func test_cycling_madra_multiplier() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Lv 1", "spirit": 10.0, "expected": 1.0},
+		{"name": "one point of gear", "spirit": 11.0, "expected": 1.1},
+		{"name": "Spirit 15", "spirit": 15.0, "expected": 1.5},
+		{"name": "Foundation's cap, Lv 10", "spirit": 19.0, "expected": 1.9},
+		{"name": "a fractional total", "spirit": 12.5, "expected": 1.25},
+		{"name": "below the baseline", "spirit": 6.0, "expected": 1.0},
+	]
+	for case: Dictionary in cases:
+		var block := CharacterAttributesData.make({&"spirit": case.spirit})
+		assert_almost_eq(block.get_cycling_madra_multiplier(), case.expected, 0.000001, case.name)
 
 ## flattening_curve() is ceiling x points / (points + half_point), with points
 ## below the baseline counting as none.

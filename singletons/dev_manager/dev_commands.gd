@@ -84,6 +84,16 @@ static func set_madra(value: float) -> String:
 	_while_paused(ResourceManager.set_madra.bind(value))
 	return _succeed("Set Madra to %d" % int(value))
 
+## Sets the saved Health pool to exactly the value. Refuses a negative value or
+## one above the max.
+static func set_health(value: float) -> String:
+	if value < 0.0:
+		return "Health can't be negative"
+	if value > ResourceManager.get_max_health():
+		return "Health can't pass its max of %d" % int(ResourceManager.get_max_health())
+	_while_paused(ResourceManager.set_health.bind(value))
+	return _succeed("Set Health to %d" % int(value))
+
 ## Sets gold to exactly the value. Refuses a negative value.
 static func set_gold(value: float) -> String:
 	if value < 0.0:
@@ -168,7 +178,7 @@ static func buy_path_node(node_id: String) -> String:
 	return _succeed("Bought path node %s%s" % [node_id, granted])
 
 #-----------------------------------------------------------------------------
-# TECHNIQUES AND ABILITIES
+# TECHNIQUES, DRILLS AND ABILITIES
 #-----------------------------------------------------------------------------
 
 ## Unlocks a cycling technique, unless it is unlocked already. Refuses an unknown id.
@@ -189,6 +199,25 @@ static func equip_technique(technique_id: String) -> String:
 		return "%s is locked" % technique_id
 	_while_paused(CyclingManager.equip_technique.bind(technique_id))
 	return _succeed("Equipped technique %s" % technique_id)
+
+## Unlocks a body refining drill, unless it is unlocked already. Refuses an unknown id.
+static func unlock_drill(drill_id: String) -> String:
+	if not BodyRefiningManager.has_drill(drill_id):
+		return "Unknown drill: %s" % drill_id
+	if BodyRefiningManager.is_drill_unlocked(drill_id):
+		return ""
+	_while_paused(BodyRefiningManager.unlock_drill.bind(drill_id))
+	return _succeed("Unlocked drill %s" % drill_id)
+
+## Equips a body refining drill, replacing the equipped one. Refuses an unknown id and
+## a locked drill.
+static func equip_drill(drill_id: String) -> String:
+	if not BodyRefiningManager.has_drill(drill_id):
+		return "Unknown drill: %s" % drill_id
+	if not BodyRefiningManager.is_drill_unlocked(drill_id):
+		return "%s is locked" % drill_id
+	_while_paused(BodyRefiningManager.equip_drill.bind(drill_id))
+	return _succeed("Equipped drill %s" % drill_id)
 
 ## Unlocks a combat ability, unless it is unlocked already. Refuses an unknown id.
 static func unlock_ability(ability_id: String) -> String:
@@ -217,6 +246,11 @@ static func equip_ability(ability_id: String, slot: int) -> String:
 static func unlock_all_techniques() -> String:
 	var newly_unlocked: int = _while_paused(_unlock_every_technique)
 	return _succeed("Unlocked all techniques (%d new)" % newly_unlocked)
+
+## Unlocks every body refining drill, and logs how many were new.
+static func unlock_all_drills() -> String:
+	var newly_unlocked: int = _while_paused(_unlock_every_drill)
+	return _succeed("Unlocked all drills (%d new)" % newly_unlocked)
 
 ## Unlocks every combat ability, and logs how many were new.
 static func unlock_all_abilities() -> String:
@@ -385,6 +419,15 @@ static func _unlock_every_technique() -> int:
 	for technique: CyclingTechniqueData in CyclingManager.get_all_techniques():
 		if not CyclingManager.is_technique_unlocked(technique.id):
 			CyclingManager.unlock_technique(technique.id)
+			newly_unlocked += 1
+	return newly_unlocked
+
+## Unlocks each drill still locked. Returns how many it unlocked.
+static func _unlock_every_drill() -> int:
+	var newly_unlocked: int = 0
+	for drill: DrillData in BodyRefiningManager.get_all_drills():
+		if not BodyRefiningManager.is_drill_unlocked(drill.id):
+			BodyRefiningManager.unlock_drill(drill.id)
 			newly_unlocked += 1
 	return newly_unlocked
 

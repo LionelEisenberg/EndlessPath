@@ -56,9 +56,12 @@ const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
-## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
+## A technique drawer or an activity card is 72 tall with a line each, with 8
+## between them (kit §5.5); each line more is 18.
 const DRAWER_HEIGHT: float = 72.0
 const DRAWER_GAP: float = 8.0
+const STAT_LINE: float = 18.0
+const StatCaps := preload("res://tests/helpers/stat_caps.gd")
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -294,25 +297,50 @@ func test_fresh_save_shows_an_empty_tray() -> void:
 	assert_null(ActionManager.get_current_action(), "precondition: nothing runs on a fresh save")
 	_assert_empty_tray("Nothing running")
 
+## The Aura Well refills Madra only: its strip shows how long until the pool is
+## full, the pool, and a rod toward full, never a level it no longer pays.
 func test_strip_shows_for_aura_well() -> void:
+	PersistenceManager.save_game_data.madra = 64.0
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 	await wait_process_frames(2)
-	var texts: Array[String] = _texts(_strip())
-	assert_has(texts, "Aura Well")
-	assert_has(texts, "+1.5 / s")
-	assert_has(texts, "+1 Spirit at Lv 1")
-	assert_has(texts, "0 / 60")
-	assert_does_not_have(texts, "Nothing running")
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "Full in 24 s", "64 / 100", "Now"] as Array[String])
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(0.64 * 144.0), "the rod at the pool's fill")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
 
-func test_strip_follows_training_ticks() -> void:
+## The pool line follows every Madra change, the Well's ticks and a spend alike.
+func test_strip_follows_madra() -> void:
+	PersistenceManager.save_game_data.madra = 64.0
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
-	var well: TrainingActionData = ZoneManager.get_action_by_id(AURA_WELL_ID) as TrainingActionData
-	var ticks: int = ZoneManager.increment_training_ticks(AURA_WELL_ID, SPIRIT_VALLEY_ID, 75)
-	ActionManager.training_tick_processed.emit(well, ticks)
+	ResourceManager.add_madra(15.0, true)
+	assert_has(_texts(_strip()), "Full in 14 s")
+	assert_has(_texts(_strip()), "79 / 100")
+	ResourceManager.spend_madra(49.0)
+	assert_has(_texts(_strip()), "Full in 47 s", "70 left over 1.5 a second, rounded up")
+	assert_has(_texts(_strip()), "30 / 100")
+
+## At the max the Well adds nothing, and the strip says so: no rate, no wait.
+func test_strip_at_full_madra() -> void:
+	PersistenceManager.save_game_data.madra = 100.0
+	await _add_panel()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	assert_eq(_texts(_strip()), ["Aura Well", "+0 / s", "Madra full", "100 / 100", "Now"] as Array[String])
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 144, "the rod full")
+
+## A training action whose levels grant a stat still shows the next level's
+## grant and the ticks into the level.
+func test_strip_shows_a_level_award() -> void:
+	await _add_panel()
+	var training := ZoneManager.get_action_by_id(AURA_WELL_ID).duplicate() as TrainingActionData
+	var award := AwardAttributeEffectData.new()
+	award.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
+	training.effects_on_level = [award] as Array[EffectData]
+	ActionManager.select_action(training)
+	var ticks: int = ZoneManager.increment_training_ticks(training.action_id, SPIRIT_VALLEY_ID, 75)
+	ActionManager.training_tick_processed.emit(training, ticks)
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "+1 Spirit at Lv 2")
 	assert_has(texts, "15 / 300")
@@ -422,6 +450,7 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	# The cycle and the Aura Well share the tray's name, detail, figure, rod and
 	# rate: when the cycle ends and the Aura Well resumes, the Aura Well's own
 	# texts, rod and rate come back, and the tray takes clicks again.
+	PersistenceManager.save_game_data.madra = 0.0
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
@@ -433,7 +462,7 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	ActionManager.stop_action()
 	await wait_process_frames(2)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well resumed")
-	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "+1 Spirit at Lv 1", "0 / 60", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "Full in 67 s", "0 / 100", "Now"] as Array[String])
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
@@ -585,6 +614,35 @@ func test_focus_request_scrolls() -> void:
 	await wait_process_frames(2)
 	assert_true(_card_fully_visible(ADVENTURE_ID))
 	assert_true(_card_flashing(ADVENTURE_ID))
+
+## A card that grows where it stands (the Tribulation's stat line appearing)
+## moves every fold under it down by its new line and none above it, the list
+## measures the taller card, and it still folds under a whole card.
+func test_the_list_refolds_when_a_card_grows() -> void:
+	await _add_panel()
+	_unlock_everything()
+	StatCaps.cap_main_stats()
+	await wait_process_frames(2)
+	var list := _list() as ActivityList
+	var card: ZoneActionButton = _panel.get_card(TRIBULATION_ID) as ZoneActionButton
+	assert_not_null(card, "precondition: the Tribulation is listed")
+	assert_eq(card.size.y, DRAWER_HEIGHT, "precondition: with the stats at the cap, one line")
+	var folds_before: Array[float] = list.get_fold_heights()
+	var content_before: float = list.get_content_height()
+	var top_before: float = card.get_global_rect().position.y - _scroll().get_global_rect().position.y
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.STRENGTH, CharacterManager.get_stat_level_cap() - 1)
+	await wait_process_frames(2)
+	assert_eq(card.size.y, DRAWER_HEIGHT + STAT_LINE, "the stat line grows the card")
+	assert_eq(list.get_content_height(), content_before + STAT_LINE, "the list measures it")
+	var folds_after: Array[float] = list.get_fold_heights()
+	assert_eq(folds_after.size(), folds_before.size(), "precondition: the same cards")
+	for index: int in folds_before.size():
+		var moved: float = folds_after[index] - folds_before[index]
+		if folds_before[index] <= top_before:
+			assert_eq(moved, 0.0, "a fold above the card stays: %d" % index)
+		else:
+			assert_eq(moved, STAT_LINE, "a fold under the card moves down a line: %d" % index)
+	assert_true(folds_after.has(list.size.y) or is_equal_approx(list.size.y, list.get_content_height()), "the list folds under a whole card")
 
 #-----------------------------------------------------------------------------
 # LORE
@@ -816,6 +874,32 @@ func _header_text() -> String:
 func _count_text() -> String:
 	return (_node("CountLabel") as Label).text
 
+## A Spirit level-up moves every drawer's Madra figure with the chest open, not
+## at the next rebuild: Smooth Flow's 80 a cycle reads 152 at Spirit Lv 10.
+func test_drawers_follow_a_spirit_level() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(1)
+	var detail := _technique_list().get_drawer(SMOOTH_ID).get_node("%Detail") as Label
+	assert_eq(detail.text, "80 Madra · 15 s cycle · 4 zones", "precondition: Spirit Lv 1")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	assert_eq(detail.text, "152 Madra · 15 s cycle · 4 zones")
+
+## The rate's slot is as wide as the technique's top rate at the player's Spirit:
+## Smooth Flow tops out at +5.3 / s at Lv 1 and +10.1 / s at Lv 10, a digit wider,
+## so a Spirit level-up widens it while the tray shows the cycle.
+func test_the_rate_slot_follows_a_spirit_level() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	CyclingManager.equip_technique(SMOOTH_ID)
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(1)
+	var slot := _strip_node("RateGroup") as Control
+	var width_at_lv_1: float = slot.custom_minimum_size.x
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 10)
+	assert_gt(slot.custom_minimum_size.x, width_at_lv_1, "a whole digit wider")
+
 func test_techniques_mode_lists_unlocked_techniques() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
@@ -1038,7 +1122,7 @@ func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 
 ## The label row of an activity group: the row that holds its name and its groove.
 func _label_row_of(group: Node) -> Control:
-	return group.get_node("%GroupLabel").get_parent() as Control
+	return group.get_node("%LabelRow") as Control
 
 ## True when every row's top is lower than the one before it.
 func _tops_increase(rows: Array[Control]) -> bool:

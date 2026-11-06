@@ -282,6 +282,29 @@ func test_boot_migrates_the_loaded_save() -> void:
 		"boot() runs migrate() on the loaded save, so it never stands in the hidden Test Zone")
 	assert_eq(manager.save_game_data.gold, 42.0, "a migrated save is not reset")
 
+## A version 1 save whose version 2 step cannot run (CultivationManager missing):
+## save_data() stamps the current version on every write, so the session never
+## writes the save it could not convert.
+func test_a_save_a_version_step_could_not_convert_is_never_written() -> void:
+	var path := _path("unconverted")
+	var original := """[gd_resource type="Resource" script_class="SaveGameData" format=3]
+
+[ext_resource type="Script" path="res://tests/helpers/stageless_save_game_data.gd" id="1_save"]
+
+[resource]
+script = ExtResource("1_save")
+save_version = 1
+gold = 42.0
+"""
+	_write(path, original)
+	var manager := _make_manager(path)
+	_boot(manager)
+	assert_eq(manager.save_game_data.save_version, 1, "precondition: the version 2 step could not run")
+	assert_true(manager.is_save_blocked(), "nothing writes a save left unconverted")
+	assert_string_contains(manager.get_block_reason(), "version %d" % SaveGameData.CURRENT_VERSION)
+	assert_eq(manager.save_data(), ERR_LOCKED)
+	assert_eq(_read(path), original, "the file is left as it was")
+
 func test_an_unknown_zone_is_repaired_not_wiped() -> void:
 	var path := _path("invalid")
 	var original := READABLE_SAVE_TEXT % "NoSuchZoneForPersistenceTest"

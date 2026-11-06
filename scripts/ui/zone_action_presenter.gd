@@ -7,10 +7,12 @@ extends Node
 ## state, hover, flash and click routing.
 ##
 ## A presenter is a utility Node: its scene root has no layout. On setup() it
-## reparents its own children into the button's slots, keeping their local
-## positions: get_detail_slot() (an HBoxContainer at the detail line, x+64,
-## y+38) and get_footer_slot() (a Control covering the drawer, for pieces placed
-## at the kit's card positions).
+## reparents its own children into the button's detail slot (get_detail_slot(),
+## a VBoxContainer of rows at the detail line, x+64, 4 px under the title's last
+## line), each row as wide as the button's get_detail_room(). Nothing on a card
+## is cut off: text wraps at that width (fit_detail_label, set_detail_rich_text)
+## and the card grows by the rows' lines. A presenter that changes what its rows
+## show afterwards calls the button's relayout().
 
 var action_data: ZoneActionData
 var button: ZoneActionButton

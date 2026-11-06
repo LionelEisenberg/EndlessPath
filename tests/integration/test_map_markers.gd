@@ -64,6 +64,12 @@ func _settle() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+## Runs one real tick of the running training action: holds its timer and times
+## it out by hand, so the trickle lands and the tick's gain is known.
+func _tick_training() -> void:
+	ActionManager.action_timer.paused = true
+	ActionManager.action_timer.timeout.emit()
+
 ## Takes the floater off the frame clock and runs `seconds` of it by hand in
 ## 60 FPS frames. Holds the action timer too: no real tick or haul pops it
 ## again.
@@ -287,12 +293,26 @@ func test_floater_on_training_tick() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
 	var floater: LacquerFloater = _markers().get_floater()
+	assert_not_null(training, "precondition: the Aura Well runs")
 	assert_false(floater.visible, "no floater before the first tick")
-	ActionManager.training_tick_processed.emit(training, 1)
+	_tick_training()
 	_advance_floater(0.5)
 	await _settle()
 	assert_true(floater.visible)
 	assert_eq(floater.get_text(), "+1.5 Madra")
+
+## The tick that fills the pool floats only what fit; a tick at the max floats
+## nothing, since the Well added nothing.
+func test_floater_shows_only_what_the_pool_took() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var floater: LacquerFloater = _markers().get_floater()
+	PersistenceManager.save_game_data.madra = ResourceManager.get_max_madra() - 0.5
+	_tick_training()
+	assert_eq(floater.get_text(), "+0.5 Madra", "only what fit")
+	_advance_floater(1.1)
+	assert_false(floater.visible, "precondition: the floater has risen and hidden")
+	_tick_training()
+	assert_false(floater.visible, "nothing rises at the max")
 
 func test_haul_floater_once_per_haul() -> void:
 	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
@@ -321,7 +341,7 @@ func test_floater_stops_when_the_idle_action_changes() -> void:
 	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
 	assert_not_null(training, "precondition: the Aura Well runs")
 	var floater: LacquerFloater = _markers().get_floater()
-	ActionManager.training_tick_processed.emit(training, 1)
+	_tick_training()
 	assert_true(floater.visible, "precondition: its tick's floater rises")
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
 	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs now")
@@ -331,13 +351,13 @@ func test_floater_stops_when_the_idle_action_changes() -> void:
 func test_floater_keeps_rising_through_a_map_rebuild() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var floater: LacquerFloater = _markers().get_floater()
-	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	_tick_training()
 	ZoneManager.set_demo_zones_visible(true)
 	assert_true(floater.visible, "the same action still runs: its floater keeps rising")
 
 func test_ring_and_floater_hide_when_the_idle_action_stops() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
-	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	_tick_training()
 	ActionManager.stop_action()
 	assert_false(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().visible)
 	assert_false(_markers().get_floater().visible)

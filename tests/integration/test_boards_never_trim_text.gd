@@ -20,7 +20,8 @@ extends GutTest
 
 ## The adventure's chest (its title, its expedition page with its Here tray, hint
 ## row and choice drawers), the technique dock's cast tray and tooltip, the Goals
-## board, the zone chest's Now strip, the Character book with its stat tile, and
+## board, the zone chest's Now strip, its activity cards with the presenters that
+## fill them and its technique drawers, the Character book with its stat tile, and
 ## the cultivator cabinet with its stat cells.
 const BOARD_SCENES: Array[String] = [
 	"res://scenes/adventure/adventure_chest/adventure_chest.tscn",
@@ -31,10 +32,18 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn",
 	"res://scenes/ui/goals_panel/goals_panel.tscn",
 	"res://scenes/zones/zone_panel/now_strip/now_strip.tscn",
+	"res://scenes/zones/zone_action_button/zone_action_button.tscn",
+	"res://scenes/zones/zone_action_button/presenters/adventure_presenter.tscn",
+	"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn",
+	"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn",
+	"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn",
+	"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn",
+	"res://scenes/cycling/technique_drawer/technique_drawer.tscn",
 	"res://scenes/character/character_view.tscn",
 	"res://scenes/character/attribute_tile/attribute_tile.tscn",
 	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
 	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
+	"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn",
 ]
 
 ## Where the whole-scene walk reads.
@@ -49,13 +58,6 @@ const KNOWN_TRIMMERS: Array[String] = [
 	"res://scenes/ui/log_window/log_window.tscn",
 	# The zone chest's title.
 	"res://scenes/zones/zone_panel/zone_panel.tscn",
-	# The zone cards: the card, the presenters that fill it and the code that fits their text.
-	"res://scenes/zones/zone_action_button/zone_action_button.tscn",
-	"res://scenes/zones/zone_action_button/zone_action_button.gd",
-	"res://scenes/zones/zone_action_button/presenters/adventure_presenter.tscn",
-	"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn",
-	"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn",
-	"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn",
 	# The zone map's name plates and popovers.
 	"res://scenes/zones/map_markers/zone_map_label/zone_map_label.tscn",
 	"res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn",
@@ -159,7 +161,14 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn": ["NameLabel", "EffectsLabel", "DescriptionLabel"],
 		"res://scenes/ui/goals_panel/goals_panel.tscn": ["QuestNameLabel", "QuestStepLabel", "MilestoneNameLabel", "MilestoneTextLabel"],
 		"res://scenes/zones/zone_panel/now_strip/now_strip.tscn": ["TrainingName", "LevelLabel", "ForageName", "EmptyLabel"],
+		"res://scenes/zones/zone_action_button/zone_action_button.tscn": ["Title"],
+		"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn": ["DetailLabel"],
+		"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn": ["DetailLabel"],
+		"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn": ["DetailLabel"],
+		"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn": ["StatNeedLabel", "ReadyLabel"],
+		"res://scenes/cycling/technique_drawer/technique_drawer.tscn": ["Title", "Detail"],
 		"res://scenes/character/character_view.tscn": ["DetailDescription"],
+		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
 	}
 	for path: String in wrapping:
 		var board: Node = (load(path) as PackedScene).instantiate()

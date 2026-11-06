@@ -11,8 +11,9 @@ extends GutTest
 ##
 ## The World tab travels through DevCommands and shows a refusal, and its zone-map
 ## checks start from ZoneManager. The Player tab reaches a level through its command,
-## shows why a command refused, lists the six stats and sets one's level and XP. The
-## Adventure tab follows the run and shows why a command refused.
+## shows why a command refused, sets the saved Health and shows it over its max, lists
+## the six stats and sets one's level and XP. The Adventure tab follows the run and
+## shows why a command refused.
 ##
 ## Each panel is built inside a 1920x1080 Control, as MainView holds it in the
 ## game. Each test binds a fresh save and gives back what it changed: the save and
@@ -459,6 +460,25 @@ func test_player_tab_shows_a_refusal() -> void:
 	_press(player, "AbilityUnlock")
 	assert_false(status.visible, "a command that works clears the refusal")
 
+## Set Health goes through its command, and the line shows the saved pool over its max.
+func test_player_tab_sets_health() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	var line: Label = player.get_node("%HealthLabel")
+	assert_eq(line.text, "Health 100 / 100", "precondition: a new save binds full")
+	_enter(player, "HealthSpin", 40.0)
+	_press(player, "HealthSet")
+	assert_eq(ResourceManager.get_health(), 40.0)
+	assert_eq(line.text, "Health 40 / 100")
+
+## The line follows the pool and its max, however they change.
+func test_player_tab_health_line_follows_the_pool_and_its_max() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	var line: Label = player.get_node("%HealthLabel")
+	ResourceManager.set_health(60.0)
+	assert_eq(line.text, "Health 60 / 100", "the pool")
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.BODY, 3)
+	assert_eq(line.text, "Health 60 / 120", "the max")
+
 ## Each item's metadata is the stat key the command takes.
 func test_player_tab_lists_the_six_stats() -> void:
 	var player: Control = _open_tab(_add_panel(), "PlayerTab")
@@ -472,6 +492,30 @@ func test_player_tab_sets_a_stats_level_and_xp() -> void:
 	_press(player, "StatSet")
 	assert_eq(CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.SPIRIT), 4, "Spirit is Lv 4")
 	assert_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 12.0, "with 12 XP")
+
+## The drills list every drill by id. The starting drill equips; another is refused
+## as locked until it is unlocked, then equips; Unlock all unlocks the rest.
+func test_player_tab_unlocks_and_equips_drills() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	var drill_ids: Array[String] = []
+	for drill: DrillData in BodyRefiningManager.get_all_drills():
+		drill_ids.append(drill.id)
+	assert_eq(_item_metadata(player.get_node("%DrillOption")), drill_ids, "every drill, by id")
+	var status: Label = player.get_node("%PlayerStatus")
+	var starting: String = SaveGameData.new().equipped_drill_id
+	var other: String = drill_ids[1]
+	_pick_item(player.get_node("%DrillOption"), starting)
+	_press(player, "DrillEquip")
+	assert_false(status.visible, "the starting drill equips with no refusal")
+	_pick_item(player.get_node("%DrillOption"), other)
+	_press(player, "DrillEquip")
+	assert_true(status.is_visible_in_tree(), "another drill is refused")
+	assert_eq(status.text, "%s is locked" % other, "as locked")
+	_press(player, "DrillUnlock")
+	_press(player, "DrillEquip")
+	assert_eq(BodyRefiningManager.get_equipped_drill().id, other, "unlocked, it equips")
+	_press(player, "UnlockAllDrills")
+	assert_eq(BodyRefiningManager.get_unlocked_drills().size(), drill_ids.size(), "Unlock all unlocks the rest")
 
 #-----------------------------------------------------------------------------
 # ADVENTURE TAB

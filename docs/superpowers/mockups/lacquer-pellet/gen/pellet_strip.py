@@ -1,7 +1,8 @@
 """Lacquer and brass: the pellet strip (2026-10-27).
 
 One strip for LacquerPellet (scenes/common/lacquer/lacquer_pellet/): a row per ramp
-(Madra, brass, cream, tan) and a column per frame of the pellet's life, every frame
+(Madra, brass, cream, tan, then a stat XP ramp for each of the six stats, added for the
+stats rework's chunk #92 on 2026-11-05) and a column per frame of the pellet's life, every frame
 10x10 art px saved at 2x (20x20 screen px) with the pellet centred:
 
     0 full       the pellet as the zone kit drew it (lacquer_madra_pellet_ai.png and
@@ -49,6 +50,15 @@ RAMPS = [
     (CREAM, BRASS, BRASS_SH, WARM_OL),                         # brass: PERFECT
     (CREAM, CREAM, TAN, TAN_SH),                               # cream: GOOD
     (CREAM, TAN, TAN_SH, WARM_OL),                             # tan: OK
+    # Stat XP, one ramp per stat, approved on the "Where stat XP lands" canvas. The
+    # Spiritual three keep clear of the cycling board's Madra, hit tiers and jade; the
+    # Physical three of body refining's crimson, bamboo and jade.
+    (hx('FFE3C4'), hx('F2A25E'), hx('C2622E'), hx('4C200E')),  # copper: Strength
+    (hx('F4F6F8'), hx('C4CEDA'), hx('7E8C9E'), hx('2A303A')),  # steel: Body
+    (hx('E4FAFF'), hx('8CDCEC'), hx('3C9AB4'), hx('103A48')),  # sky: Agility
+    (hx('EEE6FF'), hx('B8A0F4'), hx('7858C8'), hx('2A1A54')),  # violet: Spirit
+    (hx('EEFAD8'), hx('A8DE78'), hx('5E9E36'), hx('1E3A10')),  # leaf: Mind
+    (hx('FCE6FC'), hx('E09ADC'), hx('A4529E'), hx('421A40')),  # orchid: Control
 ]
 
 # Roles: '.' clear, 'a' ink, 'h' hi, 'p' pale, 'm' mid, 'd' deep.

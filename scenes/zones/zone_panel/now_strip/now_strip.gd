@@ -6,8 +6,10 @@ extends Control
 ## keeps its space in the chest.
 ## While an idle action (FORAGE or TRAIN_STATS) runs, a jade bead ring lights
 ## over each timer cycle (one Aura Well tick, one foraging haul), around the
-## action's icon. The Aura Well variant shows its Madra rate,
-## "+1 Spirit at Lv n+1", the ticks into the level and a rod; the foraging
+## action's icon. The Aura Well variant shows its Madra rate, "Full in N s" with
+## the Madra pool and a rod toward full ("+0 / s" in dim and "Madra full" once it
+## is full); a training action whose levels grant a stat shows "+1 Spirit at Lv
+## n+1", the ticks into the level and a rod instead; the foraging
 ## variant shows each loot entry's range and "haul in N s". Clicking the tray
 ## emits strip_pressed (the chest scrolls to the running card and flashes it).
 ## While the player cycles, the tray shows the cycle in the Aura Well's layout,
@@ -16,9 +18,10 @@ extends Control
 ## none is drawn), the equipped technique with "9 / 15 s" (its length, "15 s
 ## cycle", until a cycle runs) and the rod filling. The rate stands flush right,
 ## ending where the figure under it does, in a slot as wide as its widest reading
-## up to the technique's top rate, so as it climbs the name beside it never
-## moves. The cycling card is not in the list while the player cycles, so the
-## cycling tray takes no clicks.
+## up to the technique's top rate at the player's Spirit, so as it climbs the
+## name beside it never moves; a stats change (a Spirit level, Spirit gear)
+## sizes the slot again. The cycling card is not in the list while the player
+## cycles, so the cycling tray takes no clicks.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
@@ -62,6 +65,12 @@ const HAUL_FORMAT: String = "haul in %d s"
 ## or the levels alone for an action whose levels grant no attribute.
 const LEVEL_REWARD_FORMAT: String = "%s at Lv %d"
 const LEVEL_FORMAT: String = "Lv %d → %d"
+## The Madra pool line, for a training action whose levels grant nothing and
+## which trickles Madra (the Aura Well): how long until the pool is full, or
+## that it is, and the pool as the adventure card reads it.
+const FULL_IN_FORMAT: String = "Full in %d s"
+const MADRA_FULL: String = "Madra full"
+const POOL_FORMAT: String = "%d / %d"
 
 ## The strip is the kit's 88 tall at least. Under the text of each look the room
 ## is what makes one line of each exactly that: the Aura Well's content starts 12
@@ -114,6 +123,8 @@ func _ready() -> void:
 	ActionManager.training_level_gained.connect(_on_training_level_gained)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
+	CharacterManager.stats_changed.connect(_on_stats_changed)
+	ResourceManager.madra_changed.connect(_on_madra_changed)
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_hover_frame.show)
 	mouse_exited.connect(_hover_frame.hide)
@@ -181,20 +192,31 @@ func _update_empty_line() -> void:
 	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
 	_fit()
 
-## "+1.5 / s", "+1 Spirit at Lv 2", "214 / 300" and the rod toward the next
-## level. The well's rate never changes, so it takes only its own width, not the
-## cycle's slot.
+## "+1.5 / s", then "Full in 24 s", "64 / 100" and the rod toward a full pool
+## (the Aura Well), or "+1 Spirit at Lv 2", "214 / 300" and the rod toward the
+## next level. The well's rate takes only its own width, not the cycle's slot.
 func _show_training(training: TrainingActionData) -> void:
 	_training_name.text = training.action_name
 	var madra_per_second: float = training.get_madra_per_second()
 	_rate_group.visible = madra_per_second > 0.0
 	_rate_group.custom_minimum_size.x = 0.0
-	_rate_text.text = LacquerText.decimal_bbcode(RATE_FORMAT % LacquerText.rate(madra_per_second))
+	_show_rate(madra_per_second, false)
 	_update_training_progress()
+
+## The rate beside the Madra icon, in dim when the action adds nothing now.
+func _show_rate(madra_per_second: float, dim: bool) -> void:
+	_rate_text.text = LacquerText.decimal_bbcode(RATE_FORMAT % LacquerText.rate(madra_per_second))
+	if dim:
+		_rate_text.add_theme_color_override(&"default_color", ThemeConstants.LACQUER_DIM)
+	else:
+		_rate_text.remove_theme_color_override(&"default_color")
 
 func _update_training_progress() -> void:
 	var training := _action as TrainingActionData
 	if training == null:
+		return
+	if _shows_madra_pool(training):
+		_update_madra_pool(training)
 		return
 	var ticks: int = ZoneManager.get_training_ticks(training.action_id)
 	var level: int = training.get_current_level(ticks)
@@ -204,6 +226,26 @@ func _update_training_progress() -> void:
 	_level_label.text = LEVEL_REWARD_FORMAT % [reward, level + 1] if reward != "" else LEVEL_FORMAT % [level, level + 1]
 	_ticks_label.text = "%d / %d" % [ticks_in_level, ticks_for_next]
 	_well_rod.set_fraction(float(ticks_in_level) / ticks_for_next if ticks_for_next > 0 else 0.0)
+	_fit_training_labels()
+	_fit()
+
+## True for a training action whose levels grant nothing and which trickles
+## Madra (the Aura Well): its strip follows the Madra pool, not its levels.
+func _shows_madra_pool(training: TrainingActionData) -> bool:
+	return _level_reward_text(training) == "" and training.get_madra_per_second() > 0.0
+
+## "Full in 24 s" (rounded up from the room left over the rate), "64 / 100" and
+## the rod at the pool's fill; at the max, "+0 / s" in dim, "Madra full",
+## "100 / 100" and the rod full, since the trickle adds nothing there.
+func _update_madra_pool(training: TrainingActionData) -> void:
+	var madra: float = ResourceManager.get_madra()
+	var max_madra: float = ResourceManager.get_max_madra()
+	var madra_per_second: float = training.get_madra_per_second()
+	var full: bool = madra >= max_madra
+	_show_rate(0.0 if full else madra_per_second, full)
+	_level_label.text = MADRA_FULL if full else FULL_IN_FORMAT % ceili((max_madra - madra) / madra_per_second)
+	_ticks_label.text = POOL_FORMAT % [floori(madra), floori(max_madra)]
+	_well_rod.set_fraction(clampf(madra / max_madra, 0.0, 1.0) if max_madra > 0.0 else 0.0)
 	_fit_training_labels()
 	_fit()
 
@@ -224,15 +266,17 @@ func _show_cycling() -> void:
 	_hover_frame.hide()
 	_training_name.text = _action.action_name
 	_rate_group.show()
+	_rate_text.remove_theme_color_override(&"default_color")
 	_update_technique()
 	_fit_training_labels()
 
 ## The equipped technique's name, where the Aura Well shows its level line, and
-## the rate's slot sized for the technique's top rate.
+## the rate's slot sized for the technique's top rate at the player's Spirit.
 func _update_technique() -> void:
 	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
 	_level_label.text = technique.technique_name if technique != null else ""
-	_fit_rate_slot(technique.get_madra_per_second() if technique != null else 0.0)
+	var multiplier: float = CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier()
+	_fit_rate_slot(technique.get_madra_per_second(multiplier) if technique != null else 0.0)
 
 ## Gives the rate's slot the width of its widest reading up to `top_rate`, so the
 ## name wrapping beside it has the same room at +0 as at the top. The font's
@@ -420,6 +464,23 @@ func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 		_update_cycle_figure()
 		_fit_training_labels()
 		_fit()
+
+## Spirit raises the technique's top rate, so the rate's slot is sized again
+## and the rows beside it get their room. The Aura Well's pool line follows
+## the max, which stats move.
+func _on_stats_changed() -> void:
+	if _is_cycling(_action):
+		_update_technique()
+		_fit_training_labels()
+		_fit()
+	elif _action is TrainingActionData:
+		_update_training_progress()
+
+## The Aura Well's pool line follows every Madra change, a spend included.
+func _on_madra_changed(_new_amount: float) -> void:
+	var training := _action as TrainingActionData
+	if training != null and _shows_madra_pool(training):
+		_update_madra_pool(training)
 
 func _on_gui_input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton

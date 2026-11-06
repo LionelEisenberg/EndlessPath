@@ -4,10 +4,19 @@
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="." unique_id=1861920863]
+[node name="IconBox" type="Control" parent="." unique_id=1861920863]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(16, 20)
+custom_minimum_size = Vector2(16, 18)
 layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="IconBox" unique_id=1312904577]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 2.0
+offset_right = 16.0
+offset_bottom = 18.0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5

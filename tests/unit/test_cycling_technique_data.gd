@@ -1,20 +1,42 @@
 extends GutTest
 
 ## Unit tests for the data the cycling view's technique drawers read: the Madra a
-## second of drawing pays, and the SaveGameData fields that remember which
-## techniques the player has already seen.
+## cycle and a second of drawing pay at Spirit's multiplier, and the
+## SaveGameData fields that remember which techniques the player has already
+## seen.
 
 const TMP_SAVE_PATH: String = "user://test_seen_techniques.tres"
 
 #-----------------------------------------------------------------------------
-# MADRA PER SECOND
+# MADRA PER CYCLE AND PER SECOND
 #-----------------------------------------------------------------------------
+
+## A cycle pays base_madra_per_cycle times the multiplier, 1.0 when none is given.
+func test_madra_per_cycle_at_a_multiplier() -> void:
+	var technique := CyclingTechniqueData.new()
+	technique.base_madra_per_cycle = 80.0
+	var cases: Array[Dictionary] = [
+		{"name": "no multiplier given", "multiplier": null, "expected": 80.0},
+		{"name": "Spirit Lv 1", "multiplier": 1.0, "expected": 80.0},
+		{"name": "Spirit 15", "multiplier": 1.5, "expected": 120.0},
+		{"name": "Spirit Lv 10", "multiplier": 1.9, "expected": 152.0},
+	]
+	for case: Dictionary in cases:
+		var madra: float = technique.get_madra_per_cycle() if case.multiplier == null else technique.get_madra_per_cycle(case.multiplier)
+		assert_almost_eq(madra, case.expected, 0.0001, case.name)
+
 
 func test_madra_per_second_spreads_the_cycles_madra_over_its_seconds() -> void:
 	var technique := CyclingTechniqueData.new()
 	technique.base_madra_per_cycle = 200.0
 	technique.cycle_duration = 15.0
 	assert_almost_eq(technique.get_madra_per_second(), 200.0 / 15.0, 0.0001)
+
+func test_madra_per_second_follows_the_multiplier() -> void:
+	var technique := CyclingTechniqueData.new()
+	technique.base_madra_per_cycle = 80.0
+	technique.cycle_duration = 15.0
+	assert_almost_eq(technique.get_madra_per_second(1.9), 152.0 / 15.0, 0.0001)
 
 func test_a_cycle_of_no_length_pays_no_madra_per_second() -> void:
 	var technique := CyclingTechniqueData.new()
