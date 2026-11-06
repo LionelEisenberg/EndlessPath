@@ -411,6 +411,19 @@ func test_health_is_low_below_half() -> void:
 		_save.health = case.health
 		assert_eq(ResourceManager.is_health_low(), case.low, case.name)
 
+## Low means below half the max, as for Health.
+func test_madra_is_low_below_half() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "just below half", "madra": 49.9, "bonus": 0.0, "low": true},
+		{"name": "at half", "madra": 50.0, "bonus": 0.0, "low": false},
+		{"name": "empty", "madra": 0.0, "bonus": 0.0, "low": true},
+		{"name": "under half of a raised max", "madra": 60.0, "bonus": 40.0, "low": true},
+	]
+	for case: Dictionary in cases:
+		_raise_max_by(case.bonus)
+		_save.madra = case.madra
+		assert_eq(ResourceManager.is_madra_low(), case.low, case.name)
+
 #-----------------------------------------------------------------------------
 # GOLD
 #-----------------------------------------------------------------------------
