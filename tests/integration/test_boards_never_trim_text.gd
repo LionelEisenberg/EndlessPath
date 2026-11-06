@@ -43,6 +43,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/character/attribute_tile/attribute_tile.tscn",
 	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
 	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
+	"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn",
 ]
 
 ## Where the whole-scene walk reads.
@@ -147,7 +148,9 @@ func test_no_board_scene_file_sets_an_ellipsis() -> void:
 ## A Label that holds a name, a line or a hint wraps by word where it could run past
 ## its board: the wrapping ones are the labels of the two rows that carry long
 ## texts, and each is told how wide it may be. Each shows every line it wraps to:
-## none caps its lines with max_lines_visible.
+## none caps its lines with max_lines_visible. A rich text label (the Here tray's
+## line, which draws reward icons) wraps by word too, grows to its text
+## (fit_content) and never scrolls part of it out of sight.
 func test_the_labels_that_can_run_long_wrap() -> void:
 	var wrapping: Dictionary[String, Array] = {
 		"res://scenes/adventure/adventure_chest/adventure_chest.tscn": ["TitleLabel"],
@@ -165,16 +168,23 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn": ["StatNeedLabel", "ReadyLabel"],
 		"res://scenes/cycling/technique_drawer/technique_drawer.tscn": ["Title", "Detail"],
 		"res://scenes/character/character_view.tscn": ["DetailDescription"],
+		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
 	}
 	for path: String in wrapping:
 		var board: Node = (load(path) as PackedScene).instantiate()
 		add_child_autofree(board)
 		for label_name: String in wrapping[path]:
-			var label := board.get_node("%" + label_name) as Label
-			assert_not_null(label, "%s has %s" % [path.get_file(), label_name])
+			var node: Node = board.get_node("%" + label_name)
+			assert_true(node is Label or node is RichTextLabel, "%s has %s, a label" % [path.get_file(), label_name])
+			var label := node as Label
 			if label != null:
 				assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s in %s wraps by word" % [label_name, path.get_file()])
 				assert_eq(label.max_lines_visible, -1, "%s in %s shows every line" % [label_name, path.get_file()])
+			var rich := node as RichTextLabel
+			if rich != null:
+				assert_eq(rich.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s in %s wraps by word" % [label_name, path.get_file()])
+				assert_true(rich.fit_content, "%s in %s grows to its text" % [label_name, path.get_file()])
+				assert_false(rich.scroll_active, "%s in %s scrolls none of it away" % [label_name, path.get_file()])
 
 ## The rule holds under res://scenes, not just on the boards above: no scene saves a
 ## trimming overrun behaviour or clip_text, and no script sets one, except the

@@ -41,6 +41,9 @@ const FORAGING_EVENT: String = "q_fill_core_completed"
 ## The modifier source a test lifts a stat's total with, removed in after_each().
 const TEST_SOURCE: StringName = &"test_tribulation_flow"
 
+## Far more reps than any drill takes to cap Strength: the loop's guard.
+const MAX_DRILL_REPS: int = 5000
+
 ## The board's clock when a run begins: _at(seconds) sets it to this plus `seconds`.
 const START_USEC: int = 1_000_000
 
@@ -240,6 +243,26 @@ func test_select_at_one_hundred_starts_the_trial() -> void:
 	ActionManager.select_action(action)
 	assert_signal_emitted_with_parameters(ActionManager, "start_tribulation", [action])
 	assert_eq(ActionManager.get_current_action(), action, "the trial stays current until something stops it")
+
+## Drills can take Strength to the cap: PERFECT reps of the starting drill, paid
+## through BodyRefiningManager, until Strength is capped, with Spirit at the cap and
+## the core full. The trial then starts. The gate stays the Tribulation's own.
+func test_strength_trained_by_drills_opens_the_trial() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.SPIRIT, cap)
+	PersistenceManager.save_game_data.core_density_level = 99.0
+	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
+	assert_false(CharacterManager.is_stat_capped(Attribute.STRENGTH), "precondition: Strength starts below the cap")
+	var drill: DrillData = BodyRefiningManager.get_equipped_drill()
+	var reps: int = 0
+	while not CharacterManager.is_stat_capped(Attribute.STRENGTH) and reps < MAX_DRILL_REPS:
+		BodyRefiningManager.pay_rep(drill, DrillRules.Tier.PERFECT)
+		reps += 1
+	assert_true(CharacterManager.is_stat_capped(Attribute.STRENGTH), "drills capped Strength in %d reps" % reps)
+	var action: TribulationActionData = _tribulation()
+	watch_signals(ActionManager)
+	ActionManager.select_action(action)
+	assert_signal_emitted_with_parameters(ActionManager, "start_tribulation", [action])
 
 func test_stopping_resumes_the_idle_action() -> void:
 	_run_foraging()

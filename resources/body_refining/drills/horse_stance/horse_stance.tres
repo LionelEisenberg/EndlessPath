@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DrillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/body_refining/drill/drill_data.gd" id="1_drill"]
+
+[resource]
+script = ExtResource("1_drill")
+id = "horse_stance"
+drill_name = "Horse Stance"
+minor_stat = 1
+strength_xp_per_rep = 8.0
+minor_xp_per_rep = 4.0
+health_per_rep = 4.0
+input_kind = 1
+rep_seconds = 4.0
+reps_per_set = 10

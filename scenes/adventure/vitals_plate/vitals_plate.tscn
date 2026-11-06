@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cew5wei2dj2uv" path="res://scenes/adventure/vitals_plate/vitals_plate.gd" id="1_plate"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" uid="uid://dvs8vy5oej1sb" path="res://assets/ui/lacquer/lacquer_cult_ai.png" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://v4xyfejo0gn6" path="res://assets/ui/lacquer/lacquer_cult_core_ai.png" id="3_board"]
 [ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="4_orb_shader"]
 [ext_resource type="Texture2D" uid="uid://6gv3mjt6jbgo" path="res://assets/ui/lacquer/lacquer_orb_health_ai.png" id="5_health_orb"]
 [ext_resource type="Texture2D" uid="uid://buchwvpdtb5iw" path="res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png" id="6_madra_strip"]
@@ -16,6 +16,10 @@
 [ext_resource type="Texture2D" uid="uid://4x1613h540no" path="res://assets/ui/lacquer/lacquer_rod_stamina_full_ai.png" id="14_rod_full"]
 [ext_resource type="Texture2D" uid="uid://kt61wm3u7n8h" path="res://assets/ui/lacquer/lacquer_rod_stamina_end_ai.png" id="15_rod_end"]
 [ext_resource type="PackedScene" uid="uid://casvxet6ul6ws" path="res://scenes/ui/combat/buff_tooltip/buff_tooltip.tscn" id="16_tooltip"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="17_strip"]
+[ext_resource type="Texture2D" uid="uid://c33tlokmqisik" path="res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png" id="18_core_strip"]
+[ext_resource type="Texture2D" uid="uid://dqku0g2ulqgfj" path="res://assets/ui/lacquer/lacquer_beads_xp_strip_ai.png" id="19_beads"]
+[ext_resource type="Shader" uid="uid://csri7yobignr4" path="res://assets/shaders/lacquer_core_orb.gdshader" id="20_core_orb"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_health"]
 resource_local_to_scene = true
@@ -32,20 +36,24 @@ region = Rect2(0, 0, 80, 80)
 resource_local_to_scene = true
 shader = ExtResource("4_orb_shader")
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_core"]
+resource_local_to_scene = true
+shader = ExtResource("20_core_orb")
+
 [node name="VitalsPlate" type="Control" unique_id=1762281663]
 layout_mode = 3
 anchors_preset = 0
 offset_left = 24.0
 offset_top = 24.0
 offset_right = 464.0
-offset_bottom = 276.0
+offset_bottom = 368.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_plate")
 
 [node name="Board" type="TextureRect" parent="." unique_id=1906738039]
 layout_mode = 0
 offset_right = 444.0
-offset_bottom = 256.0
+offset_bottom = 348.0
 mouse_filter = 2
 texture = ExtResource("3_board")
 
@@ -247,21 +255,87 @@ theme_type_variation = &"LabelLacquerBig"
 theme_override_colors/font_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
 text = " / 120"
 
+[node name="CoreOrb" type="TextureRect" parent="." unique_id=724297885]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_core")
+layout_mode = 0
+offset_left = 18.0
+offset_top = 200.0
+offset_right = 98.0
+offset_bottom = 280.0
+mouse_filter = 2
+script = ExtResource("17_strip")
+strip = ExtResource("18_core_strip")
+frame_size = Vector2i(80, 80)
+
+[node name="CoreTitleLabel" type="Label" parent="." unique_id=162421704]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 202.0
+offset_right = 214.0
+offset_bottom = 219.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Core Density"
+
+[node name="StageLabel" type="Label" parent="." unique_id=856198546]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 114.0
+offset_top = 220.0
+offset_right = 254.0
+offset_bottom = 252.0
+theme_type_variation = &"LabelLacquerStage"
+text = "Foundation"
+
+[node name="LevelLabel" type="Label" parent="." unique_id=397030220]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 228.0
+offset_right = 422.0
+offset_bottom = 248.0
+theme_type_variation = &"LabelLacquerName"
+text = "Level 0"
+horizontal_alignment = 2
+
+[node name="XpBeads" type="TextureRect" parent="." unique_id=1984856133]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 114.0
+offset_top = 260.0
+offset_right = 336.0
+offset_bottom = 272.0
+mouse_filter = 2
+script = ExtResource("17_strip")
+strip = ExtResource("19_beads")
+frame_size = Vector2i(222, 12)
+
+[node name="XpLabel" type="Label" parent="." unique_id=546050752]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 257.0
+offset_right = 422.0
+offset_bottom = 274.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "0 / 10 XP"
+horizontal_alignment = 2
+
 [node name="Divider" type="TextureRect" parent="." unique_id=1419341544]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 198.0
+offset_top = 290.0
 offset_right = 424.0
-offset_bottom = 204.0
+offset_bottom = 296.0
 mouse_filter = 2
 texture = ExtResource("10_line")
 
 [node name="StaminaRow" type="Control" parent="." unique_id=136628522]
 unique_name_in_owner = true
 layout_mode = 0
-offset_top = 214.0
+offset_top = 306.0
 offset_right = 440.0
-offset_bottom = 234.0
+offset_bottom = 326.0
 mouse_filter = 2
 
 [node name="StaminaIcon" type="TextureRect" parent="StaminaRow" unique_id=510655727]

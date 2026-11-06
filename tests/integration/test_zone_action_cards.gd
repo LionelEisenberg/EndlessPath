@@ -230,10 +230,29 @@ func test_new_seal_clears_when_selected() -> void:
 # DETAIL LINES
 #-----------------------------------------------------------------------------
 
+## The Aura Well refills Madra only: its card names the trickle and no stat.
 func test_training_detail() -> void:
 	var card: ZoneActionButton = _card(AURA_WELL_ID)
 	assert_has(_texts(card.get_detail_slot()), "+1.5 Madra / s", "the Madra rate on the left")
-	assert_eq(card.get_detail_right_text(), "+1 Spirit / level", "the level's attribute in the right column")
+	assert_eq(card.get_detail_right_text(), "", "nothing in the right column below the max")
+
+## At the max the trickle adds nothing, and the card says so; a spend clears it.
+func test_training_card_says_madra_full_at_the_max() -> void:
+	var card: ZoneActionButton = _card(AURA_WELL_ID)
+	ResourceManager.add_madra(ResourceManager.get_max_madra(), true)
+	assert_eq(card.get_detail_right_text(), "Madra full")
+	assert_has(_texts(card.get_detail_slot()), "+1.5 Madra / s", "the rate stays on the left")
+	ResourceManager.spend_madra(1.0)
+	assert_eq(card.get_detail_right_text(), "", "below the max again")
+
+## A training action whose levels grant a stat names it in the right column.
+func test_training_detail_names_a_level_award() -> void:
+	var action := ZoneManager.get_action_by_id(AURA_WELL_ID).duplicate() as TrainingActionData
+	var award := AwardAttributeEffectData.new()
+	award.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
+	action.effects_on_level = [award] as Array[EffectData]
+	var card: ZoneActionButton = _card_for(action)
+	assert_eq(card.get_detail_right_text(), "+1 Spirit / level")
 
 func test_foraging_detail_names_what_it_finds() -> void:
 	var card: ZoneActionButton = _card(FORAGING_ID)

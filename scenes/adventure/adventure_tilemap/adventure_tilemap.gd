@@ -43,6 +43,10 @@ signal map_changed
 signal walk_refused(reason: StringName)
 ## The boss tile came into view for the first time this adventure.
 signal boss_revealed(coord: Vector3i)
+## A resolved choice's rewards deepened the core by `xp` Core Density XP: what the
+## core took, once per choice (a full core takes none, and the kill that fills it
+## takes only what it lacked). The run's cabinet flies it to its Core row.
+signal core_density_earned(xp: float)
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -98,6 +102,12 @@ const TOO_TIRED_LINE: String = "Too tired to walk · %d Stamina a step"
 ## The player's log line for REFUSED_ENCOUNTER.
 const CHOOSE_FIRST_LINE: String = "Choose what to do here first"
 
+## The tile's line shows a reward by its icon, at this size (the Run ledger's), then
+## its amount: the gold a fight paid and the Core Density a choice paid.
+const SUMMARY_ICON_SIZE: int = 32
+const GOLD_ICON_PATH: String = "res://assets/sprites/ui/resources/gold_icon.png"
+const CORE_DENSITY_ICON_PATH: String = "res://assets/ui/lacquer/lacquer_ic_core_ai.png"
+
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
@@ -150,6 +160,9 @@ var _completed_encounter_tiles: Dictionary[Vector3i, bool] = {}
 ## The one line each resolved encounter left behind (see summary_for()), by tile.
 ## Cleared when the adventure stops.
 var _tile_summaries: Dictionary[Vector3i, String] = {}
+## The Core Density XP the run's resolved choices paid (get_core_density_xp_earned()).
+## Zeroed when a run starts, and kept after it stops.
+var _core_density_xp_earned: float = 0.0
 
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue: Array[Vector3i] = []
@@ -250,6 +263,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 ## caller's alone.
 func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictionary[Vector3i, AdventureEncounter]) -> void:
 	current_adventure_action_data = action_data
+	_core_density_xp_earned = 0.0
 	_reset_camera_zoom()
 	_encounter_tile_dictionary = encounters.duplicate()
 	# A new run has no fight or talk under way, whatever the last one ended in, so
@@ -302,7 +316,8 @@ func stop_adventure() -> void:
 ## Handles the result of a combat encounter. Every report of a win pays the gold it
 ## carries. The rest of a win is handled once: AdventureCombat can report a win
 ## again (see the comments below), and the repeat finds the fight's choice already
-## cleared, so the fight counts, runs its effects and resolves its tile once.
+## cleared, so the fight counts, pays its Core Density, runs its effects and
+## resolves its tile once.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
 	
@@ -311,14 +326,16 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		if gold_earned > 0:
 			ResourceManager.add_gold(gold_earned)
 		
+		var core_density_xp: float = 0.0
 		if _current_combat_choice:
 			# The save's play stats count the fight here, while its choice is still
-			# pending, and its effects run here. AdventureCombat reports a win again
-			# when its enemy takes another hit at 0 Health: the repeat finds the
-			# choice cleared (at the end of this function, or just below for the
-			# boss's), so the fight counts and resolves once.
+			# pending, and its effects run here: its loot and its Core Density.
+			# AdventureCombat reports a win again when its enemy takes another hit
+			# at 0 Health: the repeat finds the choice cleared (at the end of this
+			# function, or just below for the boss's), so the fight counts, pays
+			# and resolves once. The boss pays here too, before its win ends the run.
 			PersistenceManager.save_game_data.stats.count_fight_won()
-			_apply_effects(_current_combat_choice.success_effects)
+			core_density_xp = _apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
 				# Let go of the choice before the win ends the run, so a repeat of
@@ -335,7 +352,7 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		# be the next run's start, which would then count as visited and show the
 		# player nothing around it.
 		if current_adventure_action_data != null:
-			_complete_current_tile(summary_for(_current_combat_choice, gold_earned))
+			_complete_current_tile(summary_for(_current_combat_choice, gold_earned, core_density_xp))
 	else:
 		if _current_combat_choice:
 			_apply_effects(_current_combat_choice.failure_effects)
@@ -373,8 +390,15 @@ func select_choice(choice: EncounterChoice) -> void:
 
 	else:
 		# Standard choice (e.g. Loot, Leave)
-		_apply_effects(choice.success_effects)
-		_complete_current_tile(summary_for(choice, 0))
+		var core_density_xp: float = _apply_effects(choice.success_effects)
+		_complete_current_tile(summary_for(choice, 0, core_density_xp))
+
+## Returns the Core Density XP the run's choices paid through their effects: a
+## won fight's reward, once however often the win is reported, and any other
+## choice's. It starts at 0 with each run and stays after the run stops, until the
+## next starts.
+func get_core_density_xp_earned() -> float:
+	return _core_density_xp_earned
 
 ## Returns the number of tiles the player has visited.
 func get_visited_tile_count() -> int:
@@ -460,6 +484,14 @@ func is_dev_reveal_all() -> bool:
 func get_tile_world_centre(coord: Vector3i) -> Vector2:
 	return full_map.cube_to_local(coord) + full_map.position
 
+## Returns where the tile's centre is drawn on the screen, through the camera and
+## the container that shows the map's viewport: the current hex stands at (960,
+## 470). A reward's beads fly from there.
+func get_tile_screen_position(coord: Vector3i) -> Vector2:
+	var on_viewport: Vector2 = get_viewport().get_canvas_transform() * (get_global_transform() * get_tile_world_centre(coord))
+	var view_host: Control = _find_view_host()
+	return on_viewport + view_host.global_position if view_host != null else on_viewport
+
 ## Returns the fog tier (1-3) drawn on the tile, or -1 when it has no fog: a
 ## tile the player sees, one past the fog's reach, or any tile while no
 ## adventure runs.
@@ -480,18 +512,21 @@ static func camera_offset_for(zoom: float) -> Vector2:
 # PUBLIC METHODS - Summaries
 #-----------------------------------------------------------------------------
 
-## Returns the one line a resolved encounter leaves on its tile. A won fight reads
-## "Won · <gold> gold", or "Won" when it paid nothing. Any other choice lists what
-## its success effects say, joined with " · ", leaving out an effect that has
-## nothing to say (empty text, or only its debug string), and reads "Done" when
-## nothing is left. No choice reads as a choice with no effects.
-static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
-	if choice is CombatChoice:
-		if gold_earned > 0:
-			return "Won · %d gold" % gold_earned
-		return "Won"
+## Returns the one line a resolved encounter leaves on its tile, as BBCode for
+## the chest's rich text line. A won fight reads "Won", then the gold it paid by
+## its icon when it paid any (reward_bbcode()). Any other choice lists what its
+## success effects say, leaving out an effect that has nothing to say (empty text,
+## or only its debug string). Then comes the Core Density XP the choice paid
+## (`core_density_xp`), by its icon, when it paid any. The parts are joined with
+## " · ", and a choice with nothing left reads "Done". No choice reads as a choice
+## with no effects.
+static func summary_for(choice: EncounterChoice, gold_earned: int, core_density_xp: float = 0.0) -> String:
 	var parts: PackedStringArray = PackedStringArray()
-	if choice != null:
+	if choice is CombatChoice:
+		parts.append("Won")
+		if gold_earned > 0:
+			parts.append(reward_bbcode(GOLD_ICON_PATH, gold_earned))
+	elif choice != null:
 		for effect in choice.success_effects:
 			if effect == null:
 				continue
@@ -499,9 +534,16 @@ static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
 			if text.is_empty() or text == str(effect):
 				continue
 			parts.append(text)
+	if core_density_xp > 0.0:
+		parts.append(reward_bbcode(CORE_DENSITY_ICON_PATH, floori(core_density_xp)))
 	if parts.is_empty():
 		return "Done"
 	return " · ".join(parts)
+
+## Returns a reward as the tile's line shows it: the icon at `icon_path`, drawn
+## at SUMMARY_ICON_SIZE, then the amount.
+static func reward_bbcode(icon_path: String, amount: int) -> String:
+	return "[img=%dx%d]%s[/img] %d" % [SUMMARY_ICON_SIZE, SUMMARY_ICON_SIZE, icon_path, amount]
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
@@ -561,10 +603,11 @@ func _announce_arrival(coord: Vector3i, first_visit: bool) -> void:
 func _on_dialogue_ended(_resource: Resource = null) -> void:
 	Log.info("AdventureTilemap: Dialogue ended")
 	var choice: DialogueChoice = _current_dialogue_choice
+	var core_density_xp: float = 0.0
 	if choice:
-		_apply_effects(choice.success_effects)
+		core_density_xp = _apply_effects(choice.success_effects)
 		_current_dialogue_choice = null
-	_complete_current_tile(summary_for(choice, 0))
+	_complete_current_tile(summary_for(choice, 0, core_density_xp))
 
 ## Resolves the encounter on the tile the player stands on: unlocks movement,
 ## remembers `summary` for the tile and tells the boards (encounter_resolved).
@@ -578,10 +621,33 @@ func _complete_current_tile(summary: String) -> void:
 	_mark_tile_visited(_current_tile)
 	encounter_resolved.emit(_current_tile, summary)
 
-func _apply_effects(effects: Array[EffectData]) -> void:
+## Runs the effects. The Core Density XP they pay (AwardCoreDensityXpEffectData)
+## joins the run's total and is returned: a reward that lands in a full core
+## pays nothing, as the core takes no XP. What the core took is announced
+## (core_density_earned).
+func _apply_effects(effects: Array[EffectData]) -> float:
+	var core_density_xp: float = 0.0
+	var core_before: float = _core_progress()
 	for effect in effects:
 		if effect:
+			var award := effect as AwardCoreDensityXpEffectData
+			if award != null and award.amount > 0.0 and not CultivationManager.is_core_full():
+				core_density_xp += award.amount
 			effect.process() # TODO: Pass context if needed (player, etc.)
+	_core_density_xp_earned += core_density_xp
+	var core_gained: float = _core_progress() - core_before
+	if core_density_xp > 0.0 and core_gained > 0.0:
+		core_density_earned.emit(core_gained)
+	return core_density_xp
+
+## The Core Density XP the current stage's core holds: every level's cost up to
+## its level, and the XP toward the next. Two readings either side of a reward
+## give what the core took of it.
+static func _core_progress() -> float:
+	var progress: float = CultivationManager.get_core_density_xp()
+	for level: int in range(1, int(CultivationManager.get_core_density_level()) + 1):
+		progress += CultivationManager.get_xp_for_level(level)
+	return progress
 
 ## Tells the boards why a walk cannot start or go on (walk_refused) and puts the
 ## reason in the player's log.

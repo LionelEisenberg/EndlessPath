@@ -422,6 +422,8 @@ func test_madra_per_second_tracks_current_action() -> void:
 	assert_eq(ActionManager.get_current_madra_per_second(), 0.0, "nothing runs")
 	_run_aura_well()
 	assert_almost_eq(ActionManager.get_current_madra_per_second(), 1.5, 0.001, "the Aura Well trickles 1.5 Madra a second")
+	ResourceManager.add_madra(ResourceManager.get_max_madra(), true)
+	assert_eq(ActionManager.get_current_madra_per_second(), 0.0, "and nothing at the max")
 	_unlock_foraging()
 	ActionManager.select_action(_action(FORAGING_ID))
 	assert_eq(ActionManager.get_current_madra_per_second(), 0.0, "foraging earns no Madra")

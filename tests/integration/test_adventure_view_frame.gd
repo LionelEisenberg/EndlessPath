@@ -285,7 +285,7 @@ func _page() -> ExpeditionPage:
 	return _view.adventure_chest.get_expedition_page()
 
 func _page_text(unique_name: String) -> String:
-	return (_page().get_node("%" + unique_name) as Label).text
+	return _page().get_node("%" + unique_name).get("text")
 
 func _page_shows(unique_name: String) -> bool:
 	return (_page().get_node("%" + unique_name) as CanvasItem).visible

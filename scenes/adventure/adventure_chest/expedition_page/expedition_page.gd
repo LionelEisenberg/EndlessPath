@@ -17,7 +17,8 @@ extends AdventureChestPage
 ##   counts the steps the player's Stamina still buys and follows it), a divider
 ##   and one ChoiceDrawer per choice (at most MAX_DRAWERS) saying what each does.
 ##   A resolved tile shows its completed text and the walk hint, and no drawers.
-## - The Run ledger: fights, gold, tiles explored, and the run's latest loot.
+## - The Run ledger, each figure by its icon: Core Density XP and gold on the left,
+##   fights and tiles explored on the right, then the run's latest loot.
 ## The page does not hear the map: the view calls show_tile(), show_resolved()
 ## and set_run_stats(). The lore, hint, divider and drawers flow in a
 ## VBoxContainer under the tray, so the page's content height is that box's
@@ -29,9 +30,12 @@ extends AdventureChestPage
 ## the top. Every height is an even number of px, as the mock's are: the lore
 ## Label is padded 2 px above and 1 under (a StyleBoxEmpty in the scene), which
 ## makes n wrapped lines 22 n tall and seats their glyphs as the mock's 22 px
-## line boxes do; the tray's name and line, the walk hint and the lock line are
-## padded 1 px under (wrap_pad.tres), which makes their lines 22 n and 18 n tall;
-## the walk hint's row is 10 + that.
+## line boxes do; the tray's name, the walk hint and the lock line are padded
+## 1 px under (wrap_pad.tres), which makes their lines 22 n and 18 n tall; the walk
+## hint's row is 10 + that. The tray's line is rich text, so a resolved tile's line
+## can show its rewards by their icons (AdventureTilemap.summary_for()): its line
+## separation alone makes its lines 18 n tall, and a line holding an icon grows to
+## the icon.
 ## A refused click (the encounter on the tile holds the player) shakes the tray
 ## softly and turns the lock line to the warning colour for the length of the
 ## shake.
@@ -94,7 +98,7 @@ const TRAY_GAP: float = 16.0
 @onready var _tag_label: Label = %TagLabel
 @onready var _boss_seal: Control = %BossSeal
 @onready var _boss_seal_label: Label = %BossSealLabel
-@onready var _line_label: Label = %LineLabel
+@onready var _line_label: RichTextLabel = %LineLabel
 @onready var _flow: Control = %Flow
 @onready var _lore_label: Label = %LoreLabel
 @onready var _hint_row: Control = %HintRow
@@ -103,6 +107,7 @@ const TRAY_GAP: float = 16.0
 @onready var _divider_row: Control = %DividerRow
 @onready var _drawer_rows: Control = %DrawerRows
 @onready var _drawers: Array[ChoiceDrawer] = [%ChoiceDrawer1, %ChoiceDrawer2, %ChoiceDrawer3]
+@onready var _core_value: Label = %CoreValue
 @onready var _fights_value: Label = %FightsValue
 @onready var _gold_value: Label = %GoldValue
 @onready var _explored_value: Label = %ExploredValue
@@ -193,9 +198,11 @@ func show_resolved(summary: String) -> void:
 
 ## Shows the run so far: fights fought of the fights on the map (the view counts
 ## every fight that ends, a lost one included), gold earned, tiles explored of
-## the tiles on the map, and the run's loot, oldest first. The six sockets hold
+## the tiles on the map, the run's loot, oldest first, and the Core Density XP the
+## run earned (AdventureTilemap.get_core_density_xp_earned()). The six sockets hold
 ## the latest six items; the rest are empty.
-func set_run_stats(fights: int, fights_total: int, gold: int, explored: int, explored_total: int, loot: Array[ItemDefinitionData]) -> void:
+func set_run_stats(fights: int, fights_total: int, gold: int, explored: int, explored_total: int, loot: Array[ItemDefinitionData], core_density_xp: float = 0.0) -> void:
+	_core_value.text = str(floori(core_density_xp))
 	_fights_value.text = "%d / %d" % [fights, fights_total]
 	_gold_value.text = str(gold)
 	_explored_value.text = "%d / %d" % [explored, explored_total]

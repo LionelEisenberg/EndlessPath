@@ -56,6 +56,10 @@ var _current_action_zone_id: String = ""
 ## to …") from a repeat signal for the same zone (the load sends two).
 var _last_resolved_zone_id: String = ""
 
+## The Madra the last training tick actually added: its trickle, less what the
+## max turned away.
+var _last_tick_madra_gain: float = 0.0
+
 @onready var action_timer: Timer = Timer.new()
 
 func _ready() -> void:
@@ -206,12 +210,20 @@ func is_idle_action(action_data: ZoneActionData) -> bool:
 
 ## Madra per second the running action earns: the running cycle's measured rate
 ## while the cycling action runs (0 while no cycle is drawing Madra), a training
-## action's trickle (the Aura Well's 1.5), or 0 when anything else or nothing runs.
+## action's trickle (the Aura Well's 1.5; 0 while the pool is full, where it adds
+## nothing), or 0 when anything else or nothing runs.
 func get_current_madra_per_second() -> float:
 	if current_action != null and current_action.action_type == ZoneActionData.ActionType.CYCLING:
 		return CyclingManager.get_madra_rate()
 	var training := current_action as TrainingActionData
-	return training.get_madra_per_second() if training else 0.0
+	if training == null or ResourceManager.get_madra() >= ResourceManager.get_max_madra():
+		return 0.0
+	return training.get_madra_per_second()
+
+## The Madra the last training tick actually added: the trickle while it fits,
+## only what fit on the tick that fills the pool, and 0 at the max.
+func get_last_tick_madra_gain() -> float:
+	return _last_tick_madra_gain
 
 #-----------------------------------------------------------------------------
 # ACTION EXECUTION
@@ -371,8 +383,11 @@ func _on_train_timer_finished(action_data: TrainingActionData) -> void:
 	var new_ticks: int = ZoneManager.increment_training_ticks(action_data.action_id)
 	var new_level: int = action_data.get_current_level(new_ticks)
 
+	var madra_before: float = ResourceManager.get_madra()
 	for effect in action_data.effects_per_tick:
 		effect.process()
+	# Snapped: (63.1 + 1.5) - 63.1 is not quite 1.5 in floating point.
+	_last_tick_madra_gain = snappedf(ResourceManager.get_madra() - madra_before, 0.001)
 
 	training_tick_processed.emit(action_data, new_ticks)
 

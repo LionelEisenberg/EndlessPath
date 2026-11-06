@@ -297,25 +297,50 @@ func test_fresh_save_shows_an_empty_tray() -> void:
 	assert_null(ActionManager.get_current_action(), "precondition: nothing runs on a fresh save")
 	_assert_empty_tray("Nothing running")
 
+## The Aura Well refills Madra only: its strip shows how long until the pool is
+## full, the pool, and a rod toward full, never a level it no longer pays.
 func test_strip_shows_for_aura_well() -> void:
+	PersistenceManager.save_game_data.madra = 64.0
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 	await wait_process_frames(2)
-	var texts: Array[String] = _texts(_strip())
-	assert_has(texts, "Aura Well")
-	assert_has(texts, "+1.5 / s")
-	assert_has(texts, "+1 Spirit at Lv 1")
-	assert_has(texts, "0 / 60")
-	assert_does_not_have(texts, "Nothing running")
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "Full in 24 s", "64 / 100", "Now"] as Array[String])
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(0.64 * 144.0), "the rod at the pool's fill")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
 
-func test_strip_follows_training_ticks() -> void:
+## The pool line follows every Madra change, the Well's ticks and a spend alike.
+func test_strip_follows_madra() -> void:
+	PersistenceManager.save_game_data.madra = 64.0
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
-	var well: TrainingActionData = ZoneManager.get_action_by_id(AURA_WELL_ID) as TrainingActionData
-	var ticks: int = ZoneManager.increment_training_ticks(AURA_WELL_ID, SPIRIT_VALLEY_ID, 75)
-	ActionManager.training_tick_processed.emit(well, ticks)
+	ResourceManager.add_madra(15.0, true)
+	assert_has(_texts(_strip()), "Full in 14 s")
+	assert_has(_texts(_strip()), "79 / 100")
+	ResourceManager.spend_madra(49.0)
+	assert_has(_texts(_strip()), "Full in 47 s", "70 left over 1.5 a second, rounded up")
+	assert_has(_texts(_strip()), "30 / 100")
+
+## At the max the Well adds nothing, and the strip says so: no rate, no wait.
+func test_strip_at_full_madra() -> void:
+	PersistenceManager.save_game_data.madra = 100.0
+	await _add_panel()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	assert_eq(_texts(_strip()), ["Aura Well", "+0 / s", "Madra full", "100 / 100", "Now"] as Array[String])
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 144, "the rod full")
+
+## A training action whose levels grant a stat still shows the next level's
+## grant and the ticks into the level.
+func test_strip_shows_a_level_award() -> void:
+	await _add_panel()
+	var training := ZoneManager.get_action_by_id(AURA_WELL_ID).duplicate() as TrainingActionData
+	var award := AwardAttributeEffectData.new()
+	award.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
+	training.effects_on_level = [award] as Array[EffectData]
+	ActionManager.select_action(training)
+	var ticks: int = ZoneManager.increment_training_ticks(training.action_id, SPIRIT_VALLEY_ID, 75)
+	ActionManager.training_tick_processed.emit(training, ticks)
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "+1 Spirit at Lv 2")
 	assert_has(texts, "15 / 300")
@@ -425,6 +450,7 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	# The cycle and the Aura Well share the tray's name, detail, figure, rod and
 	# rate: when the cycle ends and the Aura Well resumes, the Aura Well's own
 	# texts, rod and rate come back, and the tray takes clicks again.
+	PersistenceManager.save_game_data.madra = 0.0
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
@@ -436,7 +462,7 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	ActionManager.stop_action()
 	await wait_process_frames(2)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well resumed")
-	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "+1 Spirit at Lv 1", "0 / 60", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "Full in 67 s", "0 / 100", "Now"] as Array[String])
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
@@ -1096,7 +1122,7 @@ func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 
 ## The label row of an activity group: the row that holds its name and its groove.
 func _label_row_of(group: Node) -> Control:
-	return group.get_node("%GroupLabel").get_parent() as Control
+	return group.get_node("%LabelRow") as Control
 
 ## True when every row's top is lower than the one before it.
 func _tops_increase(rows: Array[Control]) -> bool:

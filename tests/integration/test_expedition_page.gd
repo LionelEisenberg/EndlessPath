@@ -63,7 +63,7 @@ func _control(unique_name: String) -> Control:
 	return _node(unique_name) as Control
 
 func _text(unique_name: String) -> String:
-	return (_node(unique_name) as Label).text
+	return _node(unique_name).get("text")
 
 func _shown(unique_name: String) -> bool:
 	return _control(unique_name).visible
@@ -558,8 +558,9 @@ func test_the_hint_reads_stamina_as_it_is_when_a_tile_resolves() -> void:
 func test_run_ledger_values() -> void:
 	var loot: Array[ItemDefinitionData] = [CRUDE_SCALE]
 
-	_page.set_run_stats(1, 13, 20, 3, 23, loot)
+	_page.set_run_stats(1, 13, 20, 3, 23, loot, 60.0)
 
+	assert_eq(_text("CoreValue"), "60", "the run's Core Density XP")
 	assert_eq(_text("FightsValue"), "1 / 13")
 	assert_eq(_text("GoldValue"), "20")
 	assert_eq(_text("ExploredValue"), "3 / 23")
@@ -581,10 +582,11 @@ func test_ledger_keeps_the_latest_six() -> void:
 
 func test_a_new_run_clears_the_ledger() -> void:
 	var loot: Array[ItemDefinitionData] = [CRUDE_SCALE, _item("Other")]
-	_page.set_run_stats(2, 13, 40, 5, 23, loot)
+	_page.set_run_stats(2, 13, 40, 5, 23, loot, 70.0)
 
 	_page.set_run_stats(0, 13, 0, 1, 23, [] as Array[ItemDefinitionData])
 
+	assert_eq(_text("CoreValue"), "0", "no Core Density yet")
 	assert_eq(_text("FightsValue"), "0 / 13")
 	assert_eq(_text("GoldValue"), "0")
 	assert_eq(_text("ExploredValue"), "1 / 23")
@@ -598,7 +600,7 @@ func test_the_ledger_does_not_touch_the_tile() -> void:
 	_page.set_run_stats(3, 13, 50, 9, 23, [CRUDE_SCALE] as Array[ItemDefinitionData])
 	assert_eq(_text("NameLabel"), "Aura Well")
 	assert_eq(_shown_drawers(), 2)
-	assert_eq(_page.get_content_height(), height, "the ledger is a fixed 128 px")
+	assert_eq(_page.get_content_height(), height, "the ledger is a fixed 174 px")
 	assert_signal_not_emitted(_page, "content_resized")
 
 #-----------------------------------------------------------------------------
@@ -699,7 +701,7 @@ func _tray_height() -> float:
 	return _control("HereTray").size.y
 
 func _lines(unique_name: String) -> int:
-	return (_node(unique_name) as Label).get_line_count()
+	return _node(unique_name).call("get_line_count")
 
 ## A fight whose drawer is a plain unresolved one: a long name, its choice's own label.
 func _long_name_fight() -> AdventureEncounter:

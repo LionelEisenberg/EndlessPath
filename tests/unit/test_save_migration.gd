@@ -3,7 +3,8 @@ extends GutTest
 ## Unit tests for SaveGameData: its version stamp and the migrations behind it
 ## (version 1 moves the old accessories; version 2 turns the stat values a
 ## version 1 save kept into trained levels, capped by the save's own stage;
-## version 3 leaves Health unset for the bind to fill), a version step that
+## version 3 leaves Health unset for the bind to fill; version 4, the drill
+## fields, moves nothing), a version step that
 ## cannot run, repair(), reset(), the training record a new or reset save writes out, and
 ## the save fields added for the map-first zone view. A save written before
 ## those fields existed must load with their defaults, and a save standing in
@@ -308,6 +309,53 @@ func test_to_string_names_health() -> void:
 	var data := SaveGameData.new_current()
 	data.health = 40.0
 	assert_string_contains(str(data), "Health: 40.00")
+
+#-----------------------------------------------------------------------------
+# DRILLS
+#-----------------------------------------------------------------------------
+
+## A save from before drills comes out with the starting drill unlocked and
+## equipped, nothing seen yet, and the current version.
+func test_v4_gives_an_old_save_the_starting_drill() -> void:
+	var data := SaveGameData.new()
+	data.save_version = 3
+	data.migrate()
+	assert_eq(data.unlocked_drill_ids, ["stone_lifting"] as Array[String])
+	assert_eq(data.equipped_drill_id, "stone_lifting")
+	assert_false(data.seen_drills_initialized, "the first pass is still to run")
+	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
+func test_v4_skips_a_current_save() -> void:
+	var data := SaveGameData.new_current()
+	data.unlocked_drill_ids.append("falling_leaf")
+	data.equipped_drill_id = "falling_leaf"
+	data.migrate()
+	assert_eq(data.unlocked_drill_ids, ["stone_lifting", "falling_leaf"] as Array[String], "a current save's drills are its own")
+	assert_eq(data.equipped_drill_id, "falling_leaf")
+
+## A version 3 file holds no drill keys.
+func test_an_old_file_loads_the_starting_drill() -> void:
+	var loaded := _load_hand_written_save("""[gd_resource type="Resource" script_class="SaveGameData" format=3]
+
+[ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
+
+[resource]
+script = ExtResource("1_save")
+save_version = 3
+gold = 42.0
+""")
+	assert_not_null(loaded, "the version 3 file loads")
+	if loaded == null:
+		return
+	loaded.migrate()
+	assert_eq(loaded.unlocked_drill_ids, ["stone_lifting"] as Array[String])
+	assert_eq(loaded.equipped_drill_id, "stone_lifting")
+	assert_eq(loaded.save_version, SaveGameData.CURRENT_VERSION)
+
+func test_to_string_names_the_drills() -> void:
+	var text: String = str(SaveGameData.new_current())
+	assert_string_contains(text, "UnlockedDrills: [\"stone_lifting\"]")
+	assert_string_contains(text, "EquippedDrillId: stone_lifting")
 
 #-----------------------------------------------------------------------------
 # A STEP THAT CANNOT RUN

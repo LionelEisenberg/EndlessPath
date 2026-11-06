@@ -3,8 +3,10 @@ extends Node2D
 
 ## LacquerPellet
 ## One opaque pellet that flies a PelletFlight, then frees itself. The cycling
-## view sends it from the ball to the Madra orb (Madra) and from a zone to the Core orb (XP,
-## in the tier's ramp), and the tribulation off its ring and into its core.
+## view sends it from the ball to the Madra orb (Madra) and from a zone to the
+## Core orb (XP, in the tier's ramp), and the tribulation off its ring and into
+## its core. A stat's XP pellets fly in that stat's own ramp (stat_ramp()) to its
+## cell on the cultivator cabinet.
 ## Lacquer kit §1 rules 4 and 6: no glow, halo, alpha or eased colour. Every look
 ## is a frame of one strip (lacquer_pellet_strip_ai.png, a row per Ramp), and every
 ## point it stands on is on the even-px grid. Its life, in whole frames:
@@ -30,8 +32,10 @@ signal delivered
 # ENUMS
 #-----------------------------------------------------------------------------
 
-## The strip's rows: the Madra ramp, and the cycling hit tiers' brass, cream and tan.
-enum Ramp { MADRA, BRASS, CREAM, TAN }
+## The strip's rows: the Madra ramp, the cycling hit tiers' brass, cream and tan,
+## then each stat's XP ramp (copper, steel, sky, violet, leaf, orchid). Values
+## are only ever added at the end.
+enum Ramp { MADRA, BRASS, CREAM, TAN, STRENGTH, BODY, AGILITY, SPIRIT, MIND, CONTROL }
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -44,6 +48,16 @@ const SEED_FRAME: int = 2
 const TAIL_NEAR_FRAME: int = 3
 const TAIL_FAR_FRAME: int = 4
 const SPARK_FRAMES: Array[int] = [5, 6, 7]
+
+## Each stat's XP ramp.
+const _STAT_RAMPS: Dictionary = {
+	CharacterAttributesData.AttributeType.STRENGTH: Ramp.STRENGTH,
+	CharacterAttributesData.AttributeType.BODY: Ramp.BODY,
+	CharacterAttributesData.AttributeType.AGILITY: Ramp.AGILITY,
+	CharacterAttributesData.AttributeType.SPIRIT: Ramp.SPIRIT,
+	CharacterAttributesData.AttributeType.MIND: Ramp.MIND,
+	CharacterAttributesData.AttributeType.CONTROL: Ramp.CONTROL,
+}
 
 ## Seconds each condensing frame shows: the seed, then the small pellet.
 const CONDENSE_STEP: float = 0.04
@@ -106,6 +120,10 @@ static func frame_at(elapsed: float, duration: float) -> int:
 	if elapsed < CONDENSE_SECONDS:
 		return SMALL_FRAME
 	return FULL_FRAME
+
+## The ramp a stat's XP pellets fly in.
+static func stat_ramp(stat: CharacterAttributesData.AttributeType) -> Ramp:
+	return _STAT_RAMPS[stat]
 
 ## Sends the pellet along `flight` from now, as a seed at the flight's start.
 ## Call it once the pellet is in the tree.

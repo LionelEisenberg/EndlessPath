@@ -87,3 +87,33 @@ func test_a_pellet_with_no_flight_waits() -> void:
 	pellet._process(1.0)
 	assert_false(pellet.has_landed())
 	assert_false(pellet.is_queued_for_deletion())
+
+#-----------------------------------------------------------------------------
+# STAT RAMPS
+#-----------------------------------------------------------------------------
+
+## Each stat's XP pellets fly in a ramp of their own, and the pellet shows it in
+## its sprite's row of the strip.
+func test_each_stat_has_its_own_ramp() -> void:
+	var cases: Array[Dictionary] = [
+		{"stat": CharacterAttributesData.AttributeType.STRENGTH, "ramp": LacquerPellet.Ramp.STRENGTH},
+		{"stat": CharacterAttributesData.AttributeType.BODY, "ramp": LacquerPellet.Ramp.BODY},
+		{"stat": CharacterAttributesData.AttributeType.AGILITY, "ramp": LacquerPellet.Ramp.AGILITY},
+		{"stat": CharacterAttributesData.AttributeType.SPIRIT, "ramp": LacquerPellet.Ramp.SPIRIT},
+		{"stat": CharacterAttributesData.AttributeType.MIND, "ramp": LacquerPellet.Ramp.MIND},
+		{"stat": CharacterAttributesData.AttributeType.CONTROL, "ramp": LacquerPellet.Ramp.CONTROL},
+	]
+	for case: Dictionary in cases:
+		var stat: CharacterAttributesData.AttributeType = case["stat"]
+		var pellet: LacquerPellet = _add_pellet()
+		pellet.set_ramp(LacquerPellet.stat_ramp(stat))
+		assert_eq(pellet.get_ramp(), case["ramp"], "%s's ramp" % StatDisplay.name_of(stat))
+		assert_eq((pellet.get_node("%Sprite") as Sprite2D).frame_coords.y, case["ramp"], "%s's pellet shows its row" % StatDisplay.name_of(stat))
+
+## The strip holds a row for every ramp, so the last one shows its own row
+## rather than running off the strip.
+func test_the_strip_has_a_row_for_every_ramp() -> void:
+	var pellet: LacquerPellet = _add_pellet()
+	var sprite: Sprite2D = pellet.get_node("%Sprite") as Sprite2D
+	assert_eq(sprite.vframes, LacquerPellet.Ramp.size(), "a sprite row for each ramp")
+	assert_eq(sprite.texture.get_height(), sprite.vframes * 20, "each row 20 px tall in the strip")

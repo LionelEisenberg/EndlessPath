@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://d3fvgoxl3gr7m" path="res://assets/styleboxes/lacquer/board9.tres" id="3_board"]
+
+[node name="StatTooltip" type="PanelContainer"]
+visible = false
+top_level = true
+custom_minimum_size = Vector2(208, 0)
+offset_right = 208.0
+offset_bottom = 72.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_override_styles/panel = ExtResource("3_board")
+script = ExtResource("1_script")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="TitleLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPopoverTitle"
+text = "Spirit Lv 4"
+
+[node name="FigureLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(172, 0)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "105 / 196 XP to Lv 5"
+autowrap_mode = 3

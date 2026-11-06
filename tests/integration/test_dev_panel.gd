@@ -493,6 +493,30 @@ func test_player_tab_sets_a_stats_level_and_xp() -> void:
 	assert_eq(CharacterManager.get_stat_level(CharacterAttributesData.AttributeType.SPIRIT), 4, "Spirit is Lv 4")
 	assert_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 12.0, "with 12 XP")
 
+## The drills list every drill by id. The starting drill equips; another is refused
+## as locked until it is unlocked, then equips; Unlock all unlocks the rest.
+func test_player_tab_unlocks_and_equips_drills() -> void:
+	var player: Control = _open_tab(_add_panel(), "PlayerTab")
+	var drill_ids: Array[String] = []
+	for drill: DrillData in BodyRefiningManager.get_all_drills():
+		drill_ids.append(drill.id)
+	assert_eq(_item_metadata(player.get_node("%DrillOption")), drill_ids, "every drill, by id")
+	var status: Label = player.get_node("%PlayerStatus")
+	var starting: String = SaveGameData.new().equipped_drill_id
+	var other: String = drill_ids[1]
+	_pick_item(player.get_node("%DrillOption"), starting)
+	_press(player, "DrillEquip")
+	assert_false(status.visible, "the starting drill equips with no refusal")
+	_pick_item(player.get_node("%DrillOption"), other)
+	_press(player, "DrillEquip")
+	assert_true(status.is_visible_in_tree(), "another drill is refused")
+	assert_eq(status.text, "%s is locked" % other, "as locked")
+	_press(player, "DrillUnlock")
+	_press(player, "DrillEquip")
+	assert_eq(BodyRefiningManager.get_equipped_drill().id, other, "unlocked, it equips")
+	_press(player, "UnlockAllDrills")
+	assert_eq(BodyRefiningManager.get_unlocked_drills().size(), drill_ids.size(), "Unlock all unlocks the rest")
+
 #-----------------------------------------------------------------------------
 # ADVENTURE TAB
 #-----------------------------------------------------------------------------

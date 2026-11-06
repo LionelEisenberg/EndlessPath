@@ -7,8 +7,8 @@ class_name AdventureViewState
 extends MainViewState
 
 ## Where a run hangs the Goals board: under the vitals cabinet, which shows no
-## stats and keeps the cabinet's old height, 4 px under its rings at y 272.
-const GOALS_POSITION: Vector2 = Vector2(24.0, 276.0)
+## stats, 4 px under its rings at y 364 (the Core row made it a row taller).
+const GOALS_POSITION: Vector2 = Vector2(24.0, 368.0)
 
 func _ready() -> void:
 	if ActionManager:
