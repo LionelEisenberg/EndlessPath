@@ -96,6 +96,12 @@ func _max_madra_source(amount: float) -> Callable:
 		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)]
 		return modifiers
 
+## A modifier source that adds `amount` to the max Health stat.
+func _max_health_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_HEALTH, StatModifierData.Kind.FLAT, amount)]
+		return modifiers
+
 ## A stat cell, by its unique name in the cabinet.
 func _cell(unique_name: String) -> StatCell:
 	return _node(unique_name) as StatCell
@@ -135,6 +141,71 @@ func _use_stat_caps(foundation_cap: int, copper_cap: int) -> void:
 	foundation.next_stage = copper
 	var stages: Array[AdvancementStageResource] = [foundation, copper]
 	CultivationManager.advancement_stage_resources = stages
+
+#-----------------------------------------------------------------------------
+# HEALTH
+#-----------------------------------------------------------------------------
+
+func test_shows_health_over_max() -> void:
+	assert_eq(_text("HealthValueLabel"), "100", "a new save is at full Health")
+	assert_eq(_text("HealthMaxLabel"), "/ 100")
+	assert_almost_eq(_fill("HealthOrb"), 1.0, 0.0001)
+
+## The figure rounds up and the max down, as on the vitals plate and the end
+## card (VitalsText), so every screen reads one Health number.
+func test_health_follows_its_signal_and_rounds_as_the_vitals_plate() -> void:
+	var cases: Array[Dictionary] = [
+		{"health": 46.0, "figure": "46"},
+		{"health": 61.3, "figure": "62"},
+		{"health": 0.4, "figure": "1"},
+		{"health": 0.0, "figure": "0"},
+	]
+	for case: Dictionary in cases:
+		ResourceManager.set_health(case.health)
+		assert_eq(_text("HealthValueLabel"), case.figure, "%s Health" % case.health)
+
+## Body, gear and any modifier source move the max, and a max that drops brings
+## the pool down with it.
+func test_the_health_max_follows_the_max_health_stat() -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_health_source(40.0))
+	assert_eq(_text("HealthMaxLabel"), "/ 140")
+	assert_almost_eq(_fill("HealthOrb"), 100.0 / 140.0, 0.0001, "100 of 140 Health")
+	ResourceManager.set_health(140.0)
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	assert_eq(_text("HealthValueLabel"), "100", "the full pool comes down to the lower max")
+	assert_eq(_text("HealthMaxLabel"), "/ 100")
+
+## A save that loads shows its own Health at once: every bind announces it.
+func test_a_loaded_save_shows_its_health() -> void:
+	var save := SaveGameData.new()
+	save.health = 37.0
+	_use_fresh_save(save)
+	assert_eq(_text("HealthValueLabel"), "37")
+
+## Health on its way to the orb is left out of the figure and the fill until it
+## lands.
+func test_held_health_shows_once_released() -> void:
+	ResourceManager.set_health(46.0)
+	_plate.hold_health(6.0)
+	assert_eq(_text("HealthValueLabel"), "40", "the 6 in flight is not in the orb yet")
+	assert_almost_eq(_fill("HealthOrb"), 0.40, 0.0001)
+	_plate.release_health(4.0)
+	assert_eq(_text("HealthValueLabel"), "44")
+	_plate.release_health(2.0)
+	assert_eq(_text("HealthValueLabel"), "46", "all of it landed")
+	assert_almost_eq(_fill("HealthOrb"), 0.46, 0.0001)
+
+## More Health in flight than the pool holds reads as none, never below 0.
+func test_held_health_never_reads_below_zero() -> void:
+	ResourceManager.set_health(10.0)
+	_plate.hold_health(25.0)
+	assert_eq(_text("HealthValueLabel"), "0")
+	assert_almost_eq(_fill("HealthOrb"), 0.0, 0.0001)
+
+## Health pellets land on the Health orb's centre.
+func test_health_pellets_land_on_the_health_orb() -> void:
+	var orb: Control = _node("HealthOrb")
+	assert_eq(_plate.get_health_orb_global_position(), orb.global_position + orb.size * 0.5)
 
 #-----------------------------------------------------------------------------
 # MADRA
