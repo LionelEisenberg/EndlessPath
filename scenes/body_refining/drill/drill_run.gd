@@ -69,6 +69,8 @@ static func for_drill(drill: DrillData, rng_seed: int = 0) -> DrillRun:
 		DrillData.InputKind.HOLD_STEADY:
 			var path: Array = HorseStanceRun.band_path(rng_seed, roundi(drill.rep_seconds * 1_000_000.0) * drill.reps_per_set)
 			return HorseStanceRun.new(drill, path[0], path[1])
+		DrillData.InputKind.BEAT:
+			return WaterfallRun.new(drill)
 	return StoneLiftingRun.new(drill)
 
 #-----------------------------------------------------------------------------

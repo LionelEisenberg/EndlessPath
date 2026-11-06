@@ -56,13 +56,24 @@ func test_each_input_gets_its_run() -> void:
 		{"kind": InputKind.HOLD_RELEASE, "run": "StoneLiftingRun"},
 		{"kind": InputKind.HOLD_STEADY, "run": "HorseStanceRun"},
 		{"kind": InputKind.CATCH, "run": "StoneLiftingRun"},
-		{"kind": InputKind.BEAT, "run": "StoneLiftingRun"},
+		{"kind": InputKind.BEAT, "run": "WaterfallRun"},
 	]
 	for case: Dictionary in cases:
 		var run: DrillRun = DrillRun.for_drill(_drill(case["kind"]))
 		assert_not_null(run, "%s gets a run" % InputKind.keys()[case["kind"]])
 		if run != null:
 			assert_eq(run.get_script().get_global_name(), StringName(case["run"]), "%s's run" % InputKind.keys()[case["kind"]])
+
+## On the hold drills the press that starts a set is also its first lift; on the
+## drills judged by a timed press it only starts the set.
+func test_only_the_hold_drills_judge_the_starting_press() -> void:
+	var cases: Array[Dictionary] = [
+		{"kind": InputKind.HOLD_RELEASE, "judged": true},
+		{"kind": InputKind.HOLD_STEADY, "judged": true},
+		{"kind": InputKind.BEAT, "judged": false},
+	]
+	for case: Dictionary in cases:
+		assert_eq(DrillRun.for_drill(_drill(case["kind"], 3.0)).judges_starting_press(), case["judged"], InputKind.keys()[case["kind"]])
 
 #-----------------------------------------------------------------------------
 # THE SLOTS
