@@ -89,3 +89,12 @@ func test_combat_defeat_does_not_trigger_event() -> void:
 	if _combat_ends.size() == 1:
 		assert_false(_combat_ends[0][0], "the fight ends as a loss")
 	assert_false(EventManager.has_event_triggered(ENEMY_DEFEATED_EVENT), "a loss must not trigger the event")
+
+## Once the fight stops it no longer listens to the player's Health, so Health
+## reaching 0 after it (the dev panel on the map or at home) reports no fight.
+func test_health_at_zero_after_the_fight_reports_nothing() -> void:
+	_start_fight()
+	_combat.enemy_combatant.vitals_manager.apply_vitals_change(LETHAL_DAMAGE)
+	_combat.stop()
+	PlayerManager.vitals_manager.apply_vitals_change(LETHAL_DAMAGE)
+	assert_eq(_combat_ends.size(), 1, "only the won fight ended")
