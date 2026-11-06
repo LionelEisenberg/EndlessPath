@@ -201,6 +201,21 @@ func test_floater_pops_a_haul_as_counts_and_icons() -> void:
 	floater.pop("+1.5 Madra", ThemeConstants.LACQUER_MADRA)
 	assert_true(floater.get_icons().is_empty(), "plain text clears the icons")
 
+## A floater can pop icons and text in any order: the body refining board's
+## "[Strength] capped" and "[Health] full" under a rep's tier.
+func test_floater_pops_parts_of_icons_and_text() -> void:
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	var icon := PlaceholderTexture2D.new()
+	icon.size = Vector2(16, 16)
+	floater.pop_parts([icon, " capped"], ThemeConstants.LACQUER_TAN)
+	assert_true(floater.visible, "pop_parts shows the floater")
+	assert_eq(floater.get_text(), " capped", "the text parts")
+	assert_eq(floater.get_icons(), [icon] as Array[Texture2D], "the icon parts, in order")
+	assert_eq(floater.get_color(), ThemeConstants.LACQUER_TAN)
+	assert_eq(floater.get_token_width() % 2, 0, "the token stays an even width")
+	assert_gt(floater.get_token_width(), LacquerFloater.TOKEN_TEXT_PADDING + LacquerFloater.ITEM_ICON_SIZE, "wide enough for the icon and the text")
+
 #-----------------------------------------------------------------------------
 # TEXT
 #-----------------------------------------------------------------------------
