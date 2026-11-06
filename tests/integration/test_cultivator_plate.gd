@@ -205,7 +205,7 @@ func test_held_health_never_reads_below_zero() -> void:
 ## Health pellets land on the Health orb's centre.
 func test_health_pellets_land_on_the_health_orb() -> void:
 	var orb: Control = _node("HealthOrb")
-	assert_eq(_plate.get_health_orb_global_position(), orb.global_position + orb.size * 0.5)
+	assert_eq(_plate.get_health_orb_global_position(), orb.global_position + Vector2(40, 40), "the 80x80 orb's centre")
 
 #-----------------------------------------------------------------------------
 # MADRA

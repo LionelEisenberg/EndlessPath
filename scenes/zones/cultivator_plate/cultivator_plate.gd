@@ -3,7 +3,7 @@ extends Control
 
 ## The cultivator cabinet at the zone view's top left (lacquer kit §5.1).
 ## Five rows on the lacquer board, the first three where the vitals plate has
-## them in a run, so neither orb moves as a run starts or ends: the Health orb
+## them in a run, so no orb moves as a run starts or ends: the Health orb
 ## with Health / max, the saved pool (the max is the max Health stat, which
 ## Body, gear and any modifier source move), printed as every Health readout
 ## prints it (VitalsText); the Madra orb with Madra / max (the max is
@@ -15,8 +15,10 @@ extends Control
 ## level and a ring of its XP toward the next level, full at the stage's cap;
 ## gold, at the right of the bottom row.
 ## The orbs are frames of the kit's strips under two pixel-art shaders that
-## animate the fill on their own (lacquer_madra_orb: flowing liquid,
-## lacquer_core_orb: a turning spiral); this script only hands them the fill.
+## animate the fill on their own (lacquer_madra_orb: flowing liquid, which the
+## Health orb's socket takes too, its material on the crimson ramp as on the
+## vitals plate; lacquer_core_orb: a turning spiral); this script only hands
+## them the fill.
 ## The beads are rows of their strip. It reads everything once on _ready, then
 ## follows the managers' signals: the stats follow CharacterManager's
 ## stats_changed and stat_xp_changed, and the stage's change too, since a
@@ -44,7 +46,7 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The shader parameter both orbs fill to, 0 to 1.
+## The shader parameter every orb fills to, 0 to 1.
 const FILL_PARAMETER: StringName = &"progress"
 ## Core orb strip columns: the dormant pebble shown at Core Density 0, and the
 ## empty socket (with a seed dot the spiral covers) under the fill from level 1.
@@ -56,8 +58,8 @@ const XP_BEADS_LAST_ROW: int = 18
 ## board and its shadow), and this far below the hovered cell's top.
 const TOOLTIP_X: float = 444.0
 const TOOLTIP_DROP: float = 4.0
-## Held Madra or XP below this is float dust from releasing what was held, and
-## counts as none.
+## Held Health, Madra or XP below this is float dust from releasing what was
+## held, and counts as none.
 const HELD_EPSILON: float = 0.0001
 
 #-----------------------------------------------------------------------------
