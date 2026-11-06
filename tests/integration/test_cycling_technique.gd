@@ -16,6 +16,9 @@ const PLATE_SCENE: PackedScene = preload("res://scenes/zones/cultivator_plate/cu
 ## A cursor far from the ball and from every zone.
 const FAR: Vector2 = Vector2(-9999.0, -9999.0)
 
+## The stat smooth_flow's zones pay.
+const CONTROL := CharacterAttributesData.AttributeType.CONTROL
+
 ## One frame at 60 FPS. A cycle is run for its duration plus one frame, because
 ## 900 sums of 1 / 60 can land a hair under 15.
 const FRAME: float = 1.0 / 60.0
@@ -742,20 +745,26 @@ func test_zone_overlap_uses_the_true_ball() -> void:
 	assert_eq(zone.get_state(), CyclingZone.State.ACTIVE)
 	await _await_queued_frees()
 
+## Smooth Flow trains Control: a hit pays its tier's XP to Control, and cycling
+## pays no Core Density.
 func test_scoring_an_active_zone_uses_the_tier_rule() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	watch_signals(_technique)
+	var core_level: float = CultivationManager.get_core_density_level()
+	var core_xp: float = CultivationManager.get_core_density_xp()
 	var distance: float = _distance_to(zone)
 	var tier: CyclingRules.Tier = CyclingRules.tier_for_distance(distance)
 	var xp: int = CyclingRules.xp_for_tier(zone.zone_data, tier)
 	assert_true(_technique.try_score_zone(zone))
 	assert_eq(zone.get_state(), CyclingZone.state_for_tier(tier))
 	assert_signal_emit_count(_technique, "zone_scored", 1)
-	assert_eq(get_signal_parameters(_technique, "zone_scored", 0), [zone, tier, xp])
-	assert_eq(CultivationManager.get_core_density_xp(), float(xp), "the zone's XP goes to Core Density")
+	assert_eq(get_signal_parameters(_technique, "zone_scored", 0), [zone, tier, xp, float(xp)])
+	assert_eq(CharacterManager.get_stat_xp(CONTROL), float(xp), "the zone's XP goes to Control")
+	assert_eq(CultivationManager.get_core_density_xp(), core_xp, "and none to Core Density")
+	assert_eq(CultivationManager.get_core_density_level(), core_level)
 	var result: CycleResult = _technique.get_current_result()
 	assert_eq(result.zones_scored, 1)
-	assert_eq(result.xp, xp)
+	assert_eq(result.get_stat_xp(CONTROL), float(xp))
 
 func test_a_closer_ball_scores_a_better_tier() -> void:
 	# From the edge of the zone (OK), then inside 14 px (GOOD), then 6 px (PERFECT).
@@ -812,25 +821,19 @@ func test_a_scored_zone_shows_in_the_result() -> void:
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_eq(result.zones_scored, 1)
 	assert_eq(result.perfect_count, 1)
-	assert_eq(result.xp, 25)
+	assert_eq(result.get_stat_xp(CONTROL), 6.0, "zone 1's PERFECT pays 6 Control XP")
 
+## A capped Control takes none of a hit's XP, which is lost; the result marks
+## it, and the signal says Control took nothing.
 func test_a_zone_scored_at_the_cap_marks_the_result() -> void:
-	PersistenceManager.save_game_data.core_density_level = 100.0
-	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
+	CharacterManager.set_stat_level(CONTROL, CharacterManager.get_stat_level_cap())
+	watch_signals(_technique)
 	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_false(_technique.get_current_result().core_full, "precondition: the flag comes with a scored zone, not with the cycle")
+	assert_false(_technique.get_current_result().is_stat_capped(CONTROL), "precondition: the mark comes with a scored zone, not with the cycle")
 	assert_true(_technique.try_score_zone(zone))
-	assert_true(_technique.get_current_result().core_full)
-
-func test_the_zone_that_fills_the_core_marks_the_result() -> void:
-	# One XP short of the last level, so any zone's XP fills the core.
-	PersistenceManager.save_game_data.core_density_level = 99.0
-	PersistenceManager.save_game_data.core_density_xp = CultivationManager.get_xp_for_next_level() - 1.0
-	assert_false(CultivationManager.is_core_full(), "precondition: one level short of the cap")
-	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_true(_technique.try_score_zone(zone))
-	assert_true(CultivationManager.is_core_full(), "precondition: the zone's XP filled the core")
-	assert_true(_technique.get_current_result().core_full, "the flag is read after the XP is in")
+	assert_eq(CharacterManager.get_stat_xp(CONTROL), 0.0, "a capped Control holds no XP")
+	assert_true(_technique.get_current_result().is_stat_capped(CONTROL))
+	assert_eq(get_signal_parameters(_technique, "zone_scored", 0)[3], 0.0, "Control took nothing")
 
 #-----------------------------------------------------------------------------
 # ENDING, SWITCHING AND AUTO
@@ -1079,3 +1082,167 @@ func test_physics_picking_ignores_a_press_on_a_zone_off_the_ball() -> void:
 	await _press_at(zone.global_position)
 	assert_signal_not_emitted(_technique, "zone_scored")
 	assert_true(zone.is_open())
+
+#-----------------------------------------------------------------------------
+# SEALS
+#-----------------------------------------------------------------------------
+
+const TORRENTIAL_PATH: String = "res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres"
+const MIND := CharacterAttributesData.AttributeType.MIND
+## Seeds the seals' arrows, so a test draws the same seals every run.
+const SEAL_SEED: int = 99
+
+## Plays torrential_flow: an 8 s cycle with no zones and three seal nodes the
+## ball reaches at 2, 4.5 and 7 s, each seal showing 1.5 s before.
+func _use_torrential() -> void:
+	_technique.setup(load(TORRENTIAL_PATH))
+	_technique.seal_rng.seed = SEAL_SEED
+
+func _seal(index: int) -> SealNode:
+	return _technique.seal_nodes[index]
+
+## Keys seal `index`'s arrows, each of which must be taken.
+func _key_seal(index: int) -> void:
+	for arrow: int in _seal(index).get_arrows():
+		assert_true(_technique.press_seal(arrow), "precondition: the seal takes its arrow")
+
+func test_the_seals_sit_where_the_ball_arrives() -> void:
+	_use_torrential()
+	assert_eq(_technique.seal_nodes.size(), 3)
+	_technique.start_cycle()
+	var reached: float = 0.0
+	for index: int in 3:
+		var seconds: float = _seal(index).arrive_seconds
+		_run(seconds - reached, 60.0, true)
+		reached = seconds
+		assert_almost_eq(_seal(index).global_position.distance_to(_technique.get_ball_global_position()), 0.0, 2.0,
+			"seal %d sits where the ball is at %s s" % [index, seconds])
+	assert_eq([_seal(0).arrive_seconds, _seal(1).arrive_seconds, _seal(2).arrive_seconds], [2.0, 4.5, 7.0])
+	await _await_queued_frees()
+
+func test_a_seal_shows_its_lead_before_the_ball_arrives() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(0.45, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.IDLE, "not yet")
+	assert_signal_not_emitted(_technique, "seal_shown")
+	_run(0.1, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.SHOWING, "1.5 s before the ball")
+	assert_eq(_seal(0).get_arrows().size(), CyclingRules.SEAL_LENGTH)
+	assert_signal_emit_count(_technique, "seal_shown", 1)
+	assert_eq(get_signal_parameters(_technique, "seal_shown", 0), [_seal(0)])
+	assert_eq(_seal(1).get_state(), SealNode.State.IDLE, "the next seal waits its turn")
+	await _await_queued_frees()
+
+func test_keying_a_seal_opens_it() -> void:
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	assert_eq(_seal(0).get_state(), SealNode.State.OPEN)
+	await _await_queued_frees()
+
+func test_an_open_seal_pays_mind_as_the_ball_bursts_through() -> void:
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	watch_signals(_technique)
+	_run(1.3, 60.0, true)
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0, "nothing until the ball gets there")
+	_run(0.15, 60.0, true)
+	assert_eq(CharacterManager.get_stat_xp(MIND), 5.0, "the seal's 5 Mind XP as the ball bursts through")
+	assert_signal_emit_count(_technique, "seal_burst", 1)
+	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 5.0, 5.0])
+	assert_eq(_seal(0).get_state(), SealNode.State.OPEN, "the node stays green")
+	assert_eq(_technique.get_current_result().get_stat_xp(MIND), 5.0)
+	await _await_queued_frees()
+
+func test_a_missed_seal_fizzles_and_pays_nothing() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(2.1, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.SPENT)
+	assert_signal_emit_count(_technique, "seal_missed", 1)
+	assert_eq(get_signal_parameters(_technique, "seal_missed", 0), [_seal(0)])
+	assert_signal_not_emitted(_technique, "seal_burst")
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
+	await _await_queued_frees()
+
+func test_a_capped_mind_opens_seals_for_nothing() -> void:
+	CharacterManager.set_stat_level(MIND, CharacterManager.get_stat_level_cap())
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	watch_signals(_technique)
+	_run(1.5, 60.0, true)
+	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 5.0, 0.0], "Mind took nothing")
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
+	assert_true(_technique.get_current_result().is_stat_capped(MIND))
+	await _await_queued_frees()
+
+func test_a_stop_drops_an_open_seal() -> void:
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	_run(1.2, 60.0, true)
+	_technique.stop_cycling()
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0, "the ball never got there")
+	for index: int in 3:
+		assert_eq(_seal(index).get_state(), SealNode.State.IDLE, "seal %d is back to waiting" % index)
+	await _await_queued_frees()
+
+func test_keys_do_nothing_with_no_seal_showing() -> void:
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "smooth_flow, ready: no seals at all")
+	_technique.start_cycle()
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "smooth_flow, cycling: no seals at all")
+	_use_torrential()
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "ready")
+	_technique.start_cycle()
+	_run(0.2, 60.0, true)
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "before the first seal shows")
+	_run(2.3, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.SPENT, "precondition: the first seal is gone")
+	assert_eq(_seal(1).get_state(), SealNode.State.IDLE, "precondition: the second has not shown")
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "between seals")
+	await _await_queued_frees()
+
+func test_a_hitch_across_a_seal_s_window() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_technique.advance(2.2, _technique.get_ball_global_position())
+	assert_eq(_seal(0).get_state(), SealNode.State.SPENT, "shown and fizzled in one frame")
+	assert_signal_emit_count(_technique, "seal_shown", 1)
+	assert_signal_emit_count(_technique, "seal_missed", 1)
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
+	await _await_queued_frees()
+
+func test_the_result_keeps_each_seal_and_zone_outcome() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	_run(5.0, 60.0, true)
+	assert_eq(_seal(2).get_state(), SealNode.State.SHOWING, "precondition: the third seal shows")
+	_key_seal(2)
+	_run(2.5, 60.0, true)
+	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
+	assert_eq(result.seal_states, [SealNode.State.OPEN, SealNode.State.SPENT, SealNode.State.OPEN] as Array[int])
+	assert_eq(result.zone_states, [] as Array[int], "torrential_flow has no zones")
+	assert_eq(result.get_stat_xp(MIND), 10.0, "two seals paid")
+	await _await_queued_frees()
+
+func test_the_result_keeps_each_zone_outcome() -> void:
+	watch_signals(_technique)
+	var zone: CyclingZone = _approach_zone_0(6.0)
+	assert_true(_technique.try_score_zone(zone))
+	_run(CYCLE_SECONDS, 60.0, true)
+	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
+	assert_eq(result.zone_states, [CyclingZone.State.PERFECT, CyclingZone.State.SPENT, CyclingZone.State.SPENT, CyclingZone.State.SPENT] as Array[int])
+	assert_eq(result.seal_states, [] as Array[int], "smooth_flow has no seals")

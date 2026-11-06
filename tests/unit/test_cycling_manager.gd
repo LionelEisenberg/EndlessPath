@@ -35,6 +35,12 @@ func after_each() -> void:
 	CyclingManager._live_save_data = _saved_live_save_data
 	CyclingManager._techniques_by_id = _saved_techniques_by_id
 
+# ----- The catalog -----
+
+func test_get_technique() -> void:
+	assert_eq(CyclingManager.get_technique("tech_a"), _technique_a)
+	assert_null(CyclingManager.get_technique("no_such_technique"), "an unknown id gives null")
+
 # ----- Default state -----
 
 func test_default_save_has_foundation_unlocked() -> void:

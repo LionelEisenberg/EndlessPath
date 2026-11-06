@@ -14,6 +14,12 @@ extends Control
 ## and 1 keep their tone, age 2 is tan, ages 3 and 4 are dim, and each bullet
 ## takes the same colour.
 ##
+## A line may hold small icons, as [img]path[/img] tags (the cycle's line
+## does): its row shows it on a rich text twin of its label, its text in the
+## line's colour and its icons at LINE_ICON_SIZE px, untinted while the line
+## keeps its tone and in its tan or dim from age 2, so they fade with it. The
+## full log shows the icons too.
+##
 ## The full log is a taller board in the same place with every line LogManager
 ## keeps (at most LogManager.HISTORY_LIMIT), scrolling, newest at the bottom,
 ## 26 px apart in a text area of whole lines. A line too long for the board
@@ -52,6 +58,8 @@ const FULL_LOG_HEIGHT: float = 440.0
 const FULL_LOG_TEXT_INDENT: float = 18.0
 ## The inlaid bullets are 10x10 (kit §4.4).
 const BULLET_SIZE: float = 10.0
+## A line's icons are drawn at 16 px.
+const LINE_ICON_SIZE: float = 16.0
 ## Lines from age 2 on lose their tone (kit §5.3).
 const TAN_AGE: int = 2
 const DIM_AGE: int = 3
@@ -62,6 +70,8 @@ const _COLOR_TAG_PATTERN: String = r"\[color=([^\]]+)\]"
 ## RichTextLabel would not parse, such as "[DEV]", stay as text, as it shows
 ## them.
 const _BBCODE_TAG_PATTERN: String = r"\[/?[a-z_]+(?:[= ][^\]]*)?\]"
+## An image tag with what it holds, the image's path, with or without a size.
+const _IMAGE_TAG_PATTERN: String = r"\[img(?:[= ][^\]]*)?\](.*?)\[/img\]"
 ## What Color.from_string() returns for a value that is neither a colour name
 ## nor an HTML code: no parsed colour has negative channels.
 const _NOT_A_COLOUR: Color = Color(-1.0, -1.0, -1.0, -1.0)
@@ -80,6 +90,7 @@ const _MADRA_HUE_TO: float = 260.0
 
 static var _color_tag_regex: RegEx = null
 static var _bbcode_tag_regex: RegEx = null
+static var _image_tag_regex: RegEx = null
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -110,6 +121,8 @@ static var _bbcode_tag_regex: RegEx = null
 @onready var _line_rows: Array[Control] = [%Line0, %Line1, %Line2, %Line3, %Line4]
 @onready var _line_bullets: Array[TextureRect] = [%LineBullet0, %LineBullet1, %LineBullet2, %LineBullet3, %LineBullet4]
 @onready var _line_labels: Array[Label] = [%LineLabel0, %LineLabel1, %LineLabel2, %LineLabel3, %LineLabel4]
+## Each row's rich text twin of its label, which shows a line with icons.
+@onready var _line_icons: Array[RichTextLabel] = [%LineIcons0, %LineIcons1, %LineIcons2, %LineIcons3, %LineIcons4]
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -205,11 +218,29 @@ static func tone_for(bbcode: String) -> Tone:
 		return Tone.MADRA
 	return Tone.TAN
 
-## A logged line without its BBCode tags.
+## A logged line without its BBCode tags, and without its images and their
+## paths.
 static func plain_text(bbcode: String) -> String:
 	if _bbcode_tag_regex == null:
 		_bbcode_tag_regex = RegEx.create_from_string(_BBCODE_TAG_PATTERN)
-	return _bbcode_tag_regex.sub(bbcode, "", true)
+	return _bbcode_tag_regex.sub(_image_tags().sub(bbcode, "", true), "", true)
+
+## A logged line in order: a String for each run of text, its BBCode tags
+## stripped, and a Texture2D for each [img]path[/img] whose path loads. An
+## image that does not load is left out.
+static func line_parts(bbcode: String) -> Array:
+	var parts: Array = []
+	var from: int = 0
+	for found: RegExMatch in _image_tags().search_all(bbcode):
+		_append_text_part(parts, bbcode.substr(from, found.get_start() - from))
+		var path: String = found.get_string(1).strip_edges()
+		if ResourceLoader.exists(path):
+			var icon: Texture2D = load(path) as Texture2D
+			if icon != null:
+				parts.append(icon)
+		from = found.get_end()
+	_append_text_part(parts, bbcode.substr(from))
+	return parts
 
 #-----------------------------------------------------------------------------
 # BOARD
@@ -229,19 +260,32 @@ func _update_board() -> void:
 	_board_height = BOARD_BASE_HEIGHT + LINE_HEIGHT * board_lines
 	_hang_boards()
 
+## Shows a line in row `age`: on its label, or on the label's rich text twin
+## when the line holds icons, which fade with the line from TAN_AGE.
 func _show_line(age: int, bbcode: String) -> void:
 	_line_labels[age].text = plain_text(bbcode)
 	var tone: Tone = tone_for(bbcode)
 	var colour: Color = _tone_colour(tone)
 	var bullet: Texture2D = _tone_bullet(tone)
+	var icon_colour: Color = Color.WHITE
 	if age >= DIM_AGE:
 		colour = ThemeConstants.LACQUER_DIM
 		bullet = dim_bullet
+		icon_colour = colour
 	elif age >= TAN_AGE:
 		colour = ThemeConstants.LACQUER_TAN
 		bullet = tan_bullet
+		icon_colour = colour
 	_line_labels[age].add_theme_color_override("font_color", colour)
 	_line_bullets[age].texture = bullet
+	var parts: Array = line_parts(bbcode)
+	var has_icons: bool = parts.any(func(part: Variant) -> bool: return part is Texture2D)
+	_line_labels[age].visible = not has_icons
+	_line_icons[age].visible = has_icons
+	if has_icons:
+		_line_icons[age].clear()
+		_line_icons[age].add_theme_color_override("default_color", colour)
+		_add_parts(_line_icons[age], parts, icon_colour)
 
 ## Sets both boards against the slot's bottom edge, or its top edge when the
 ## slot sits in the upper half of the screen.
@@ -289,7 +333,7 @@ func _add_full_log_line(bbcode: String) -> void:
 	_full_log_text.pop()
 	_full_log_text.push_cell()
 	_full_log_text.push_color(_tone_colour(tone))
-	_full_log_text.add_text(plain_text(bbcode))
+	_add_parts(_full_log_text, line_parts(bbcode), Color.WHITE)
 	_full_log_text.pop()
 	_full_log_text.pop()
 	_full_log_text.pop()
@@ -308,6 +352,31 @@ func _refresh_rail_caps() -> void:
 func _set_cap_icons(cap: StringName, texture: Texture2D) -> void:
 	for state: String in ["", "_highlight", "_pressed"]:
 		_full_log_bar.add_theme_icon_override(StringName(cap + state), texture)
+
+#-----------------------------------------------------------------------------
+# LINE PARTS
+#-----------------------------------------------------------------------------
+
+## The image tag pattern, compiled once.
+static func _image_tags() -> RegEx:
+	if _image_tag_regex == null:
+		_image_tag_regex = RegEx.create_from_string(_IMAGE_TAG_PATTERN)
+	return _image_tag_regex
+
+## Appends a run of text to `parts`, its tags stripped, unless nothing is left.
+static func _append_text_part(parts: Array, bbcode: String) -> void:
+	var text: String = plain_text(bbcode)
+	if not text.is_empty():
+		parts.append(text)
+
+## Adds a line's parts (line_parts()) to `rich`: its runs of text, and its
+## icons at LINE_ICON_SIZE px, tinted `icon_colour`.
+static func _add_parts(rich: RichTextLabel, parts: Array, icon_colour: Color) -> void:
+	for part: Variant in parts:
+		if part is Texture2D:
+			rich.add_image(part as Texture2D, LINE_ICON_SIZE, LINE_ICON_SIZE, icon_colour)
+		else:
+			rich.add_text(part as String)
 
 #-----------------------------------------------------------------------------
 # TONES

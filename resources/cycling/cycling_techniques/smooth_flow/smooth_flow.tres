@@ -19,4 +19,6 @@ cycle_duration = 15.0
 base_madra_per_cycle = 80.0
 spirit_xp_per_cycle = 30.0
 minor_stat = 5
+seal_seconds = Array[float]([])
+seal_xp = 0.0
 cycling_zones = Array[ExtResource("1_l5sxf")]([ExtResource("2_gcicw"), ExtResource("3_3bp60"), ExtResource("4_fxhmj"), ExtResource("5_or40r")])

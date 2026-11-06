@@ -60,6 +60,10 @@ func get_all_techniques() -> Array[CyclingTechniqueData]:
 func has_technique(technique_id: String) -> bool:
 	return _techniques_by_id.has(technique_id)
 
+## Returns the catalog's technique with this ID, or null for an unknown one.
+func get_technique(technique_id: String) -> CyclingTechniqueData:
+	return _techniques_by_id.get(technique_id, null)
+
 ## Returns full resource data for all unlocked technique IDs.
 func get_unlocked_techniques() -> Array[CyclingTechniqueData]:
 	var result: Array[CyclingTechniqueData] = []

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DrillManualDefinitionData" format=3]
+
+[ext_resource type="Script" uid="uid://y4geqplikd21" path="res://scripts/resource_definitions/items/drill_manual_definition_data.gd" id="1_manual"]
+[ext_resource type="Texture2D" uid="uid://bt54hunadj01h" path="res://assets/sprites/items/drill_manuals/waterfall_tempering_manual_ai.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_manual")
+drill_id = "waterfall_tempering"
+item_id = "waterfall_tempering_manual"
+item_name = "Waterfall Tempering Manual"
+description = "A water-stained drill book. Strike in time with the falls, and the body hardens."
+icon = ExtResource("2_icon")
+stack_size = 1
+base_value = 0.0
+metadata/_custom_type_script = "uid://y4geqplikd21"

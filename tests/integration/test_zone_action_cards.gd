@@ -22,6 +22,8 @@ const DIALOGUE_ID: String = "celestial_intervener_dialogue_1"
 const RETURN_ID: String = "celestial_intervener_dialogue_2"
 
 const FORAGING_EVENT: String = "q_fill_core_completed"
+const SMOOTH_ID: String = "smooth_flow"
+const TORRENTIAL_ID: String = "torrential_flow"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 
 ## A card is 72 px for one title line and one detail line; each detail line after
@@ -181,6 +183,49 @@ func _story_fixture(action_name: String, description: String) -> ZoneActionData:
 	action.action_type = ZoneActionData.ActionType.NPC_DIALOGUE
 	action.description = description
 	return action
+
+#-----------------------------------------------------------------------------
+# THE CYCLING CARD
+#-----------------------------------------------------------------------------
+
+## The cycling card's reward row as it reads, in order: the Madra's word, then
+## each shown stat's.
+func _reward_words(card: ZoneActionButton) -> Array[String]:
+	var row: Node = card.get_detail_slot().find_child("RewardRow", true, false)
+	var words: Array[String] = [(row.find_child("MadraLabel", true, false) as Label).text]
+	for stat_name: String in ["Spirit", "Mind", "Control"]:
+		if (row.find_child(stat_name + "Entry", true, false) as Control).visible:
+			words.append((row.find_child(stat_name + "Name", true, false) as Label).text)
+	return words
+
+## The cycling card names what cycling trains with the techniques the player
+## knows: Madra and Spirit, then each known technique's other stat, each stat
+## with its icon.
+func test_the_cycling_card_lists_what_the_known_techniques_train() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a new save", "unlock": [], "words": ["Madra and", "Spirit XP"]},
+		{"name": "with Smooth Flow", "unlock": [SMOOTH_ID], "words": ["Madra,", "Spirit and", "Control XP"]},
+		{"name": "with all three", "unlock": [SMOOTH_ID, TORRENTIAL_ID], "words": ["Madra,", "Spirit,", "Mind and", "Control XP"]},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		for technique_id: String in case.unlock:
+			CyclingManager.unlock_technique(technique_id)
+		var card: ZoneActionButton = _card(CYCLING_ID)
+		assert_eq(_reward_words(card), Array(case.words, TYPE_STRING, "", null), case.name)
+		var row: Node = card.get_detail_slot().find_child("RewardRow", true, false)
+		for stat: CharacterAttributesData.AttributeType in StatDisplay.SPIRITUAL:
+			var stat_name: String = StatDisplay.name_of(stat)
+			var icon: TextureRect = row.find_child(stat_name + "Icon", true, false) as TextureRect
+			if icon.is_visible_in_tree():
+				assert_eq(icon.texture, StatDisplay.icon_of(stat), "%s: %s's icon" % [case.name, stat_name])
+
+func test_the_cycling_card_follows_a_technique_unlock() -> void:
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	assert_eq(_reward_words(card), ["Madra and", "Spirit XP"] as Array[String], "precondition: a new save")
+	CyclingManager.unlock_technique(TORRENTIAL_ID)
+	assert_eq(_reward_words(card), ["Madra,", "Spirit and", "Mind XP"] as Array[String], "the unlock adds Mind")
 
 #-----------------------------------------------------------------------------
 # THE RUNNING TAG
