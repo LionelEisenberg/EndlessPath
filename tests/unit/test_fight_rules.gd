@@ -1,8 +1,9 @@
 extends GutTest
 
-## The two rules a fight runs on: an enemy's max Health
-## (CharacterAttributesData.get_max_health(), Body x 10) and what a win pays
-## (AdventureCombat.gold_reward_for()). The chest's Here tray and choice drawers
+## The rules a fight runs on: an enemy's max Health
+## (CharacterAttributesData.get_max_health(), Body x 10), the gold a win pays
+## (AdventureCombat.gold_reward_for()) and the Core Density XP each Shallow Woods
+## fight pays by its tier (AwardCoreDensityXpEffectData). The chest's Here tray and choice drawers
 ## no longer quote either figure (the developer asked for less in the chest), but
 ## the rules stay for what may bring them back: the Health as an unlockable, the
 ## gold on the opponent page's reward row. The last test runs a real
@@ -15,6 +16,7 @@ extends GutTest
 
 const AdventureCombatScene := preload("res://scenes/combat/adventure_combat/adventure_combat.tscn")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
+const SHALLOW_WOODS: AdventureData = preload("res://resources/adventure/data/shallow_woods.tres")
 ## More damage than any health pool, so one hit always leaves 0 HP.
 const LETHAL_DAMAGE := -1000000.0
 
@@ -155,6 +157,48 @@ func test_gold_reward_asks_the_first_enemy() -> void:
 	var pool: Array[CombatantData] = [_enemy(10), _enemy(500)]
 	choice.enemy_pool = pool
 	assert_eq(AdventureCombat.gold_reward_for(choice, null), 10)
+
+#-----------------------------------------------------------------------------
+# CORE DENSITY REWARD
+#-----------------------------------------------------------------------------
+
+## The Core Density XP a choice's success effects pay.
+func _core_density_xp_of(choice: EncounterChoice) -> float:
+	var xp: float = 0.0
+	for effect: EffectData in choice.success_effects:
+		var award := effect as AwardCoreDensityXpEffectData
+		if award != null:
+			xp += award.amount
+	return xp
+
+## The Core Density XP a won fight over `encounter` pays: its combat choice's.
+func _fight_reward(encounter: AdventureEncounter) -> float:
+	for choice: EncounterChoice in encounter.choices:
+		if choice is CombatChoice:
+			return _core_density_xp_of(choice)
+	return 0.0
+
+## Every fight the Shallow Woods places pays Core Density, as a success effect of
+## its combat choice (where its loot is too). An elite pays more than any regular
+## fight, and the boss pays the most.
+func test_every_shallow_woods_fight_pays_core_density_by_its_tier() -> void:
+	var regular: Array[float] = []
+	var elite: Array[float] = []
+	for quota: EncounterQuota in SHALLOW_WOODS.encounter_quotas:
+		var encounter: AdventureEncounter = quota.encounter
+		var reward: float = _fight_reward(encounter)
+		match encounter.encounter_type:
+			AdventureEncounter.EncounterType.COMBAT_REGULAR, AdventureEncounter.EncounterType.COMBAT_AMBUSH:
+				assert_gt(reward, 0.0, "%s pays Core Density" % encounter.encounter_id)
+				regular.append(reward)
+			AdventureEncounter.EncounterType.COMBAT_ELITE:
+				assert_gt(reward, 0.0, "%s pays Core Density" % encounter.encounter_id)
+				elite.append(reward)
+	assert_false(regular.is_empty(), "precondition: the woods place regular fights")
+	assert_false(elite.is_empty(), "precondition: the woods place elites")
+	var boss: float = _fight_reward(SHALLOW_WOODS.boss_encounter)
+	assert_gt(elite.min(), regular.max(), "an elite pays more than any regular fight")
+	assert_gt(boss, elite.max(), "the boss pays the most")
 
 ## A real fight won over a x1.5 choice pays what the rule says, with an action
 ## of x2 (15 x 1.5 x 2.0 = 45) and with no action (15 x 1.5 = 22.5, floored).

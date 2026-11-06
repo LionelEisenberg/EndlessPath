@@ -86,6 +86,16 @@ layout_mode = 1
 unique_name_in_owner = true
 layout_mode = 1
 
+[node name="EffectsLayer" type="Control" parent="." unique_id=1093274651]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="RunTimer" type="Timer" parent="." unique_id=755042396]
 unique_name_in_owner = true
 one_shot = true
