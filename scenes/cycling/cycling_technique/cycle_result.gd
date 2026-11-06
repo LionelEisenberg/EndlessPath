@@ -38,9 +38,35 @@ var xp: int = 0
 ## True when the core was full by the cycle's end. The line then says Core full where it would give the XP.
 var core_full: bool = false
 
+## The share of the cycle the cursor followed the ball, 0 to 1.
+var followed_ratio: float = 0.0
+
+## The XP each stat took this cycle, AttributeType to float: what the stat
+## gained, which the cap can make less than it was paid.
+var stat_xp: Dictionary = {}
+
+## The stats the cap took XP from this cycle: paid at the cap, or by a payment
+## that reached it.
+var capped_stats: Array[CharacterAttributesData.AttributeType] = []
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
+
+## Records a payment of `stat`'s XP: `taken` is what the stat took, and
+## `capped` whether the cap took the rest.
+func record_stat_xp(stat: CharacterAttributesData.AttributeType, taken: float, capped: bool) -> void:
+	stat_xp[stat] = get_stat_xp(stat) + taken
+	if capped and not capped_stats.has(stat):
+		capped_stats.append(stat)
+
+## Returns the XP `stat` took this cycle.
+func get_stat_xp(stat: CharacterAttributesData.AttributeType) -> float:
+	return stat_xp.get(stat, 0.0)
+
+## Returns whether the cap took XP from `stat` this cycle.
+func is_stat_capped(stat: CharacterAttributesData.AttributeType) -> bool:
+	return capped_stats.has(stat)
 
 ## Returns the cycle in one phrase: the Madra, then the zones ("3 / 4 zones",
 ## "1 / 1 zone", or "no zones" for a technique without any), then the PERFECT

@@ -155,7 +155,7 @@ Lionel approved the canvas as drawn.
 - Produces: `CyclingTechnique.STAT_XP_INTERVAL = 0.5`; `signal stat_xp_paid(stat: CharacterAttributesData.AttributeType, from_pos: Vector2, amount: float)`, emitted after a payment the stat took XP from (amount > 0), with the drawn ball's global centre. A payment is `get_spirit_xp_per_second() * seconds`: every `STAT_XP_INTERVAL` of followed time (to within the Madra step's epsilon), what is left at the cycle's end before `cycle_completed`, and what is left when `setup()` or `stop_cycling()` cuts a cycle short (before `technique_data` changes, from where the ball was). Leaving the tree pays nothing.
 - Produces on `CycleResult`: `followed_ratio: float` (followed seconds over the cycle's length, kept up to date while it runs), `stat_xp: Dictionary` (AttributeType to the XP the stat took), `capped_stats: Array[CharacterAttributesData.AttributeType]`, `record_stat_xp(stat, taken: float, capped: bool) -> void`, `get_stat_xp(stat) -> float`, `is_stat_capped(stat) -> bool`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 - `test_following_pays_spirit_xp_every_half_second`: the Foundational, 1.6 s followed: `stat_xp_paid` 3 times, 0.75 each, and Spirit's XP is 2.25.
 - `test_a_fully_followed_cycle_pays_its_spirit_xp` at 30, 60 and 144 FPS and at the uneven seeded frame times: 12.0 on the Foundational to within 0.0001, `followed_ratio` 1.0 to within 0.01, the result's Spirit XP 12.0.
 - `test_following_pays_spirit_xp_with_madra_full`: Madra at its max, a followed Foundational cycle pays 12 Spirit XP and no Madra.
@@ -164,10 +164,10 @@ Lionel approved the canvas as drawn.
 - `test_spirit_xp_at_the_cap_marks_the_result`: Spirit at the cap: the cycle pays, `stat_xp_paid` never fires, the result has Spirit in `capped_stats` and 0 taken.
 - `test_the_payment_that_reaches_the_cap_carries_only_what_it_took`: Spirit one level short of the cap with 0.3 XP missing: the next payment's `stat_xp_paid` amount is 0.3, Spirit is capped and marked.
 - `test_a_hitch_through_the_end_pays_only_the_time_left`: as the Madra hitch test: 25% followed, then a 16 s frame with the cursor where the ball ends: 12.0 in all.
-- [ ] **Step 2: Run the file: the new tests fail**
-- [ ] **Step 3: Add the followed-time clock, the payments, the signal and the result's totals**
-- [ ] **Step 4: Run the file: PASS**
-- [ ] **Step 5: Commit** `feat(cycling): pay Spirit XP for the time the ball is followed`
+- [x] **Step 2: Run the file: the new tests fail**
+- [x] **Step 3: Add the followed-time clock, the payments, the signal and the result's totals**
+- [x] **Step 4: Run the file: PASS**
+- [x] **Step 5: Commit** `feat(cycling): pay Spirit XP for the time the ball is followed`
 
 ### Task 6: The cycle line
 
