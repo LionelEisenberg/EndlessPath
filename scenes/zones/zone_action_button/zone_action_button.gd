@@ -15,7 +15,9 @@ extends Control
 ## a running action are the Now strip's (the user's review, 2026-10-24).
 ##
 ## The card owns the drawer, the tag, the running state (an idle action that
-## runs is pulled out to (-2, -2) on the running face and tagged RUNNING),
+## runs is pulled out to (-2, -2) on the running face and tagged RUNNING, and so
+## is body refining while its board is up, since that board leaves the chest in
+## view),
 ## hover, flash, the steady ready frame and click routing. A presenter scene
 ## picked by the action type (PRESENTER_SCENES) fills the detail slot and may
 ## change the tag (the adventure's ENTER) and the ready frame. A presenter that
@@ -86,6 +88,7 @@ const PRESENTER_SCENES: Dictionary = {
 	ZoneActionData.ActionType.TRAIN_STATS: preload("res://scenes/zones/zone_action_button/presenters/training_presenter.tscn"),
 	ZoneActionData.ActionType.MERCHANT: preload("res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn"),
 	ZoneActionData.ActionType.TRIBULATION: preload("res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn"),
+	ZoneActionData.ActionType.BODY_REFINING: preload("res://scenes/zones/zone_action_button/presenters/body_refining_presenter.tscn"),
 }
 
 #-----------------------------------------------------------------------------
@@ -297,7 +300,7 @@ func _apply_action() -> void:
 	_tag_style = TagStyle.CARVED
 	_shows_ready_frame = false
 	_apply_ready_frame()
-	_is_running = _is_running_idle_action()
+	_is_running = _is_running_action()
 	_spawn_presenter()
 	if _presenter:
 		_presenter.set_is_current(_is_running)
@@ -378,8 +381,13 @@ func _is_idle_action() -> bool:
 			return true
 	return false
 
-func _is_running_idle_action() -> bool:
-	return _is_idle_action() and ActionManager.get_current_action() == action_data
+## True while the card's action runs and shows on the running face: an idle
+## action, or body refining, whose board leaves the chest in view. The other
+## session actions cover the chest or swap it while they run.
+func _is_running_action() -> bool:
+	if action_data == null or ActionManager.get_current_action() != action_data:
+		return false
+	return _is_idle_action() or action_data.action_type == ZoneActionData.ActionType.BODY_REFINING
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -412,7 +420,7 @@ func _on_mouse_exited() -> void:
 func _on_current_action_changed(_new_action: ZoneActionData) -> void:
 	if action_data == null:
 		return
-	var running: bool = _is_running_idle_action()
+	var running: bool = _is_running_action()
 	if running != _is_running:
 		_is_running = running
 		if _presenter:

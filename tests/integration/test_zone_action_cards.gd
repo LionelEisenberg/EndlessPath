@@ -15,6 +15,8 @@ const AURA_WELL_ID: String = "aura_well_training"
 const FORAGING_ID: String = "sprint_forest_foraging_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
+const BODY_REFINING_ID: String = "riverbank_training_action"
+const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
 const DIALOGUE_ID: String = "celestial_intervener_dialogue_1"
 ## "Return to the [INTERVENER]": not yet available on a fresh save, so unseen.
 const RETURN_ID: String = "celestial_intervener_dialogue_2"
@@ -166,7 +168,18 @@ func test_card_built_while_running_reads_running() -> void:
 func test_running_session_action_is_not_tagged_running() -> void:
 	var card: ZoneActionButton = _card(CYCLING_ID)
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	assert_eq(_tag_text(card), "ACTIVE", "only idle actions show RUNNING")
+	assert_eq(_tag_text(card), "ACTIVE", "a cycling card, out of sight under the techniques, shows no RUNNING")
+
+## Body refining's board leaves the chest in view, so its card is pulled out and
+## tagged RUNNING while it runs, as a running idle card is.
+func test_a_running_body_refining_card_is_tagged() -> void:
+	var card: ZoneActionButton = _card(BODY_REFINING_ID)
+	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
+	assert_eq(_tag_text(card), "RUNNING")
+	assert_eq((card.get_node("%Drawer") as Control).position, ZoneActionButton.RUNNING_OFFSET, "pulled out")
+	ActionManager.stop_action()
+	assert_eq(_tag_text(card), "ACTIVE", "back at rest once it stops")
+	assert_eq((card.get_node("%Drawer") as Control).position, Vector2.ZERO)
 
 #-----------------------------------------------------------------------------
 # CLICKS
@@ -289,6 +302,18 @@ func test_foraging_cost_shows_in_the_right_column() -> void:
 func test_merchant_detail() -> void:
 	var card: ZoneActionButton = _card(MERCHANT_ID)
 	assert_eq(_texts(card.get_detail_slot()), ["7 wares"] as Array[String])
+
+## Body refining's card names what every drill gives, each with its icon, as the
+## forage card lists its finds: the Health heart with Health, and Strength's mini
+## with Strength XP. Never the drill, which is the board's to name.
+func test_body_refining_detail_shows_health_and_strength_xp() -> void:
+	var card: ZoneActionButton = _card(BODY_REFINING_ID)
+	assert_eq(_texts(card.get_detail_slot()), ["Health", "Strength XP"] as Array[String])
+	var icons: Array[Texture2D] = []
+	for rect: Node in card.get_detail_slot().find_children("Icon", "TextureRect", true, false):
+		icons.append((rect as TextureRect).texture)
+	assert_eq(icons, [HEALTH_MINI, StatDisplay.mini_icon_of(CharacterAttributesData.AttributeType.STRENGTH)] as Array[Texture2D], "the Health heart, then Strength's mini")
+	assert_eq(card.size.y, _height_for(card, 1), "one detail line")
 
 func test_story_detail_is_the_description() -> void:
 	var card: ZoneActionButton = _card_for(_story_fixture("The Intervener", "Your next story step"))
