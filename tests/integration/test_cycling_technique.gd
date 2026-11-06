@@ -32,14 +32,18 @@ const START: Vector2 = Vector2(320.0, 464.0)
 
 ## The modifier source _make_room() raises the max Madra stat under.
 const ROOM_SOURCE: StringName = &"test_cycling_technique_room"
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 
 var _technique: CyclingTechnique = null
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 	_technique = TECHNIQUE_SCENE.instantiate() as CyclingTechnique
@@ -49,6 +53,7 @@ func before_each() -> void:
 	_technique.setup(load(SMOOTH_FLOW_PATH))
 
 func after_each() -> void:
+	CoreCurve.restore(_original_stages)
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	# A cycle session left running would leak into later files.

@@ -8,13 +8,17 @@ const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adven
 const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixture.gd")
 const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 
 var _view: AdventureView
 var _results: Array[AdventureResultData] = []
 ## The player's vitals as a test that sets them found them, put back after it.
 var _saved_vitals: Dictionary[StringName, float] = {}
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	# Ending a run resumes the zone's idle action, which writes to the save.
 	# Run on a fresh one, never the developer's save loaded in memory.
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -30,6 +34,7 @@ func before_each() -> void:
 	_view.adventure_completed.connect(func(result: AdventureResultData) -> void: _results.append(result))
 
 func after_each() -> void:
+	CoreCurve.restore(_original_stages)
 	if ActionManager.get_current_action() is AdventureActionData:
 		ActionManager.clear_current_action()
 	# Ending a run resumes the zone's idle action. Stop it properly, since

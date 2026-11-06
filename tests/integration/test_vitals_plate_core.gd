@@ -6,11 +6,15 @@ extends GutTest
 ## a save at Core Density 6 with 3 XP, where level 7 costs 10 x 1.02^6 = 11.26.
 
 const VitalsPlateScene := preload("res://scenes/adventure/vitals_plate/vitals_plate.tscn")
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 
 var _plate: VitalsPlate
 var _original_save: SaveGameData
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	_original_save = PersistenceManager.save_game_data
 	var save := SaveGameData.new()
 	save.core_density_level = 6.0
@@ -21,6 +25,7 @@ func before_each() -> void:
 	add_child_autofree(_plate)
 
 func after_each() -> void:
+	CoreCurve.restore(_original_stages)
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 	# A save reset starts the zone's idle action: stop what it started.

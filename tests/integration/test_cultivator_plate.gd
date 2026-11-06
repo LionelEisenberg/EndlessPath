@@ -10,6 +10,7 @@ extends GutTest
 ## figure.
 
 const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 const CAPPED_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_stat_ring_capped_strip_ai.png")
 
 const AURA_WELL_ID: String = "aura_well_training"
@@ -32,7 +33,7 @@ var _original_save: SaveGameData = null
 #-----------------------------------------------------------------------------
 
 func before_each() -> void:
-	_original_stage_resources = CultivationManager.advancement_stage_resources
+	_original_stage_resources = CoreCurve.use_fixed_curve()
 	_original_save = PersistenceManager.save_game_data
 	_use_fresh_save()
 	_plate = _add_plate()

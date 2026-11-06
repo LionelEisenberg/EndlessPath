@@ -4,14 +4,20 @@ extends GutTest
 ## carry in its effects (a fight's, as its loot is, or an event's). Each test
 ## runs on a fresh save at Core Density 0, where Foundation's level 1 costs 10.
 
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
+
 var _original_save: SaveGameData
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 
 func after_each() -> void:
+	CoreCurve.restore(_original_stages)
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 	# A save reset starts the zone's idle action: stop what it started.
