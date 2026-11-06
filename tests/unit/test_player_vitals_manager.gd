@@ -85,10 +85,11 @@ func test_equipping_a_mind_accessory_raises_max_madra() -> void:
 	_equip(_make_gear(EquipmentSlot.ACCESSORY, {&"mind": 0.2}), EquipmentSlot.ACCESSORY, 1)
 	assert_eq(_vitals.max_madra, 120.0, "12 Mind x 10")
 
-func test_new_max_health_fills_the_next_run() -> void:
+func test_new_max_health_leaves_the_next_runs_health() -> void:
 	_equip(_make_gear(EquipmentSlot.ARMOR, {&"body": 0.4}), EquipmentSlot.ARMOR)
 	_vitals.initialize_current_values()
-	assert_eq(_vitals.current_health, 140.0, "an adventure starts at the geared maximum")
+	assert_eq(_vitals.max_health, 140.0, "the max counts the gear")
+	assert_eq(_vitals.current_health, 100.0, "an adventure starts at the pool, not the new max")
 
 #-----------------------------------------------------------------------------
 # TRAINED LEVELS
@@ -252,11 +253,13 @@ func test_a_rest_tile_heals_the_pool_quietly() -> void:
 	assert_eq(ResourceManager.get_health(), 60.0)
 	assert_signal_not_emitted(LogManager, "message_logged")
 
-## Until body refining refills Health at home, every run start fills the pool.
-func test_initialize_current_values_fills_the_pool() -> void:
+## A run starts on the Health the last one left; only Stamina fills.
+func test_a_run_starts_at_the_saved_health() -> void:
 	ResourceManager.set_health(30.0)
+	_vitals.current_stamina = 10.0
 	_vitals.initialize_current_values()
-	assert_eq(ResourceManager.get_health(), 100.0)
+	assert_eq(ResourceManager.get_health(), 30.0, "Health stays where it was")
+	assert_eq(_vitals.current_stamina, _vitals.max_stamina, "Stamina fills")
 
 func test_an_enemys_health_is_its_own() -> void:
 	var enemy := VitalsManager.new()

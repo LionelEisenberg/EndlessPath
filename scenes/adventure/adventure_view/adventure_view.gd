@@ -410,8 +410,9 @@ func _land_beads() -> void:
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Fills Health and Stamina; Madra is the saved pool as it stands. The cabinet
-## shows them and the dock previews the loadout.
+## Fills Stamina; Health and Madra are the saved pools as they stand, so a run
+## starts on the Health the last one left. The cabinet shows them and the dock
+## previews the loadout.
 func _initialize_combat_resources() -> void:
 	PlayerManager.vitals_manager.initialize_current_values()
 	vitals_plate.setup_vitals(PlayerManager.vitals_manager)

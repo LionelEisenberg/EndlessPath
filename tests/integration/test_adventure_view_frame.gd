@@ -442,7 +442,21 @@ func test_gear_equipped_before_the_run_raises_the_cabinets_max_health() -> void:
 
 	var max_health: int = floori(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))
 	assert_eq(_plate_text("HealthMaxLabel"), "/ %d" % max_health, "the run's max Health counts the robes' Body")
-	assert_eq(_plate_text("HealthValueLabel"), str(max_health), "and the run starts at that maximum")
+
+## A run leaves Health as it ends, and the next run starts there with Stamina full.
+func test_health_comes_home_from_a_run() -> void:
+	ResourceManager.set_health(100.0)
+	_start_run()
+	var vitals: VitalsManager = PlayerManager.vitals_manager
+	vitals.apply_vitals_change(-40.0, -30.0)
+	_stop_every_action()
+	assert_eq(ResourceManager.get_health(), 60.0, "the run's Health comes home")
+
+	_start_run()
+	await wait_process_frames(1)
+	assert_eq(ResourceManager.get_health(), 60.0, "the next run starts there, not full")
+	assert_eq(_plate_text("HealthValueLabel"), "60", "and the cabinet shows it")
+	assert_eq(PlayerManager.vitals_manager.current_stamina, PlayerManager.vitals_manager.max_stamina, "Stamina starts full")
 
 #-----------------------------------------------------------------------------
 # THE MAP AND THE CHEST
