@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DrillList" format=3]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/body_refining/drill/drill_data.gd" id="1_drill"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/body_refining/drill/drill_list.gd" id="2_list"]
+[ext_resource type="Resource" path="res://resources/body_refining/drills/stone_lifting/stone_lifting.tres" id="3_stone_lifting"]
+[ext_resource type="Resource" path="res://resources/body_refining/drills/horse_stance/horse_stance.tres" id="4_horse_stance"]
+[ext_resource type="Resource" path="res://resources/body_refining/drills/falling_leaf/falling_leaf.tres" id="5_falling_leaf"]
+[ext_resource type="Resource" path="res://resources/body_refining/drills/waterfall_tempering/waterfall_tempering.tres" id="6_waterfall_tempering"]
+
+[resource]
+script = ExtResource("2_list")
+drills = Array[ExtResource("1_drill")]([ExtResource("3_stone_lifting"), ExtResource("4_horse_stance"), ExtResource("5_falling_leaf"), ExtResource("6_waterfall_tempering")])

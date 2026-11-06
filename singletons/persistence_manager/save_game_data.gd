@@ -7,7 +7,7 @@ extends Resource
 
 ## The save format this build writes. migrate() brings an older save up to it,
 ## and a save with a higher number was written by a newer build.
-const CURRENT_VERSION: int = 3
+const CURRENT_VERSION: int = 4
 
 ## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
 @export var save_version: int = 0
@@ -144,6 +144,20 @@ func _verify_current_selected_zone_id() -> bool:
 @export var seen_cycling_techniques_initialized: bool = false
 
 #-----------------------------------------------------------------------------
+# BODY REFINING MANAGER
+#-----------------------------------------------------------------------------
+
+## drill ids the player can play. A new save starts with the starting drill.
+@export var unlocked_drill_ids: Array[String] = ["stone_lifting"]
+@export var equipped_drill_id: String = "stone_lifting"
+## drill ids the player has already seen. An unlocked drill missing from this
+## list shows a NEW mark until it is seen or equipped.
+@export var seen_drill_ids: Array[String] = []
+## Set once BodyRefiningManager has marked every drill unlocked at the time as
+## seen, so a save from before drills doesn't light the mark on its starting drill.
+@export var seen_drills_initialized: bool = false
+
+#-----------------------------------------------------------------------------
 # ABILITY MANAGER
 #-----------------------------------------------------------------------------
 
@@ -201,7 +215,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Health: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  StatLevels: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
+	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Health: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  StatLevels: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedDrills: %s\n  EquippedDrillId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
 			save_version,
 			madra,
 			health,
@@ -218,6 +232,8 @@ func _to_string() -> String:
 			_stat_levels_string(),
 			str(unlocked_cycling_technique_ids),
 			equipped_cycling_technique_id,
+			str(unlocked_drill_ids),
+			equipped_drill_id,
 			str(unlocked_ability_ids),
 			str(equipped_ability_ids),
 			current_path_id,
@@ -317,6 +333,10 @@ func _run_version_steps() -> bool:
 	if save_version < 3:
 		_migrate_to_v3()
 		save_version = 3
+	# Version 4 added the drill fields. Their defaults suit an old save (the
+	# starting drill, unlocked and equipped), so the step moves nothing.
+	if save_version < 4:
+		save_version = 4
 	return true
 
 ## True when CultivationManager, which the version 2 step reads the stat caps

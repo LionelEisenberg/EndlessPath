@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DrillData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/body_refining/drill/drill_data.gd" id="1_drill"]
+
+[resource]
+script = ExtResource("1_drill")
+id = "waterfall_tempering"
+drill_name = "Waterfall Tempering"
+minor_stat = 1
+strength_xp_per_rep = 6.0
+minor_xp_per_rep = 3.0
+health_per_rep = 3.0
+input_kind = 3
+rep_seconds = 3.0
+reps_per_set = 10
