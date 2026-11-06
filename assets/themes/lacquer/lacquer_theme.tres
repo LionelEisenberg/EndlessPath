@@ -179,3 +179,6 @@ RichTextLacquerLog/base_type = &"RichTextLacquer"
 RichTextLacquerLog/constants/line_separation = 9
 RichTextLacquerLog/constants/table_h_separation = 0
 RichTextLacquerLog/constants/table_v_separation = 0
+RichTextLacquerName/base_type = &"RichTextLacquer"
+RichTextLacquerName/colors/default_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+RichTextLacquerName/font_sizes/normal_font_size = 17

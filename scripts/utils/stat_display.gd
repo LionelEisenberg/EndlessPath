@@ -57,13 +57,10 @@ static func icon_of(stat: CharacterAttributesData.AttributeType) -> Texture2D:
 		return null
 	return _ICONS[stat]
 
-## The stat's 16 px mini icon, or null for a stat that has none yet (logged as
-## an error).
+## The stat's 16 px mini icon, or null for a stat whose mini is not drawn yet: a
+## line then names the stat in words.
 static func mini_icon_of(stat: CharacterAttributesData.AttributeType) -> Texture2D:
-	if not _MINI_ICONS.has(stat):
-		Log.error("StatDisplay: No mini icon for attribute type %s" % stat)
-		return null
-	return _MINI_ICONS[stat]
+	return _MINI_ICONS.get(stat, null)
 
 ## The side the stat sits on: "Physical" for Strength, Body and Agility, and
 ## "Spiritual" for the rest.
