@@ -78,4 +78,20 @@ Files: `adventure_presenter.gd`, `character_view.gd` and `.tscn`, `test_zone_act
 
 ## Built differently
 
-_Filled in as the build goes._
+- **No threshold and no start pellets** (Lionel's canvas answers). Task 2 dropped `ZoneTransition`'s drain entirely: the zoom starts as the start is requested, and `drain_pellet_count()` went with the pellets. Task 4's presenter lost its below-threshold row (rod, hint, shake) and its `can_activate()` gate; its scene now holds only the ready line, so it left the never-trim walk's board list (its card stays on it). `ResourceManager.get_adventure_madra_threshold()` and `can_start_adventure()` went, and so did `select_action()`'s adventure refusal.
+- The card's right column reads "<pool> / <max> Madra" in Madra ink (`ThemeConstants.LACQUER_MADRA`), Lionel's pick of the two layouts.
+- Task 3's helper is `VitalsText` (`scripts/utils/vitals_text.gd`): `health_figure()`, `health_max_figure()` and `health_pair()`.
+- The book's two columns are VBoxes in the scene (`%FightLeftColumn`, `%FightRightColumn`) inside `%FightRows`; a test finds a row by its caption across both.
+- The adventure rod art (`lacquer_rod_adv_empty_ai.png`, `_full_ai`, `_end_ai`) is no longer used by any scene. It stays in the repo.
+
+## Checks run
+
+On `-- --preset=adventure_open --save=user://dev/runs/madra-runs.tres`, driven by a throwaway scene in the windowed game (Enforce's cost and a Crude Scale applied through `AbilityData.consume_costs()` and the item's effect, as a cast and a press do):
+- Full pool: the card reads "100 / 100 Madra"; the start sends no pellets and the cabinet stays at 100 / 100; the plate opens on 100 / 100.
+- 10 Madra: the run starts and the plate opens on 10 / 100.
+- 80 Madra: the plate opens on 80; Enforce drops it to 70; a Crude Scale lifts it to 90 with no log line.
+- Refill Health and Stamina: both full, the pool stays at 90.
+- At 90.9 Health the plate reads 91 / 100; Exit as defeat: the end card reads HEALTH 91 / 100 and MADRA LEFT 90 / 100; back home the cabinet and the book's row read 90 / 100.
+- The book open while the Aura Well runs: 31 / 100, then 36 / 100; with the Leeching Ring on, 37 / 120.
+- Spend 30 of 80 mid-run, save, quit, reload: the pool holds 50 / 100.
+- An old save (version 1, 600 Madra) loads at the max, 120, and starts a run.
