@@ -22,7 +22,7 @@ func before_each() -> void:
 ## Every count and the gold, in one list, in the order the resource declares them.
 func _counts(stats: PlayStatsData) -> Array:
 	return [
-		stats.cycles_finished, stats.adventures_started, stats.adventures_won,
+		stats.cycles_finished, stats.sets_finished, stats.adventures_started, stats.adventures_won,
 		stats.adventures_lost, stats.adventures_timed_out, stats.fights_won,
 		stats.gold_earned,
 	]
@@ -32,6 +32,7 @@ func _record_everything(stats: PlayStatsData) -> void:
 	stats.record_event(EVENT_ID)
 	stats.record_condition(CONDITION_ID)
 	stats.count_cycle_finished()
+	stats.count_set_finished()
 	stats.count_adventure_started()
 	stats.count_adventure_won()
 	stats.count_adventure_lost()
@@ -47,7 +48,7 @@ func test_a_new_resource_is_empty() -> void:
 	assert_eq(_stats.play_time, 0.0)
 	assert_true(_stats.event_first_times.is_empty())
 	assert_true(_stats.condition_first_times.is_empty())
-	assert_eq(_counts(_stats), [0, 0, 0, 0, 0, 0, 0.0])
+	assert_eq(_counts(_stats), [0, 0, 0, 0, 0, 0, 0, 0.0])
 	assert_eq(_stats.built_from_preset, "", "real play is built from no preset")
 	assert_false(_stats.recording_paused)
 
@@ -105,17 +106,19 @@ func test_empty_ids_are_ignored() -> void:
 
 func test_each_count_adds_one_to_its_own_field() -> void:
 	_stats.count_cycle_finished()
-	assert_eq(_counts(_stats), [1, 0, 0, 0, 0, 0, 0.0], "a finished cycle")
+	assert_eq(_counts(_stats), [1, 0, 0, 0, 0, 0, 0, 0.0], "a finished cycle")
+	_stats.count_set_finished()
+	assert_eq(_counts(_stats), [1, 1, 0, 0, 0, 0, 0, 0.0], "a finished set")
 	_stats.count_adventure_started()
-	assert_eq(_counts(_stats), [1, 1, 0, 0, 0, 0, 0.0], "a started adventure")
+	assert_eq(_counts(_stats), [1, 1, 1, 0, 0, 0, 0, 0.0], "a started adventure")
 	_stats.count_adventure_won()
-	assert_eq(_counts(_stats), [1, 1, 1, 0, 0, 0, 0.0], "a won adventure")
+	assert_eq(_counts(_stats), [1, 1, 1, 1, 0, 0, 0, 0.0], "a won adventure")
 	_stats.count_adventure_lost()
-	assert_eq(_counts(_stats), [1, 1, 1, 1, 0, 0, 0.0], "a lost adventure")
+	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 0, 0, 0.0], "a lost adventure")
 	_stats.count_adventure_timed_out()
-	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 0, 0.0], "a timed-out adventure")
+	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 1, 0, 0.0], "a timed-out adventure")
 	_stats.count_fight_won()
-	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 1, 0.0], "a won fight")
+	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 1, 1, 0.0], "a won fight")
 	_stats.count_fight_won()
 	assert_eq(_stats.fights_won, 2, "a count keeps adding")
 
@@ -133,7 +136,7 @@ func test_nothing_is_recorded_while_paused() -> void:
 	_record_everything(_stats)
 	assert_true(_stats.event_first_times.is_empty(), "no event")
 	assert_true(_stats.condition_first_times.is_empty(), "no condition")
-	assert_eq(_counts(_stats), [0, 0, 0, 0, 0, 0, 0.0], "no count and no gold")
+	assert_eq(_counts(_stats), [0, 0, 0, 0, 0, 0, 0, 0.0], "no count and no gold")
 
 func test_recording_resumes_when_unpaused() -> void:
 	_stats.recording_paused = true
@@ -142,4 +145,4 @@ func test_recording_resumes_when_unpaused() -> void:
 	_record_everything(_stats)
 	assert_true(_stats.event_first_times.has(EVENT_ID), "the event a paused call skipped can still be recorded")
 	assert_true(_stats.condition_first_times.has(CONDITION_ID), "so can the condition")
-	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 1, 25.0], "only the unpaused calls counted")
+	assert_eq(_counts(_stats), [1, 1, 1, 1, 1, 1, 1, 25.0], "only the unpaused calls counted")

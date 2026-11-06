@@ -1,0 +1,148 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/body_refining/body_refining_view/body_refining_view.gd" id="1_view"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://ce76a3f1g3ha0" path="res://assets/ui/lacquer/cycling/lacquer_cyc_board_ai.png" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://l358sphy02ff" path="res://assets/ui/lacquer/lacquer_close_ai.png" id="4_close"]
+[ext_resource type="Texture2D" uid="uid://cwx6nj0fy42qx" path="res://assets/ui/lacquer/lacquer_close_hover_ai.png" id="5_close_hover"]
+[ext_resource type="Texture2D" uid="uid://pgsljhm0rngj" path="res://assets/ui/lacquer/cycling/lacquer_cyc_body_carved_ai.png" id="6_body"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_rim_strength_ai.png" id="7_rim"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/drill_play.tscn" id="8_play"]
+
+[node name="BodyRefiningView" type="Control" unique_id=1032903005]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_view")
+
+[node name="Board" type="NinePatchRect" parent="." unique_id=1134597409]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 680.0
+offset_top = 24.0
+offset_right = 1244.0
+offset_bottom = 1060.0
+mouse_filter = 1
+texture = ExtResource("3_board")
+patch_margin_top = 132
+patch_margin_bottom = 500
+
+[node name="ActionLabel" type="Label" parent="." unique_id=1655941563]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 40.0
+offset_right = 1106.0
+offset_bottom = 57.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "Riverbank Training"
+autowrap_mode = 3
+
+[node name="TitleLabel" type="Label" parent="." unique_id=311600510]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 57.0
+offset_right = 1178.0
+offset_bottom = 90.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerPanelTitle"
+text = "Stone Lifting"
+autowrap_mode = 3
+
+[node name="EscLabel" type="Label" parent="." unique_id=1251510836]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1114.0
+offset_top = 45.0
+offset_right = 1174.0
+offset_bottom = 63.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerHotkey"
+text = "Esc"
+horizontal_alignment = 2
+
+[node name="CloseButton" type="TextureButton" parent="." unique_id=1916395370]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1182.0
+offset_top = 40.0
+offset_right = 1210.0
+offset_bottom = 68.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("4_close")
+texture_hover = ExtResource("5_close_hover")
+
+[node name="PayLine" type="RichTextLabel" parent="." unique_id=1167070695]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 90.0
+offset_right = 1210.0
+offset_bottom = 108.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+
+[node name="FigureBox" type="Control" parent="." unique_id=1106016077]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_left = 698.0
+offset_top = 104.0
+offset_right = 1222.0
+offset_bottom = 976.0
+mouse_filter = 2
+
+[node name="Body" type="TextureRect" parent="FigureBox" unique_id=1879586027]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+texture = ExtResource("6_body")
+
+[node name="StrengthRim" type="TextureRect" parent="FigureBox" unique_id=1613225020]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+texture = ExtResource("7_rim")
+
+[node name="DrillPlay" parent="FigureBox" unique_id=583210265 instance=ExtResource("8_play")]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="StatusText" type="RichTextLabel" parent="." unique_id=1719676403]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 990.0
+offset_right = 1210.0
+offset_bottom = 1010.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquerName"
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+
+[node name="EffectsLayer" type="Control" parent="." unique_id=1212639711]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

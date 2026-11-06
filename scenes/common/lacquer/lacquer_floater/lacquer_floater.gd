@@ -5,13 +5,14 @@ extends Control
 ## A short gain rising on a small lacquer token (kit §0, §6.3): a few words
 ## such as "+1.5 Madra" in Madra blue (pop), or a foraging haul in cream, each
 ## count followed by its item's 16 px icon, "+3 [dewdrop]  +4 [fern]"
-## (pop_items: the user's review, 2026-10-24, icons over names), or a stat's
-## gain with its icon before its name, "PERFECT +12 [Control icon] Control"
-## (pop_stat). The token is 28 px tall and even(content width + 28) wide, its
-## 2 px shadow baked into the 9-slice. It rises 40 px over 1 s in 2 px steps,
-## then hides outright. It does not move itself: the placer positions it each
-## frame and raises it by get_rise() (MapMarkers for the map's floater, the
-## cycling view for the floater of each zone and seal node).
+## (pop_items: the user's review, 2026-10-24, icons over names), a stat's gain
+## with its icon before its name, "PERFECT +12 [Control icon] Control"
+## (pop_stat), or any icons and text in order, "[arm] capped" (pop_parts). The
+## token is 28 px tall and even(content width + 28) wide, its 2 px shadow baked
+## into the 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright.
+## It does not move itself: the placer positions it each frame and raises it by
+## get_rise() (MapMarkers for the map's floater, the cycling view for the
+## floater of each zone and seal node).
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -46,8 +47,8 @@ const ITEM_SEPARATOR: String = "  "
 #-----------------------------------------------------------------------------
 
 var _plain_text: String = ""
-## The icons shown, in order: a haul's item icons or a stat's icon; empty for
-## plain text.
+## The icons shown, in order: a haul's item icons, a stat's icon or the parts'
+## icons; empty for plain text.
 var _icons: Array[Texture2D] = []
 var _color: Color = ThemeConstants.LACQUER_CREAM
 var _elapsed: float = 0.0
@@ -116,18 +117,36 @@ func pop_stat(lead: String, stat: CharacterAttributesData.AttributeType, color: 
 	_text.add_text(stat_name)
 	_start(color)
 
+## Shows icons and text in color on the token, in the order given, and starts its
+## rise: each part a String, or a Texture2D drawn at ITEM_ICON_SIZE ("[arm]
+## capped", the body refining board's line under a rep's tier). get_text() gives
+## the text parts joined, get_icons() the icons.
+func pop_parts(parts: Array, color: Color) -> void:
+	var texts: PackedStringArray = []
+	_icons.clear()
+	_text.clear()
+	for part: Variant in parts:
+		if part is Texture2D:
+			_icons.append(part as Texture2D)
+			_text.add_image(part as Texture2D, ITEM_ICON_SIZE, ITEM_ICON_SIZE)
+		else:
+			texts.append(str(part))
+			_text.add_text(str(part))
+	_plain_text = "".join(texts)
+	_start(color)
+
 ## Hides the floater outright.
 func stop() -> void:
 	hide()
 	set_process(false)
 
 ## The text shown, without BBCode; a haul's counts alone ("+3  +4"), a stat's
-## gain without its icon ("PERFECT +12 Control").
+## gain without its icon ("PERFECT +12 Control"), the parts' text joined.
 func get_text() -> String:
 	return _plain_text
 
-## The icons shown, in order: a haul's item icons or a stat's icon; empty for
-## plain text.
+## The icons shown, in order: a haul's item icons, a stat's icon or the parts'
+## icons; empty for plain text.
 func get_icons() -> Array[Texture2D]:
 	return _icons.duplicate()
 

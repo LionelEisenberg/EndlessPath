@@ -314,6 +314,16 @@ func test_to_string_names_health() -> void:
 # DRILLS
 #-----------------------------------------------------------------------------
 
+## A save from before the play stats counted sets comes out with none counted,
+## and the current version: the step moves nothing.
+func test_v5_gives_an_old_save_no_sets() -> void:
+	var data := SaveGameData.new()
+	data.save_version = 4
+	data.migrate()
+	assert_eq(data.stats.sets_finished, 0)
+	assert_eq(data.save_version, 5, "version 5 is the set count's")
+	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
 ## A save from before drills comes out with the starting drill unlocked and
 ## equipped, nothing seen yet, and the current version.
 func test_v4_gives_an_old_save_the_starting_drill() -> void:

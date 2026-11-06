@@ -35,6 +35,7 @@ func test_group_of_each_type() -> void:
 	assert_eq(ZoneActionGroups.group_of(ActionType.MERCHANT), ZoneActionGroups.Group.VISIT)
 	assert_eq(ZoneActionGroups.group_of(ActionType.ZONE_EVENT), ZoneActionGroups.Group.VISIT)
 	assert_eq(ZoneActionGroups.group_of(ActionType.TRIBULATION), ZoneActionGroups.Group.CULTIVATE)
+	assert_eq(ZoneActionGroups.group_of(ActionType.BODY_REFINING), ZoneActionGroups.Group.CULTIVATE)
 
 #-----------------------------------------------------------------------------
 # SORTING
@@ -78,5 +79,6 @@ func test_mode_tags() -> void:
 	assert_eq(ZoneActionGroups.mode_tag(_action("d", ActionType.ADVENTURE)), "ACTIVE")
 	assert_eq(ZoneActionGroups.mode_tag(_action("e", ActionType.MERCHANT)), "SHOP")
 	assert_eq(ZoneActionGroups.mode_tag(_action("f", ActionType.NPC_DIALOGUE)), "STORY")
+	assert_eq(ZoneActionGroups.mode_tag(_action("g", ActionType.BODY_REFINING)), "ACTIVE")
 	assert_eq(ZoneActionGroups.mode_tag(_action("g", ActionType.ZONE_EVENT)), "STORY")
 	assert_eq(ZoneActionGroups.mode_tag(_action("h", ActionType.TRIBULATION)), "TRIAL")

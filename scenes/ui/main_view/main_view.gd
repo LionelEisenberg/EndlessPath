@@ -2,12 +2,12 @@ class_name MainView
 extends Control
 ## Main View Manager.
 ##
-## Handles switching between different main views (Zone, Adventure, Inventory, Cycling, Tribulation) using a State Machine pattern.
-## Cycling and the Tribulation are the overlays with no backdrop: their boards sit
-## in the map gap with the zone view still up around them. A state opens its board
-## with open_board(spec) and closes it with close_board(spec, on_closed), where the
-## BoardTransitionSpec says what the board needs of the zone view (see
-## CyclingViewState and TribulationViewState). With a BoardTransition (the
+## Handles switching between different main views (Zone, Adventure, Inventory, Cycling, Body Refining, Tribulation) using a State Machine pattern.
+## Cycling, body refining and the Tribulation are the overlays with no backdrop:
+## their boards sit in the map gap with the zone view still up around them. A state
+## opens its board with open_board(spec) and closes it with close_board(spec,
+## on_closed), where the BoardTransitionSpec says what the board needs of the zone
+## view (see CyclingViewState, BodyRefiningViewState and TribulationViewState). With a BoardTransition (the
 ## board_transition node, bound in _ready()), the board comes in as an animation
 ## and the map's input is off for as long as the board is up. Without one, as on
 ## the MainViews the view-state tests build, the open and the close are instant:
@@ -25,9 +25,10 @@ extends Control
 @onready var character_view: CharacterView = %CharacterView
 @onready var merchant_view: MerchantView = %MerchantView
 @onready var tribulation_view: TribulationView = %TribulationView
+@onready var body_refining_view: BodyRefiningView = %BodyRefiningView
 
 ## The zone view's furniture the boards in the map gap work with. The cabinet takes
-## the cycling board's pellets (it is handed to the CyclingView in _ready()); the
+## the cycling and body refining boards' pellets (it is handed to them in _ready()); the
 ## chest, the dock and the map's SubViewport are turned over by open_board() when
 ## there is no transition, and the dock, the SubViewport and the chest's About by
 ## set_board_mode().
@@ -57,6 +58,7 @@ extends Control
 @onready var character_view_state: MainViewState = %MainViewStateMachine/CharacterViewState
 @onready var merchant_view_state: MainViewState = %MainViewStateMachine/MerchantViewState
 @onready var tribulation_view_state: MainViewState = %MainViewStateMachine/TribulationViewState
+@onready var body_refining_view_state: MainViewState = %MainViewStateMachine/BodyRefiningViewState
 
 ## State stack
 @onready var state_stack: Array[MainViewState] = []
@@ -88,8 +90,9 @@ func _ready() -> void:
 	character_view_state.scene_root = self
 	merchant_view_state.scene_root = self
 	tribulation_view_state.scene_root = self
+	body_refining_view_state.scene_root = self
 
-	_hand_cabinet_to_cycling_view()
+	_hand_cabinet_to_boards()
 	board_transition = get_node_or_null("%BoardTransition") as BoardTransition
 	zone_map = get_node_or_null("%ZoneTilemap") as ZoneTilemap
 	zone_transition = get_node_or_null("%ZoneTransition") as ZoneTransition
@@ -205,7 +208,7 @@ func is_board_closing() -> bool:
 	return board_transition != null and board_transition.is_closing()
 
 ## Turns the zone view's dock and map and the chest's About off for a board that
-## stands in the map gap (the cycling board, the Tribulation board), or gives them
+## stands in the map gap (the cycling, body refining and Tribulation boards), or gives them
 ## back. The dock hides and the map's SubViewport takes no input: the
 ## SubViewportContainer pushes a press into it with push_input(), which a viewport
 ## with its input off drops, so a click on the map beside the board travels
@@ -236,11 +239,14 @@ func change_state(new_state: MainViewState) -> void:
 #-----------------------------------------------------------------------------
 
 ## The cycling board sends its Madra and XP pellets into the cultivator cabinet,
-## so it is handed the cabinet. A cycling_view that is not a CyclingView (the
-## view-state tests stand a plain Control in) is left alone.
-func _hand_cabinet_to_cycling_view() -> void:
+## and the body refining board its XP and Health pellets, so each is handed the
+## cabinet. A cycling_view that is not a CyclingView (the view-state tests stand a
+## plain Control in) is left alone, and so is a missing body refining board.
+func _hand_cabinet_to_boards() -> void:
 	if cycling_view is CyclingView:
 		(cycling_view as CyclingView).cultivator_plate = cultivator_plate
+	if body_refining_view != null:
+		body_refining_view.cultivator_plate = cultivator_plate
 
 ## Hands the transition the pieces it moves: the dock, the chest, the HUD boards
 ## (the Goals board first, then the log: the order they step off the screen in),

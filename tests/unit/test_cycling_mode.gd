@@ -524,8 +524,8 @@ func test_a_stop_with_no_cycling_board_up_leaves_another_board_alone() -> void:
 # THE CABINET HAND-OFF
 #-----------------------------------------------------------------------------
 
-## MainView._ready() hands the cultivator cabinet to the board through this
-## helper. Without it the board has no cabinet, and no Madra or XP pellet ever
+## MainView._ready() hands the cultivator cabinet to the boards through this
+## helper. Without it a board has no cabinet, and no Madra or XP pellet ever
 ## flies. The cabinet and the board are script-only instances that never enter
 ## the tree, so neither runs its _ready().
 func test_the_cabinet_is_handed_to_the_cycling_view() -> void:
@@ -533,15 +533,25 @@ func test_the_cabinet_is_handed_to_the_cycling_view() -> void:
 	var board: CyclingView = autofree(CyclingView.new())
 	_main_view.cultivator_plate = cabinet
 	_main_view.cycling_view = board
-	_main_view._hand_cabinet_to_cycling_view()
+	_main_view._hand_cabinet_to_boards()
 	assert_same(board.cultivator_plate, cabinet, "the board's pellets fly into the cabinet")
 
-## The view-state tests stand a plain Control in for the board (the fixture's
-## cycling_view is one): it has nowhere to keep a cabinet, so it is skipped.
+## The body refining board sends its XP and Health pellets into the cabinet too.
+func test_the_cabinet_is_handed_to_the_body_refining_view() -> void:
+	var cabinet: CultivatorPlate = autofree(CultivatorPlate.new())
+	var board: BodyRefiningView = autofree(BodyRefiningView.new())
+	_main_view.cultivator_plate = cabinet
+	_main_view.body_refining_view = board
+	_main_view._hand_cabinet_to_boards()
+	assert_same(board.cultivator_plate, cabinet, "the board's pellets fly into the cabinet")
+
+## The view-state tests stand a plain Control in for the cycling board (the
+## fixture's cycling_view is one), which has nowhere to keep a cabinet, and give
+## most MainViews no body refining board: both are skipped.
 func test_handing_over_the_cabinet_skips_a_plain_control() -> void:
 	_main_view.cultivator_plate = autofree(CultivatorPlate.new())
-	_main_view._hand_cabinet_to_cycling_view()
-	assert_engine_error_count(0, "a view that is not a CyclingView is left alone, not cast and assigned to")
+	_main_view._hand_cabinet_to_boards()
+	assert_engine_error_count(0, "a view that is not a CyclingView, or no view, is left alone")
 
 #-----------------------------------------------------------------------------
 # MAIN_GAME.TSCN
@@ -568,6 +578,7 @@ func test_main_game_names_the_zone_furniture_for_main_view() -> void:
 	assert_same(transition.get_parent(), main_view, "the transition is a child of MainView")
 	assert_gt(transition.get_index(), main_view.get_node("%TribulationView").get_index(), "the shield is after the boards")
 	assert_gt(transition.get_index(), main_view.get_node("%CyclingView").get_index(), "and after the cycling board")
+	assert_gt(transition.get_index(), main_view.get_node("%BodyRefiningView").get_index(), "and after the body refining board")
 	assert_lt(transition.get_index(), main_view.get_node("%DevPanel").get_index(), "and before the dev panel")
 
 ## The map's markers place themselves from the camera in their _process(), and

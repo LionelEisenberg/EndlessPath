@@ -495,15 +495,16 @@ func _run_switch(start_session: Callable, what: String, started: String) -> void
 ## Stops what lives outside the save, which a launch never starts with: the running
 ## action, without counting it or running its effects, and any dialogue, one an
 ## adventure encounter started included, which would otherwise play on over the
-## next session; the cycle session and the last cycle's result; the player's
-## vitals; and the time scale, back to the game's base speed at once, rather than
-## leaving up to 0.15 s of a boss hit-stop's slowed time running into the next
-## session.
+## next session; the cycle session and the last cycle's result; the body refining
+## set session; the player's vitals; and the time scale, back to the game's base
+## speed at once, rather than leaving up to 0.15 s of a boss hit-stop's slowed time
+## running into the next session.
 func _tear_down() -> void:
 	ActionManager.cancel_current_action()
 	DialogueManager.end_dialogue_now()
 	CyclingManager.end_cycle_session()
 	CyclingManager.clear_last_cycle_result()
+	BodyRefiningManager.end_set_session()
 	PlayerManager.reset_vitals()
 	Engine.time_scale = GameSpeed.base_scale
 

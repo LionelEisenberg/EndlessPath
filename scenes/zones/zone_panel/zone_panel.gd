@@ -26,8 +26,9 @@ extends Control
 ## the Now tray and pushes the lore, the header and the list down by its height
 ## and 20 (84 px while its chips fit one line).
 ## It rebuilds on zone_changed, action_completed, condition_unlocked,
-## advancement_stage_changed (a passed Tribulation's card hides) and
-## technique_unlocked (which lights NEW on the cycling card again), and
+## advancement_stage_changed (a passed Tribulation's card hides),
+## technique_unlocked (which lights NEW on the cycling card again) and
+## drill_unlocked (which lights NEW on the body refining card again), and
 ## scrolls to a card when ZoneManager.action_focus_requested asks.
 ## The board transition animates the chest through four calls. chest_height_for
 ## says how tall either mode makes the chest without turning it. set_height_override
@@ -151,6 +152,7 @@ func _ready() -> void:
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
+	BodyRefiningManager.drill_unlocked.connect(_on_drill_unlocked)
 	CyclingManager.last_cycle_changed.connect(_on_last_cycle_changed)
 	_last_cycle_card.height_changed.connect(_relayout)
 	_about_button.toggled.connect(_on_about_toggled)
@@ -501,6 +503,11 @@ func _on_advancement_stage_changed(_new_stage: CultivationManager.AdvancementSta
 ## ZoneManager has marked the cycling actions unseen by now; the rebuild shows
 ## the cycling card's NEW seal again.
 func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
+	_queue_rebuild()
+
+## ZoneManager has marked the body refining actions unseen by now; the rebuild
+## shows the body refining card's NEW seal again.
+func _on_drill_unlocked(_drill: DrillData) -> void:
 	_queue_rebuild()
 
 func _on_last_cycle_changed(_result: CycleResult) -> void:

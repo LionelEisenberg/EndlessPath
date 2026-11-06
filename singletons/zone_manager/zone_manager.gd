@@ -55,6 +55,7 @@ func _ready() -> void:
 		live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_initialize_from_save)
 		CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
+		BodyRefiningManager.drill_unlocked.connect(_on_drill_unlocked)
 	else:
 		Log.critical("ZoneManager: Could not get save_game_data from PersistenceManager on ready!")
 		return
@@ -299,7 +300,16 @@ func _initialize_seen_actions() -> void:
 ## A technique unlocking gives cycling something new, so every cycling action
 ## shows its NEW tag again until the player hovers its card or opens cycling.
 func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
+	_mark_actions_of_type_unseen(ZoneActionData.ActionType.CYCLING)
+
+## A drill unlocking gives body refining something new, so every body refining
+## action shows its NEW tag again until the player hovers its card or opens it.
+func _on_drill_unlocked(_drill: DrillData) -> void:
+	_mark_actions_of_type_unseen(ZoneActionData.ActionType.BODY_REFINING)
+
+## Lights the NEW tag of every action of `action_type`, in every zone.
+func _mark_actions_of_type_unseen(action_type: ZoneActionData.ActionType) -> void:
 	for zone: ZoneData in _all_zone_data.list:
 		for action: ZoneActionData in zone.all_actions:
-			if action.action_type == ZoneActionData.ActionType.CYCLING:
+			if action.action_type == action_type:
 				mark_action_unseen(action.action_id)
