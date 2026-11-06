@@ -232,12 +232,16 @@ The copy, verbatim:
 
 ### Task 8: Wrap
 
-- [ ] **Step 1:** `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`: every test passes (a failure is confirmed in one process before acting).
-- [ ] **Step 2:** The issue's Done-when checks on the chunk's own save: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=path_open --save=user://dev/runs/cycling-follow.tres`: parking, following (pellets, the chest line and the log), a close and a switch mid-cycle, a full pool, Spirit raised to the cap, the Foundational's line, Smooth Flow's presses paying Core Density, and "Spirit reached Lv N".
-- [ ] **Step 3:** An old save still loads and cycles (a copy of a pre-#94 save).
-- [ ] **Step 4:** Delete `_capture94/`; tick this plan; note what was built differently below.
-- [ ] **Step 5:** Merge `main` once, run the suite, open the PR that closes #94 with `## Docs to update`.
+- [x] **Step 1:** `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`: every test passes (a failure is confirmed in one process before acting).
+- [x] **Step 2:** The issue's Done-when checks on the chunk's own save: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=path_open --save=user://dev/runs/cycling-follow.tres`: parking, following (pellets, the chest line and the log), a close and a switch mid-cycle, a full pool, Spirit raised to the cap, the Foundational's line, Smooth Flow's presses paying Core Density, and "Spirit reached Lv N".
+- [x] **Step 3:** An old save still loads and cycles (a copy of a pre-#94 save).
+- [x] **Step 4:** Delete `_capture94/`; tick this plan; note what was built differently below.
+- [x] **Step 5:** Merge `main` once, run the suite, open the PR that closes #94 with `## Docs to update`.
 
 ## Built differently
 
-(Filled in as the work lands.)
+- **The checks ran as a script.** The Done-when checks drove the real board on the chunk's own save (`user://dev/runs/cycling-follow.tres`, from `path_open`) through a throwaway scene, with screenshots: all passed. The old save was a copy of #97's unversioned save, which migrated to version 4 and cycled (Spirit +4.5 in 3 s, Madra drawn).
+- **`add_stat_xp()` returns the XP the stat took.** #92 left that sum to each sender; CharacterManager already knows it, so the cycling board, #99 and #100 read it from the call.
+- **One payment a frame at most.** A frame that gathers several half seconds (a hitch) pays them together, so `add_stat_xp()` and the puff come at most once a frame.
+- **A resting cursor's head start is about 0.12 s longer than the canvas said** (0.49, 1.06 and 0.39 s there): the window judges the ball's travel over the last quarter second, the average speed of a moment 0.125 s back, not its speed at that instant. The thresholds are the approved ones.
+- **The DM-06 cache changed one contract.** A modifier source is asked again only after `stats_changed`, so a test that wears gear by writing the save's slots announces it (`InventoryManager.inventory_changed`), and the loaded-save vitals test binds its save as a load does. No game code writes the slots without the signal.
