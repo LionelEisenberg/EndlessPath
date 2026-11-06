@@ -95,7 +95,7 @@ const BEAD_FRAMES: Dictionary = {Tier.PERFECT: 1, Tier.GOOD: 2, Tier.OK: 3, Tier
 var clock_usec: Callable = Time.get_ticks_usec
 
 var _drill: DrillData = null
-var _run: DrillRun = null
+var _run: StoneLiftingRun = null
 var _result: DrillSetResult = null
 var _set_running: bool = false
 ## The clock at the set's first press: the set's time 0.
@@ -186,7 +186,7 @@ func get_result() -> DrillSetResult:
 	return _result
 
 ## Returns the run of the set being played or last played, or null before the first.
-func get_run() -> DrillRun:
+func get_run() -> StoneLiftingRun:
 	return _run
 
 ## Returns the stone's centre in the screen's space, where a rep's pellets start.
@@ -222,7 +222,7 @@ func _let_go() -> void:
 ## Starts a set now: a new run and result, the beads empty and the floaters
 ## hidden, and the session running.
 func _start_set() -> void:
-	_run = DrillRun.new(_drill)
+	_run = StoneLiftingRun.new(_drill)
 	_result = DrillSetResult.new(_drill)
 	_start_usec = clock_usec.call()
 	_set_running = true
