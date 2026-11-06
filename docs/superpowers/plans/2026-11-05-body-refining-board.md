@@ -285,5 +285,7 @@ func _settle(t: int) -> void:
   - The state keeps one spec.
   - The Now strip goes back to "10 reps" when a set ends, and follows the equipped drill.
   - The cabinet is handed to the body refining board.
-- **`test_a_finished_set_writes_one_log_line` counts the line by `message_logged`**, not by the log's history. The history keeps only 200 lines, and earlier scripts had filled it in a parallel run.
+- **The stage also lets go on the window's focus loss** (`NOTIFICATION_WM_WINDOW_FOCUS_OUT`). The Web build never sends the application's focus loss, so Review Focus 2 failed in the browser. Found by the final review.
+- **The log checks watch `message_logged`**, not the log's history. That covers `test_a_finished_set_writes_one_log_line` and the no-log-line check in `test_closing_mid_set_keeps_what_was_paid`. The history keeps only 200 lines, and once earlier scripts had filled it in a parallel run, a size check could no longer see a new line.
+- **Left for Lionel (from the final review):** a hold kept past its judgement lifts the stone again at the next slot. As a result one late press can cost two reps, and a dev-equipped 2 s drill scores Perfect by holding. Also, "Strength capped" replaces XP the crossing set partly paid, which matches #94's cycle line but not the approved "in place of a part that paid nothing".
 - **The Done-when checks were played by a scripted driver**, kept out of git. It loads the real main scene in place of its own launch scene, then drives it with parsed input and the dev panel's own commands. Such a run plays its save in memory, so the `--save` file is never written.
