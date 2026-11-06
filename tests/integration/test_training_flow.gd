@@ -140,3 +140,22 @@ func test_training_levels_stop_at_the_bound_saves_cap() -> void:
 
 	assert_eq(_spirit_level(), foundation_cap + 2, "both levels land under Copper's cap")
 	ActionManager.stop_action()
+
+## A tick's gain is what the trickle actually added: all of it while it fits,
+## only what fit on the tick that fills the pool, and nothing at the max.
+func test_last_tick_madra_gain_stops_at_the_max() -> void:
+	ActionManager.select_action(_training_data)
+	ActionManager.action_timer.paused = true
+	var max_madra: float = ResourceManager.get_max_madra()
+
+	_tick(1)
+	assert_eq(ActionManager.get_last_tick_madra_gain(), 1.0, "the whole trickle while it fits")
+
+	_save_data.madra = max_madra - 0.5
+	_tick(1)
+	assert_eq(ActionManager.get_last_tick_madra_gain(), 0.5, "only what fit")
+	assert_eq(_save_data.madra, max_madra, "the pool stops at the max")
+
+	_tick(1)
+	assert_eq(ActionManager.get_last_tick_madra_gain(), 0.0, "nothing at the max")
+	ActionManager.stop_action()
