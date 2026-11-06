@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/common/lacquer/lacquer_group_row/lacquer_group_row.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="2_groove"]
+[ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="3_groove_end"]
+
+[node name="LacquerGroupRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(392, 18)
+offset_right = 392.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+script = ExtResource("1_script")
+
+[node name="GroupLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+
+[node name="GrooveMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="GrooveRow" type="HBoxContainer" parent="GrooveMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Groove" type="TextureRect" parent="GrooveMargin/GrooveRow"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_groove")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="GrooveEnd" type="TextureRect" parent="GrooveMargin/GrooveRow"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("3_groove_end")

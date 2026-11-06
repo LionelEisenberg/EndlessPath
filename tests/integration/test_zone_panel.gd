@@ -1122,7 +1122,7 @@ func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 
 ## The label row of an activity group: the row that holds its name and its groove.
 func _label_row_of(group: Node) -> Control:
-	return group.get_node("%GroupLabel").get_parent() as Control
+	return group.get_node("%LabelRow") as Control
 
 ## True when every row's top is lower than the one before it.
 func _tops_increase(rows: Array[Control]) -> bool:
