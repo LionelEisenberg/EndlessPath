@@ -5,12 +5,14 @@ extends GutTest
 ## The first time a save is initialised, every action already available counts
 ## as seen, so an existing save does not light NEW on every card; that pass
 ## runs once per save. A cycling technique unlocking lights the cycling card's
-## NEW tag again (ZoneManager.mark_action_unseen).
+## NEW tag again (ZoneManager.mark_action_unseen), and a drill unlocking lights
+## the body refining card's.
 
 const FORAGING_ID: String = "sprint_forest_foraging_action"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const FIRST_DIALOGUE_ID: String = "celestial_intervener_dialogue_1"
 const MERCHANT_ID: String = "spirit_valley_merchant"
+const BODY_REFINING_ID: String = "riverbank_training_action"
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -97,3 +99,20 @@ func test_opening_cycling_clears_it_again() -> void:
 	assert_false(ZoneManager.is_action_seen(CYCLING_ID), "precondition: the unlock lit the card")
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	assert_true(ZoneManager.is_action_seen(CYCLING_ID))
+
+#-----------------------------------------------------------------------------
+# DRILL UNLOCKS
+#-----------------------------------------------------------------------------
+
+## A drill unlocking gives body refining something new, as a technique does
+## cycling: the body refining card shows its NEW tag again.
+func test_drill_unlock_lights_the_body_refining_card() -> void:
+	ZoneManager.mark_action_seen(BODY_REFINING_ID)
+	BodyRefiningManager.unlock_drill("horse_stance")
+	assert_false(ZoneManager.is_action_seen(BODY_REFINING_ID))
+
+func test_drill_unlock_leaves_other_actions_seen() -> void:
+	_load_save_with_cycling_seen()
+	ZoneManager.mark_action_seen(BODY_REFINING_ID)
+	BodyRefiningManager.unlock_drill("horse_stance")
+	assert_true(ZoneManager.is_action_seen(CYCLING_ID), "only the body refining card lights up")
