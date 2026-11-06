@@ -164,7 +164,6 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/ui/goals_panel/goals_panel.tscn": ["QuestNameLabel", "QuestStepLabel", "MilestoneNameLabel", "MilestoneTextLabel"],
 		"res://scenes/zones/zone_panel/now_strip/now_strip.tscn": ["TrainingName", "LevelLabel", "ForageName", "EmptyLabel"],
 		"res://scenes/zones/zone_action_button/zone_action_button.tscn": ["Title"],
-		"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn": ["DetailLabel"],
 		"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn": ["DetailLabel"],
 		"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn": ["DetailLabel"],
 		"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn": ["StatNeedLabel", "ReadyLabel"],

@@ -74,7 +74,9 @@ static func node_type_name(node_type: PathNodeData.NodeType) -> String:
 			return "Repeatable"
 	return ""
 
-## One effect as a line of text, for example "▲ +10% Madra Generation".
+## One effect as a line of text, for example "▲ +10% Madra Generation". A
+## cycling technique's unlock names the technique ("▲ Unlocks: Torrential
+## Flow"), or keeps its id for a technique the catalog does not know.
 static func format_effect(effect: PathNodeEffectData) -> String:
 	var prefix: String = "▲ "  # Up triangle
 	match effect.effect_type:
@@ -97,7 +99,8 @@ static func format_effect(effect: PathNodeEffectData) -> String:
 		PathNodeEffectData.EffectType.UNLOCK_ABILITY:
 			return "%sUnlocks: %s" % [prefix, effect.string_value.get_file().get_basename().capitalize()]
 		PathNodeEffectData.EffectType.UNLOCK_CYCLING_TECHNIQUE:
-			return "%sUnlocks: %s" % [prefix, effect.string_value]
+			var technique: CyclingTechniqueData = CyclingManager.get_technique(effect.string_value)
+			return "%sUnlocks: %s" % [prefix, technique.technique_name if technique != null else effect.string_value]
 	Log.warn("PathDetailsCard: unhandled effect type %d" % effect.effect_type)
 	return "%s(unknown effect)" % prefix
 
