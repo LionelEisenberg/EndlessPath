@@ -3,14 +3,13 @@ extends RefCounted
 
 ## CycleResult
 ## What one cycle came to, and the lines that report it: the zone chest's line
-## under the Now tray ("Last cycle · +80 Madra · +30 Spirit XP · 3 / 4 zones ·
-## 1 PERFECT · +75 Core XP") and the log ("Cycle · +80 Madra · +30 Spirit XP ·
-## +75 Core XP"). The log board shows one line a message and trims what runs past
-## it, so the log's line keeps what the cycle paid and leaves the zones and
-## PERFECTs to the chest, whose line wraps. With the core full the Core XP part
-## reads "Core full" instead, since the core takes none, and a stat the cap took
-## XP from reads "Spirit capped" in place of its XP. It holds the totals and
-## writes the lines; the cycle that owns it keeps the totals up to date.
+## under the Now tray ("Last cycle · +80 Madra · +30 Spirit XP · +21 Control XP ·
+## 3 / 4 zones · 1 PERFECT") and the log ("Cycle · +80 Madra · +30 Spirit XP ·
+## +21 Control XP"). The log board shows one line a message and trims what runs
+## past it, so the log's line keeps what the cycle paid and leaves the zones and
+## PERFECTs to the chest, whose line wraps. A stat the cap took XP from reads
+## "Spirit capped" in place of its XP. Cycling pays no Core Density. It holds the
+## totals and writes the lines; the cycle that owns it keeps the totals up to date.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -23,9 +22,6 @@ const SEPARATOR: String = " · "
 ## took it.
 const STAT_XP_FORMAT: String = "+%d %s XP"
 const STAT_CAPPED_FORMAT: String = "%s capped"
-
-## The zones' Core Density XP part, named so it reads apart from a stat's XP.
-const CORE_XP_FORMAT: String = "+%d Core XP"
 
 #-----------------------------------------------------------------------------
 # TOTALS
@@ -42,12 +38,6 @@ var zones_total: int = 0
 
 ## How many of the scored zones were PERFECT.
 var perfect_count: int = 0
-
-## The Core Density XP the scored zones were worth. A full core takes none of it (see core_full).
-var xp: int = 0
-
-## True when the core was full by the cycle's end. The line then says Core full where it would give the XP.
-var core_full: bool = false
 
 ## The share of the cycle the cursor followed the ball, 0 to 1.
 var followed_ratio: float = 0.0
@@ -81,8 +71,8 @@ func is_stat_capped(stat: CharacterAttributesData.AttributeType) -> bool:
 
 ## Returns the cycle in one phrase: the Madra, then each stat's part, then the
 ## zones ("3 / 4 zones", "1 / 1 zone", or "no zones" for a technique without
-## any), then the PERFECT count if there were any, then the Core XP part. The
-## parts are joined by SEPARATOR.
+## any), then the PERFECT count if there were any. The parts are joined by
+## SEPARATOR.
 func summary() -> String:
 	var parts: PackedStringArray = [_madra_part()]
 	parts.append_array(_stat_parts())
@@ -93,7 +83,6 @@ func summary() -> String:
 		parts.append("%d / %d %s" % [zones_scored, zones_total, noun])
 	if perfect_count > 0:
 		parts.append("%d PERFECT" % perfect_count)
-	_append_core_part(parts)
 	return SEPARATOR.join(parts)
 
 ## Returns the chest's line under the Now tray: "Last cycle · " and the summary.
@@ -101,11 +90,10 @@ func result_line() -> String:
 	return "Last cycle" + SEPARATOR + summary()
 
 ## Returns the log's line, short enough for the log board's one line: "Cycle · ",
-## the Madra, each stat's part and the Core XP part.
+## the Madra and each stat's part.
 func log_line() -> String:
 	var parts: PackedStringArray = ["Cycle", _madra_part()]
 	parts.append_array(_stat_parts())
-	_append_core_part(parts)
 	return SEPARATOR.join(parts)
 
 #-----------------------------------------------------------------------------
@@ -126,11 +114,3 @@ func _stat_parts() -> PackedStringArray:
 		elif roundi(get_stat_xp(stat)) >= 1:
 			parts.append(STAT_XP_FORMAT % [roundi(get_stat_xp(stat)), StatDisplay.name_of(stat)])
 	return parts
-
-## Appends "Core full" once the core was full (core_full), else the Core XP when
-## any was paid.
-func _append_core_part(parts: PackedStringArray) -> void:
-	if core_full:
-		parts.append(CultivationManager.CORE_FULL_TEXT)
-	elif xp > 0:
-		parts.append(CORE_XP_FORMAT % xp)

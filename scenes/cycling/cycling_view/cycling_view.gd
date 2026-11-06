@@ -359,35 +359,12 @@ func _on_madra_particle_requested(from_pos: Vector2, amount: float) -> void:
 	cultivator_plate.hold_madra(amount)
 	pellet.delivered.connect(cultivator_plate.release_madra.bind(amount))
 
-## A zone scored: its floater pops with the hit and its XP in the tier's colour,
-## and the tier's pellets burst out of the zone and home into the cabinet's Core
-## orb, each carrying an even share of the XP, which the cabinet shows as each
-## lands. A full core takes no XP, so the floater says "Core full" where the XP
-## would be ("PERFECT · Core full") and no pellet flies. Short of full the core
-## took every XP of the hit, so the shares add up to what it gained.
-func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:
-	var core_full: bool = CultivationManager.is_core_full()
+## A zone scored: its floater pops with the hit and its XP in the tier's colour.
+func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int, _taken: float) -> void:
 	var zone_index: int = _technique.cycling_zones.find(zone)
 	if zone_index >= 0 and zone_index < _floaters.size():
-		var hit_text: String = "%s +%d XP" % [CyclingRules.tier_name(tier), xp]
-		if core_full:
-			hit_text = "%s · %s" % [CyclingRules.tier_name(tier), CultivationManager.CORE_FULL_TEXT]
-		_floaters[zone_index].pop(hit_text, CyclingRules.tier_color(tier))
+		_floaters[zone_index].pop("%s +%d XP" % [CyclingRules.tier_name(tier), xp], CyclingRules.tier_color(tier))
 		_place_floater(zone_index)
-	if cultivator_plate == null or core_full:
-		return
-	var flights: Array[PelletFlight] = PelletFlight.burst(
-		zone.global_position,
-		cultivator_plate.get_core_orb_global_position(),
-		CyclingRules.pellet_count(tier),
-		XP_PELLET_FLIGHT,
-		XP_PELLET_FLIGHT_STEP,
-		XP_BURST_REACH)
-	var share: float = float(xp) / flights.size()
-	for flight: PelletFlight in flights:
-		var pellet: LacquerPellet = _send_pellet(flight, _pellet_ramp(tier))
-		cultivator_plate.hold_core_xp(share)
-		pellet.delivered.connect(cultivator_plate.release_core_xp.bind(share))
 
 ## A payment of a stat's XP for following landed in the stat: a puff of
 ## STAT_PELLETS pellets in the stat's ramp bursts from the ball and homes into the

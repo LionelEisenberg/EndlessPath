@@ -22,7 +22,7 @@ extends Node2D
 ## the only thing the player presses: from ready a press
 ## starts a cycle, and during one a press while the ball is over an active zone
 ## scores that zone by how near the ball's centre is to the zone's (see
-## CyclingRules).
+## CyclingRules), paying the technique's other stat (Control) its tier's XP.
 ## Everything steps: the ball is drawn at its path position snapped to even px,
 ## its swirl steps through SWIRL_FRAMES frames at SWIRL_FPS, and a zone shows its
 ## state as a frame. While the ball waits for a press it breathes: it and its
@@ -56,10 +56,11 @@ signal cycle_completed(result: CycleResult)
 ## global centre, for the view to fly a pellet from, and the Madra the step
 ## added, which the pellet carries.
 signal madra_particle_requested(from_pos: Vector2, amount: float)
-## Emitted when a press scores a zone, with how well and the Core Density XP the
-## zone was worth. The XP has gone to Core Density by then (a full core takes
-## none), so a listener reading the core finds it as this hit left it.
-signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
+## Emitted when a press scores a zone, with how well, the XP of the technique's
+## other stat the zone was worth and the XP that stat took: all of it short of
+## the cap, less once it reaches the cap, none at the cap or for a technique that
+## trains Spirit alone. The XP is in the stat by then.
+signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int, taken: float)
 ## Emitted after a payment of stat XP that the stat took XP from, with the drawn
 ## ball's global centre, for the view to fly pellets from, and the XP the stat
 ## took (all of the payment short of the cap, never 0). The XP is in the stat by
@@ -306,24 +307,22 @@ func press_ball() -> bool:
 	return zone != null and try_score_zone(zone)
 
 ## Scores `zone`, which succeeds only while a cycle runs and the zone is ACTIVE.
-## The tier comes from how far the true ball is from the zone's centre. The XP
-## goes to Core Density (a full core takes none, and the result notes it), the
-## zone takes its stud and zone_scored is emitted. Returns whether it scored.
+## The tier comes from how far the true ball is from the zone's centre. Its XP
+## goes to the technique's other stat through CharacterManager (a capped stat
+## takes none, and the result notes it), the zone takes its stud and zone_scored
+## is emitted. Cycling pays no Core Density. Returns whether it scored.
 func try_score_zone(zone: CyclingZone) -> bool:
 	if not _cycling or not cycling_zones.has(zone) or zone.get_state() != CyclingZone.State.ACTIVE:
 		return false
 	var distance: float = _follow.global_position.distance_to(zone.global_position)
 	var tier: CyclingRules.Tier = CyclingRules.tier_for_distance(distance)
 	var xp: int = CyclingRules.xp_for_tier(zone.zone_data, tier)
-	CultivationManager.add_core_density_xp(xp)
+	var taken: float = _pay_other_stat(xp)
 	_result.zones_scored += 1
-	_result.xp += xp
-	# Read after the XP is in: the zone that fills the core marks the result too.
-	_result.core_full = CultivationManager.is_core_full()
 	if tier == CyclingRules.Tier.PERFECT:
 		_result.perfect_count += 1
 	zone.set_state(CyclingZone.state_for_tier(tier))
-	zone_scored.emit(zone, tier, xp)
+	zone_scored.emit(zone, tier, xp, taken)
 	return true
 
 ## Returns the waiting ball's breath level `seconds` into its wait: 0, 1 or 2,
@@ -409,6 +408,17 @@ func _pay_spirit(seconds: float) -> void:
 	_result.record_stat_xp(spirit, taken, taken < xp - _STEP_EPSILON)
 	if taken > 0.0:
 		stat_xp_paid.emit(spirit, _ball_drawn, taken)
+
+## Pays `xp` to the technique's other stat and records it on the result, capped
+## when the stat took less. Returns what the stat took: 0 for a technique that
+## trains Spirit alone.
+func _pay_other_stat(xp: float) -> float:
+	if technique_data.minor_stat < 0 or xp <= 0.0:
+		return 0.0
+	var stat := technique_data.minor_stat as CharacterAttributesData.AttributeType
+	var taken: float = CharacterManager.add_stat_xp(stat, xp)
+	_result.record_stat_xp(stat, taken, taken < xp - _STEP_EPSILON)
+	return taken
 
 ## Returns true when the pool is at its max, so the cursor adds nothing.
 func _madra_full() -> bool:

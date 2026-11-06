@@ -9,14 +9,15 @@ extends GutTest
 #-----------------------------------------------------------------------------
 
 ## A cycle's result: Madra added, zones scored, zones in the technique,
-## PERFECT hits and XP.
-func _result(madra: float, scored: int, total: int, perfect: int, xp: int) -> CycleResult:
+## PERFECT hits and the Control XP the zones paid.
+func _result(madra: float, scored: int, total: int, perfect: int, control_xp: int) -> CycleResult:
 	var result: CycleResult = CycleResult.new()
 	result.madra_added = madra
 	result.zones_scored = scored
 	result.zones_total = total
 	result.perfect_count = perfect
-	result.xp = xp
+	if control_xp > 0:
+		result.record_stat_xp(CharacterAttributesData.AttributeType.CONTROL, control_xp, false)
 	return result
 
 ## `result` with the Spirit XP it paid, and whether the cap took some.
@@ -115,24 +116,24 @@ func test_random_seal() -> void:
 ## zone scored, and the zones part reads "zone" for a technique with just one and
 ## "no zones" for one with none.
 func test_result_lines() -> void:
-	assert_eq(_result(186.4, 3, 4, 1, 75).result_line(), "Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 Core XP", "a full cycle")
-	assert_eq(_result(120.0, 2, 4, 0, 30).result_line(), "Last cycle · +120 Madra · 2 / 4 zones · +30 Core XP", "no PERFECT")
+	assert_eq(_result(186.4, 3, 4, 1, 75).result_line(), "Last cycle · +186 Madra · +75 Control XP · 3 / 4 zones · 1 PERFECT", "a full cycle")
+	assert_eq(_result(120.0, 2, 4, 0, 30).result_line(), "Last cycle · +120 Madra · +30 Control XP · 2 / 4 zones", "no PERFECT")
 	assert_eq(_result(90.0, 0, 4, 0, 0).result_line(), "Last cycle · +90 Madra · 0 / 4 zones", "no zone scored")
-	assert_eq(_result(250.0, 1, 1, 1, 30).result_line(), "Last cycle · +250 Madra · 1 / 1 zone · 1 PERFECT · +30 Core XP", "a technique with one zone")
+	assert_eq(_result(250.0, 1, 1, 1, 30).result_line(), "Last cycle · +250 Madra · +30 Control XP · 1 / 1 zone · 1 PERFECT", "a technique with one zone")
 	assert_eq(_result(50.0, 0, 0, 0, 0).result_line(), "Last cycle · +50 Madra · no zones", "a technique with no zones")
 
 ## The log board shows one line a message and trims what runs past it (RL-05), so
 ## the log keeps what the cycle paid and leaves the zones and PERFECTs to the chest.
 func test_log_line() -> void:
-	assert_eq(_result(186.4, 3, 4, 1, 75).log_line(), "Cycle · +186 Madra · +75 Core XP")
+	assert_eq(_result(186.4, 3, 4, 1, 75).log_line(), "Cycle · +186 Madra · +75 Control XP")
 	assert_eq(_result(50.0, 0, 0, 0, 0).log_line(), "Cycle · +50 Madra", "a technique with no zones")
 
-## A full core takes no XP, so both lines say so where they would give the figure.
-func test_a_full_core_line_says_so() -> void:
-	var result: CycleResult = _result(186.4, 3, 4, 1, 75)
-	result.core_full = true
-	assert_eq(result.log_line(), "Cycle · +186 Madra · Core full")
-	assert_eq(result.result_line(), "Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · Core full")
+## A capped Control takes no XP, so both lines say so where they would give the figure.
+func test_a_capped_control_line_says_so() -> void:
+	var result: CycleResult = _result(186.4, 3, 4, 1, 0)
+	result.record_stat_xp(CharacterAttributesData.AttributeType.CONTROL, 0.0, true)
+	assert_eq(result.log_line(), "Cycle · +186 Madra · Control capped")
+	assert_eq(result.result_line(), "Last cycle · +186 Madra · Control capped · 3 / 4 zones · 1 PERFECT")
 
 ## The Spirit XP follows the Madra, the two things following pays, rounded to a
 ## whole XP. At the cap the line says so instead, and a cycle that paid less than
@@ -142,7 +143,7 @@ func test_the_lines_show_the_spirit_xp() -> void:
 		{"name": "the Foundational, followed through", "result": _with_spirit(_result(30.0, 0, 0, 0, 0), 12.0, false),
 			"chest": "Last cycle · +30 Madra · +12 Spirit XP · no zones", "log": "Cycle · +30 Madra · +12 Spirit XP"},
 		{"name": "Smooth Flow with zones scored", "result": _with_spirit(_result(80.0, 3, 4, 1, 75), 30.0, false),
-			"chest": "Last cycle · +80 Madra · +30 Spirit XP · 3 / 4 zones · 1 PERFECT · +75 Core XP", "log": "Cycle · +80 Madra · +30 Spirit XP · +75 Core XP"},
+			"chest": "Last cycle · +80 Madra · +30 Spirit XP · +75 Control XP · 3 / 4 zones · 1 PERFECT", "log": "Cycle · +80 Madra · +30 Spirit XP · +75 Control XP"},
 		{"name": "Spirit at the cap", "result": _with_spirit(_result(57.0, 0, 0, 0, 0), 0.0, true),
 			"chest": "Last cycle · +57 Madra · Spirit capped · no zones", "log": "Cycle · +57 Madra · Spirit capped"},
 		{"name": "the cap reached mid-cycle", "result": _with_spirit(_result(57.0, 0, 0, 0, 0), 5.0, true),
