@@ -21,26 +21,27 @@ const STAT_DESCRIPTIONS: Dictionary = {
 	CharacterAttributesData.AttributeType.STRENGTH: "Raw physical power. Your physical techniques hit harder.",
 	CharacterAttributesData.AttributeType.BODY: "Physical constitution. Sets your maximum Health.",
 	CharacterAttributesData.AttributeType.AGILITY: "Speed and footwork. Sets your Stamina and how fast it returns, and gives you a chance to dodge.",
-	CharacterAttributesData.AttributeType.SPIRIT: "The force of your Madra. Your Spirit techniques hit harder.",
+	CharacterAttributesData.AttributeType.SPIRIT: "The force of your Madra. Your Spirit techniques hit harder, and each cycle draws more Madra.",
 	CharacterAttributesData.AttributeType.MIND: "The depth of your Madra channels. Sets your maximum Madra.",
 	CharacterAttributesData.AttributeType.CONTROL: "Mastery of your techniques. They cost less Madra and come back sooner.",
 }
 
 ## What the right page says, in place of its rows, for a stat that does
-## nothing the player knows of yet: Strength or Spirit before any technique
-## that scales with it.
+## nothing the player knows of yet: Strength before any technique that scales
+## with it. Spirit always has its Madra per cycle line.
 const NO_EFFECTS_TEXT: String = "Not yet active"
 
 const TableRowScene := preload("res://scenes/inventory/pressed/table_row/table_row.tscn")
 
-## The rows whose value is a pool's amount, printed in that pool's ink, by
-## label: the fight block's Health and Madra, Body's Max Health and Mind's Max
-## Madra.
+## The rows whose value is a Health or Madra amount, printed in that pool's
+## ink, by label: the fight block's Health and Madra, Body's Max Health, Mind's
+## Max Madra and Spirit's Madra per cycle.
 const _POOL_INKS: Dictionary = {
 	"Health": ThemeConstants.BOOK_HEALTH_INK,
 	"Max Health": ThemeConstants.BOOK_HEALTH_INK,
 	"Madra": ThemeConstants.BOOK_MADRA_INK,
 	"Max Madra": ThemeConstants.BOOK_MADRA_INK,
+	"Madra per cycle": ThemeConstants.BOOK_MADRA_INK,
 }
 
 #-----------------------------------------------------------------------------
@@ -136,11 +137,16 @@ func get_selected_attribute() -> CharacterAttributesData.AttributeType:
 ## read from the `now` block and from the `next` one. First the values derived
 ## from the stat (Body's Max Health, Mind's Max Madra, Agility's Max Stamina,
 ## Stamina regen and Dodge chance, Control's Technique cost cut and Cooldown
-## cut), then every effect of `abilities`, on the target or the caster, that
-## scales with the stat, as "<ability> damage", "healing" or "effect".
-static func effect_lines(stat: CharacterAttributesData.AttributeType, now: CharacterAttributesData, next: CharacterAttributesData, abilities: Array[AbilityData]) -> Array[Dictionary]:
+## cut, and, given a `technique`, Spirit's Madra per cycle: the Madra a cycle of
+## it draws, rounded as its drawer prints it), then every effect of
+## `abilities`, on the target or the caster, that scales with the stat, as
+## "<ability> damage", "healing" or "effect".
+static func effect_lines(stat: CharacterAttributesData.AttributeType, now: CharacterAttributesData, next: CharacterAttributesData, abilities: Array[AbilityData], technique: CyclingTechniqueData = null) -> Array[Dictionary]:
 	var lines: Array[Dictionary] = []
 	match stat:
+		CharacterAttributesData.AttributeType.SPIRIT:
+			if technique != null:
+				lines.append(_effect_line("Madra per cycle", _madra_per_cycle(technique, now), _madra_per_cycle(technique, next)))
 		CharacterAttributesData.AttributeType.BODY:
 			lines.append(_effect_line("Max Health", _number(now.get_max_health()), _number(next.get_max_health())))
 		CharacterAttributesData.AttributeType.MIND:
@@ -248,7 +254,7 @@ func _show_details(tile: AttributeTile) -> void:
 
 	_detail_description.text = STAT_DESCRIPTIONS.get(stat, "")
 
-	var lines: Array[Dictionary] = effect_lines(stat, now, _next_level_block(stat, now, level), AbilityManager.get_unlocked_abilities())
+	var lines: Array[Dictionary] = effect_lines(stat, now, _next_level_block(stat, now, level), AbilityManager.get_unlocked_abilities(), CyclingManager.get_equipped_technique())
 	_clear_rows(_effect_rows)
 	for line: Dictionary in lines:
 		_add_row(_effect_rows, line.label, line.now if capped else "%s → %s" % [line.now, line.next])
@@ -258,12 +264,12 @@ func _show_details(tile: AttributeTile) -> void:
 	for line: Dictionary in source_lines(stat):
 		_add_row(_source_rows, line.label, line.value)
 
-## The block `now` would be one level up in `stat`: the stat raised by what its
-## next level adds, every bonus kept as it is now, gear's included.
+## The block `now` would be one level up in `stat`: the stat at its total one
+## level up, the worn gear counted again on that level's trained value, every
+## other stat as it is now.
 func _next_level_block(stat: CharacterAttributesData.AttributeType, now: CharacterAttributesData, level: int) -> CharacterAttributesData:
-	var progression: StatProgressionData = CharacterManager.stat_progression
 	var next: CharacterAttributesData = now.duplicate() as CharacterAttributesData
-	next.set_attribute(stat, now.get_attribute(stat) + progression.get_value_for_level(level + 1) - progression.get_value_for_level(level))
+	next.set_attribute(stat, CharacterManager.get_stat_at_level(stat, level + 1))
 	return next
 
 ## Rebuilds the In a fight block from fight_lines() in its two columns, whose
@@ -299,6 +305,11 @@ func _clear_rows(container: Container) -> void:
 ## One line of effect_lines().
 static func _effect_line(label: String, now_text: String, next_text: String) -> Dictionary:
 	return {"label": label, "now": now_text, "next": next_text}
+
+## The Madra a cycle of `technique` draws at the block's Spirit, whole, as the
+## technique's drawer prints it (TechniqueDrawer.detail_text()).
+static func _madra_per_cycle(technique: CyclingTechniqueData, block: CharacterAttributesData) -> String:
+	return "%d" % roundi(technique.get_madra_per_cycle(block.get_cycling_madra_multiplier()))
 
 ## A number as the pages print it: "3", "1.5".
 static func _number(value: float) -> String:
