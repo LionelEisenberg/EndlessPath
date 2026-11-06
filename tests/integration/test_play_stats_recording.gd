@@ -188,7 +188,7 @@ func test_confirming_an_adventure_counts_a_start() -> void:
 	ActionManager.adventure_start_requested.emit(ADVENTURE_ACTION)
 	ActionManager.adventure_start_requested.emit(ADVENTURE_ACTION)
 	assert_eq(_stats().adventures_started, 0, "a request is not a start")
-	ActionManager.confirm_adventure_start(ADVENTURE_ACTION, 50.0)
+	ActionManager.confirm_adventure_start(ADVENTURE_ACTION)
 	assert_eq(_stats().adventures_started, 1, "the confirmed start is the real one")
 
 func test_a_won_fight_counts_once() -> void:

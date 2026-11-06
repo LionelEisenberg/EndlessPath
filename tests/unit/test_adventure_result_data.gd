@@ -21,7 +21,8 @@ func test_defaults() -> void:
 		["health_max", 0.0],
 		["tiles_explored", 0],
 		["tiles_total", 0],
-		["madra_spent", 0.0],
+		["madra_left", 0.0],
+		["madra_max", 0.0],
 	]
 	for case: Array in cases:
 		assert_eq(data.get(case[0]), case[1], "%s default" % case[0])
@@ -45,7 +46,8 @@ func test_populate() -> void:
 			"health_max": 100.0,
 			"tiles_explored": 7,
 			"tiles_total": 12,
-			"madra_spent": 150.0,
+			"madra_left": 46.0,
+			"madra_max": 100.0,
 		}},
 		{"name": "defeat with reason", "fields": {
 			"is_victory": false,

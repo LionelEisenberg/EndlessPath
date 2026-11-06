@@ -516,24 +516,3 @@ func test_award_resource_adds_to_its_type() -> void:
 		assert_eq(_save.madra, case.madra, "%s: Madra" % case.name)
 		assert_eq(_save.gold, case.gold, "%s: gold" % case.name)
 
-#-----------------------------------------------------------------------------
-# ADVENTURE THRESHOLD
-#-----------------------------------------------------------------------------
-
-## Half the max, so whatever moves the max moves the threshold.
-func test_adventure_threshold_is_half_the_max() -> void:
-	var cases: Array[Dictionary] = [
-		{"name": "a new character", "bonus": 0.0, "threshold": 50.0},
-		{"name": "a +50 bonus on max Madra", "bonus": 50.0, "threshold": 75.0},
-	]
-	for case: Dictionary in cases:
-		_raise_max_by(case.bonus)
-		assert_eq(ResourceManager.get_adventure_madra_threshold(), case.threshold, case.name)
-
-func test_can_start_adventure_at_threshold() -> void:
-	_save.madra = ResourceManager.get_adventure_madra_threshold()
-	assert_true(ResourceManager.can_start_adventure())
-
-func test_cannot_start_adventure_below_threshold() -> void:
-	_save.madra = ResourceManager.get_adventure_madra_threshold() - 0.1
-	assert_false(ResourceManager.can_start_adventure())

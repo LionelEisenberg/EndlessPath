@@ -40,13 +40,13 @@ func after_each() -> void:
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## Starts the Shallow Woods adventure the way the zone does once the Madra drain
-## finishes.
+## Starts the Shallow Woods adventure the way the zone does once the start's
+## zoom ends.
 func _start_adventure() -> void:
 	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
 	action.time_limit_seconds = 300
 	ActionManager._set_current_action(action)
-	ActionManager.confirm_adventure_start(action, 50.0)
+	ActionManager.confirm_adventure_start(action)
 
 ## A fight against one Amorphous Spirit whose win pays `xp` Core Density XP.
 func _fight_paying(xp: float, is_boss: bool = false) -> CombatChoice:

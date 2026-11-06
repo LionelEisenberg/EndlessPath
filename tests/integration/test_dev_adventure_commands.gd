@@ -20,7 +20,7 @@ const ADVENTURE_ACTION := AdventureMapFixture.ADVENTURE_ACTION
 
 ## The event a won fight fires: Foundation Beat 2's quest step waits for it.
 const ENEMY_DEFEATED_EVENT: String = "q_first_steps_enemy_defeated"
-## The Madra the zone's drain hands the run.
+## The pool the run starts on.
 const RUN_MADRA: float = 50.0
 ## The prefix of every line a dev command logs.
 const DEV_LINE: String = "[color=magenta][DEV][/color] "
@@ -40,7 +40,6 @@ var _original_save: SaveGameData
 ## The player's vitals as the test found them, put back after it: they are one object
 ## shared by every test.
 var _saved_vitals: Dictionary[StringName, float] = {}
-var _saved_madra: float = 0.0
 
 func before_each() -> void:
 	# A fight's end pays gold and resolves a tile, and a run's end resumes the zone's
@@ -50,7 +49,6 @@ func before_each() -> void:
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 	_saved_vitals = AdventureMapFixture.swap_in_known_vitals()
-	_saved_madra = PlayerManager.vitals_manager.current_madra
 	_map = AdventureMapFixture.build_map()
 	_results.clear()
 	_view = AdventureViewScene.instantiate()
@@ -74,7 +72,6 @@ func after_each() -> void:
 	if is_instance_valid(_view):
 		_view.free()
 	AdventureMapFixture.restore_vitals(_saved_vitals)
-	PlayerManager.vitals_manager.current_madra = _saved_madra
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 	# Binding the original save again resumes its idle action, if it has one. Stop
@@ -102,8 +99,8 @@ func _stop_actions() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 
-## Starts the Shallow Woods the way the zone does once its Madra drain ends: the
-## action becomes the current one and the run is confirmed with its budget. The run
+## Starts the Shallow Woods the way the zone does once the start's zoom
+## ends: the action becomes the current one and the run is confirmed. The run
 ## plays on the fixture map, which the tilemap is handed in place of a generated one.
 func _start_run() -> void:
 	var generator := FixedMapGenerator.new()
@@ -113,7 +110,7 @@ func _start_run() -> void:
 	tilemap.adventure_map_generator = generator
 	_action = ADVENTURE_ACTION.duplicate()
 	ActionManager._set_current_action(_action)
-	ActionManager.confirm_adventure_start(_action, RUN_MADRA)
+	ActionManager.confirm_adventure_start(_action)
 
 ## Starts a run and puts a fight under way, as picking its combat card does: the
 ## tilemap remembers the choice and the view starts the fight. The fight is the
@@ -288,9 +285,10 @@ func test_exit_refuses_without_a_run() -> void:
 #-----------------------------------------------------------------------------
 
 func test_refill_vitals_keeps_the_run_madra() -> void:
+	ResourceManager.set_madra(RUN_MADRA)
 	_start_run()
 	var vitals: VitalsManager = PlayerManager.vitals_manager
-	assert_eq(vitals.current_madra, RUN_MADRA, "precondition: the run starts with its Madra budget")
+	assert_eq(vitals.current_madra, RUN_MADRA, "precondition: the run plays on the pool")
 	# The run costs 40 Health, 95 Stamina and 17 Madra.
 	vitals.apply_vitals_change(-40.0, -95.0, -17.0)
 	var madra_left: float = vitals.current_madra
@@ -303,3 +301,4 @@ func test_refill_vitals_keeps_the_run_madra() -> void:
 	assert_eq(vitals.current_health, vitals.max_health, "Health is full")
 	assert_eq(vitals.current_stamina, vitals.max_stamina, "Stamina is full")
 	assert_eq(vitals.current_madra, madra_left, "the Madra the run has left stays")
+	assert_eq(ResourceManager.get_madra(), madra_left, "the pool keeps what the run left")
