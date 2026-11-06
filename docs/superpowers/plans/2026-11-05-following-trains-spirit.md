@@ -64,7 +64,7 @@ Lionel approved the canvas as drawn.
 **Interfaces:**
 - Produces: `CharacterManager.add_stat_xp(stat: AttributeType, amount: float) -> float`: the XP the stat took. All of `amount` short of the cap; the part that bought the level reaching the cap when one does (the rest is lost); 0 at the cap. Signals and logging unchanged. A free level (cost 0) keeps today's guard and returns `amount`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `test_add_stat_xp_returns_the_xp_the_stat_took` (the file's test curve: 10, 20, 40, 80 XP; cap Lv 5), a table:
 - Lv 1, 0 XP, +5 → 5.0
@@ -74,10 +74,10 @@ Lionel approved the canvas as drawn.
 
 `test_stat_display.gd` `test_a_stat_with_no_icon_has_none`: `var unknown: int = CharacterAttributesData.AttributeType.size()`; `assert_null(StatDisplay.icon_of(unknown as CharacterAttributesData.AttributeType))`.
 
-- [ ] **Step 2: Run both files; the first fails (add_stat_xp returns nothing), the second passes already (it pins the untested branch)**
-- [ ] **Step 3: Return the XP taken from `add_stat_xp()`; end `get_gear_bonus()`'s doc sentence at "applies after every FLAT one."**
-- [ ] **Step 4: Run both files: PASS**
-- [ ] **Step 5: Commit** `feat(character): return the XP a stat took from add_stat_xp`
+- [x] **Step 2: Run both files; the first fails (add_stat_xp returns nothing), the second passes already (it pins the untested branch)**
+- [x] **Step 3: Return the XP taken from `add_stat_xp()`; end `get_gear_bonus()`'s doc sentence at "applies after every FLAT one."**
+- [x] **Step 4: Run both files: PASS**
+- [x] **Step 5: Commit** `feat(character): return the XP a stat took from add_stat_xp`
 
 ### Task 2: Cache stat reads until the stats change (DM-06)
 
@@ -90,14 +90,14 @@ Lionel approved the canvas as drawn.
 **Interfaces:**
 - Produces: `get_stat(stat)` answers from a cache of every stat read since the stats last changed. Every `stats_changed.emit()` in CharacterManager becomes `_stats_changed()`, which clears the cache, then emits. `set_modifier_source()`'s doc: a source is asked again after each change of the stats, and a source whose modifiers change sets itself again. `get_total_attributes_data()` still returns a new snapshot each call.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 - `test_a_stat_is_read_from_its_sources_once_until_the_stats_change`: a counting source; two `get_stat(Stat.SPIRIT)` reads ask it once; after `set_stat_level(SPIRIT, 2)` the next read asks it again; after an inventory change (`InventoryManager.inventory_changed.emit(...)`) again.
 - `test_a_level_bought_with_xp_moves_the_cached_total`: read Spirit's total, `add_stat_xp(SPIRIT, 10.0)` (the test curve's Lv 2), read again: one point higher.
-- [ ] **Step 2: Run the file: the first fails**
-- [ ] **Step 3: Add the cache and `_stats_changed()`**
-- [ ] **Step 4: Run `test_character_manager.gd`, `test_stat_modifier_stack.gd` and the integration files that read stats (`test_character_book.gd`, `test_cultivator_plate.gd`): PASS**
-- [ ] **Step 5: Measure again with `_capture94/measure.tscn` and record the numbers here and in the PR**
-- [ ] **Step 6: Commit** `perf(character): cache stat reads until the stats change`
+- [x] **Step 2: Run the file: the first fails**
+- [x] **Step 3: Add the cache and `_stats_changed()`**
+- [x] **Step 4: Run `test_character_manager.gd`, `test_stat_modifier_stack.gd` and the integration files that read stats (`test_character_book.gd`, `test_cultivator_plate.gd`): PASS**
+- [x] **Step 5: Measure again with `_capture94/measure.tscn` and record the numbers here and in the PR.** After the cache: `get_max_madra()` 0.48 µs a call with or without the kit, `get_total_attributes_data()` 11 µs (the new snapshot), the Spirit multiplier 12 µs; while cycling the sources are asked 0 times a frame, so the 3.6 max-Madra reads cost about 1.7 µs a frame.
+- [x] **Step 6: Commit** `perf(character): cache stat reads until the stats change`
 
 ### Task 3: The follow rule and its window
 

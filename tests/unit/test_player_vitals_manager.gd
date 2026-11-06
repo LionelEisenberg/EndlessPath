@@ -109,8 +109,12 @@ func test_a_max_health_source_reaches_the_players_vitals() -> void:
 	CharacterManager.set_modifier_source(TEST_SOURCE, _max_health_source(20.0))
 	assert_eq(_vitals.max_health, 120.0, "100 from Body, + 20 on max Health itself")
 
+## A save is loaded by binding it: the gear it already wears comes with it.
 func test_gear_already_in_the_save_counts_at_once() -> void:
-	InventoryManager.get_inventory().equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4})
+	var loaded := SaveGameData.new()
+	loaded.inventory.equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {&"body": 0.4})
+	PersistenceManager.save_game_data = loaded
+	PersistenceManager.save_data_reset.emit()
 	var vitals := VitalsManager.new()
 	vitals.is_player = true
 	add_child_autofree(vitals)

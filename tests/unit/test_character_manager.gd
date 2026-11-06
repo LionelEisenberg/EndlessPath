@@ -75,6 +75,12 @@ func _make_gear(slot: EquipmentSlot, percents: Dictionary, bonus_floor: int = 1,
 func _inventory() -> InventoryData:
 	return InventoryManager.get_inventory()
 
+## Tells the managers the inventory changed, as InventoryManager does after every
+## equip: these tests wear gear by writing its slots directly, and the stats stay
+## cached until a change is announced.
+func _gear_changed() -> void:
+	InventoryManager.inventory_changed.emit(_inventory())
+
 func _total(attr_type: AttributeType) -> float:
 	return CharacterManager.get_total_attributes_data().get_attribute(attr_type)
 
@@ -295,6 +301,7 @@ func test_totals_equal_base_with_nothing_equipped() -> void:
 
 func test_worn_gear_adds_its_floored_bonus_to_the_trained_value() -> void:
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.1}, 3)
+	_gear_changed()
 	assert_eq(CharacterManager.get_gear_bonus(AttributeType.STRENGTH), 3.0, "the floor beats 10% of 10")
 	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), BASELINE + 3.0)
 	assert_eq(CharacterManager.get_gear_bonus(AttributeType.AGILITY), 0.0, "no Agility percent")
@@ -305,11 +312,13 @@ func test_worn_gear_adds_its_floored_bonus_to_the_trained_value() -> void:
 func test_gear_percents_count_the_trained_value_not_the_total() -> void:
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.5})
 	_inventory().equipped_accessories[0] = _make_gear(EquipmentSlot.ACCESSORY, {&"strength": 0.5})
+	_gear_changed()
 	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), BASELINE * 2.0, "10 + 5 + 5, not 10 + 5 + 7")
 
 func test_gear_lifts_a_capped_stat_past_the_cap() -> void:
 	CharacterManager.set_stat_level(AttributeType.STRENGTH, TEST_CAP)
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {&"strength": 0.5})
+	_gear_changed()
 	assert_eq(CharacterManager.get_gear_bonus(AttributeType.STRENGTH), 7.0, "50% of 14, the value at the test cap")
 	assert_eq(CharacterManager.get_stat(Stat.STRENGTH), 21.0, "the total passes the capped value")
 	assert_eq(CharacterManager.get_stat_level(AttributeType.STRENGTH), TEST_CAP, "training stays at the cap")
@@ -330,6 +339,7 @@ func test_armor_and_ward_come_from_gear_into_the_fight_block() -> void:
 	assert_eq(CharacterManager.get_stat(Stat.WARD), 0.0, "no Ward without gear")
 	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _make_gear(EquipmentSlot.ARMOR, {}, 1, 6.0)
 	_inventory().equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {}, 1, 0.0, 4.0)
+	_gear_changed()
 	var block: CharacterAttributesData = CharacterManager.get_total_attributes_data()
 	assert_eq(block.armor, 6.0, "armor reaches the fight snapshot")
 	assert_eq(block.ward, 4.0, "Ward reaches the fight snapshot")
@@ -346,6 +356,7 @@ func test_bonuses_stack_across_gear_slots() -> void:
 		&"strength": 0.3,
 		&"body": 1.0,
 	})
+	_gear_changed()
 	assert_eq(_total(AttributeType.STRENGTH), 18.0, "10 base + 5 weapon + 3 armor")
 	assert_eq(_total(AttributeType.BODY), 20.0)
 
@@ -358,6 +369,7 @@ func test_each_attribute_receives_its_own_bonus() -> void:
 		&"mind": 0.5,
 		&"control": 0.6,
 	})
+	_gear_changed()
 	var expected: Dictionary = {
 		AttributeType.STRENGTH: 11.0,
 		AttributeType.BODY: 12.0,
@@ -382,6 +394,7 @@ func test_items_without_equipment_definition_are_ignored() -> void:
 	_inventory().equipped_gear[EquipmentSlot.MAIN_HAND] = _make_gear(EquipmentSlot.MAIN_HAND, {
 		&"strength": 0.2,
 	})
+	_gear_changed()
 	assert_eq(_total(AttributeType.STRENGTH), 12.0, "only the real equipment counts")
 
 #-----------------------------------------------------------------------------
@@ -399,6 +412,7 @@ func test_gear_and_both_accessories_stack() -> void:
 		&"strength": 0.1,
 		&"control": 0.3,
 	})
+	_gear_changed()
 	assert_eq(_total(AttributeType.STRENGTH), 18.0, "10 base + 5 weapon + 2 + 1 accessories")
 	assert_eq(_total(AttributeType.CONTROL), 13.0)
 
@@ -456,8 +470,35 @@ func test_a_listener_during_save_reset_sees_the_new_saves_gear() -> void:
 # STATS AND MODIFIER SOURCES
 #-----------------------------------------------------------------------------
 
+## A stat read is answered from the cache until the stats change: a second read
+## asks no source, and a level or an inventory change asks them again (DM-06).
+func test_a_stat_is_read_from_its_sources_once_until_the_stats_change() -> void:
+	var asked: Array[int] = [0]
+	CharacterManager.set_modifier_source(TEST_SOURCE, func() -> Array[StatModifierData]:
+		asked[0] += 1
+		var none: Array[StatModifierData] = []
+		return none)
+	CharacterManager.get_stat(Stat.SPIRIT)
+	var first: int = asked[0]
+	assert_gt(first, 0, "precondition: the first read asks the source")
+	CharacterManager.get_stat(Stat.SPIRIT)
+	assert_eq(asked[0], first, "a second read asks no source")
+	CharacterManager.set_stat_level(AttributeType.SPIRIT, 2)
+	CharacterManager.get_stat(Stat.SPIRIT)
+	assert_gt(asked[0], first, "a level change asks the sources again")
+	var after_level: int = asked[0]
+	InventoryManager.inventory_changed.emit(_inventory())
+	CharacterManager.get_stat(Stat.SPIRIT)
+	assert_gt(asked[0], after_level, "and so does an inventory change")
+
+func test_a_level_bought_with_xp_moves_the_cached_total() -> void:
+	var before: float = CharacterManager.get_stat(Stat.SPIRIT)
+	CharacterManager.add_stat_xp(AttributeType.SPIRIT, 10.0)
+	assert_eq(CharacterManager.get_stat(Stat.SPIRIT), before + 1.0, "Lv 2 is one point more")
+
 func test_get_stat_reads_base_plus_gear() -> void:
 	_inventory().equipped_gear[EquipmentSlot.ARMOR] = _robes()
+	_gear_changed()
 	assert_eq(CharacterManager.get_stat(Stat.BODY), 14.0)
 	assert_eq(CharacterManager.get_stat(Stat.MAX_HEALTH), 140.0, "the formula runs on the total Body")
 
