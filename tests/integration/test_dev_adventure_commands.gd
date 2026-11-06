@@ -299,6 +299,7 @@ func test_refill_vitals_keeps_the_run_madra() -> void:
 	assert_eq(DevCommands.refill_vitals(), "")
 
 	assert_eq(vitals.current_health, vitals.max_health, "Health is full")
+	assert_eq(ResourceManager.get_health(), ResourceManager.get_max_health(), "the saved pool itself is full")
 	assert_eq(vitals.current_stamina, vitals.max_stamina, "Stamina is full")
 	assert_eq(vitals.current_madra, madra_left, "the Madra the run has left stays")
 	assert_eq(ResourceManager.get_madra(), madra_left, "the pool keeps what the run left")
