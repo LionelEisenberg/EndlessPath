@@ -5,7 +5,8 @@ extends GutTest
 ## the player's VitalsManager and how it follows that manager's signals, the
 ## Stamina rod, the three buff sockets (they fill from the left, show a count
 ## seal for stacks and clear when the buffs go), and the tooltip a hovered
-## socket opens.
+## socket opens. The player's Madra is the saved pool, set through
+## ResourceManager, with a modifier source on its max.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -20,6 +21,8 @@ const ENFORCE_ICON: Texture2D = preload("res://assets/sprites/abilities/enforce.
 const BASIC_STRIKE_ICON: Texture2D = preload("res://assets/sprites/abilities/basic_strike.png")
 const EMPTY_PALM_ICON: Texture2D = preload("res://assets/sprites/abilities/empty_palm.png")
 const POWER_FONT_ICON: Texture2D = preload("res://assets/sprites/abilities/power_font.png")
+## The modifier source _set_madra() sets on max Madra; after_each() removes it.
+const TEST_SOURCE: StringName = &"test_vitals_plate"
 ## GUT's output window covers the screen on this canvas layer; a pointer test
 ## shows what it moves over above it.
 const GUT_OUTPUT_LAYER: int = 128
@@ -27,7 +30,8 @@ const GUT_OUTPUT_LAYER: int = 128
 var _plate: VitalsPlate = null
 var _vitals: VitalsManager = null
 var _combatant: CombatantNode = null
-## The player's vitals before the test, in the order _set_vitals() takes them.
+## The player's Health and Stamina before the test, in the order _set_vitals()
+## takes them.
 var _original_vitals: Array = []
 ## True once a test has moved the pointer, which every later test file would
 ## otherwise find where it was left (the zone map reads it to hover a hex).
@@ -45,10 +49,10 @@ func before_each() -> void:
 	_pointer_moved = false
 	_original_vitals = [
 		_vitals.current_health, _vitals.max_health,
-		_vitals.current_madra, _vitals.max_madra,
 		_vitals.current_stamina, _vitals.max_stamina,
 	]
-	_set_vitals(142.0, 160.0, 80.0, 120.0, 80.0, 80.0)
+	_set_madra(80.0, 120.0)
+	_set_vitals(142.0, 160.0, 80.0, 80.0)
 	_plate = _add_plate()
 	_plate.setup_vitals(_vitals)
 
@@ -59,6 +63,7 @@ func after_each() -> void:
 		_plate.free()
 	if is_instance_valid(_combatant):
 		_combatant.free()
+	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	_set_vitals.callv(_original_vitals)
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
@@ -74,14 +79,24 @@ func _add_plate() -> VitalsPlate:
 	add_child_autofree(plate)
 	return plate
 
-## Sets the player's vitals: the three current values and their maxima.
-func _set_vitals(health: float, max_health: float, madra: float, max_madra: float, stamina: float, max_stamina: float) -> void:
+## Sets the player's Health and Stamina and their maxima.
+func _set_vitals(health: float, max_health: float, stamina: float, max_stamina: float) -> void:
 	_vitals.max_health = max_health
-	_vitals.max_madra = max_madra
 	_vitals.max_stamina = max_stamina
 	_vitals.current_health = health
-	_vitals.current_madra = madra
 	_vitals.current_stamina = stamina
+
+## Sets the Madra pool and its max: a bonus on max Madra over a new
+## character's 100. Call it before _set_vitals(), as the bonus re-reads the
+## Health and Stamina maxima.
+func _set_madra(madra: float, max_madra: float) -> void:
+	CharacterManager.set_modifier_source(TEST_SOURCE, _max_madra_source(max_madra - 100.0))
+	ResourceManager.set_madra(madra)
+
+func _max_madra_source(amount: float) -> Callable:
+	return func() -> Array[StatModifierData]:
+		var modifiers: Array[StatModifierData] = [StatModifierData.new(StatModifierData.Stat.MAX_MADRA, StatModifierData.Kind.FLAT, amount)]
+		return modifiers
 
 ## A player combatant (a real CombatantNode, so the buff manager is the real
 ## one with its timer and ticks) and its buff manager, bound to the plate.
@@ -169,11 +184,12 @@ func test_shows_the_runs_vitals() -> void:
 func test_orbs_fill_to_the_fraction() -> void:
 	_vitals.current_health = 80.0
 	assert_almost_eq(_fill("HealthOrb"), 0.5, 0.0001, "80 of 160 Health")
-	_vitals.current_madra = 30.0
+	ResourceManager.set_madra(30.0)
 	assert_almost_eq(_fill("MadraOrb"), 0.25, 0.0001, "30 of 120 Madra")
 
 func test_health_rounds_up_and_the_rest_round_down() -> void:
-	_set_vitals(141.2, 160.7, 79.9, 120.9, 39.9, 80.9)
+	_set_madra(79.9, 120.9)
+	_set_vitals(141.2, 160.7, 39.9, 80.9)
 	assert_eq(_text("HealthValueLabel"), "142", "a sliver of Health still reads as one")
 	assert_eq(_text("HealthMaxLabel"), "/ 160")
 	assert_eq(_text("MadraValueLabel"), "79")

@@ -40,7 +40,8 @@ var _player: CombatantNode = null
 var _enemy: CombatantNode = null
 var _vitals: VitalsManager = null
 var _original_save: SaveGameData = null
-## The player's vitals before the test, in the order _set_vitals() takes them.
+## The player's Health and Stamina before the test, in the order _set_vitals()
+## takes them.
 var _original_vitals: Array = []
 
 #-----------------------------------------------------------------------------
@@ -56,10 +57,10 @@ func before_each() -> void:
 	_enemy = null
 	_original_vitals = [
 		_vitals.current_health, _vitals.max_health,
-		_vitals.current_madra, _vitals.max_madra,
 		_vitals.current_stamina, _vitals.max_stamina,
 	]
-	_set_vitals(100.0, 100.0, 100.0, 100.0, 50.0, 50.0)
+	_set_vitals(100.0, 100.0, 50.0, 50.0)
+	ResourceManager.set_madra(100.0)
 	_dock = load(DOCK_SCENE_PATH).instantiate()
 	add_child_autofree(_dock)
 
@@ -86,13 +87,12 @@ func after_each() -> void:
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## Sets the player's vitals: the three current values and their maxima.
-func _set_vitals(health: float, max_health: float, madra: float, max_madra: float, stamina: float, max_stamina: float) -> void:
+## Sets the player's Health and Stamina and their maxima. Madra is the
+## saved pool, which before_each() fills.
+func _set_vitals(health: float, max_health: float, stamina: float, max_stamina: float) -> void:
 	_vitals.max_health = max_health
-	_vitals.max_madra = max_madra
 	_vitals.max_stamina = max_stamina
 	_vitals.current_health = health
-	_vitals.current_madra = madra
 	_vitals.current_stamina = stamina
 
 ## Unlocks a technique and puts it in a loadout slot (0 to 3).

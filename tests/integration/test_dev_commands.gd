@@ -48,7 +48,7 @@ var _original_save: SaveGameData
 var _original_tree: PathTreeData
 var _original_stage_override: int
 var _original_stages: Array[AdvancementStageResource]
-## The player's Health, Stamina and Madra: one object shared by every test.
+## The player's Health and Stamina: one object shared by every test.
 var _original_vitals: Array[float] = []
 ## The hooks a test put on a manager signal to see recording_paused while a
 ## command ran, taken off again after the test.
@@ -60,7 +60,7 @@ func before_each() -> void:
 	_original_stage_override = PathManager._test_stage_override
 	_original_stages = CultivationManager.advancement_stage_resources
 	var vitals: VitalsManager = PlayerManager.vitals_manager
-	_original_vitals = [vitals.current_health, vitals.current_stamina, vitals.current_madra]
+	_original_vitals = [vitals.current_health, vitals.current_stamina]
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 	# test_path_manager.gd leaves a one-entry ability index behind, no tree in
@@ -85,7 +85,6 @@ func after_each() -> void:
 	var vitals: VitalsManager = PlayerManager.vitals_manager
 	vitals.current_health = _original_vitals[0]
 	vitals.current_stamina = _original_vitals[1]
-	vitals.current_madra = _original_vitals[2]
 	# Binding the original save again resumes its idle action, if it has one.
 	# Stop it, so its tick timer does not run on into the next test.
 	_stop_actions()

@@ -357,7 +357,7 @@ func _on_map_changed() -> void:
 ## Initialize resource values. Madra already spent by the drain animation in
 ## ZoneTransition. The cabinet shows them and the dock previews the loadout.
 func _initialize_combat_resources(madra_budget: float) -> void:
-	PlayerManager.vitals_manager.initialize_current_values(madra_budget)
+	PlayerManager.vitals_manager.initialize_current_values()
 	vitals_plate.setup_vitals(PlayerManager.vitals_manager)
 	technique_dock.show_loadout()
 	Log.info("AdventureView: Adventure budget: %.1f Madra" % madra_budget)

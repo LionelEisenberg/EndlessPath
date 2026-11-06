@@ -35,7 +35,6 @@ func before_each() -> void:
 	_vitals = PlayerManager.vitals_manager
 	_original_vitals = [
 		_vitals.current_health, _vitals.max_health,
-		_vitals.current_madra, _vitals.max_madra,
 		_vitals.current_stamina, _vitals.max_stamina,
 	]
 	_vitals.max_stamina = 50.0
@@ -43,11 +42,9 @@ func before_each() -> void:
 
 func after_each() -> void:
 	_vitals.max_health = _original_vitals[1]
-	_vitals.max_madra = _original_vitals[3]
-	_vitals.max_stamina = _original_vitals[5]
+	_vitals.max_stamina = _original_vitals[3]
 	_vitals.current_health = _original_vitals[0]
-	_vitals.current_madra = _original_vitals[2]
-	_vitals.current_stamina = _original_vitals[4]
+	_vitals.current_stamina = _original_vitals[2]
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 

@@ -35,7 +35,7 @@ const MAP_POINT: Vector2 = Vector2(960, 640)
 const BOARD_INSET: float = 8.0
 ## The player's vitals a run changes, remembered and put back.
 const VITALS_FIELDS: Array[StringName] = [
-	&"max_health", &"current_health", &"max_madra", &"current_madra",
+	&"max_health", &"current_health",
 	&"max_stamina", &"current_stamina", &"health_regen", &"madra_regen", &"stamina_regen",
 ]
 
