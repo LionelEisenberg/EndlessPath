@@ -17,5 +17,8 @@ class_name AdvancementStageResource
 ## stage's Breakthrough on the Goals board. Null shows it from the stage's start.
 @export var breakthrough_goal_condition: UnlockConditionData = null
 
+## The XP that one level costs: reaching `level` from the level below it, not the
+## total from 0. Level 1 costs the base, and each level `core_xp_scaling_factor`
+## times the one before.
 func get_xp_for_level(level: int) -> float:
 	return core_density_base_xp_cost * pow(core_xp_scaling_factor, level - 1)

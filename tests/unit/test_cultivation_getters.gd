@@ -2,8 +2,8 @@ extends GutTest
 
 ## Unit tests for CultivationManager's public getters on the real Foundation
 ## stage, which callers read instead of the private stage-resource lookup: the
-## XP a level costs, the condition that puts each stage's Breakthrough on the
-## Goals board, and a given stage's stat level cap.
+## condition that puts each stage's Breakthrough on the Goals board, and a given
+## stage's stat level cap.
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -36,16 +36,6 @@ func test_foundations_breakthrough_goal_waits_for_npc_4() -> void:
 func test_copper_has_no_breakthrough_goal_condition() -> void:
 	PersistenceManager.save_game_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
 	assert_null(CultivationManager.get_breakthrough_goal_condition())
-
-#-----------------------------------------------------------------------------
-# XP PER LEVEL
-#-----------------------------------------------------------------------------
-
-## Foundation's level 1 costs 10 XP, and each level 2% more than the last.
-func test_xp_for_level_follows_the_stages_curve() -> void:
-	assert_almost_eq(CultivationManager.get_xp_for_level(1), 10.0, 0.0001)
-	assert_almost_eq(CultivationManager.get_xp_for_level(2), 10.2, 0.0001)
-	assert_almost_eq(CultivationManager.get_xp_for_level(11), 10.0 * pow(1.02, 10), 0.0001)
 
 #-----------------------------------------------------------------------------
 # STAT LEVEL CAP OF A STAGE

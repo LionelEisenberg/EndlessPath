@@ -28,6 +28,7 @@ const FRAME: float = 1.0 / 60.0
 ## How far past the border between two hexes a walk must be to stand in the
 ## second one, in px of distance difference (twice the distance past it).
 const PAST_THE_BORDER: float = 8.0
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -45,8 +46,11 @@ var _saved_vitals: Dictionary[StringName, float] = {}
 var _events: Array[String] = []
 ## For each tile_entered, whether the tile already counted as visited.
 var _visited_when_entered: Array[bool] = []
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	# Winning a fight pays gold into the save. Run on a fresh one, never the
 	# developer's save loaded in memory.
 	_original_save = PersistenceManager.save_game_data
@@ -75,6 +79,7 @@ func after_each() -> void:
 	# never frees it; free it here so these tests don't leave orphans.
 	if is_instance_valid(_tilemap) and is_instance_valid(_tilemap.adventure_map_generator):
 		_tilemap.adventure_map_generator.free()
+	CoreCurve.restore(_original_stages)
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 	# Binding the developer's save again resumes its idle action. Stop it, so its
