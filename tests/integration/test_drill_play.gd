@@ -245,11 +245,15 @@ func test_a_mouse_release_leaves_a_key_lift() -> void:
 	_play.handle_press_event(_key(false))
 	assert_eq(_bead_frames()[0], 1, "the key's release judges it Perfect")
 
-## Review Focus 2: alt-tabbing away mid-lift lets the stone go there.
+## Review Focus 2: alt-tabbing away mid-lift lets the stone go there. A desktop
+## build sends the application's focus loss and the window's; the Web build sends
+## only the window's.
 func test_focus_loss_lets_the_stone_go() -> void:
-	_clock_to(0.0)
-	_play.handle_press_event(_press())
-	_clock_to(CENTRE)
-	_play._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
-	assert_false(_play.get_run().is_lifting(), "the lift is over")
-	assert_eq(_bead_frames()[0], 1, "judged where it was let go")
+	for focus_loss: int in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]:
+		_play.setup(BodyRefiningManager.get_drill(STARTING_DRILL_ID))
+		_clock_to(0.0)
+		_play.handle_press_event(_press())
+		_clock_to(CENTRE)
+		_play._notification(focus_loss)
+		assert_false(_play.get_run().is_lifting(), "notification %d: the lift is over" % focus_loss)
+		assert_eq(_bead_frames()[0], 1, "notification %d: judged where it was let go" % focus_loss)

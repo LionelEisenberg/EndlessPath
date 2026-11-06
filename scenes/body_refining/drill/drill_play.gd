@@ -24,8 +24,9 @@ extends Control
 ## (finish_set()) and emits set_completed; the next press starts another set,
 ## with its beads empty. The hold belongs to the kind of input that started it,
 ## key or mouse button: only that kind coming up lets it go, a key repeat is no
-## press, and a focus loss always lets go. stop_set() drops a set in progress,
-## counting nothing, and so does hiding the stage.
+## press, and a focus loss always lets go: the window's, which every build sends
+## (the Web build sends no other), or the application's. stop_set() drops a set in
+## progress, counting nothing, and so does hiding the stage.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -129,7 +130,8 @@ func _process(_delta: float) -> void:
 	_place_floaters()
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _holding:
+	var focus_lost: bool = what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT
+	if focus_lost and _holding:
 		_let_go()
 
 #-----------------------------------------------------------------------------
