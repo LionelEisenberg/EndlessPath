@@ -81,17 +81,26 @@
 
 - [x] Tests: `test_run_ledger_values` and `test_a_new_run_clears_the_ledger` read `%CoreValue`; `test_the_ledger_counts_the_boss` (end flow).
 
-### Task 5: The Core row and the beads (after round 2)
+### Task 5: The Core row and the beads (built)
 
 **Files:** `scenes/adventure/vitals_plate/vitals_plate.tscn` and `.gd` (the board's art taller, as a new `_ai` file or a nine-patch of today's), `scenes/ui/main_view/states/adventure_view_state.gd` (`GOALS_POSITION` 96 px lower), `adventure_tilemap.gd` (a `core_density_earned(amount: float)` signal), `adventure_view.gd` (an effects layer and the bursts); tests in `test_adventure_view_frame.gd` or a new `test_vitals_plate_core.gd`.
 
 **Interfaces:** `VitalsPlate.hold_core_xp(amount: float)`, `release_core_xp(amount: float)` and `get_core_orb_global_position() -> Vector2`, as `CultivatorPlate` has them; the Core row reads `CultivationManager` and follows `core_density_level_updated` and `core_density_xp_updated`. `AdventureView` hears `core_density_earned`, holds the amount, bursts `bead_count_for(amount)` pellets (`clampi(ceili(amount / 4.0), 1, 16)`) with `PelletFlight.burst()` from the current hex's screen point to the orb, and releases each bead's share as it lands; a run's end releases what is still held.
 
-- [ ] Tests: the row shows the level and XP less what is held; a release shows it; `bead_count_for()` as a table; a won fight sends one burst however often the win is reported; the run's end releases everything held.
+- [x] Tests (`test_vitals_plate_core.gd`, `test_kill_beads.gd`): the row shows the core, follows it, and leaves held XP out until it lands; `bead_count_for()` as a table; a won fight sends one burst however often the win is reported, out of the player's hex; each bead counts its share in; a full core sends none; the kill that fills the core sends what the core took; the boss's beads fly as the run ends; a new run lands the last run's beads.
 
 ### Task 6: Wrap
 
-- [ ] `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1` passes (a parallel failure is confirmed in one process first).
-- [ ] The issue's "Done when" checks on the chunk's own save: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=adventure_open --save=user://dev/runs/kill-core-density.tres`, plus an old save copied in, loading and playing.
-- [ ] This plan's canvas section holds Lionel's round-2 answers, and a "What was built differently" section any change from it.
+- [x] `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1` passes (a parallel failure is confirmed in one process first).
+- [x] The issue's "Done when" checks on the chunk's own save: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=adventure_open --save=user://dev/runs/kill-core-density.tres`, plus an old save copied in, loading and playing.
+- [x] This plan's canvas section holds Lionel's round-2 answers, and a "What was built differently" section any change from it.
 - [ ] The PR closes #90 and ends with `## Docs to update` (the issue's list, plus `docs/superpowers/README.md`'s row for this plan in the docs PR).
+
+## What was built differently
+
+- **The pay is an effect, not a rule on the action** (Lionel, round 1). The issue's "three amounts on the adventure action" and the tier rule from the encounter type and boss flag were built first, then replaced: each fight's choice carries `AwardCoreDensityXpEffectData`, and the tier is each fight file's amount.
+- **The cabinet grew 92 px, not 96:** the orb rows' own pitch (Health at 16, Madra at 108, Core at 200). The Goals board hangs 92 px lower in runs (`GOALS_POSITION` y 368). The taller board is a new file, `lacquer_cult_core_ai.png`, made from `lacquer_cult_ai.png`'s own rows.
+- **The beads carry what the core took.** At the kill that fills the core, the line and the run's total keep the whole amount (as approved), but the burst carries only what the core lacked, so the Core row climbs from where it stood to full instead of dipping first. `AdventureTilemap.core_density_earned` announces that gain.
+- **The run's Core row repeats the zone cabinet's core readout** in `VitalsPlate`, reusing `CultivatorPlate.rewind_core()` and its strip constants: the zone cabinet was being edited by #92, so no shared component was extracted. #103's stars rework both.
+- **The boss's win announces the run's figures** (`AdventureView._on_boss_defeated()`), so the ledger beside the end card counts the boss although its tile stays unresolved.
+- **The tile's line is a rich text label** with no wrap pad: its line separation alone keeps its lines 18 px, as the label's were. `test_boards_never_trim_text.gd` learned what wrapping means for a rich text label (word wrap, fit content, no scrolling).
