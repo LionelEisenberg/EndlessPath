@@ -15,7 +15,9 @@ extends Control
 ## refused walk) and the chest's picks to the map, binds the dock (techniques
 ## and hotbar consumables) and the cabinet's buff sockets to the player's
 ## combatant for a fight, and keeps the run's Timer and the figures the Run
-## ledger and the end card show.
+## ledger and the end card show. When a reward deepens the core (a kill's Core
+## Density), its beads burst out of the hex the player stands on and home into the
+## cabinet's Core row, over every board, in the effects layer.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -26,6 +28,23 @@ signal adventure_completed(result_data: AdventureResultData)
 ## after the map changes, a fight ends, the boss falls or an item is awarded, while
 ## a run is on. The chest's Run ledger shows them.
 signal run_stats_changed
+
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+## A reward's beads pop out of the player's hex up to BEAD_BURST_REACH px, then
+## home into the cabinet's Core orb (PelletFlight.burst): the first lands
+## BEAD_FLIGHT s after the reward, each next one BEAD_FLIGHT_STEP s after the one
+## before. The flight crosses most of the screen, so it takes longer than
+## cycling's.
+const BEAD_FLIGHT: float = 0.8
+const BEAD_FLIGHT_STEP: float = 0.04
+const BEAD_BURST_REACH: float = 48.0
+## One bead carries about this much Core Density XP; a burst has 1 to MAX_BEADS.
+const BEAD_XP: float = 4.0
+const MAX_BEADS: int = 16
+const _BEAD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -43,6 +62,7 @@ signal run_stats_changed
 
 @onready var _expedition_page: ExpeditionPage = adventure_chest.get_expedition_page()
 @onready var _run_timer: Timer = %RunTimer
+@onready var _effects_layer: Control = %EffectsLayer
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -80,6 +100,7 @@ func _ready() -> void:
 		adventure_tilemap.encounter_resolved.connect(_on_encounter_resolved)
 		adventure_tilemap.walk_refused.connect(_on_walk_refused)
 		adventure_tilemap.map_changed.connect(_on_map_changed)
+		adventure_tilemap.core_density_earned.connect(_on_core_density_earned)
 		# The chest's picks for the map
 		_expedition_page.choice_selected.connect(adventure_tilemap.select_choice)
 	else:
@@ -100,6 +121,8 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 		LogManager.log_message("[color=cyan]Adventure Started: %s[/color]" % action_data.action_name)
 
 	current_action_data = action_data
+	# Beads the last run left in flight land now, so the cabinet starts whole.
+	_land_beads()
 
 	# Reset result tracking (the map's first redraw below shows them in the ledger)
 	_combats_fought = 0
@@ -189,6 +212,11 @@ func stop_adventure() -> void:
 	_pending_victory = false
 
 	adventure_completed.emit(result_data)
+
+## Returns how many beads carry `xp` Core Density XP to the cabinet: one per
+## BEAD_XP, at least one and at most MAX_BEADS.
+static func bead_count_for(xp: float) -> int:
+	return clampi(floori(xp / BEAD_XP), 1, MAX_BEADS)
 
 ## Returns the run's Timer: one shot, started at the run's time limit when a
 ## run starts; the chest's clock reads it and its timeout ends the run.
@@ -349,6 +377,36 @@ func _on_walk_refused(reason: StringName) -> void:
 
 func _on_map_changed() -> void:
 	_announce_run_stats()
+
+## A reward deepened the core by `xp`: its beads burst out of the hex the player
+## stands on (the fight's, as the fight closes) and home into the cabinet's Core
+## orb, each carrying an even share, which the cabinet holds back until the bead
+## lands. They fly on after a boss's win ends the run: the cabinet stays in sight
+## beside the end card.
+func _on_core_density_earned(xp: float) -> void:
+	var flights: Array[PelletFlight] = PelletFlight.burst(
+		adventure_tilemap.get_tile_screen_position(adventure_tilemap.get_current_tile()),
+		vitals_plate.get_core_orb_global_position(),
+		bead_count_for(xp),
+		BEAD_FLIGHT,
+		BEAD_FLIGHT_STEP,
+		BEAD_BURST_REACH)
+	var share: float = xp / flights.size()
+	for flight: PelletFlight in flights:
+		var bead: LacquerPellet = _BEAD_SCENE.instantiate() as LacquerPellet
+		_effects_layer.add_child(bead)
+		bead.set_ramp(LacquerPellet.Ramp.BRASS)
+		bead.fly(flight)
+		vitals_plate.hold_core_xp(share)
+		bead.delivered.connect(vitals_plate.release_core_xp.bind(share))
+
+## Takes every bead in flight out of the effects layer; each delivers its share to
+## the cabinet as it goes.
+func _land_beads() -> void:
+	for child: Node in _effects_layer.get_children():
+		if child is LacquerPellet:
+			_effects_layer.remove_child(child)
+			child.queue_free()
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - Resource Management

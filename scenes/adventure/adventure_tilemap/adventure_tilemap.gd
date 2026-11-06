@@ -43,6 +43,10 @@ signal map_changed
 signal walk_refused(reason: StringName)
 ## The boss tile came into view for the first time this adventure.
 signal boss_revealed(coord: Vector3i)
+## A resolved choice's rewards deepened the core by `xp` Core Density XP: what the
+## core took, once per choice (a full core takes none, and the kill that fills it
+## takes only what it lacked). The run's cabinet flies it to its Core row.
+signal core_density_earned(xp: float)
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -480,6 +484,14 @@ func is_dev_reveal_all() -> bool:
 func get_tile_world_centre(coord: Vector3i) -> Vector2:
 	return full_map.cube_to_local(coord) + full_map.position
 
+## Returns where the tile's centre is drawn on the screen, through the camera and
+## the container that shows the map's viewport: the current hex stands at (960,
+## 470). A reward's beads fly from there.
+func get_tile_screen_position(coord: Vector3i) -> Vector2:
+	var on_viewport: Vector2 = get_viewport().get_canvas_transform() * (get_global_transform() * get_tile_world_centre(coord))
+	var view_host: Control = _find_view_host()
+	return on_viewport + view_host.global_position if view_host != null else on_viewport
+
 ## Returns the fog tier (1-3) drawn on the tile, or -1 when it has no fog: a
 ## tile the player sees, one past the fog's reach, or any tile while no
 ## adventure runs.
@@ -611,9 +623,11 @@ func _complete_current_tile(summary: String) -> void:
 
 ## Runs the effects. The Core Density XP they pay (AwardCoreDensityXpEffectData)
 ## joins the run's total and is returned: a reward that lands in a full core
-## pays nothing, as the core takes no XP.
+## pays nothing, as the core takes no XP. What the core took is announced
+## (core_density_earned).
 func _apply_effects(effects: Array[EffectData]) -> float:
 	var core_density_xp: float = 0.0
+	var core_before: float = _core_progress()
 	for effect in effects:
 		if effect:
 			var award := effect as AwardCoreDensityXpEffectData
@@ -621,7 +635,19 @@ func _apply_effects(effects: Array[EffectData]) -> float:
 				core_density_xp += award.amount
 			effect.process() # TODO: Pass context if needed (player, etc.)
 	_core_density_xp_earned += core_density_xp
+	var core_gained: float = _core_progress() - core_before
+	if core_density_xp > 0.0 and core_gained > 0.0:
+		core_density_earned.emit(core_gained)
 	return core_density_xp
+
+## The Core Density XP the current stage's core holds: every level's cost up to
+## its level, and the XP toward the next. Two readings either side of a reward
+## give what the core took of it.
+static func _core_progress() -> float:
+	var progress: float = CultivationManager.get_core_density_xp()
+	for level: int in range(1, int(CultivationManager.get_core_density_level()) + 1):
+		progress += CultivationManager.get_xp_for_level(level)
+	return progress
 
 ## Tells the boards why a walk cannot start or go on (walk_refused) and puts the
 ## reason in the player's log.
