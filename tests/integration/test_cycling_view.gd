@@ -1,7 +1,7 @@
 extends GutTest
 
-## Integration tests for the cycling board (CyclingView): the status line and
-## what it says when Madra or the core is full, a long name and status line that
+## Integration tests for the cycling board (CyclingView): the status line's two
+## instructions, which change only as a cycle starts or ends, a long name and status line that
 ## wrap and keep the board on screen, the title that follows the equipped
 ## technique, the result a cycle leaves for the chest and the one log line it
 ## writes, the Madra and XP pellets that bring what a cycle drew to the cabinet
@@ -169,42 +169,49 @@ func _press_at(position: Vector2) -> void:
 # THE STATUS LINE
 #-----------------------------------------------------------------------------
 
+## Two lines, as Lionel set them after playing: the instruction to start while
+## the ball waits, and the instructions while it runs, with the zones' part only
+## for a technique that has zones.
 func test_status_line_copy() -> void:
-	assert_eq(CyclingView.status_line(false, false, 0.0, 15.0, false, false, true), CyclingView.READY_FIRST)
-	assert_eq(CyclingView.status_line(true, false, 0.0, 15.0, false, false, true), CyclingView.READY_AGAIN)
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, true, false, true), "Cycling · 9 / 15 s")
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, false, false, true), "Cycling · 9 / 15 s · follow the ball")
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, true, true, true), CyclingView.MADRA_FULL_ZONES)
-	assert_eq(CyclingView.status_line(true, true, 9.4, 15.0, true, true, false), CyclingView.MADRA_FULL)
+	var cases: Array[Dictionary] = [
+		{"running": false, "zones": true, "line": "Click the Madra ball to begin a cycle.", "name": "waiting, zones"},
+		{"running": false, "zones": false, "line": "Click the Madra ball to begin a cycle.", "name": "waiting, no zones"},
+		{"running": true, "zones": false, "line": "Follow the ball for Madra and Spirit.", "name": "running, no zones"},
+		{"running": true, "zones": true, "line": "Follow the ball for Madra and Spirit. Click it over a zone for Core XP.", "name": "running, zones"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CyclingView.status_line(case.running, case.zones), case.line, case.name)
 
-func test_the_status_label_follows_the_cycle() -> void:
-	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "ready before the first cycle")
+## The line changes only as a cycle starts or ends: not with the seconds, the
+## cursor, a full pool or a capped Spirit.
+func test_the_status_line_changes_only_as_a_cycle_starts_or_ends() -> void:
+	assert_eq(_view.get_status_text(), CyclingView.READY, "waiting before the first cycle")
 	_technique.start_cycle()
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), "Cycling · 0 / 15 s", "the cursor follows the ball")
-	_technique.advance(FRAME, FAR)
-	_view._process(0.0)
-	assert_eq(_view.get_status_text(), "Cycling · 0 / 15 s · follow the ball", "the cursor drifted off")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running, following")
 	_run(6.0, 60.0, false)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), "Cycling · 6 / 15 s · follow the ball")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running, six seconds on, off the ball")
+	ResourceManager.set_madra(ResourceManager.get_max_madra())
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
+	_run(1.0, 60.0, true)
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "running with the pool full and Spirit capped")
 	_run(CYCLE_SECONDS, 60.0, false)
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.READY_AGAIN, "ready again after a cycle")
+	assert_eq(_view.get_status_text(), CyclingView.READY, "waiting again after the cycle")
 
-## A full core takes no XP, so a technique's zones pay none and the line must not
-## say they do. The board was built with room in the core: the line follows the
-## core as it stands this frame.
-func test_the_status_label_stops_promising_xp_at_a_full_core() -> void:
-	PersistenceManager.save_game_data.core_density_level = 100.0
-	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
-	assert_false(_technique.cycling_zones.is_empty(), "precondition: the technique has zones")
-	ResourceManager.set_madra(ResourceManager.get_max_madra())
+## The Foundational has no zones, so its running line leaves them out.
+func test_a_technique_with_no_zones_leaves_them_out() -> void:
+	CyclingManager.equip_technique(FOUNDATION_ID)
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.READY)
 	_technique.start_cycle()
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
-	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL)
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW)
+	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
 # LONG TEXT
@@ -267,7 +274,7 @@ func test_a_save_with_no_techniques_leaves_the_board_idle() -> void:
 	bare_technique.set_process(false)
 	assert_null(bare_technique.technique_data, "nothing to play")
 	bare._process(0.0)
-	assert_eq(bare.get_status_text(), CyclingView.READY_FIRST)
+	assert_eq(bare.get_status_text(), CyclingView.READY)
 	assert_false(bare_technique.start_cycle(), "and no cycle starts")
 	bare.hide()
 	bare.show()
@@ -292,7 +299,7 @@ func test_switching_technique_clears_the_result_line_and_the_ready_text() -> voi
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	_view._process(0.0)
 	assert_eq(_last_line(), "")
-	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "a new technique has not been cycled yet")
+	assert_eq(_view.get_status_text(), CyclingView.READY, "the new technique waits for a press")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
@@ -394,6 +401,45 @@ func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
 	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), ceili(CultivationManager.get_xp_for_next_level())])
 	await _await_queued_frees()
 
+## The Spirit pellets in the effects layer.
+func _spirit_pellets() -> Array[LacquerPellet]:
+	return _pellets().filter(func(pellet: LacquerPellet) -> bool: return pellet.get_ramp() == LacquerPellet.Ramp.SPIRIT)
+
+func _spirit_cell() -> StatCell:
+	return _plate.get_node("%SpiritCell") as StatCell
+
+## Each half second followed sends a puff of pellets in Spirit's colour to its
+## cell, which shows the XP as they land, not as they leave.
+func test_spirit_pellets_fly_to_spirit_s_cell() -> void:
+	_technique.start_cycle()
+	_run(0.55, 60.0, true)
+	var puff: Array[LacquerPellet] = _spirit_pellets()
+	assert_eq(puff.size(), CyclingView.STAT_PELLETS, "one puff for the first half second")
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 1.0, 0.0001, "precondition: Spirit took Smooth Flow's 1 XP")
+	assert_eq(_spirit_cell().get_shown_xp(), 0.0, "none of it has landed")
+	for pellet: LacquerPellet in puff:
+		pellet._process(10.0)
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 1.0, 0.0001, "all of it has landed")
+
+func test_no_spirit_pellets_at_the_cap() -> void:
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
+	_technique.start_cycle()
+	_run(1.1, 60.0, true)
+	assert_gt(_pellets().size(), 0, "precondition: Madra pellets still fly")
+	assert_eq(_spirit_pellets().size(), 0, "a capped Spirit takes no pellets")
+
+## A board that hides mid-cycle pays the Spirit XP followed since the last puff
+## straight into the cell: nothing flies from a hidden board, and nothing stays held.
+func test_hiding_the_view_pays_the_spirit_xp_without_pellets() -> void:
+	_technique.start_cycle()
+	_run(0.3, 60.0, true)
+	assert_eq(_spirit_pellets().size(), 0, "precondition: no half second paid yet")
+	_view.hide()
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.6, 0.0001, "0.3 s of Smooth Flow's 2 a second")
+	assert_eq(_spirit_pellets().size(), 0, "no pellet flies from the hidden board")
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.6, 0.0001, "and the cell shows it at once")
+	await _await_queued_frees()
+
 #-----------------------------------------------------------------------------
 # AUTO
 #-----------------------------------------------------------------------------
@@ -463,7 +509,7 @@ func test_reopening_starts_clean() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
 	_view._process(0.0)
-	assert_true(_view.get_status_text().begins_with("Cycling · "), "precondition: the status line shows the cycle")
+	assert_eq(_view.get_status_text(), CyclingView.FOLLOW_ZONES, "precondition: the status line shows the running cycle's instructions")
 	_view.hide()
 	_view.show()
 	assert_eq(_last_line(), "", "no stale result line")
@@ -471,7 +517,7 @@ func test_reopening_starts_clean() -> void:
 		assert_eq(each.get_state(), CyclingZone.State.IDLE, "%s is idle" % each.name)
 	assert_false(_technique.is_cycling(), "the cycle ended")
 	assert_false(CyclingManager.is_cycle_running(), "and its session")
-	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "and the status reads as the first time again")
+	assert_eq(_view.get_status_text(), CyclingView.READY, "and the ball waits for a press")
 	await _await_queued_frees()
 
 func test_showing_names_whatever_action_runs() -> void:

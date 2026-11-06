@@ -8,6 +8,10 @@ extends RefCounted
 ## 20 px radius (6 px) is PERFECT, under 0.7 of it (14 px) is GOOD, and anything
 ## farther is OK. The tier sets the zone's XP, how many XP pellets fly to the
 ## Core orb, and the name and colour of the hit's floater.
+## Following the ball is judged here too (is_following()): anywhere in the gold
+## circle around the ball keeps following, and a cursor in it starts once it
+## moves, so a cursor resting on the path follows nothing as the ball passes.
+## FollowWindow measures what the rule reads.
 ## Statics only.
 
 #-----------------------------------------------------------------------------
@@ -26,6 +30,13 @@ const PERFECT_RATIO: float = 0.3
 ## The share of ZONE_RADIUS a hit must be under to be GOOD (14 px).
 const GOOD_RATIO: float = 0.7
 
+## Seconds of the cycle the follow rule looks back over.
+const FOLLOW_WINDOW: float = 0.25
+
+## px a cursor on the ball must have moved over the window to start following:
+## a resting one never does, and a twitch does not either.
+const FOLLOW_START_MOVE: float = 4.0
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
@@ -40,6 +51,14 @@ static func tier_for_distance(distance: float) -> Tier:
 	if ratio < GOOD_RATIO:
 		return Tier.GOOD
 	return Tier.OK
+
+## Returns whether the cursor follows the ball this frame. `on_ball` is whether
+## it is in the gold circle around the ball as drawn, and `moved` how far the
+## cursor went over the window, in px. Off the ball nothing follows. A cursor
+## that `was_following` keeps it anywhere in the circle; one that was not starts
+## once it has moved FOLLOW_START_MOVE, so a resting cursor never starts.
+static func is_following(on_ball: bool, was_following: bool, moved: float) -> bool:
+	return on_ball and (was_following or moved >= FOLLOW_START_MOVE)
 
 ## Returns the Core Density XP `zone` pays for a hit of `tier`.
 static func xp_for_tier(zone: CyclingZoneData, tier: Tier) -> int:

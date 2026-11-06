@@ -35,3 +35,11 @@ func get_madra_per_second(madra_multiplier: float = 1.0) -> float:
 	if cycle_duration <= 0.0:
 		return 0.0
 	return get_madra_per_cycle(madra_multiplier) / cycle_duration
+
+## Returns the Spirit XP a second of following pays: spirit_xp_per_cycle over
+## cycle_duration, so a fully followed cycle pays spirit_xp_per_cycle. 0.0 for a
+## cycle of no length.
+func get_spirit_xp_per_second() -> float:
+	if cycle_duration <= 0.0:
+		return 0.0
+	return spirit_xp_per_cycle / cycle_duration

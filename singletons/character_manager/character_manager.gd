@@ -8,7 +8,10 @@ extends Node
 ## elixirs later) is a source in a StatModifierStack, asked when a stat is
 ## read. get_stat() is the one read: an attribute is its trained value with its
 ## modifiers; a derived stat is CharacterAttributesData's formula over the
-## total attributes, then its own modifiers.
+## total attributes, then its own modifiers. Each total is worked out once and
+## cached until the stats change: every change this manager makes or hears of
+## (a level, the inventory, a save reset, a modifier source) empties the cache
+## just before stats_changed, so a listener always reads the new totals.
 
 #-----------------------------------------------------------------------------
 # TYPE ALIASES
@@ -60,6 +63,11 @@ var live_save_data: SaveGameData = null # Reference set in _ready
 ## Every bonus to the player's stats, by source.
 var _modifiers: StatModifierStack = StatModifierStack.new()
 
+## Every total read since the stats last changed, Stat to float. A read with
+## gear on asks every source for every stat of the block (DM-06), so get_stat()
+## answers from here, and _stats_changed() empties it.
+var _stat_cache: Dictionary = {}
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -84,9 +92,15 @@ func _update_resources() -> void:
 	if live_save_data == null:
 		Log.critical("CharacterManager: live_save_data is null in _update_resources!")
 		return
-	stats_changed.emit()
+	_stats_changed()
 
 func _on_inventory_changed(_inventory: InventoryData) -> void:
+	_stats_changed()
+
+## Empties the stat cache, then emits stats_changed, so every listener reads
+## the new totals.
+func _stats_changed() -> void:
+	_stat_cache.clear()
 	stats_changed.emit()
 
 
@@ -97,9 +111,14 @@ func _on_inventory_changed(_inventory: InventoryData) -> void:
 ## Returns the stat's total. An attribute is its trained value (its level's
 ## value on the level curve) with its modifiers. A derived stat is its formula
 ## on CharacterAttributesData over the total attributes, then its own modifiers.
-## Armor and Ward start at 0 and come from their modifiers alone.
+## Armor and Ward start at 0 and come from their modifiers alone. Cached until
+## the stats change.
 func get_stat(stat: Stat) -> float:
-	return _modifiers.apply(stat, _get_base_stat(stat))
+	if _stat_cache.has(stat):
+		return _stat_cache[stat]
+	var total: float = _modifiers.apply(stat, _get_base_stat(stat))
+	_stat_cache[stat] = total
+	return total
 
 ## Returns the six stats, armor and Ward (base + modifiers) as one block, a
 ## snapshot that does not follow later changes.
@@ -114,8 +133,7 @@ func get_total_attributes_data() -> CharacterAttributesData:
 ## The flat points the worn gear adds to the stat: each equipped item's and
 ## accessory's get_stat_bonus() on the stat's trained value, summed. It is gear's
 ## FLAT amount before any PERCENT modifier, which StatModifierStack applies after
-## every FLAT one, so get_stat() differs from the trained value plus this once a
-## source adds a percent to the stat.
+## every FLAT one.
 func get_gear_bonus(stat: AttributeType) -> float:
 	var trained_value: float = get_trained_value(stat)
 	var bonus: float = 0.0
@@ -124,16 +142,17 @@ func get_gear_bonus(stat: AttributeType) -> float:
 	return bonus
 
 ## Adds a modifier source, or replaces the one under that name. The provider
-## takes no arguments and returns Array[StatModifierData]; it is asked each
-## time a stat is read. "gear" is taken by the equipped gear.
+## takes no arguments and returns Array[StatModifierData]; it is asked when a
+## stat is read after the stats change, so a source whose modifiers change sets
+## itself again. "gear" is taken by the equipped gear.
 func set_modifier_source(source: StringName, provider: Callable) -> void:
 	_modifiers.set_source(source, provider)
-	stats_changed.emit()
+	_stats_changed()
 
 ## Removes a modifier source, if there is one under that name.
 func remove_modifier_source(source: StringName) -> void:
 	_modifiers.remove_source(source)
-	stats_changed.emit()
+	_stats_changed()
 
 #-----------------------------------------------------------------------------
 # TRAINED LEVELS
@@ -184,20 +203,23 @@ func get_trained_values() -> Dictionary:
 ## it held) is lost, and the level-up that reaches the cap drops the XP left
 ## over. Emits stat_level_changed and logs a line for each level gained,
 ## stat_xp_changed once, and stats_changed once when a level was gained.
-func add_stat_xp(stat: AttributeType, amount: float) -> void:
+## Returns the XP the stat took: all of `amount` short of the cap, only what
+## bought the level that reaches it, and none at the cap.
+func add_stat_xp(stat: AttributeType, amount: float) -> float:
 	if live_save_data == null:
 		Log.error("CharacterManager: Cannot add stat XP - live_save_data is null")
-		return
+		return 0.0
 	var training: StatTrainingData = live_save_data.stat_training
 
 	# A capped stat holds no XP, so what arrives (and what it held) is lost
 	if is_stat_capped(stat):
 		training.set_xp(stat, 0.0)
 		stat_xp_changed.emit(stat, 0.0, get_stat_xp_to_next(stat))
-		return
+		return 0.0
 
 	var start_level: int = training.get_level(stat)
 	var cap: int = get_stat_level_cap()
+	var taken: float = amount
 	training.set_xp(stat, training.get_xp(stat) + amount)
 	var cost: float = get_stat_xp_to_next(stat)
 	while training.get_xp(stat) >= cost:
@@ -212,6 +234,8 @@ func add_stat_xp(stat: AttributeType, amount: float) -> void:
 		var level: int = training.get_level(stat) + 1
 		var reached_cap: bool = level >= cap
 		# The level-up that reaches the cap drops the XP left over
+		if reached_cap:
+			taken -= training.get_xp(stat) - cost
 		training.set_xp(stat, 0.0 if reached_cap else training.get_xp(stat) - cost)
 		_raise_stat_level(stat, level)
 		if reached_cap:
@@ -220,7 +244,8 @@ func add_stat_xp(stat: AttributeType, amount: float) -> void:
 
 	stat_xp_changed.emit(stat, training.get_xp(stat), get_stat_xp_to_next(stat))
 	if training.get_level(stat) != start_level:
-		stats_changed.emit()
+		_stats_changed()
+	return taken
 
 ## Raises the stat `count` levels, one at a time, up to the stage's cap: the
 ## levels past it are lost, and a stat at or past the cap stays where it is.
@@ -243,7 +268,7 @@ func add_stat_levels(stat: AttributeType, count: int) -> void:
 
 	stat_xp_changed.emit(stat, training.get_xp(stat), get_stat_xp_to_next(stat))
 	if target != start_level:
-		stats_changed.emit()
+		_stats_changed()
 
 ## The dev tools' setter: puts the stat at any level from 1, past the cap too,
 ## with `xp` held inside the level, from 0 to one point short of the level's
@@ -260,7 +285,7 @@ func set_stat_level(stat: AttributeType, level: int, xp: float = 0.0) -> void:
 	training.set_xp(stat, minf(maxf(xp, 0.0), maxf(cost - 1.0, 0.0)))
 	stat_level_changed.emit(stat, new_level)
 	stat_xp_changed.emit(stat, training.get_xp(stat), cost)
-	stats_changed.emit()
+	_stats_changed()
 
 #-----------------------------------------------------------------------------
 # DERIVED STATS (Calculated from attributes)

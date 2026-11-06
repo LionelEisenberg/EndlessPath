@@ -932,7 +932,7 @@ func test_the_last_cycle_line_shows_the_result() -> void:
 	assert_false(_last_cycle_label().visible, "no line before a cycle ends")
 	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 3, 4, 1, 75))
 	assert_true(_last_cycle_label().visible)
-	assert_eq(_last_cycle_label().text, "Last cycle · +199 Madra · 3 / 4 zones · 1 PERFECT · +75 XP")
+	assert_eq(_last_cycle_label().text, "Last cycle · +199 Madra · 3 / 4 zones · 1 PERFECT · +75 Core XP")
 
 func test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down() -> void:
 	_unlock_all_techniques()
@@ -940,7 +940,7 @@ func test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down() -> void:
 	_panel.set_techniques_mode(true)
 	CyclingManager.set_last_cycle_result(_last_cycle(12345.0, 10, 12, 10, 99999))
 	var label: Label = _last_cycle_label()
-	assert_eq(label.text, "Last cycle · +12345 Madra · 10 / 12 zones · 10 PERFECT · +99999 XP", "the whole line")
+	assert_eq(label.text, "Last cycle · +12345 Madra · 10 / 12 zones · 10 PERFECT · +99999 Core XP", "the whole line")
 	assert_eq(label.get_line_count(), 2, "wider than the tray, it wraps")
 	assert_eq(label.get_visible_line_count(), 2, "and both lines show")
 	assert_gte(label.size.y, label.get_minimum_size().y, "its box holds both lines")

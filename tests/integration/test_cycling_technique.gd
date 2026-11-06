@@ -404,14 +404,15 @@ func test_rate_falls_to_zero_once_tracking_stops() -> void:
 		assert_eq(CyclingManager.get_madra_rate(), 0.0, "RATE_WINDOW and a frame after the cursor left, at %d FPS" % fps)
 
 func test_rate_rises_and_falls_within_a_second() -> void:
-	# A window that is half tracked reads half the steady rate.
+	# A cursor that catches the ball mid-cycle follows at once, so a window half
+	# followed reads half the steady rate.
 	_technique.start_cycle()
 	_run(1.0, 60.0, false)
 	assert_eq(CyclingManager.get_madra_rate(), 0.0, "nothing is drawn yet")
 	_run(0.5, 60.0, true)
-	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second of tracking")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second of following")
 	_run(0.5, 60.0, true)
-	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "a second of tracking")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "a second of following")
 	_run(0.5, 60.0, false)
 	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second after it stopped")
 
@@ -473,41 +474,250 @@ func test_a_manual_start_begins_from_an_empty_window() -> void:
 	assert_eq(CyclingManager.get_madra_rate(), 0.0, "a stopped cycle leaves nothing either")
 
 #-----------------------------------------------------------------------------
-# TRACKING
+# FOLLOWING
 #-----------------------------------------------------------------------------
 
-func test_tracking_needs_the_cursor_on_the_ball() -> void:
+## A cursor that catches the ball mid-cycle follows once it has moved with it for
+## a quarter second; past the ring nothing follows.
+## A cursor that moves onto the ball mid-cycle follows at once, anywhere in the
+## gold circle; past the ring nothing follows.
+func test_following_needs_the_cursor_in_the_ring() -> void:
 	_technique.advance(FRAME, FAR)
-	assert_false(_technique.is_tracking())
+	assert_false(_technique.is_following(), "no cycle runs")
 	_technique.start_cycle()
 	_technique.advance(FRAME, FAR)
-	assert_false(_technique.is_tracking())
+	assert_false(_technique.is_following(), "the first frame is off the ball")
+	_run(3.0, 60.0, false)
 	_technique.advance(FRAME, _technique.get_ball_global_position())
-	assert_true(_technique.is_tracking())
-	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 1.0, 0.0))
-	assert_false(_technique.is_tracking())
+	assert_true(_technique.is_following(), "catching the ball mid-cycle follows at once")
+	# The ball moves a few px a frame here, so the offsets keep clear of the edge.
+	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(0.0, 24.0))
+	assert_true(_technique.is_following(), "off the ball's centre, still in the ring, it follows")
+	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 10.0, 0.0))
+	assert_false(_technique.is_following(), "past the ring nothing follows")
 
-func test_tracking_uses_the_drawn_ball() -> void:
+func test_on_the_ball_uses_the_drawn_ball() -> void:
 	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
 	_technique.start_cycle()
 	# The true ball is at x 100.6 and is drawn at 100. A cursor at x 64 is 36 px
 	# from the drawn ball (on the ring's outer edge) and 36.6 px from the true one.
+	# The press makes the first frame follow on the ball alone.
 	_advance_straight_to(100.6, Vector2(64.0, 0.0))
 	assert_eq(_technique.get_ball_global_position(), Vector2(100.0, 0.0))
-	assert_true(_technique.is_tracking())
+	assert_true(_technique.is_following())
 	await _await_queued_frees()
 
-func test_the_cursor_tracks_on_the_ring_and_not_past_it() -> void:
+func test_the_cursor_follows_on_the_ring_and_not_past_it() -> void:
 	# The solid ring the player follows is drawn out to 36 px, past the ball's own
-	# 29.5, so a cursor on the ring tracks and one past it does not.
+	# 29.5, so a cursor on the ring follows and one past it does not.
 	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
 	_technique.start_cycle()
 	_advance_straight_to(100.6, Vector2(100.0, 33.0))
 	assert_eq(_technique.get_ball_global_position(), Vector2(100.0, 0.0), "precondition: the ball is drawn at x 100")
-	assert_true(_technique.is_tracking(), "33 px off, on the ring, the cursor tracks")
+	assert_true(_technique.is_following(), "33 px off, on the ring, the cursor follows")
 	_technique.advance(0.0, Vector2(100.0, 37.0))
-	assert_false(_technique.is_tracking(), "37 px off, past the ring, it does not")
+	assert_false(_technique.is_following(), "37 px off, past the ring, it does not")
 	await _await_queued_frees()
+
+## The Foundational path starts, crosses itself and ends at one point. A cursor
+## that comes to rest there once the ball has left meets it twice more, at the
+## crossing and at the end, and never follows: no ring, no Madra.
+func test_a_cursor_resting_on_the_path_draws_nothing() -> void:
+	_use_foundation()
+	var resting: Vector2 = _technique.get_ball_global_position()
+	var ring := _node("BallRing") as CanvasItem
+	var pellets: Array[int] = _count_pellets()
+	var met: int = 0
+	var ringed: int = 0
+	_technique.start_cycle()
+	_run(1.0, 60.0, false)
+	while _technique.is_cycling():
+		_technique.advance(FRAME, resting)
+		if resting.distance_to(_technique.get_ball_global_position()) <= CyclingTechnique.CURSOR_REACH:
+			met += 1
+		if _technique.is_cycling() and ring.visible:
+			ringed += 1
+	assert_gt(met, 0, "precondition: the ball ran through the resting cursor")
+	assert_eq(pellets[0], 0, "no Madra step")
+	assert_eq(ringed, 0, "and the ring never showed")
+
+## After the press the cursor follows until the creeping ball leaves the ring,
+## then never again: a few steps at the start, none at the crossing or the end.
+func test_a_cursor_resting_after_the_press_draws_only_the_creeping_start() -> void:
+	_use_foundation()
+	var resting: Vector2 = _technique.get_ball_global_position()
+	var steps_at: Array[float] = []
+	_technique.madra_particle_requested.connect(func(_from_pos: Vector2, _amount: float) -> void: steps_at.append(CyclingManager.get_cycle_elapsed()))
+	_technique.start_cycle()
+	while _technique.is_cycling():
+		_technique.advance(FRAME, resting)
+	assert_gt(steps_at.size(), 0, "precondition: the press made the start follow")
+	assert_lte(steps_at.size(), 12, "only the creeping start draws")
+	assert_lt(steps_at.max(), 1.0, "and nothing once the ball has left the ring")
+
+func test_auto_carries_following_into_the_next_cycle() -> void:
+	_make_room(500.0)
+	_use_foundation()
+	_technique.auto_cycle = true
+	var completed: Array[int] = [0]
+	_technique.cycle_completed.connect(func(_result: CycleResult) -> void: completed[0] += 1)
+	_technique.start_cycle()
+	while completed[0] == 0:
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+	assert_true(_technique.is_cycling(), "precondition: Auto started the next cycle")
+	var pellets: Array[int] = _count_pellets()
+	_run(0.5, 60.0, true)
+	assert_true(_technique.is_following(), "the streak carried over")
+	assert_gt(pellets[0], 0, "and the next cycle's start draws")
+
+func test_auto_never_starts_following_for_a_resting_cursor() -> void:
+	_make_room(500.0)
+	_use_foundation()
+	var resting: Vector2 = _technique.get_ball_global_position()
+	_technique.auto_cycle = true
+	var pellets: Array[int] = _count_pellets()
+	var completed: Array[int] = [0]
+	_technique.cycle_completed.connect(func(_result: CycleResult) -> void: completed[0] += 1)
+	_technique.start_cycle()
+	_run(1.0, 60.0, false)
+	while completed[0] < 2:
+		_technique.advance(FRAME, resting)
+	assert_eq(pellets[0], 0, "two cycles of Auto drew nothing for a cursor that never moved")
+
+#-----------------------------------------------------------------------------
+# SPIRIT XP
+#-----------------------------------------------------------------------------
+
+## The Foundational pays 12 Spirit XP for a fully followed 8 s cycle: 1.5 a
+## second, 0.75 every half second.
+const SPIRIT_XP_PER_SECOND: float = 1.5
+const SPIRIT := CharacterAttributesData.AttributeType.SPIRIT
+
+## Spirit's XP toward its next level: every payment in these tests stays short of
+## Lv 2's 100 XP.
+func _spirit_xp() -> float:
+	return CharacterManager.get_stat_xp(SPIRIT)
+
+## The amounts of each stat_xp_paid the technique emitted since watch_signals().
+func _paid_amounts() -> Array[float]:
+	var amounts: Array[float] = []
+	for index: int in get_signal_emit_count(_technique, "stat_xp_paid"):
+		amounts.append(get_signal_parameters(_technique, "stat_xp_paid", index)[2])
+	return amounts
+
+func test_following_pays_spirit_xp_every_half_second() -> void:
+	_use_foundation()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(1.6, 60.0, true)
+	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 3, "at 0.5, 1 and 1.5 s")
+	for amount: float in _paid_amounts():
+		assert_almost_eq(amount, 0.75, 0.0001, "half a second's Spirit XP")
+	assert_eq(get_signal_parameters(_technique, "stat_xp_paid", 0)[0], SPIRIT)
+	assert_almost_eq(_spirit_xp(), 2.25, 0.0001, "Spirit took all three")
+
+func test_a_fully_followed_cycle_pays_its_spirit_xp() -> void:
+	var rng := RandomNumberGenerator.new()
+	var frame_times: Array[Dictionary] = [
+		{"name": "30 FPS", "next": func() -> float: return 1.0 / 30.0},
+		{"name": "60 FPS", "next": func() -> float: return 1.0 / 60.0},
+		{"name": "144 FPS", "next": func() -> float: return 1.0 / 144.0},
+		{"name": "uneven frames", "next": func() -> float: return rng.randf_range(0.5, 1.5) / 60.0},
+	]
+	for case: Dictionary in frame_times:
+		rng.seed = 7
+		CharacterManager.set_stat_level(SPIRIT, 1)
+		_use_foundation()
+		_track_one_cycle(case.next)
+		var result: CycleResult = _technique.get_current_result()
+		assert_almost_eq(_spirit_xp(), 12.0, 0.0001, "%s: Spirit took the cycle's 12 XP" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 12.0, 0.0001, "%s: and the result holds them" % case.name)
+		assert_almost_eq(result.followed_ratio, 1.0, 0.01, "%s: the whole cycle was followed" % case.name)
+
+func test_following_pays_spirit_xp_with_madra_full() -> void:
+	ResourceManager.set_madra(ResourceManager.get_max_madra())
+	_use_foundation()
+	_track_one_cycle(func() -> float: return FRAME)
+	assert_eq(_technique.get_current_result().madra_added, 0.0, "precondition: no Madra fit")
+	assert_almost_eq(_spirit_xp(), 12.0, 0.0001, "following still paid its Spirit XP")
+
+func test_a_resting_cursor_earns_no_spirit_xp() -> void:
+	_use_foundation()
+	var resting: Vector2 = _technique.get_ball_global_position()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(1.0, 60.0, false)
+	while _technique.is_cycling():
+		_technique.advance(FRAME, resting)
+	assert_signal_not_emitted(_technique, "stat_xp_paid")
+	assert_eq(_spirit_xp(), 0.0)
+	assert_eq(_technique.get_current_result().followed_ratio, 0.0)
+
+func test_a_stopped_cycle_keeps_the_spirit_xp_it_followed() -> void:
+	_use_foundation()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(1.2, 60.0, true)
+	_technique.stop_cycling()
+	var amounts: Array[float] = _paid_amounts()
+	assert_eq(amounts.size(), 3, "two half seconds, then the rest at the stop")
+	assert_almost_eq(amounts[2], 0.3, 0.0001, "the 0.2 s followed since the last payment")
+	assert_almost_eq(_spirit_xp(), 1.8, 0.0001, "1.2 s of following in all")
+
+## A switch drops the Spirit XP of the half second not yet paid, so no pellet
+## flies from a technique the board has left.
+func test_a_switch_drops_the_spirit_xp_not_yet_paid() -> void:
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(1.2, 60.0, true)
+	_technique.setup(load(FOUNDATION_PATH))
+	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 2, "the two half seconds paid as they came, and nothing at the switch")
+	assert_almost_eq(_spirit_xp(), 2.0, 0.0001, "Smooth Flow's 2 a second for one second; the 0.2 s after is dropped")
+	await _await_queued_frees()
+
+func test_spirit_xp_at_the_cap_marks_the_result() -> void:
+	CharacterManager.set_stat_level(SPIRIT, CharacterManager.get_stat_level_cap())
+	_use_foundation()
+	watch_signals(_technique)
+	_track_one_cycle(func() -> float: return FRAME)
+	var result: CycleResult = _technique.get_current_result()
+	assert_signal_not_emitted(_technique, "stat_xp_paid", "a capped stat takes nothing, so nothing is sent")
+	assert_true(result.is_stat_capped(SPIRIT), "the cap took the cycle's Spirit XP")
+	assert_eq(result.get_stat_xp(SPIRIT), 0.0)
+
+func test_the_payment_that_reaches_the_cap_carries_only_what_it_took() -> void:
+	# One XP short of the cap, the most set_stat_level() leaves: the first half
+	# second's 0.75 fits, and the second's reaches the cap with 0.25 of it.
+	var below_cap: int = CharacterManager.get_stat_level_cap() - 1
+	CharacterManager.set_stat_level(SPIRIT, below_cap, CharacterManager.stat_progression.get_xp_to_next(below_cap) - 1.0)
+	_use_foundation()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(1.1, 60.0, true)
+	var amounts: Array[float] = _paid_amounts()
+	assert_eq(amounts.size(), 2, "precondition: two half seconds were paid")
+	assert_almost_eq(amounts[0], 0.75, 0.0001, "the first fit whole")
+	assert_almost_eq(amounts[1], 0.25, 0.0001, "the second carried only the 0.25 the cap left room for")
+	assert_true(CharacterManager.is_stat_capped(SPIRIT))
+	var result: CycleResult = _technique.get_current_result()
+	assert_true(result.is_stat_capped(SPIRIT), "the cap took the rest")
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 1.0, 0.0001)
+
+func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
+	# 2 s of following pay four half seconds. A 16 s frame then follows to the
+	# path's end, where it started, but only 6 s of it were left in the cycle:
+	# one payment of 9 Spirit XP, 12 in all.
+	_make_room(500.0)
+	_use_foundation()
+	var path_end: Vector2 = _technique.get_ball_global_position()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(2.0, 60.0, true)
+	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 4, "precondition: four half seconds paid")
+	_technique.advance(16.0, path_end)
+	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
+	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 5, "the hitch paid once")
+	assert_almost_eq(_spirit_xp(), 12.0, 0.0001, "the cycle's 12, not the 24 the frame covers")
 
 #-----------------------------------------------------------------------------
 # ZONES AND SCORING

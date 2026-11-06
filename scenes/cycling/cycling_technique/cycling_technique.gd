@@ -4,8 +4,20 @@ extends Node2D
 ## CyclingTechnique
 ## The play of one cycling technique. The Madra ball travels the technique's path
 ## once per cycle, easing in and out with a sine, and the carved groove lights
-## behind it. While the cursor is on the ball, out to the edge of the ring around
-## it (CURSOR_REACH), it draws Madra, one step every MADRA_PARTICLE_INTERVAL.
+## behind it. While the cursor follows the ball it draws Madra, one step every
+## MADRA_PARTICLE_INTERVAL. Following is being in the gold ring around the ball,
+## out to its edge (CURSOR_REACH), once it has started: the press that starts a
+## cycle starts it, and so does a cursor moving in the ring
+## (CyclingRules.is_following(), over a FollowWindow). A cursor resting on the
+## path never starts, so it follows nothing as the ball passes. With Auto a
+## streak carries from one cycle into the next.
+## Following also trains Spirit: a second clock gathers the time followed, and
+## every STAT_XP_INTERVAL of it pays Spirit XP through CharacterManager, the
+## technique's spirit_xp_per_cycle over a fully followed cycle, Madra full or not.
+## The cycle's end pays what is left, and so does a stop that cuts the cycle
+## short. A switch drops it, so no pellet flies from a technique the board has
+## left. Each payment that the stat took XP from is announced on stat_xp_paid,
+## for the view's pellets.
 ## The zones along the path turn active as the ball reaches them. The ball is
 ## the only thing the player presses: from ready a press
 ## starts a cycle, and during one a press while the ball is over an active zone
@@ -22,10 +34,10 @@ extends Node2D
 ## GROOVE_SWEEP_SECONDS, running along the path ahead of the ball, and the ball's
 ## trail lights the groove again behind it.
 ## The ball has two positions. The drawn one, snapped to the 2 px grid, is what
-## the player sees, so tracking, the ring and the pellets use it. The true one,
-## the PathFollow2D's, is where the ball is on the path, so which zones it
-## overlaps and how near a click was use it, and the groove lights to its
-## travelled length (_follow.progress).
+## the player sees, so whether the cursor is on the ball, the ring and the pellets
+## use it. The true one, the PathFollow2D's, is where the ball is on the path, so
+## which zones it overlaps and how near a click was use it, and the groove lights
+## to its travelled length (_follow.progress).
 ## While a cycle runs the technique writes CyclingManager's session snapshot, for
 ## the cabinet and the Now tray to read. The session belongs to the technique that
 ## started it: only that technique ends it, when its cycle ends, is stopped or cut
@@ -48,6 +60,11 @@ signal madra_particle_requested(from_pos: Vector2, amount: float)
 ## zone was worth. The XP has gone to Core Density by then (a full core takes
 ## none), so a listener reading the core finds it as this hit left it.
 signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
+## Emitted after a payment of stat XP that the stat took XP from, with the drawn
+## ball's global centre, for the view to fly pellets from, and the XP the stat
+## took (all of the payment short of the cap, never 0). The XP is in the stat by
+## then. A capped stat takes none, and nothing is emitted.
+signal stat_xp_paid(stat: CharacterAttributesData.AttributeType, from_pos: Vector2, amount: float)
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -58,13 +75,17 @@ signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
 const BALL_RADIUS: float = 29.5
 
 ## How far from the drawn ball's centre the cursor counts as on the ball: there
-## it tracks and draws Madra, a press lands on the ball, and the hand cursor
-## shows. It is the solid tracking ring's outer edge, so what counts is what the
-## player sees. The ball's press area, its CircleShape2D, has the same radius.
+## it can follow the ball, a press lands on the ball, and the hand cursor shows.
+## It is the solid following ring's outer edge, so what counts is what the player
+## sees. The ball's press area, its CircleShape2D, has the same radius.
 const CURSOR_REACH: float = 36.0
 
 ## Seconds between two steps of Madra while the cursor follows the ball.
 const MADRA_PARTICLE_INTERVAL: float = 0.08
+
+## Seconds of following one payment of Spirit XP covers. A frame that gathers
+## several (a hitch) pays them together, so a payment comes once a frame at most.
+const STAT_XP_INTERVAL: float = 0.5
 
 ## How far short of MADRA_PARTICLE_INTERVAL the Madra timer may be and still pay
 ## its step. It absorbs float error: an 8 s cycle holds exactly 100 steps, so its
@@ -92,7 +113,7 @@ const BREATH_SECONDS: float = 2.0
 ## The ball ring's frames: the steady ring around a ready ball, and the solid tan
 ## ring while the cursor follows it.
 const _RING_READY: int = 0
-const _RING_TRACKING: int = 1
+const _RING_FOLLOWING: int = 1
 ## The ready ring's frame for each breath level: it grows with the ball.
 const _RING_READY_BY_BREATH: Array[int] = [_RING_READY, 2, 3]
 
@@ -137,7 +158,14 @@ var technique_data: CyclingTechniqueData = null
 var cycling_zones: Array[CyclingZone] = []
 
 var _cycling: bool = false
-var _tracking: bool = false
+## Whether the cursor follows the ball this frame: the follow window's verdict.
+var _following: bool = false
+## The last quarter second of the running cycle, which judges following.
+var _follow_window: FollowWindow = FollowWindow.new()
+## Seconds the cursor has followed the ball this cycle.
+var _followed_seconds: float = 0.0
+## Seconds followed that no Spirit payment has covered yet.
+var _unpaid_spirit_seconds: float = 0.0
 ## Seconds into the running cycle.
 var _elapsed: float = 0.0
 ## The path's length in px, which the groove's sweep runs over.
@@ -189,6 +217,9 @@ func _exit_tree() -> void:
 ## all ready. A cycle that runs ends without a result. A null technique leaves
 ## nothing to play.
 func setup(data: CyclingTechniqueData) -> void:
+	# A switch drops the Spirit XP of the half second not yet paid: no pellet
+	# flies from a technique the board has left.
+	_unpaid_spirit_seconds = 0.0
 	technique_data = data
 	var curve: Curve2D = _scaled_curve(data.path_curve) if data != null else null
 	_path.curve = curve if curve != null else Curve2D.new()
@@ -199,13 +230,18 @@ func setup(data: CyclingTechniqueData) -> void:
 
 ## Starts a cycle, from ready only. Every zone goes back to IDLE (clearing the
 ## last cycle's studs), and the groove keeps the last cycle's light for the
-## sweep to clear. Returns whether a cycle started.
-func start_cycle() -> bool:
+## sweep to clear. The cycle's first frame follows if the cursor is on the ball
+## and `starts_following`: a press does, and an Auto restart carries the last
+## frame's verdict. Returns whether a cycle started.
+func start_cycle(starts_following: bool = true) -> bool:
 	if _cycling or technique_data == null:
 		return false
 	_cycling = true
 	_elapsed = 0.0
 	_madra_timer = 0.0
+	_followed_seconds = 0.0
+	_unpaid_spirit_seconds = 0.0
+	_follow_window.reset(starts_following)
 	_result = _new_result()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
@@ -224,11 +260,12 @@ func stop_cycling() -> void:
 
 ## Moves the play on by `delta` seconds, with the cursor at `cursor_global`.
 ## While no cycle runs only the swirl moves and the ball waits at the start. While
-## one runs, in this order: the ball moves and is drawn, the cursor draws Madra if
-## it is on the ball, the zones turn active or spent, the groove's sweep and trail
-## move on, the frame joins the rate window and the session is updated. The cycle
-## ends once its time is up. A frame that runs past the end counts only the time
-## left in the cycle, so a long hitch draws no Madra beyond it.
+## one runs, in this order: the ball moves and is drawn, the follow window judges
+## the frame and the cursor draws Madra if it follows, the zones turn active or
+## spent, the groove's sweep and trail move on, the frame joins the rate window
+## and the session is updated. The cycle ends once its time is up. A frame that
+## runs past the end counts only the time left in the cycle, so a long hitch
+## draws no Madra beyond it.
 func advance(delta: float, cursor_global: Vector2) -> void:
 	_swirl_clock += delta
 	if not _cycling:
@@ -241,13 +278,16 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	_elapsed = minf(_elapsed + delta, duration)
 	_follow.progress_ratio = _eased_ratio()
 	_draw_ball()
-	_tracking = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
-	_ball_ring.visible = _tracking
+	var on_ball: bool = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
+	_following = _follow_window.judge(cycle_delta, on_ball, cursor_global)
+	_ball_ring.visible = _following
 	# Whether the frame draws is judged before its steps can fill the pool.
-	var drawing: bool = _tracking and not _madra_full()
-	if _tracking:
-		_set_ring_frame(_RING_TRACKING)
+	var drawing: bool = _following and not _madra_full()
+	if _following:
+		_set_ring_frame(_RING_FOLLOWING)
 		_draw_madra(cycle_delta)
+		_follow_spirit(cycle_delta)
+	_result.followed_ratio = _followed_seconds / duration if duration > 0.0 else 0.0
 	_update_zones()
 	_groove.set_swept_length(_path_length * minf(_elapsed / GROOVE_SWEEP_SECONDS, 1.0))
 	_groove.set_lit_length(_follow.progress)
@@ -304,9 +344,10 @@ func wants_pointer(cursor_global: Vector2) -> bool:
 func is_cycling() -> bool:
 	return _cycling
 
-## Returns true while a cycle runs and the cursor is on the ball.
-func is_tracking() -> bool:
-	return _tracking
+## Returns true while a cycle runs and the cursor follows the ball: in its gold
+## ring, since the press or since it moved there.
+func is_following() -> bool:
+	return _following
 
 ## Returns the ball's drawn centre in global coordinates, on even px. It is the
 ## start of the path while no cycle runs.
@@ -337,6 +378,37 @@ func _draw_madra(delta: float) -> void:
 	while _madra_timer >= MADRA_PARTICLE_INTERVAL - _STEP_EPSILON:
 		_madra_timer -= MADRA_PARTICLE_INTERVAL
 		_draw_madra_step()
+
+## Gathers `seconds` of following on the Spirit clock and pays every whole
+## STAT_XP_INTERVAL it holds, to within _STEP_EPSILON, in one payment.
+func _follow_spirit(seconds: float) -> void:
+	_followed_seconds += seconds
+	_unpaid_spirit_seconds += seconds
+	var intervals: int = floori((_unpaid_spirit_seconds + _STEP_EPSILON) / STAT_XP_INTERVAL)
+	if intervals > 0:
+		var paid_seconds: float = intervals * STAT_XP_INTERVAL
+		_unpaid_spirit_seconds -= paid_seconds
+		_pay_spirit(paid_seconds)
+
+## Pays the followed time no payment has covered yet, if any: at a cycle's end,
+## and when a stop cuts one short.
+func _pay_unpaid_spirit() -> void:
+	if _unpaid_spirit_seconds > _STEP_EPSILON:
+		_pay_spirit(_unpaid_spirit_seconds)
+	_unpaid_spirit_seconds = 0.0
+
+## Pays the Spirit XP `seconds` of following earn on this technique. The result
+## records what Spirit took, and whether the cap took the rest; stat_xp_paid
+## carries what it took, unless that is nothing.
+func _pay_spirit(seconds: float) -> void:
+	var xp: float = technique_data.get_spirit_xp_per_second() * seconds
+	if xp <= 0.0:
+		return
+	var spirit := CharacterAttributesData.AttributeType.SPIRIT
+	var taken: float = CharacterManager.add_stat_xp(spirit, xp)
+	_result.record_stat_xp(spirit, taken, taken < xp - _STEP_EPSILON)
+	if taken > 0.0:
+		stat_xp_paid.emit(spirit, _ball_drawn, taken)
 
 ## Returns true when the pool is at its max, so the cursor adds nothing.
 func _madra_full() -> bool:
@@ -423,33 +495,40 @@ func _update_session() -> void:
 ## Ends the cycle that has run its time: every zone still open is spent, the
 ## session ends, the ball goes back to the start and cycle_completed carries the
 ## result. The groove stays lit until the next cycle's sweep. With auto_cycle on,
-## the next cycle starts at once and the rate window carries into it: the session
-## is updated again in the same frame, so the rate does not read 0 for a frame
-## between two cycles. Otherwise the window is emptied.
+## the next cycle starts at once, following if this one ended following, and the
+## rate window carries into it: the session is updated again in the same frame,
+## so the rate does not read 0 for a frame between two cycles. Otherwise the
+## window is emptied.
 func _finish_cycle() -> void:
 	for zone: CyclingZone in cycling_zones:
 		if zone.is_open():
 			zone.set_state(CyclingZone.State.SPENT)
+	var carried: bool = _following
+	_pay_unpaid_spirit()
 	_cycling = false
-	_tracking = false
+	_following = false
 	CyclingManager.end_cycle_session()
 	_breath_clock = 0.0
 	_show_ready()
 	cycle_completed.emit(_result)
 	if auto_cycle:
-		start_cycle()
+		start_cycle(carried)
 		_update_session()
 	else:
 		_rate_window.clear()
 
 ## Ends any cycle without a result and puts the play back to ready: no time, no
 ## Madra gathered, a fresh empty result, the zones IDLE, the groove lit and the
-## ball waiting at the start of the path. The session ends only if this technique
-## was cycling: a session another technique started is left running.
+## ball waiting at the start of the path. A cycle a stop cuts short first pays
+## the Spirit XP it followed, from where the ball was (a switch has dropped it
+## already). The session ends only if this technique was cycling: a session
+## another technique started is left running.
 func _return_to_ready() -> void:
+	if _cycling:
+		_pay_unpaid_spirit()
 	var was_cycling: bool = _cycling
 	_cycling = false
-	_tracking = false
+	_following = false
 	_elapsed = 0.0
 	_madra_timer = 0.0
 	_rate_window.clear()
