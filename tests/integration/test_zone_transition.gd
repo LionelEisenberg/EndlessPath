@@ -1,28 +1,24 @@
 extends GutTest
 
-## Integration tests for ZoneTransition, the adventure drain (spec: Cultivator
-## plate › Lookups; lacquer kit §1 rules 4 and 6). It finds the cultivator
-## plate and the zone map by name among its parent's descendants, pours the
-## Madra budget out as pellets on its own clock, then confirms the adventure.
-## The map's camera holds still from the push until the way back has put it
-## back. main_game.tscn is only read, never instanced: the scenes it needs are
-## built on their own instead.
-## The drain and the pellets are taken off the frame clock and stepped by hand
-## a frame at a time with the zoom's tween, so no check depends on how long
-## real frames take.
+## Integration tests for ZoneTransition, the zoom into the character that
+## starts an adventure. It finds the zone map by name among its parent's
+## descendants, zooms, then confirms the adventure. Starting spends nothing and
+## sends no pellets: the run plays on the saved pool. The map's camera holds
+## still from the push until the way back has put it back. main_game.tscn is
+## only read, never instanced: the scenes it needs are built on their own
+## instead. The zoom's tween is stepped by hand a frame at a time, so no check
+## depends on how long real frames take.
 
 const MAIN_GAME_SCENE_PATH: String = "res://scenes/main/main_game/main_game.tscn"
 const ZONE_TILEMAP_SCENE_PATH: String = "res://scenes/zones/zone_tilemap/zone_tilemap.tscn"
-const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
 
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 
 const FRAME: float = 1.0 / 60.0
-## More frames than a full drain and zoom take (about 2.1 s).
+## More frames than the zoom takes (0.5 s).
 const MAX_FRAMES: int = 300
 
 var _transition: ZoneTransition = null
-var _pellet_parent: Node2D = null
 
 func before_each() -> void:
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -32,9 +28,7 @@ func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	_transition = null
-	_pellet_parent = null
-	# Pellets in flight and the camera tween end with the nodes; let them go
-	# before GUT counts orphans.
+	# The camera tween ends with the nodes; let it go before GUT counts orphans.
 	await get_tree().process_frame
 
 #-----------------------------------------------------------------------------
@@ -55,8 +49,8 @@ func _path_named(paths: Array[String], node_name: String) -> String:
 			return path
 	return ""
 
-## The zone view's drain set up as main_game.tscn has it: ZoneTransition beside
-## the cultivator plate and the zone map, all under one parent.
+## The zone view's transition set up as main_game.tscn has it: ZoneTransition
+## beside the zone map, under one parent.
 func _add_transition() -> void:
 	var zone_view := Control.new()
 	zone_view.size = ZoneMapMath.VIEWPORT_SIZE
@@ -65,42 +59,24 @@ func _add_transition() -> void:
 	map.name = "ZoneTilemap"
 	zone_view.add_child(map)
 	map.tile_map.tile_set.emit_changed()
-	var plate: CultivatorPlate = (load(PLATE_SCENE_PATH) as PackedScene).instantiate()
-	plate.name = "CultivatorPlate"
-	zone_view.add_child(plate)
 	_transition = ZoneTransition.new()
 	zone_view.add_child(_transition)
-	_transition.set_process(false)
-	_pellet_parent = Node2D.new()
-	_pellet_parent.process_mode = Node.PROCESS_MODE_DISABLED
-	add_child_autofree(_pellet_parent)
-	_transition.pellet_parent = _pellet_parent
 	await get_tree().process_frame
 
-func _pellet_count() -> int:
-	var count: int = 0
-	for child: Node in _pellet_parent.get_children():
-		if child is LacquerPellet:
-			count += 1
-	return count
-
-## One frame stepped by hand, in the tree's order: the drain (it sends
-## pellets), the pellets (they fly), then the tweens (the zoom).
+## One frame of the zoom's tween, stepped by hand.
 func _step_frame(delta: float = FRAME) -> void:
-	simulate(_transition, 1, delta)
-	simulate(_pellet_parent, 1, delta)
 	for tween: Tween in get_tree().get_processed_tweens():
 		if tween.is_valid() and tween.is_running():
 			tween.custom_step(delta)
 
-## Starts the drain on a full pool.
-func _start_drain() -> void:
+## Requests the Shallow Woods' start on a full pool.
+func _start_transition() -> void:
 	ResourceManager.set_madra(ResourceManager.get_max_madra())
 	var adventure: AdventureActionData = ZoneManager.get_action_by_id(ADVENTURE_ID) as AdventureActionData
 	ActionManager.adventure_start_requested.emit(adventure)
 
-## Steps 60 FPS frames until the drain and the zoom are over and the
-## adventure is confirmed, or MAX_FRAMES go by.
+## Steps 60 FPS frames until the zoom is over and the adventure is confirmed,
+## or MAX_FRAMES go by.
 func _run_to_the_end() -> void:
 	for _frame: int in MAX_FRAMES:
 		if not _transition.is_transitioning():
@@ -122,46 +98,35 @@ func _camera() -> Camera2D:
 # LOOKUPS
 #-----------------------------------------------------------------------------
 
-func test_main_game_puts_the_plate_and_map_beside_the_transition() -> void:
+func test_main_game_puts_the_map_beside_the_transition() -> void:
 	var paths: Array[String] = _node_paths((load(MAIN_GAME_SCENE_PATH) as PackedScene).get_state())
 	var transition_path: String = _path_named(paths, "ZoneTransition")
 	assert_ne(transition_path, "", "main_game.tscn has a ZoneTransition")
 	var parent_path: String = transition_path.get_base_dir()
-	var plate_path: String = _path_named(paths, "CultivatorPlate")
 	var map_path: String = _path_named(paths, "ZoneTilemap")
-	assert_true(plate_path.begins_with(parent_path + "/"),
-		"the drain finds CultivatorPlate under its parent (%s), not at %s" % [parent_path, plate_path])
 	assert_true(map_path.begins_with(parent_path + "/"),
-		"the drain finds ZoneTilemap under its parent (%s), not at %s" % [parent_path, map_path])
+		"the transition finds ZoneTilemap under its parent (%s), not at %s" % [parent_path, map_path])
 
 #-----------------------------------------------------------------------------
-# DRAIN
+# START
 #-----------------------------------------------------------------------------
 
-func test_drain_pours_pellets_then_starts_the_adventure() -> void:
+func test_the_start_zooms_then_starts_the_adventure_spending_nothing() -> void:
 	await _add_transition()
 	watch_signals(ActionManager)
-	_start_drain()
-	assert_true(_transition.is_transitioning())
-	assert_eq(_pellet_count(), 1, "the first pellet leaves the orb at once")
+	_start_transition()
+	assert_true(_transition.is_transitioning(), "the zoom is under way")
+	assert_signal_not_emitted(ActionManager, "start_adventure", "the adventure waits for the zoom")
 	_run_to_the_end()
-	assert_signal_emitted(ActionManager, "start_adventure", "the drain confirms the adventure")
+	assert_signal_emitted_with_parameters(ActionManager, "start_adventure", [ZoneManager.get_action_by_id(ADVENTURE_ID)])
 	assert_false(_transition.is_transitioning())
-	assert_almost_eq(ResourceManager.get_madra(), 0.0, 0.01, "the whole budget drained into the pellets")
-
-## 0.3 s in, the pellets due at 0, 0.04, ... 0.28 s have left (none has landed:
-## each flies 0.6 s), however long the frames are.
-func test_drain_sends_its_pellets_on_time_at_10_fps() -> void:
-	await _add_transition()
-	_start_drain()
-	for _frame: int in 3:
-		_step_frame(0.1)
-	assert_eq(_pellet_count(), 8, "eight pellets in 0.3 s of 0.1 s frames")
+	assert_eq(ResourceManager.get_madra(), ResourceManager.get_max_madra(), "starting spends nothing: the run spends from the pool")
 
 func test_the_map_camera_holds_from_the_zoom_until_the_way_back_ends() -> void:
 	await _add_transition()
-	_start_drain()
-	assert_true(_map_camera_is_free(), "the drain leaves the camera alone")
+	assert_true(_map_camera_is_free(), "precondition: the camera is free before the start")
+	_start_transition()
+	assert_false(_map_camera_is_free(), "the camera holds still from the zoom's start")
 	_run_to_the_end()
 	assert_false(_map_camera_is_free(), "the camera holds still through the zoom and the adventure")
 	_transition.reset_camera()
@@ -175,7 +140,7 @@ func test_settle_camera_ends_the_way_back_at_once() -> void:
 	await _add_transition()
 	var start_zoom: Vector2 = _camera().zoom
 	var start_position: Vector2 = _camera().position
-	_start_drain()
+	_start_transition()
 	_run_to_the_end()
 	_transition.reset_camera()
 	_step_frame()

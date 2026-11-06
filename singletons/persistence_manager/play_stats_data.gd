@@ -34,7 +34,7 @@ extends Resource
 ## Cycles that ran to their end.
 @export var cycles_finished: int = 0
 
-## Adventures started: counted when the run begins, after the Madra drain.
+## Adventures started: counted when the run begins, after the start's zoom.
 @export var adventures_started: int = 0
 
 ## Adventures that ended in a win (the boss fell).

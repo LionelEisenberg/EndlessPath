@@ -1,7 +1,7 @@
 extends GutTest
 
-## Unit tests for LacquerPellet, the pellet the Madra drain, the cycling view
-## and the tribulation send. It flies to its target, delivers once as it lands
+## Unit tests for LacquerPellet, the pellet the cycling view and the
+## tribulation send. It flies to its target, delivers once as it lands
 ## (or as it is taken out early), and frees itself once its spark is over.
 
 const PELLET_SCENE_PATH: String = "res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn"
@@ -87,15 +87,6 @@ func test_a_pellet_with_no_flight_waits() -> void:
 	pellet._process(1.0)
 	assert_false(pellet.has_landed())
 	assert_false(pellet.is_queued_for_deletion())
-
-#-----------------------------------------------------------------------------
-# DRAIN
-#-----------------------------------------------------------------------------
-
-## ZoneTransition keeps its count and timing; what it launches is the pellet.
-func test_the_adventure_drain_pours_pellets() -> void:
-	var pellet: Node = autofree(ZoneTransition.DRAIN_PELLET_SCENE.instantiate())
-	assert_true(pellet is LacquerPellet)
 
 #-----------------------------------------------------------------------------
 # STAT RAMPS

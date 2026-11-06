@@ -96,7 +96,7 @@ func _populate(data: AdventureResultData) -> void:
 	var seconds: int = int(data.time_elapsed) % 60
 	time_value_label.text = "%d:%02d" % [minutes, seconds]
 
-	health_value_label.text = "%d / %d" % [int(data.health_remaining), int(data.health_max)]
+	health_value_label.text = VitalsText.health_pair(data.health_remaining, data.health_max)
 	if data.health_remaining <= 0.0:
 		health_value_label.add_theme_color_override("font_color", HEALTH_DEAD_COLOR)
 	else:
@@ -104,7 +104,7 @@ func _populate(data: AdventureResultData) -> void:
 
 	tiles_value_label.text = "%d / %d" % [data.tiles_explored, data.tiles_total]
 
-	madra_value_label.text = str(int(data.madra_spent))
+	madra_value_label.text = "%d / %d" % [floori(data.madra_left), floori(data.madra_max)]
 	madra_value_label.add_theme_color_override("font_color", MADRA_COLOR)
 
 	# Loot

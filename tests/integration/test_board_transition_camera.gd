@@ -53,7 +53,6 @@ func before_each() -> void:
 	zone_view.add_child(plate)
 	_zone_transition = ZoneTransition.new()
 	zone_view.add_child(_zone_transition)
-	_zone_transition.pellet_parent = add_child_autofree(Node2D.new())
 	_player = add_child_autofree(TRANSITION_SCENE.instantiate()) as BoardTransition
 	_player.set_process(false)
 	_main_view = autofree(MainView.new())
@@ -73,14 +72,14 @@ func before_each() -> void:
 func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
-	# Pellets in flight and the camera tweens end with the nodes; let them go
-	# before GUT counts orphans.
+	# The camera tweens end with the nodes; let them go before GUT counts
+	# orphans.
 	await wait_process_frames(1)
 
 func _zoom_controller() -> CameraZoomController:
 	return _map.get_node("%CameraZoomController") as CameraZoomController
 
-## Pours the adventure drain to its end: the camera is on the adventure zoom.
+## Runs the adventure start to its end: the camera is on the adventure zoom.
 func _zoom_into_an_adventure() -> void:
 	ResourceManager.set_madra(ResourceManager.get_max_madra())
 	var adventure: AdventureActionData = ZoneManager.get_action_by_id(ADVENTURE_ID) as AdventureActionData

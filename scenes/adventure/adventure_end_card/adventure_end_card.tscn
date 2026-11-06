@@ -498,7 +498,7 @@ size_flags_vertical = 4
 [node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGridMargin/StatsGrid/MadraStat/StatInfo" unique_id=912583558]
 layout_mode = 2
 theme_type_variation = &"LabelEndCardStatName"
-text = "MADRA SPENT"
+text = "MADRA LEFT"
 horizontal_alignment = 1
 
 [node name="MadraValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGridMargin/StatsGrid/MadraStat/StatInfo" unique_id=396568788]

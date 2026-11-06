@@ -74,7 +74,6 @@ var is_in_combat: bool = false # Whether the player is currently in combat
 # Adventure result tracking
 var _combats_fought: int = 0
 var _gold_earned: int = 0
-var _madra_budget: float = 0.0
 var _loot_items: Array[Resource] = []
 var _adventure_start_time: float = 0.0
 var _pending_victory: bool = false
@@ -114,7 +113,7 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Start an adventure with the given action data
-func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.0) -> void:
+func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureView: Starting adventure - %s" % action_data.action_name)
 
 	if LogManager:
@@ -127,7 +126,6 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 	# Reset result tracking (the map's first redraw below shows them in the ledger)
 	_combats_fought = 0
 	_gold_earned = 0
-	_madra_budget = madra_budget
 	_loot_items.clear()
 	_adventure_start_time = Time.get_ticks_msec() / 1000.0
 	_pending_victory = false
@@ -136,8 +134,8 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 	if InventoryManager and not InventoryManager.item_awarded.is_connected(_on_item_awarded):
 		InventoryManager.item_awarded.connect(_on_item_awarded)
 
-	# Initialize resource values with the actual budget drained from zone pool
-	_initialize_combat_resources(madra_budget)
+	# Fill Health and Stamina; the run plays on the saved Madra pool as it stands
+	_initialize_combat_resources()
 	
 	if PlayerManager.vitals_manager:
 		_update_stamina_regen(action_data.stamina_regen_modifier)
@@ -168,7 +166,7 @@ func stop_adventure() -> void:
 
 	# Determine end condition from current state. The save's play stats count a win,
 	# Health at 0 and a timeout; a retreat counts nothing. Neither does a stop with
-	# no run on: the adventure action is current while its Madra drains, before the
+	# no run on: the adventure action is current while the start's zoom runs, before the
 	# run starts, and a save switch can stop it then, with the timer stopped and
 	# Health as the last run left it.
 	var is_victory: bool = false
@@ -412,13 +410,13 @@ func _land_beads() -> void:
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Initialize resource values. Madra already spent by the drain animation in
-## ZoneTransition. The cabinet shows them and the dock previews the loadout.
-func _initialize_combat_resources(madra_budget: float) -> void:
-	PlayerManager.vitals_manager.initialize_current_values(madra_budget)
+## Fills Health and Stamina; Madra is the saved pool as it stands. The cabinet
+## shows them and the dock previews the loadout.
+func _initialize_combat_resources() -> void:
+	PlayerManager.vitals_manager.initialize_current_values()
 	vitals_plate.setup_vitals(PlayerManager.vitals_manager)
 	technique_dock.show_loadout()
-	Log.info("AdventureView: Adventure budget: %.1f Madra" % madra_budget)
+	Log.info("AdventureView: The run starts on %.1f Madra" % ResourceManager.get_madra())
 
 ## Builds the adventure result data from accumulated stats.
 func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureResultData:
@@ -433,7 +431,8 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	result.health_max = PlayerManager.vitals_manager.max_health
 	result.tiles_explored = adventure_tilemap.get_visited_tile_count()
 	result.tiles_total = adventure_tilemap.get_total_tile_count()
-	result.madra_spent = _madra_budget
+	result.madra_left = ResourceManager.get_madra()
+	result.madra_max = ResourceManager.get_max_madra()
 	result.loot_items = _loot_items.duplicate()
 	return result
 

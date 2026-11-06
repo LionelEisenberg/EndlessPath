@@ -2,12 +2,11 @@ class_name LacquerPellet
 extends Node2D
 
 ## LacquerPellet
-## One opaque pellet that flies a PelletFlight, then frees itself. The adventure's
-## Madra drain sends it from the cabinet's Madra orb to the character, the cycling
-## view from the ball to the Madra orb (Madra) and from a zone to the Core orb (XP,
-## in the tier's ramp), and the tribulation off its ring and into its core. A
-## stat's XP pellets fly in that stat's own ramp (stat_ramp()) to its cell on the
-## cultivator cabinet.
+## One opaque pellet that flies a PelletFlight, then frees itself. The cycling
+## view sends it from the ball to the Madra orb (Madra) and from a zone to the
+## Core orb (XP, in the tier's ramp), and the tribulation off its ring and into
+## its core. A stat's XP pellets fly in that stat's own ramp (stat_ramp()) to its
+## cell on the cultivator cabinet.
 ## Lacquer kit §1 rules 4 and 6: no glow, halo, alpha or eased colour. Every look
 ## is a frame of one strip (lacquer_pellet_strip_ai.png, a row per Ramp), and every
 ## point it stands on is on the even-px grid. Its life, in whole frames:

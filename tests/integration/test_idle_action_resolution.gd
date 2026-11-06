@@ -179,8 +179,6 @@ func test_session_stop_resumes_idle() -> void:
 		PersistenceManager.save_game_data = SaveGameData.new()
 		PersistenceManager.save_data_reset.emit()
 		_run_aura_well()
-		# Enough Madra for the adventure's entry; the other actions ignore it.
-		ResourceManager.set_madra(ResourceManager.get_adventure_madra_threshold())
 		ActionManager.select_action(_action(case.action_id))
 		assert_eq(_current_id(), case.action_id, "%s: precondition, it runs" % case.name)
 		ActionManager.stop_action(case.successful)
@@ -238,16 +236,12 @@ func test_selecting_marks_action_seen() -> void:
 	ActionManager.select_action(_action(MERCHANT_ID))
 	assert_true(ZoneManager.is_action_seen(MERCHANT_ID))
 
-func test_rejected_adventure_keeps_idle_running() -> void:
+## A run plays on the pool as it stands, so no Madra figure refuses one.
+func test_an_adventure_starts_on_an_empty_pool() -> void:
 	_run_aura_well()
-	assert_false(ResourceManager.can_start_adventure(), "precondition: a fresh save has 25 Madra, under the 50 needed")
-	var completions_before: int = _completions(AURA_WELL_ID)
-	_clear_log()
+	ResourceManager.set_madra(0.0)
 	ActionManager.select_action(_action(ADVENTURE_ID))
-	assert_eq(_current_id(), AURA_WELL_ID, "an unaffordable adventure stops nothing")
-	assert_false(ActionManager.action_timer.is_stopped(), "the Aura Well keeps ticking")
-	assert_eq(_completions(AURA_WELL_ID), completions_before, "the Aura Well was never stopped")
-	assert_eq(_logged, [] as Array[String], "a refused adventure logs nothing new")
+	assert_eq(_current_id(), ADVENTURE_ID, "the adventure takes over from the Aura Well")
 
 #-----------------------------------------------------------------------------
 # ZONE CHANGE

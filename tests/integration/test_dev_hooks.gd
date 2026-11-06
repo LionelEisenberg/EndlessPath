@@ -153,6 +153,7 @@ func test_zone_visibility_getters() -> void:
 func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 	var old_vitals: VitalsManager = PlayerManager.vitals_manager
 	var stat_hooks: int = CharacterManager.stats_changed.get_connections().size()
+	var madra_hooks: int = ResourceManager.madra_changed.get_connections().size()
 	old_vitals.initialize_current_values()
 	old_vitals.stamina_regen = 2.0
 	PlayerManager.reset_vitals()
@@ -168,6 +169,7 @@ func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 	assert_freed(old_vitals, "the old VitalsManager")
 	assert_eq(CharacterManager.stats_changed.get_connections().size(), stat_hooks,
 		"the old manager's stats hook went with it")
+	assert_eq(ResourceManager.madra_changed.get_connections().size(), madra_hooks, "and its Madra hook")
 
 #-----------------------------------------------------------------------------
 # COMPLETE WITHOUT PLAYING
