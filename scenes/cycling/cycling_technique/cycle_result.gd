@@ -4,12 +4,14 @@ extends RefCounted
 ## CycleResult
 ## What one cycle came to, and the lines that report it: the zone chest's line
 ## under the Now tray ("Last cycle · +80 Madra · +30 Spirit XP · +21 Control XP ·
-## 3 / 4 zones · 1 PERFECT") and the log ("Cycle · +80 Madra · +30 Spirit XP ·
-## +21 Control XP"). The log board shows one line a message and trims what runs
-## past it, so the log's line keeps what the cycle paid and leaves the zones and
-## PERFECTs to the chest, whose line wraps. A stat the cap took XP from reads
-## "Spirit capped" in place of its XP. Cycling pays no Core Density. It holds the
-## totals and writes the lines; the cycle that owns it keeps the totals up to date.
+## 3 / 4 zones · 1 PERFECT") and the log's ("Cycle [Madra icon] +80 [Spirit
+## icon] +30 [Control icon] +21": each part an icon and its figure, three spaces
+## apart, the icons as [img] tags the log draws). The log board shows one line a
+## message, so the log's line keeps what the cycle paid and leaves the zones and
+## PERFECTs to the chest. A stat the cap took XP from reads "Spirit capped" on
+## the chest's line and "capped" after its icon in the log. Cycling pays no Core
+## Density. It holds the totals and writes the lines; the cycle that owns it
+## keeps the totals up to date.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -18,10 +20,18 @@ extends RefCounted
 ## Joins the parts of a line: a space, a middle dot (U+00B7) and a space.
 const SEPARATOR: String = " · "
 
-## A stat's part of the lines: its XP, rounded to a whole XP, or that the cap
-## took it.
+## A stat's part of the chest's line: its XP, rounded to a whole XP, or that
+## the cap took it.
 const STAT_XP_FORMAT: String = "+%d %s XP"
 const STAT_CAPPED_FORMAT: String = "%s capped"
+
+## The log's line: its parts LOG_SEPARATOR apart, each an icon at 16 px
+## (LOG_ICON_FORMAT, the Madra's MADRA_ICON_PATH and each stat's own icon) and
+## its figure, or CAPPED_TEXT for a stat the cap took XP from.
+const LOG_SEPARATOR: String = "   "
+const LOG_ICON_FORMAT: String = "[img=16x16]%s[/img]"
+const MADRA_ICON_PATH: String = "res://assets/ui/lacquer/lacquer_mini_madra_ai.png"
+const CAPPED_TEXT: String = "capped"
 
 #-----------------------------------------------------------------------------
 # TOTALS
@@ -77,6 +87,16 @@ func get_stat_xp(stat: CharacterAttributesData.AttributeType) -> float:
 func is_stat_capped(stat: CharacterAttributesData.AttributeType) -> bool:
 	return capped_stats.has(stat)
 
+## Returns the Spiritual stats the cycle paid, in the screens' order
+## (StatDisplay.SPIRITUAL): each that took XP rounding to 1 or more, and each
+## the cap took XP from.
+func get_paid_stats() -> Array[CharacterAttributesData.AttributeType]:
+	var paid: Array[CharacterAttributesData.AttributeType] = []
+	for stat: CharacterAttributesData.AttributeType in StatDisplay.SPIRITUAL:
+		if is_stat_capped(stat) or roundi(get_stat_xp(stat)) >= 1:
+			paid.append(stat)
+	return paid
+
 ## Returns the cycle in one phrase: the Madra, then each stat's part, then the
 ## zones ("3 / 4 zones", "1 / 1 zone", or "no zones" for a technique without
 ## any), then the PERFECT count if there were any. The parts are joined by
@@ -97,12 +117,15 @@ func summary() -> String:
 func result_line() -> String:
 	return "Last cycle" + SEPARATOR + summary()
 
-## Returns the log's line, short enough for the log board's one line: "Cycle · ",
-## the Madra and each stat's part.
+## Returns the log's line: "Cycle", the Madra's icon and "+80", then each paid
+## stat's icon and "+30", or "capped" when the cap took its XP, the parts
+## LOG_SEPARATOR apart.
 func log_line() -> String:
-	var parts: PackedStringArray = ["Cycle", _madra_part()]
-	parts.append_array(_stat_parts())
-	return SEPARATOR.join(parts)
+	var parts: PackedStringArray = ["Cycle", "%s +%d" % [LOG_ICON_FORMAT % MADRA_ICON_PATH, roundi(madra_added)]]
+	for stat: CharacterAttributesData.AttributeType in get_paid_stats():
+		var figure: String = CAPPED_TEXT if is_stat_capped(stat) else "+%d" % roundi(get_stat_xp(stat))
+		parts.append("%s %s" % [LOG_ICON_FORMAT % StatDisplay.icon_of(stat).resource_path, figure])
+	return LOG_SEPARATOR.join(parts)
 
 #-----------------------------------------------------------------------------
 # PARTS
@@ -111,14 +134,13 @@ func log_line() -> String:
 func _madra_part() -> String:
 	return "+%d Madra" % roundi(madra_added)
 
-## Returns each Spiritual stat's part, in the screens' order: "Spirit capped"
-## when the cap took its XP, else "+12 Spirit XP" when its XP rounds to 1 or
-## more, else none.
+## Returns each paid stat's part of the chest's line, in the screens' order:
+## "Spirit capped" when the cap took its XP, else "+12 Spirit XP".
 func _stat_parts() -> PackedStringArray:
 	var parts: PackedStringArray = []
-	for stat: CharacterAttributesData.AttributeType in StatDisplay.SPIRITUAL:
+	for stat: CharacterAttributesData.AttributeType in get_paid_stats():
 		if is_stat_capped(stat):
 			parts.append(STAT_CAPPED_FORMAT % StatDisplay.name_of(stat))
-		elif roundi(get_stat_xp(stat)) >= 1:
+		else:
 			parts.append(STAT_XP_FORMAT % [roundi(get_stat_xp(stat)), StatDisplay.name_of(stat)])
 	return parts

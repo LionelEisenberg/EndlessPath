@@ -99,11 +99,10 @@ func _node(unique_name: String) -> Node:
 func _await_queued_frees() -> void:
 	await wait_process_frames(1)
 
-## The last finished cycle's line as the chest shows it, or "" with none: the
-## board records each cycle's result on CyclingManager.
-func _last_line() -> String:
-	var result: CycleResult = CyclingManager.get_last_cycle_result()
-	return result.result_line() if result != null else ""
+## The last finished cycle's result, which the chest shows, or null with none:
+## the board records each cycle's result on CyclingManager.
+func _last_result() -> CycleResult:
+	return CyclingManager.get_last_cycle_result()
 
 ## Steps `seconds` of frames at `fps`, with the cursor on the ball (the drawn
 ## centre) or far away.
@@ -325,7 +324,7 @@ func test_a_save_with_no_techniques_leaves_the_board_idle() -> void:
 	assert_false(bare_technique.start_cycle(), "and no cycle starts")
 	bare.hide()
 	bare.show()
-	assert_eq(_last_line(), "")
+	assert_null(_last_result())
 
 func test_switching_technique_ends_the_cycle_without_a_result() -> void:
 	watch_signals(LogManager)
@@ -334,23 +333,23 @@ func test_switching_technique_ends_the_cycle_without_a_result() -> void:
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	assert_false(_technique.is_cycling(), "the cycle ended")
-	assert_eq(_last_line(), "", "no result line")
+	assert_null(_last_result(), "no result")
 	assert_signal_not_emitted(LogManager, "message_logged")
 	await _await_queued_frees()
 
-func test_switching_technique_clears_the_result_line_and_the_ready_text() -> void:
+func test_switching_technique_clears_the_last_result_and_the_ready_text() -> void:
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	assert_ne(_last_line(), "", "precondition: a cycle left a result line")
+	assert_not_null(_last_result(), "precondition: a cycle left a result")
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	_view._process(0.0)
-	assert_eq(_last_line(), "")
+	assert_null(_last_result())
 	assert_eq(_view.get_status_text(), CyclingView.READY, "the new technique waits for a press")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
-# THE RESULT LINE AND THE LOG
+# THE RESULT AND THE LOG
 #-----------------------------------------------------------------------------
 
 func test_a_tracked_cycle_reports_the_madra_it_drew() -> void:
@@ -366,17 +365,18 @@ func test_a_tracked_cycle_reports_the_madra_it_drew() -> void:
 	# 6 s hold 75 whole steps of 0.4267 Madra. The step tolerance pays the 75th
 	# even when the float sum of the frames lands a hair under 6 s.
 	assert_almost_eq(result.madra_added, 32.0, 0.001, "precondition: the cursor drew Madra")
-	assert_eq(_last_line(), result.result_line(), "the cycle's own line goes to the chest")
+	assert_eq(_last_result(), result, "the cycle's own result goes to the chest")
 	assert_signal_emit_count(LogManager, "message_logged", 1, "cycling writes no \"Gained N Madra\" lines")
 	assert_eq(get_signal_parameters(LogManager, "message_logged", 0), ["[color=cyan]%s[/color]" % result.log_line()])
 
-func test_the_result_line_stays_until_the_next_cycle_ends() -> void:
+func test_the_last_result_stays_until_the_next_cycle_ends() -> void:
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	var first: String = _last_line()
+	var first: CycleResult = _last_result()
+	assert_not_null(first, "precondition: a cycle left a result")
 	_technique.start_cycle()
 	_run(3.0, 60.0, false)
-	assert_eq(_last_line(), first, "a running cycle leaves the last result showing")
+	assert_eq(_last_result(), first, "a running cycle leaves the last result showing")
 
 #-----------------------------------------------------------------------------
 # PELLETS
@@ -629,10 +629,10 @@ func test_a_view_that_starts_hidden_does_not_process() -> void:
 	assert_false((hidden.get_node("%CyclingTechnique") as CyclingTechnique).is_processing())
 
 func test_reopening_starts_clean() -> void:
-	# A finished cycle leaves its result for the chest's line.
+	# A finished cycle leaves its result for the chest.
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	assert_ne(_last_line(), "", "precondition: a cycle left a result line")
+	assert_not_null(_last_result(), "precondition: a cycle left a result")
 	# Then a second cycle, closed half way with a zone scored.
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
@@ -640,7 +640,7 @@ func test_reopening_starts_clean() -> void:
 	assert_eq(_view.get_status_text(), CyclingView.status_line(true, _technique.technique_data, false), "precondition: the status line shows the running cycle's instructions")
 	_view.hide()
 	_view.show()
-	assert_eq(_last_line(), "", "no stale result line")
+	assert_null(_last_result(), "no stale result")
 	for each: CyclingZone in _technique.cycling_zones:
 		assert_eq(each.get_state(), CyclingZone.State.IDLE, "%s is idle" % each.name)
 	assert_false(_technique.is_cycling(), "the cycle ended")

@@ -2,7 +2,18 @@ extends GutTest
 
 ## Unit tests for CyclingRules and CycleResult, the cycling mini-game's pure
 ## rules: a hit's tier from the ball's distance to the zone's centre, each
-## tier's XP and pellet count, and the lines that sum up a cycle.
+## tier's XP and pellet count, the seals' keys, and what a cycle paid and the log
+## line that sums it up.
+
+const SPIRIT: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.SPIRIT
+const MIND: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.MIND
+const CONTROL: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.CONTROL
+
+## The icons the log line draws, as its [img] tags.
+const MADRA_ICON: String = "[img=16x16]res://assets/ui/lacquer/lacquer_mini_madra_ai.png[/img]"
+const SPIRIT_ICON: String = "[img=16x16]res://assets/sprites/ui/attribute_icons/spirit_icon.png[/img]"
+const MIND_ICON: String = "[img=16x16]res://assets/sprites/ui/attribute_icons/foundation_icon.png[/img]"
+const CONTROL_ICON: String = "[img=16x16]res://assets/sprites/ui/attribute_icons/control_icon_ai.png[/img]"
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -20,9 +31,9 @@ func _result(madra: float, scored: int, total: int, perfect: int, control_xp: in
 		result.record_stat_xp(CharacterAttributesData.AttributeType.CONTROL, control_xp, false)
 	return result
 
-## `result` with the Spirit XP it paid, and whether the cap took some.
-func _with_spirit(result: CycleResult, spirit_xp: float, capped: bool) -> CycleResult:
-	result.record_stat_xp(CharacterAttributesData.AttributeType.SPIRIT, spirit_xp, capped)
+## `result` with the XP `stat` took, and whether the cap took some.
+func _with_stat(result: CycleResult, stat: CharacterAttributesData.AttributeType, xp: float, capped: bool) -> CycleResult:
+	result.record_stat_xp(stat, xp, capped)
 	return result
 
 #-----------------------------------------------------------------------------
@@ -112,46 +123,38 @@ func test_random_seal() -> void:
 # CYCLE RESULT
 #-----------------------------------------------------------------------------
 
-## The PERFECT part is left out when there were none, the Core XP part when no
-## zone scored, and the zones part reads "zone" for a technique with just one and
-## "no zones" for one with none.
-func test_result_lines() -> void:
-	assert_eq(_result(186.4, 3, 4, 1, 75).result_line(), "Last cycle · +186 Madra · +75 Control XP · 3 / 4 zones · 1 PERFECT", "a full cycle")
-	assert_eq(_result(120.0, 2, 4, 0, 30).result_line(), "Last cycle · +120 Madra · +30 Control XP · 2 / 4 zones", "no PERFECT")
-	assert_eq(_result(90.0, 0, 4, 0, 0).result_line(), "Last cycle · +90 Madra · 0 / 4 zones", "no zone scored")
-	assert_eq(_result(250.0, 1, 1, 1, 30).result_line(), "Last cycle · +250 Madra · +30 Control XP · 1 / 1 zone · 1 PERFECT", "a technique with one zone")
-	assert_eq(_result(50.0, 0, 0, 0, 0).result_line(), "Last cycle · +50 Madra · no zones", "a technique with no zones")
-
-## The log board shows one line a message and trims what runs past it (RL-05), so
-## the log keeps what the cycle paid and leaves the zones and PERFECTs to the chest.
+## The log's line: what the cycle paid, each as its icon and its figure, three
+## spaces apart: the Madra, then each Spiritual stat in the screens' order with
+## the XP it took rounded to a whole XP, or "capped" when the cap took some. A
+## stat that took less than half an XP is left out.
 func test_log_line() -> void:
-	assert_eq(_result(186.4, 3, 4, 1, 75).log_line(), "Cycle · +186 Madra · +75 Control XP")
-	assert_eq(_result(50.0, 0, 0, 0, 0).log_line(), "Cycle · +50 Madra", "a technique with no zones")
-
-## A capped Control takes no XP, so both lines say so where they would give the figure.
-func test_a_capped_control_line_says_so() -> void:
-	var result: CycleResult = _result(186.4, 3, 4, 1, 0)
-	result.record_stat_xp(CharacterAttributesData.AttributeType.CONTROL, 0.0, true)
-	assert_eq(result.log_line(), "Cycle · +186 Madra · Control capped")
-	assert_eq(result.result_line(), "Last cycle · +186 Madra · Control capped · 3 / 4 zones · 1 PERFECT")
-
-## The Spirit XP follows the Madra, the two things following pays, rounded to a
-## whole XP. At the cap the line says so instead, and a cycle that paid less than
-## half an XP shows none.
-func test_the_lines_show_the_spirit_xp() -> void:
 	var cases: Array[Dictionary] = [
-		{"name": "the Foundational, followed through", "result": _with_spirit(_result(30.0, 0, 0, 0, 0), 12.0, false),
-			"chest": "Last cycle · +30 Madra · +12 Spirit XP · no zones", "log": "Cycle · +30 Madra · +12 Spirit XP"},
-		{"name": "Smooth Flow with zones scored", "result": _with_spirit(_result(80.0, 3, 4, 1, 75), 30.0, false),
-			"chest": "Last cycle · +80 Madra · +30 Spirit XP · +75 Control XP · 3 / 4 zones · 1 PERFECT", "log": "Cycle · +80 Madra · +30 Spirit XP · +75 Control XP"},
-		{"name": "Spirit at the cap", "result": _with_spirit(_result(57.0, 0, 0, 0, 0), 0.0, true),
-			"chest": "Last cycle · +57 Madra · Spirit capped · no zones", "log": "Cycle · +57 Madra · Spirit capped"},
-		{"name": "the cap reached mid-cycle", "result": _with_spirit(_result(57.0, 0, 0, 0, 0), 5.0, true),
-			"chest": "Last cycle · +57 Madra · Spirit capped · no zones", "log": "Cycle · +57 Madra · Spirit capped"},
-		{"name": "less than half an XP", "result": _with_spirit(_result(30.0, 0, 0, 0, 0), 0.4, false),
-			"chest": "Last cycle · +30 Madra · no zones", "log": "Cycle · +30 Madra"},
+		{"name": "the Foundational, followed through", "result": _with_stat(_result(30.0, 0, 0, 0, 0), SPIRIT, 12.0, false),
+			"line": "Cycle   %s +30   %s +12" % [MADRA_ICON, SPIRIT_ICON]},
+		{"name": "Smooth Flow, zones scored", "result": _with_stat(_result(80.0, 3, 4, 1, 21), SPIRIT, 30.0, false),
+			"line": "Cycle   %s +80   %s +30   %s +21" % [MADRA_ICON, SPIRIT_ICON, CONTROL_ICON]},
+		{"name": "Torrential Flow, seals opened", "result": _with_stat(_with_stat(_result(50.0, 0, 0, 0, 0), SPIRIT, 24.0, false), MIND, 15.0, false),
+			"line": "Cycle   %s +50   %s +24   %s +15" % [MADRA_ICON, SPIRIT_ICON, MIND_ICON]},
+		{"name": "Spirit and Control capped", "result": _with_stat(_with_stat(_result(57.0, 2, 4, 0, 0), SPIRIT, 5.0, true), CONTROL, 0.0, true),
+			"line": "Cycle   %s +57   %s capped   %s capped" % [MADRA_ICON, SPIRIT_ICON, CONTROL_ICON]},
+		{"name": "nothing followed", "result": _result(0.0, 0, 4, 0, 0), "line": "Cycle   %s +0" % MADRA_ICON},
+		{"name": "less than half an XP", "result": _with_stat(_result(30.0, 0, 0, 0, 0), SPIRIT, 0.4, false), "line": "Cycle   %s +30" % MADRA_ICON},
 	]
 	for case: Dictionary in cases:
-		var result: CycleResult = case.result
-		assert_eq(result.result_line(), case.chest, "%s: the chest's line" % case.name)
-		assert_eq(result.log_line(), case.log, "%s: the log's line" % case.name)
+		assert_eq((case.result as CycleResult).log_line(), case.line, case.name)
+
+## The stats a cycle paid, in the screens' order: each that took XP rounding to
+## a whole XP or more, and each the cap took XP from.
+func test_paid_stats() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "no stat", "result": _result(30.0, 0, 4, 0, 0),
+			"stats": [] as Array[CharacterAttributesData.AttributeType]},
+		{"name": "Spirit, then Control", "result": _with_stat(_result(80.0, 3, 4, 1, 21), SPIRIT, 30.0, false),
+			"stats": [SPIRIT, CONTROL] as Array[CharacterAttributesData.AttributeType]},
+		{"name": "Mind at the cap", "result": _with_stat(_result(50.0, 0, 0, 0, 0), MIND, 0.0, true),
+			"stats": [MIND] as Array[CharacterAttributesData.AttributeType]},
+		{"name": "less than half an XP", "result": _with_stat(_result(30.0, 0, 0, 0, 0), SPIRIT, 0.4, false),
+			"stats": [] as Array[CharacterAttributesData.AttributeType]},
+	]
+	for case: Dictionary in cases:
+		assert_eq((case.result as CycleResult).get_paid_stats(), case.stats, case.name)
