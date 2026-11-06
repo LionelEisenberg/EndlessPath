@@ -43,6 +43,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/character/attribute_tile/attribute_tile.tscn",
 	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
 	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
+	"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn",
 ]
 
 ## Where the whole-scene walk reads.
@@ -165,6 +166,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn": ["StatNeedLabel", "ReadyLabel"],
 		"res://scenes/cycling/technique_drawer/technique_drawer.tscn": ["Title", "Detail"],
 		"res://scenes/character/character_view.tscn": ["DetailDescription"],
+		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
 	}
 	for path: String in wrapping:
 		var board: Node = (load(path) as PackedScene).instantiate()

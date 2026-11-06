@@ -4,10 +4,13 @@ extends GutTest
 ## lacquer kit §5.1): what it reads from the managers on _ready, how it follows
 ## their signals, the fills it hands the two orb shaders, the beads it lights,
 ## the Madra and XP it leaves out of its figures while pellets fly, and its six
-## stat cells: each stat's level and its XP ring, full at the cap, following
-## CharacterManager.
+## stat cells: each stat's level and its XP ring, the flowing channel at the
+## cap, following CharacterManager; where stat pellets land, the stat XP held
+## while they fly, when a cell plays its level-up look and hops, and the hover
+## figure.
 
 const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
+const CAPPED_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_stat_ring_capped_strip_ai.png")
 
 const AURA_WELL_ID: String = "aura_well_training"
 const CYCLING_ID: String = "wilderness_cycling_action"
@@ -104,6 +107,19 @@ func _cell_text(cell_name: String, label_name: String) -> String:
 ## The frame a stat cell's XP ring shows: column n lights n beads.
 func _ring(cell_name: String) -> Vector2i:
 	return (_cell(cell_name).get_node("%XpRing") as LacquerStripRect).get_frame()
+
+## The strip a stat cell's ring draws from: the beads, or the capped channel.
+func _ring_strip(cell_name: String) -> Texture2D:
+	return (_cell(cell_name).get_node("%XpRing") as LacquerStripRect).strip
+
+func _capped(cell_name: String) -> bool:
+	return _ring_strip(cell_name) == CAPPED_STRIP
+
+func _tooltip() -> StatTooltip:
+	return _node("StatTooltip") as StatTooltip
+
+func _tooltip_text(label_name: String) -> String:
+	return (_tooltip().get_node("%" + label_name) as Label).text
 
 ## Swaps in a Foundation whose stats cap at `foundation_cap`, leading to a Copper
 ## whose stats cap at `copper_cap`. after_each() restores the real stages.
@@ -373,20 +389,21 @@ func test_a_cell_follows_levels() -> void:
 func test_a_capped_cell_shows_the_cap() -> void:
 	CharacterManager.set_stat_level(Attribute.STRENGTH, CharacterManager.get_stat_level_cap())
 	assert_eq(_cell_text("StrengthCell", "LevelLabel"), "Lv %d" % CharacterManager.get_stat_level_cap(), "Strength's cell reads the cap")
-	assert_eq(_ring("StrengthCell"), Vector2i(24, 0), "all 24 beads lit at the cap")
-	assert_eq(_ring("BodyCell"), Vector2i(0, 0), "only the capped stat's ring fills")
+	assert_true(_capped("StrengthCell"), "the flowing channel at the cap")
+	assert_false(_capped("BodyCell"), "only the capped stat's ring changes")
 
 func test_xp_at_the_cap_keeps_the_cap() -> void:
 	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
 	CharacterManager.add_stat_xp(Attribute.SPIRIT, 50.0)
 	assert_eq(CharacterManager.get_stat_xp(Attribute.SPIRIT), 0.0, "precondition: the 50 is lost at the cap")
-	assert_eq(_ring("SpiritCell"), Vector2i(24, 0), "the 0 XP that arrives at the cap leaves the ring full")
+	assert_true(_capped("SpiritCell"), "the 0 XP that arrives at the cap leaves the cell capped")
 
 func test_the_breakthrough_lifts_the_cap() -> void:
 	_use_stat_caps(3, 6)
 	CharacterManager.set_stat_level(Attribute.STRENGTH, 3)
-	assert_eq(_ring("StrengthCell"), Vector2i(24, 0), "precondition: capped at Foundation's 3")
+	assert_true(_capped("StrengthCell"), "precondition: capped at Foundation's 3")
 	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough lands")
+	assert_false(_capped("StrengthCell"), "Copper's cap of 6 lifts the capped look")
 	assert_eq(_ring("StrengthCell"), Vector2i(0, 0), "Copper's cap of 6 leaves room, and the set Lv 3 holds no XP")
 	assert_eq(_cell_text("StrengthCell", "LevelLabel"), "Lv 3", "Copper's cap of 6 leaves room, and the set Lv 3 holds no XP")
 
@@ -403,6 +420,159 @@ func test_a_loaded_save_shows_its_levels() -> void:
 	_plate = _add_plate()
 	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv 6", "read on _ready")
 	assert_eq(_ring("MindCell"), Vector2i(15, 0), "read on _ready")
+
+## Each side's label row is the zone chest's group row, named for its side.
+func test_the_side_rows_are_the_shared_group_row() -> void:
+	var cases: Array[Dictionary] = [
+		{"side": "PhysicalCells", "text": "Physical"},
+		{"side": "SpiritualCells", "text": "Spiritual"},
+	]
+	for case: Dictionary in cases:
+		var row: Node = _node(case.side).get_node("SideRow")
+		assert_true(row is LacquerGroupRow, "%s's row is a LacquerGroupRow" % case.side)
+		assert_eq((row.get_node("%GroupLabel") as Label).text, case.text, "%s's row names its side" % case.side)
+
+#-----------------------------------------------------------------------------
+# STAT PELLETS
+#-----------------------------------------------------------------------------
+
+## A stat's pellets land on its ring's centre, which a hop does not move.
+func test_each_stat_pellet_lands_on_its_cells_ring() -> void:
+	for cell_name: String in CELL_NAMES:
+		var cell: StatCell = _cell(cell_name)
+		assert_eq(_plate.get_stat_cell_global_position(cell.attribute_type), cell.global_position + Vector2(40, 40), "%s's ring centre" % cell_name)
+
+## A stat at the cap takes no pellets; the others do.
+func test_a_capped_stat_takes_no_pellets() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	assert_false(_plate.accepts_stat_xp(Attribute.SPIRIT), "Spirit at the cap refuses")
+	assert_true(_plate.accepts_stat_xp(Attribute.MIND), "Mind under the cap takes them")
+
+## XP on its way to a cell is left out of its ring until it lands. Spirit Lv 4
+## costs 195 XP: 25 of it lights floor(25 × 24 / 195) = 3 beads.
+func test_held_stat_xp_shows_once_released() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 4)
+	CharacterManager.add_stat_xp(Attribute.SPIRIT, 50.0)
+	_plate.hold_stat_xp(Attribute.SPIRIT, 50.0)
+	assert_eq(_ring("SpiritCell"), Vector2i(0, 0), "nothing has landed")
+	_plate.release_stat_xp(Attribute.SPIRIT, 25.0)
+	assert_eq(_ring("SpiritCell"), Vector2i(3, 0), "half has landed")
+	_plate.release_stat_xp(Attribute.SPIRIT, 25.0)
+	assert_eq(_ring("SpiritCell"), Vector2i(6, 0), "all of it has landed")
+
+## XP that pays a level shows the old level, its beads filling, until enough of
+## it lands to cross it; the crossing plays the level-up look. 190 of Lv 4's
+## 195, plus 20: Lv 5 with 15.
+func test_held_stat_xp_holds_back_a_level_up() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 4, 190.0)
+	CharacterManager.add_stat_xp(Attribute.SPIRIT, 20.0)
+	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), 5, "precondition: the 20 pays the level")
+	_plate.hold_stat_xp(Attribute.SPIRIT, 20.0)
+	await wait_process_frames(1)
+	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 4", "the old level while the XP flies")
+	assert_false(_cell("SpiritCell").is_flashing(), "XP paid and held in one frame plays nothing yet")
+	_plate.release_stat_xp(Attribute.SPIRIT, 4.0)
+	await wait_process_frames(1)
+	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 4", "194 of 195: still short")
+	assert_eq(_ring("SpiritCell"), Vector2i(23, 0), "194 × 24 / 195 = 23.88, floored to 23")
+	assert_false(_cell("SpiritCell").is_flashing(), "a landing short of the level plays nothing")
+	_plate.release_stat_xp(Attribute.SPIRIT, 16.0)
+	assert_eq(_cell_text("SpiritCell", "LevelLabel"), "Lv 5", "the level shows as its pellet lands")
+	await wait_process_frames(1)
+	assert_true(_cell("SpiritCell").is_flashing(), "and plays the level-up look then")
+
+## The pellet that reaches the cap shows the stat uncapped until it lands.
+func test_held_stat_xp_holds_back_the_cap() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(Attribute.MIND, cap - 1)
+	var cost: float = CharacterManager.get_stat_xp_to_next(Attribute.MIND)
+	CharacterManager.add_stat_xp(Attribute.MIND, cost)
+	assert_true(CharacterManager.is_stat_capped(Attribute.MIND), "precondition: the XP reaches the cap")
+	_plate.hold_stat_xp(Attribute.MIND, cost)
+	assert_false(_capped("MindCell"), "not capped while its XP flies")
+	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv %d" % (cap - 1), "the level below the cap")
+	_plate.release_stat_xp(Attribute.MIND, cost)
+	assert_true(_capped("MindCell"), "capped once it lands")
+
+## Every landing hops its cell.
+func test_a_landing_hops_its_cell() -> void:
+	_plate.hold_stat_xp(Attribute.BODY, 10.0)
+	assert_false(_cell("BodyCell").is_hopping(), "a hold does not hop")
+	_plate.release_stat_xp(Attribute.BODY, 10.0)
+	assert_true(_cell("BodyCell").is_hopping(), "the landing does")
+	assert_false(_cell("MindCell").is_hopping(), "only the cell it landed on")
+
+## The level-up look plays when a level is gained or set with nothing in flight.
+func test_a_gain_or_a_set_plays_the_level_up_look() -> void:
+	await wait_process_frames(1)
+	CharacterManager.add_stat_levels(Attribute.BODY, 1)
+	CharacterManager.set_stat_level(Attribute.AGILITY, 5)
+	CharacterManager.add_stat_xp(Attribute.STRENGTH, 10.0)
+	await wait_process_frames(1)
+	assert_true(_cell("BodyCell").is_flashing(), "a level gained")
+	assert_true(_cell("AgilityCell").is_flashing(), "a level set")
+	assert_false(_cell("StrengthCell").is_flashing(), "XP that buys no level")
+	assert_false(_cell("MindCell").is_flashing(), "a stat nothing touched")
+
+## A save loading, a lowered level and a hold play no level-up look.
+func test_a_load_a_lowered_level_or_a_hold_plays_no_look() -> void:
+	var save := SaveGameData.new()
+	save.stat_training.set_level(Attribute.MIND, 6)
+	await wait_process_frames(1)
+	_use_fresh_save(save)
+	await wait_process_frames(1)
+	assert_eq(_cell_text("MindCell", "LevelLabel"), "Lv 6", "precondition: the load shows")
+	assert_false(_cell("MindCell").is_flashing(), "a load")
+	CharacterManager.set_stat_level(Attribute.MIND, 3)
+	_plate.hold_stat_xp(Attribute.CONTROL, 1.0)
+	_plate.release_stat_xp(Attribute.CONTROL, 0.5)
+	await wait_process_frames(1)
+	assert_false(_cell("MindCell").is_flashing(), "a lowered level")
+	assert_false(_cell("ControlCell").is_flashing(), "a hold and a landing that cross no level")
+
+#-----------------------------------------------------------------------------
+# HOVER FIGURE
+#-----------------------------------------------------------------------------
+
+## The figure line, under the cap and at it, with and without a stage to break
+## through to.
+func test_the_figure_line() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "the XP floors and the cost rounds up", "level": 4, "xp": 105.9, "cost": 195.3125, "capped": false, "next": true, "text": "105 / 196 XP to Lv 5"},
+		{"name": "the cap with a stage to come", "level": 10, "xp": 0.0, "cost": 100.0, "capped": true, "next": true, "text": "Lv 10 is Foundation's cap. Break through to train it further."},
+		{"name": "the last stage's cap", "level": 20, "xp": 0.0, "cost": 100.0, "capped": true, "next": false, "text": "Lv 20 is Copper's cap."},
+	]
+	for case: Dictionary in cases:
+		var stage: String = "Foundation" if case.next else "Copper"
+		assert_eq(StatTooltip.figure_text(case.level, case.xp, case.cost, case.capped, stage, case.next), case.text, case.name)
+
+## Pointing at a cell shows its figure beside the cabinet, level with the cell;
+## the figure follows the cell as XP lands, and leaving the cell hides it.
+func test_the_hover_figure_follows_the_cell() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 4, 100.0)
+	_plate.hold_stat_xp(Attribute.SPIRIT, 50.0)
+	var cell: StatCell = _cell("SpiritCell")
+	cell.hover_changed.emit(true)
+	assert_true(_tooltip().visible, "the figure shows")
+	assert_eq(_tooltip_text("TitleLabel"), "Spirit Lv 4", "the stat and its level")
+	assert_eq(_tooltip_text("FigureLabel"), "50 / 195 XP to Lv 5", "the XP the cell shows, less what flies")
+	assert_eq(_tooltip().global_position, Vector2(_plate.global_position.x + CultivatorPlate.TOOLTIP_X, cell.global_position.y + CultivatorPlate.TOOLTIP_DROP), "beside the cabinet, level with the cell")
+	_plate.release_stat_xp(Attribute.SPIRIT, 50.0)
+	assert_eq(_tooltip_text("FigureLabel"), "100 / 195 XP to Lv 5", "it follows the landing")
+	cell.hover_changed.emit(false)
+	assert_false(_tooltip().visible, "leaving the cell hides it")
+
+## A long figure wraps and the board grows to an even height.
+func test_the_hover_board_grows_with_its_figure() -> void:
+	var cell: StatCell = _cell("ControlCell")
+	var figure: Label = _tooltip().get_node("%FigureLabel") as Label
+	cell.hover_changed.emit(true)
+	assert_eq(figure.get_line_count(), 1, "the XP figure takes one line, measured at the board's width")
+	var one_line: float = _tooltip().size.y
+	CharacterManager.set_stat_level(Attribute.CONTROL, CharacterManager.get_stat_level_cap())
+	assert_gt(figure.get_line_count(), 1, "the cap's two sentences wrap")
+	assert_gt(_tooltip().size.y, one_line, "and the board grows")
+	assert_eq(fmod(_tooltip().size.y, 2.0), 0.0, "an even height, on the 2 px grid")
 
 #-----------------------------------------------------------------------------
 # ROOT

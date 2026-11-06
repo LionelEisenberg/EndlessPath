@@ -12,8 +12,8 @@
 [ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="10_madra_orb"]
 [ext_resource type="Shader" uid="uid://csri7yobignr4" path="res://assets/shaders/lacquer_core_orb.gdshader" id="11_core_orb"]
 [ext_resource type="PackedScene" uid="uid://cc2ndo21eq3ia" path="res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn" id="12_stat_cell"]
-[ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="13_groove"]
-[ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="14_groove_end"]
+[ext_resource type="PackedScene" path="res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn" id="15_stat_tooltip"]
+[ext_resource type="PackedScene" path="res://scenes/common/lacquer/lacquer_group_row/lacquer_group_row.tscn" id="16_group_row"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_madra_socket"]
 atlas = ExtResource("5_madra")
@@ -179,50 +179,12 @@ offset_right = 212.0
 offset_bottom = 426.0
 mouse_filter = 2
 
-[node name="SideRow" type="HBoxContainer" parent="PhysicalCells"]
+[node name="SideRow" parent="PhysicalCells" instance=ExtResource("16_group_row")]
 custom_minimum_size = Vector2(196, 20)
 layout_mode = 0
 offset_right = 196.0
 offset_bottom = 20.0
-mouse_filter = 2
-theme_override_constants/separation = 0
-
-[node name="SideLabel" type="Label" parent="PhysicalCells/SideRow"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_type_variation = &"LabelLacquerDetail"
 text = "Physical"
-
-[node name="GrooveMargin" type="MarginContainer" parent="PhysicalCells/SideRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 0
-mouse_filter = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = 0
-
-[node name="GrooveRow" type="HBoxContainer" parent="PhysicalCells/SideRow/GrooveMargin"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 0
-
-[node name="Groove" type="TextureRect" parent="PhysicalCells/SideRow/GrooveMargin/GrooveRow"]
-custom_minimum_size = Vector2(0, 6)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 0
-mouse_filter = 2
-texture = ExtResource("13_groove")
-expand_mode = 1
-stretch_mode = 1
-
-[node name="GrooveEnd" type="TextureRect" parent="PhysicalCells/SideRow/GrooveMargin/GrooveRow"]
-layout_mode = 2
-size_flags_vertical = 0
-mouse_filter = 2
-texture = ExtResource("14_groove_end")
 
 [node name="StrengthCell" parent="PhysicalCells" instance=ExtResource("12_stat_cell")]
 unique_name_in_owner = true
@@ -259,50 +221,12 @@ offset_right = 424.0
 offset_bottom = 426.0
 mouse_filter = 2
 
-[node name="SideRow" type="HBoxContainer" parent="SpiritualCells"]
+[node name="SideRow" parent="SpiritualCells" instance=ExtResource("16_group_row")]
 custom_minimum_size = Vector2(196, 20)
 layout_mode = 0
 offset_right = 196.0
 offset_bottom = 20.0
-mouse_filter = 2
-theme_override_constants/separation = 0
-
-[node name="SideLabel" type="Label" parent="SpiritualCells/SideRow"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_type_variation = &"LabelLacquerDetail"
 text = "Spiritual"
-
-[node name="GrooveMargin" type="MarginContainer" parent="SpiritualCells/SideRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 0
-mouse_filter = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = 0
-
-[node name="GrooveRow" type="HBoxContainer" parent="SpiritualCells/SideRow/GrooveMargin"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 0
-
-[node name="Groove" type="TextureRect" parent="SpiritualCells/SideRow/GrooveMargin/GrooveRow"]
-custom_minimum_size = Vector2(0, 6)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 0
-mouse_filter = 2
-texture = ExtResource("13_groove")
-expand_mode = 1
-stretch_mode = 1
-
-[node name="GrooveEnd" type="TextureRect" parent="SpiritualCells/SideRow/GrooveMargin/GrooveRow"]
-layout_mode = 2
-size_flags_vertical = 0
-mouse_filter = 2
-texture = ExtResource("14_groove_end")
 
 [node name="SpiritCell" parent="SpiritualCells" instance=ExtResource("12_stat_cell")]
 unique_name_in_owner = true
@@ -388,3 +312,6 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelLacquerRate"
 text = "gold"
+
+[node name="StatTooltip" parent="." instance=ExtResource("15_stat_tooltip")]
+unique_name_in_owner = true
