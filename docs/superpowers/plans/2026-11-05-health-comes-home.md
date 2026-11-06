@@ -44,31 +44,31 @@ Round one proposed a warning row and a refusal at 0. Lionel: "I want Madra and H
 
 ### Task 2: `ResourceManager.is_madra_low()`
 
-- [ ] True when Madra is below `LOW_MADRA_RATIO` (0.5) of the max, beside `LOW_HEALTH_RATIO`, which other branches may read, so it isn't renamed. Table test in `test_resource_manager.gd` beside `is_health_low`'s. (ResourceManager is a shared surface outside #104's Touches: said so on #104.)
+- [x] True when Madra is below `LOW_MADRA_RATIO` (0.5) of the max, beside `LOW_HEALTH_RATIO`, which other branches may read, so it isn't renamed. Table test in `test_resource_manager.gd` beside `is_health_low`'s. (ResourceManager is a shared surface outside #104's Touches: said so on #104.)
 
 ### Task 3: The loss rule
 
-- [ ] `AdventureView._fight_lost`, reset when a run starts, set by `_on_stop_combat(false)`; `stop_adventure()` reads it in place of `current_health <= 0`. `test_adventure_end_flow.gd`: `test_zero_health_counts_a_lost_adventure` becomes `test_a_lost_fight_counts_a_lost_adventure` (a fight lost through `_on_stop_combat(false)`), plus `test_a_run_at_zero_health_that_times_out_counts_a_timeout` and `test_a_run_at_zero_health_stopped_early_counts_nothing`. `test_dev_adventure_commands.gd::test_exit_as_defeat_ends_the_run`'s comment and its 0-Health set-up follow.
+- [x] `AdventureView._fight_lost`, reset when a run starts, set by `_on_stop_combat(false)`; `stop_adventure()` reads it in place of `current_health <= 0`. `test_adventure_end_flow.gd`: `test_zero_health_counts_a_lost_adventure` becomes `test_a_lost_fight_counts_a_lost_adventure` (a fight lost through `_on_stop_combat(false)`), plus `test_a_run_at_zero_health_that_times_out_counts_a_timeout` and `test_a_run_at_zero_health_stopped_early_counts_nothing`. `test_dev_adventure_commands.gd::test_exit_as_defeat_ends_the_run`'s comment and its 0-Health set-up follow.
 
 ### Task 4: The card's pools line and blink
 
-- [ ] `adventure_presenter.tscn`: the ReadyText row stays; add `BlinkTimer` (0.5 s, not one shot). `AdventurePresenter`: `pools_text(lit: bool)` (static-free, reads the pools) writes "[img]heart[/img] 38 / 100    [img]drop[/img] 100 / 100" with a low figure in `LACQUER_DIM` while unlit; `set_detail_right("<n> min run", LACQUER_BRASS)`; the timer runs while either pool is low and stops (lit) otherwise; follows `health_changed` too. `can_activate()` = neither pool low; `on_activation_rejected()` = `ActionManager.ask_to_start_adventure(action)`.
-- [ ] `test_zone_action_cards.gd` (or the adventure presenter's test file): the line at full pools; a low pool's figure dims on the blink and lights again; the blink stops once the pool is back at half; gear moving the max starts it; a click below half emits `adventure_confirm_requested` and starts nothing; a click at half or more starts the run.
+- [x] `adventure_presenter.tscn`: the ReadyText row stays; add `BlinkTimer` (0.5 s, not one shot). `AdventurePresenter`: `pools_text(lit: bool)` (static-free, reads the pools) writes "[img]heart[/img] 38 / 100    [img]drop[/img] 100 / 100" with a low figure in `LACQUER_DIM` while unlit; `set_detail_right("<n> min run", LACQUER_BRASS)`; the timer runs while either pool is low and stops (lit) otherwise; follows `health_changed` too. `can_activate()` = neither pool low; `on_activation_rejected()` = `ActionManager.ask_to_start_adventure(action)`.
+- [x] `test_zone_action_cards.gd` (or the adventure presenter's test file): the line at full pools; a low pool's figure dims on the blink and lights again; the blink stops once the pool is back at half; gear moving the max starts it; a click below half emits `adventure_confirm_requested` and starts nothing; a click at half or more starts the run.
 
 ### Task 5: ActionManager's question
 
-- [ ] `signal adventure_confirm_requested(action_data: AdventureActionData)` and `ask_to_start_adventure(action_data)`, which only emits it. Test in `test_action_manager.gd`.
+- [x] `signal adventure_confirm_requested(action_data: AdventureActionData)` and `ask_to_start_adventure(action_data)`, which only emits it. Tested through the card's click in `test_zone_action_cards.gd` (there is no ActionManager test file).
 
 ### Task 6: The "Head out?" board and its state
 
-- [ ] `scenes/zones/adventure_confirm/adventure_confirm_board.tscn` (`AdventureConfirmBoard`, full rect, hidden): a full-rect `ClickAway` (mouse stop), the `Board` `PanelContainer` on `trib_board9.tres`, centred in the map gap (x 466 to 1456), 480 wide; `Title` (`LabelLacquerPanelTitle`, "Head out?"), `Lines` (`RichTextLacquer`, tan, wraps), the `ButtonRow` with `GoButton` / `StayButton` on the About art with hover frames. Script: `ask(action)` writes the lines from the pools and shows the board; `close()`; signals `confirmed`, `dismissed` (Not yet, a click away).
-- [ ] `scenes/ui/main_view/states/adventure_confirm_state.gd` (`AdventureConfirmState`): `_ready()` connects `ActionManager.adventure_confirm_requested`; pushes itself (once); `enter()` shows the board and blocks the full log; `exit()` closes it; `handle_input()`: `ui_cancel` pops; nothing else reaches the zone view's book keys. On `confirmed`: pop, then `ActionManager.select_action(action)`; on `dismissed`: pop.
-- [ ] `main_game.tscn`: the state under `MainViewStateMachine`, the board under `MainView` above the HUD boards; `MainView`: `adventure_confirm_board`, `adventure_confirm_state`, `scene_root` set in `_ready()`.
-- [ ] Tests (`test_adventure_confirm.gd`): each case's lines (Health, Madra, both, 0 Health); Head out starts the adventure and closes the board; Not yet, Esc and a click away close it and start nothing, the idle action still running; a book key does nothing while it is up. The board joins `BOARD_SCENES`.
+- [x] `scenes/zones/adventure_confirm/adventure_confirm_board.tscn` (`AdventureConfirmBoard`, full rect, hidden): a full-rect `ClickAway` (mouse stop), the `Board` `PanelContainer` on `trib_board9.tres`, centred in the map gap (x 466 to 1456), 480 wide; `Title` (`LabelLacquerPanelTitle`, "Head out?"), `Lines` (`RichTextLacquer`, tan, wraps), the `ButtonRow` with `GoButton` / `StayButton` on the About art with hover frames. Script: `ask(action)` writes the lines from the pools and shows the board; `close()`; signals `confirmed`, `dismissed` (Not yet, a click away).
+- [x] `scenes/ui/main_view/states/adventure_confirm_state.gd` (`AdventureConfirmState`): `_ready()` connects `ActionManager.adventure_confirm_requested`; pushes itself (once); `enter()` shows the board and blocks the full log; `exit()` closes it; `handle_input()`: `ui_cancel` pops; nothing else reaches the zone view's book keys. On `confirmed`: pop, then `ActionManager.select_action(action)`; on `dismissed`: pop.
+- [x] `main_game.tscn`: the state under `MainViewStateMachine`, the board under `MainView` above the HUD boards; `MainView`: `adventure_confirm_board`, `adventure_confirm_state`, `scene_root` set in `_ready()`.
+- [x] Tests (`test_adventure_confirm.gd`): each case's lines (Health, Madra, both, 0 Health); Head out starts the adventure and closes the board; Not yet, Esc and a click away close it and start nothing, the idle action still running; a book key does nothing while it is up. The board joins `BOARD_SCENES`.
 
 ### Task 7: Verify
 
-- [ ] Suite green; the issue's Done-when checks on `-- --save=user://dev/runs/health-comes-home.tres` (and the `adventure_open` preset for the robes check); an old save loads and plays.
+- [x] Suite green; the issue's Done-when checks on `-- --save=user://dev/runs/health-comes-home.tres` (and the `adventure_open` preset for the robes check); an old save loads and plays.
 
 ## Docs to update (for #112)
 
@@ -76,4 +76,7 @@ The issue's list, with: `ZONES.md` and `MAIN_VIEW.md` (the card's pools line and
 
 ## What was built differently
 
-(Filled in as the build goes.)
+- **The card's pools line** reuses the forage cards' icon and figure piece (`forage_yield.tscn`) twice in an `HFlowContainer`, as the body refining card lists its rewards, instead of one RichTextLabel with inline images: a pool that would pass the line's room moves down whole, and the blink sets one label's colour. The adventure presenter stays out of `BOARD_SCENES`, which wants plain Labels: like the body refining presenter it holds only RichTextLabels, which never trim.
+- **The board's lines** are the same two pieces (each shown only while its pool is low) and a wrapping `LabelLacquerDetail` advice Label.
+- **The "Exit as defeat" dev check** now leaves its run as a retreat, since only a lost fight is a loss; `test_exit_as_defeat_ends_the_run` stops the run's timer to keep an end that play would count ("Time ran out").
+- **Verified in the real main scene** by a scripted driver (`mockups/health_home_canvas/done_when.gd`, gitignored) on `-- --preset=adventure_open --save=user://dev/runs/health-comes-home.tres`: every Done-when check passes; back to half from 0 took 13 perfect Stone Lifting reps, as the canvas said. A version-0 save loads, migrates to 5, its 25 Madra blinks, the click asks, and Head out starts the run.
