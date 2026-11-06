@@ -50,7 +50,7 @@ Canvas "One Health pool": https://claude.ai/artifact/Tb2mF2n82eQmR2tLh3hQnN, **a
 **Interfaces:**
 - Produces: after `AdventureCombat.stop()`, `PlayerManager.vitals_manager.health_changed` no longer reaches `_on_player_health_changed`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```gdscript
 ## Once the fight stops it no longer listens to the player's Health, so Health
@@ -63,15 +63,15 @@ func test_health_at_zero_after_the_fight_reports_nothing() -> void:
 	assert_eq(_combat_ends.size(), 1, "only the won fight ended")
 ```
 
-- [ ] **Step 2: Run it and see it fail** (`_combat_ends.size()` is 2)
+- [x] **Step 2: Run it and see it fail** (`_combat_ends.size()` is 2)
 
 Run: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gconfig= -gtest=res://tests/unit/test_adventure_combat_victory_event.gd -gexit`
 
-- [ ] **Step 3: In `stop()`, disconnect `_on_player_health_changed` from `PlayerManager.vitals_manager.health_changed` when connected** (the vitals manager may have been replaced by `reset_vitals()`; check `is_instance_valid`).
+- [x] **Step 3: In `stop()`, disconnect `_on_player_health_changed` from `PlayerManager.vitals_manager.health_changed` when connected** (the vitals manager may have been replaced by `reset_vitals()`; check `is_instance_valid`).
 
-- [ ] **Step 4: Run the file again: PASS**
+- [x] **Step 4: Run the file again: PASS**
 
-- [ ] **Step 5: Commit** `fix(combat): let go of the player's Health when a fight stops`
+- [x] **Step 5: Commit** `fix(combat): let go of the player's Health when a fight stops`
 
 ### Task 2: The player's Health is the saved pool
 
@@ -83,7 +83,7 @@ Run: `"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --hea
 - Consumes: `ResourceManager.get_health()`, `get_max_health()`, `set_health(amount)`, `add_health(amount, quiet)`, `health_changed` (#93).
 - Produces: for the player, `VitalsManager.current_health` and `max_health` read the pool, a `current_health` write calls `set_health()`, `apply_vitals_change(health_amount)` calls `add_health(amount, true)` (nothing for a zero change), and `health_changed` is emitted once per pool change, from `ResourceManager.health_changed`. `initialize_current_values()` still fills the player's Health, through the pool (until #104). An enemy's Health is unchanged.
 
-- [ ] **Step 1: Write the failing tests** in `test_player_vitals_manager.gd`, a section "HEALTH: THE ONE POOL" after the Madra one, mirroring its tests:
+- [x] **Step 1: Write the failing tests** in `test_player_vitals_manager.gd`, a section "HEALTH: THE ONE POOL" after the Madra one, mirroring its tests:
 
 ```gdscript
 # _max_health_source(amount), the file's FLAT Stat.MAX_HEALTH source, serves these too
@@ -117,17 +117,17 @@ func test_unequipping_agility_gear_lowers_max_stamina_again() -> void:
 
 `test_new_max_health_fills_the_next_run` stays: the run start fills the geared max, now through the pool. The file's class doc says Health is the pool too. In `test_change_vitals_effect_data.gd`: `test_process_heals_the_saved_pool` (a `health_change = 15` effect at 40 Health → 55).
 
-- [ ] **Step 2: Run both files and see the Health tests fail**
+- [x] **Step 2: Run both files and see the Health tests fail**
 
-- [ ] **Step 3: Make Health a facade in `vitals_manager.gd`**, in the same shape as Madra's: a `max_health` getter and a `current_health` getter and setter that go to `ResourceManager` while `is_player`; `_ready()` connects `ResourceManager.health_changed` to a handler that re-emits `health_changed`; `_apply_health_change()` sends a non-zero player change to `add_health(amount, true)` (keeping its `Log.info` line for changes over 1); `_on_stats_changed()` no longer writes `max_health`. Class doc, `initialize_current_values()`'s and `apply_vitals_change()`'s docs say Health is the pool. `PlayerManager`'s class doc and `reset_vitals()`'s doc: a fresh vitals manager reads the save's Health; only Stamina and the regen are the run's.
+- [x] **Step 3: Make Health a facade in `vitals_manager.gd`**, in the same shape as Madra's: a `max_health` getter and a `current_health` getter and setter that go to `ResourceManager` while `is_player`; `_ready()` connects `ResourceManager.health_changed` to a handler that re-emits `health_changed`; `_apply_health_change()` sends a non-zero player change to `add_health(amount, true)` (keeping its `Log.info` line for changes over 1); `_on_stats_changed()` no longer writes `max_health`. Class doc, `initialize_current_values()`'s and `apply_vitals_change()`'s docs say Health is the pool. `PlayerManager`'s class doc and `reset_vitals()`'s doc: a fresh vitals manager reads the save's Health; only Stamina and the regen are the run's.
 
-- [ ] **Step 4: Update the tests the facade changes**
+- [x] **Step 4: Update the tests the facade changes**
   - `test_dev_hooks.gd::test_reset_vitals_gives_a_fresh_vitals_manager`: the new manager's `current_health` is `ResourceManager.get_health()`, and `ResourceManager.health_changed` keeps its connection count ("and its Health hook").
   - `test_vitals_plate.gd`: `_set_vitals()` sets max Health with a FLAT `Stat.MAX_HEALTH` source beside the Madra one (one source returning both modifiers), then `ResourceManager.set_health()`; the expected figures stay.
 
-- [ ] **Step 5: Run the suite** (`tests/run_tests.ps1`). The other writers of the player's `current_health` (directly or through `adventure_map_fixture.gd`'s `swap_in_known_vitals()`) should stay green: each writes into the save it bound, or puts a save's own Health back. Fix any that write into the session save after restoring it, by restoring the save last.
+- [x] **Step 5: Run the suite** (`tests/run_tests.ps1`). The other writers of the player's `current_health` (directly or through `adventure_map_fixture.gd`'s `swap_in_known_vitals()`) should stay green: each writes into the save it bound, or puts a save's own Health back. Fix any that write into the session save after restoring it, by restoring the save last.
 
-- [ ] **Step 6: Commit** `feat(combat): make the player's Health the saved pool`
+- [x] **Step 6: Commit** `feat(combat): make the player's Health the saved pool`
 
 ### Task 3: The player's combatant drops its unused VitalsManager
 
@@ -138,7 +138,7 @@ func test_unequipping_agility_gear_lowers_max_stamina_again() -> void:
 **Interfaces:**
 - Produces: a `CombatantNode` set up with an external vitals manager frees its own `VitalsManager` child; an enemy keeps it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```gdscript
 func test_only_the_enemy_carries_a_vitals_manager_of_its_own() -> void:
@@ -148,10 +148,10 @@ func test_only_the_enemy_carries_a_vitals_manager_of_its_own() -> void:
 	assert_eq(_combat.enemy_combatant.find_children("*", "VitalsManager", true, false).size(), 1, "the enemy has its own")
 ```
 
-- [ ] **Step 2: Run it: FAIL** (the player's node has 1)
-- [ ] **Step 3: In `setup()`, with an external manager, remove the node's own `%VitalsManager` child and free it before taking the external one**
-- [ ] **Step 4: Run it: PASS**
-- [ ] **Step 5: Commit** `refactor(combat): drop the player combatant's unused VitalsManager`
+- [x] **Step 2: Run it: FAIL** (the player's node has 1)
+- [x] **Step 3: In `setup()`, with an external manager, remove the node's own `%VitalsManager` child and free it before taking the external one**
+- [x] **Step 4: Run it: PASS**
+- [x] **Step 5: Commit** `refactor(combat): drop the player combatant's unused VitalsManager`
 
 ### Task 4: The cabinet's Health readout (after the canvas)
 
@@ -164,7 +164,7 @@ func test_only_the_enemy_carries_a_vitals_manager_of_its_own() -> void:
 - Consumes: `ResourceManager.health_changed`, `get_health()`, `get_max_health()`; `CharacterManager.stats_changed`; `VitalsText`.
 - Produces: `CultivatorPlate.get_health_orb_global_position() -> Vector2`, `hold_health(amount: float) -> void`, `release_health(amount: float) -> void`, for #100's pellets. Unique names `%HealthOrb`, `%HealthValueLabel`, `%HealthMaxLabel`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```gdscript
 func test_shows_health_over_max() -> void   # a new save: "100", "/ 100", fill 1.0
@@ -179,11 +179,11 @@ func test_held_health_shows_once_released() -> void
 func test_health_pellets_land_on_the_health_orb() -> void   # get_health_orb_global_position() == orb centre
 ```
 
-- [ ] **Step 2: Run the file: FAIL**
-- [ ] **Step 3: Build the readout in the scene**: the vitals plate's Health nodes (`HealthOrb` with the Madra orb shader and the crimson ramp on its material, `lacquer_orb_health_ai.png`; `HealthTitleLabel` "Health", `LabelLacquerDetail`; `HealthRow` with `HealthValueLabel` and `HealthMaxLabel`, `LabelLacquerBig`, the max in tan) at the plate's offsets (orb 18,16; title 114,22; row 114,44). Every other node moves down 92 px, the Madra title and row to the plate's (110 and 132); the board takes the new art; the root ends at 616.
-- [ ] **Step 4: In the script**: `_update_health()` shows `maxf(get_health() - _held_health, 0.0)` against `get_max_health()` through `VitalsText`, the fill at their fraction; it runs on `_ready`, `health_changed` and `stats_changed`. `hold_health()`/`release_health()` as `hold_madra()`/`release_madra()`, with `_less_held()`. Class doc names the Health row and its landing.
-- [ ] **Step 5: Run the file: PASS; run `test_cycling_view.gd` and the zone tests** (the Madra orb moved; its pellets read its position)
-- [ ] **Step 6: Commit** `feat(zones): show the Health pool on the cabinet`
+- [x] **Step 2: Run the file: FAIL**
+- [x] **Step 3: Build the readout in the scene**: the vitals plate's Health nodes (`HealthOrb` with the Madra orb shader and the crimson ramp on its material, `lacquer_orb_health_ai.png`; `HealthTitleLabel` "Health", `LabelLacquerDetail`; `HealthRow` with `HealthValueLabel` and `HealthMaxLabel`, `LabelLacquerBig`, the max in tan) at the plate's offsets (orb 18,16; title 114,22; row 114,44). Every other node moves down 92 px, the Madra title and row to the plate's (110 and 132); the board takes the new art; the root ends at 616.
+- [x] **Step 4: In the script**: `_update_health()` shows `maxf(get_health() - _held_health, 0.0)` against `get_max_health()` through `VitalsText`, the fill at their fraction; it runs on `_ready`, `health_changed` and `stats_changed`. `hold_health()`/`release_health()` as `hold_madra()`/`release_madra()`, with `_less_held()`. Class doc names the Health row and its landing.
+- [x] **Step 5: Run the file: PASS; run `test_cycling_view.gd` and the zone tests** (the Madra orb moved; its pellets read its position)
+- [x] **Step 6: Commit** `feat(zones): show the Health pool on the cabinet`
 
 ### Task 5: The Goals board and the full log move under the taller cabinet
 
@@ -194,7 +194,7 @@ func test_health_pellets_land_on_the_health_orb() -> void   # get_health_orb_glo
 **Interfaces:**
 - Produces: `ZoneViewState.GOALS_POSITION == Vector2(24, 616)`; `LogWindow.FULL_LOG_HEIGHT == 440.0`. `AdventureViewState.GOALS_POSITION` stays (24, 368).
 
-- [ ] **Step 1: Write the failing tests**: `PLACES`' GoalsPanel pin becomes (24, 616), and a rule test:
+- [x] **Step 1: Write the failing tests**: `PLACES`' GoalsPanel pin becomes (24, 616), and a rule test:
 
 ```gdscript
 ## The open full log reaches up from the log's slot to the Goals board's top in
@@ -208,10 +208,10 @@ func test_the_full_log_covers_the_goals_board_and_never_the_cabinet() -> void:
 	assert_true(full_log_top >= cabinet.position.y + cabinet.size.y, "below the cabinet")
 ```
 
-- [ ] **Step 2: Run the file: FAIL**
-- [ ] **Step 3: Move the constants and the two scenes as listed**
-- [ ] **Step 4: Run the file and `test_log_board.gd`, `test_goals_panel.gd`: PASS**
-- [ ] **Step 5: Commit** `feat(ui): hang the Goals board and the full log under the taller cabinet`
+- [x] **Step 2: Run the file: FAIL**
+- [x] **Step 3: Move the constants and the two scenes as listed**
+- [x] **Step 4: Run the file and `test_log_board.gd`, `test_goals_panel.gd`: PASS**
+- [x] **Step 5: Commit** `feat(ui): hang the Goals board and the full log under the taller cabinet`
 
 ### Task 6: The book's Health row
 
@@ -224,7 +224,7 @@ func test_the_full_log_covers_the_goals_board_and_never_the_cabinet() -> void:
 - Consumes: `CharacterView._rebuild_fight_rows()` (#89), `VitalsText.health_pair()`.
 - Produces: `fight_lines()`'s Health entry reads `VitalsText.health_pair(get_health(), get_max_health())`; the open book rebuilds the fight rows on `ResourceManager.health_changed`; "Health" and "Max Health" values print in `BOOK_HEALTH_INK`, as "Madra" and "Max Madra" print in `BOOK_MADRA_INK`.
 
-- [ ] **Step 1: Write the failing tests**, mirroring `test_character_book_madra.gd`:
+- [x] **Step 1: Write the failing tests**, mirroring `test_character_book_madra.gd`:
 
 ```gdscript
 func test_the_health_line_shows_the_saved_pool() -> void   # set_health(61.3) → "62 / 100"
@@ -234,10 +234,10 @@ func test_the_health_row_follows_the_pool_and_its_max_while_open() -> void
 
 and `test_in_a_fight_lists_every_total`'s Health assertion reads `VitalsText.health_pair(ResourceManager.get_health(), ResourceManager.get_max_health())`.
 
-- [ ] **Step 2: Run them: FAIL**
-- [ ] **Step 3: Implement**: the Health entry, `ResourceManager.health_changed` hooked as the Madra one is (rebuilding only the fight rows while shown), the ink map, the docs.
-- [ ] **Step 4: Run both book files: PASS**
-- [ ] **Step 5: Commit** `feat(character): show the Health pool in the book's fight block`
+- [x] **Step 2: Run them: FAIL**
+- [x] **Step 3: Implement**: the Health entry, `ResourceManager.health_changed` hooked as the Madra one is (rebuilding only the fight rows while shown), the ink map, the docs.
+- [x] **Step 4: Run both book files: PASS**
+- [x] **Step 5: Commit** `feat(character): show the Health pool in the book's fight block`
 
 ### Task 7: The Health pellet row
 
@@ -248,18 +248,18 @@ and `test_in_a_fight_lists_every_total`'s Health assertion reads `VitalsText.hea
 **Interfaces:**
 - Produces: `LacquerPellet.Ramp.HEALTH` (10), for #100's Health pellets.
 
-- [ ] **Step 1: Write the failing test**: `test_health_pellets_fly_in_their_own_row`: a pellet with `set_ramp(LacquerPellet.Ramp.HEALTH)` shows strip row 10. `test_the_strip_has_a_row_for_every_ramp` then fails on the strip too.
-- [ ] **Step 2: Run: FAIL**
-- [ ] **Step 3: Add the enum value, the strip row and the vframes**
-- [ ] **Step 4: Run: PASS**
-- [ ] **Step 5: Commit** `feat(ui): add a crimson Health row to the pellet strip`
+- [x] **Step 1: Write the failing test**: `test_health_pellets_fly_in_their_own_row`: a pellet with `set_ramp(LacquerPellet.Ramp.HEALTH)` shows strip row 10. `test_the_strip_has_a_row_for_every_ramp` then fails on the strip too.
+- [x] **Step 2: Run: FAIL**
+- [x] **Step 3: Add the enum value, the strip row and the vframes**
+- [x] **Step 4: Run: PASS**
+- [x] **Step 5: Commit** `feat(ui): add a crimson Health row to the pellet strip`
 
 ### Task 8: Checks and the PR
 
-- [ ] Run `tests/run_tests.ps1`; confirm any failure in one process before acting on it.
-- [ ] Run #98's Done-when checks on `-- --save=user://dev/runs/health-readouts.tres` and record the figures under "Checks run" below.
-- [ ] An old save still loads and plays, on a copy.
-- [ ] Merge `main` once right before the merge, rerun the suite. Open the PR closing #98, ending with `## Docs to update`.
+- [x] Run `tests/run_tests.ps1`; confirm any failure in one process before acting on it.
+- [x] Run #98's Done-when checks on `-- --save=user://dev/runs/health-readouts.tres` and record the figures under "Checks run" below.
+- [x] An old save still loads and plays, on a copy.
+- [x] Merge `main` once right before the merge, rerun the suite. Open the PR closing #98, ending with `## Docs to update`.
 
 ## Checks run
 
@@ -278,4 +278,9 @@ and `test_in_a_fight_lists_every_total`'s Health assertion reads `VitalsText.hea
 
 ## What was built differently
 
-(Filled in at the end.)
+- **Task 2:** `test_vitals_plate.gd` sets max Health with a second modifier source (`TEST_HEALTH_SOURCE`), removed again at 100, instead of one source for both maxima: its `after_each()` restores the vitals through `_set_vitals()` after removing the Madra source, and a combined source would have been put back there.
+- **Task 3:** the node frees its own `VitalsManager` with `free()`, not `queue_free()` (the final review): a node left out of the tree until the frame ends counts as an orphan in every test that sets up a player combatant.
+- **Task 4:** "never below 0" is a test of its own (`test_held_health_never_reads_below_zero`), and the landing test checks the orb's centre at a literal (40, 40). The Madra rate label keeps its old place against the Madra row (144..165, on the even grid): moving it the full 92 px left it 5 px low against the figure, which the Madra row's move to the vitals plate's offsets (+87) had not.
+- **Task 6:** `test_in_a_fight_lists_every_total` asserts the literal "100 / 100" rather than recomputing it with `VitalsText`. `test_character_book_health.gd` also covers the plan's Review Focus 2 and 3 for the book: a max that drops under the pool, and a save loaded while the book is open.
+- **Outside the plan:** the dev panel's Player tab printed Health truncated ("Health 61 / 100" beside the cabinet's 62), so it now prints through `VitalsText` too (`test_dev_panel.gd::test_player_tab_health_line_rounds_as_every_health_readout`).
+- `lacquer_cult_stats_ai.png`, the cabinet's old board, is no longer used and stays in the repo.
