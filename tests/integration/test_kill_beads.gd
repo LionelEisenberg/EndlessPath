@@ -10,11 +10,15 @@ extends GutTest
 const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adventure_view.tscn")
 const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
+const CoreCurve := preload("res://tests/helpers/core_curve.gd")
 
 var _view: AdventureView
 var _original_save: SaveGameData
+## The real stages, put back after each test (CoreCurve).
+var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
+	_original_stages = CoreCurve.use_fixed_curve()
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
@@ -31,6 +35,7 @@ func after_each() -> void:
 	# never frees it; free it here so these tests don't leave orphans.
 	if is_instance_valid(_view) and is_instance_valid(_view.adventure_tilemap.adventure_map_generator):
 		_view.adventure_tilemap.adventure_map_generator.free()
+	CoreCurve.restore(_original_stages)
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 	while ActionManager.get_current_action() != null:
