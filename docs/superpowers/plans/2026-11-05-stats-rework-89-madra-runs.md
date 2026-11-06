@@ -8,12 +8,12 @@ Issue: LionelEisenberg/EndlessPath#89, tracked in #85. Design: the master plan's
 
 Canvas "One Madra Pool": https://claude.ai/artifact/1dmSBZVoz2dzHthSP5Fqpb. Real captures of the card, the run start, the end card and the book, with the proposed copy patched in.
 
-Approved: _waiting for Lionel._ The proposals:
-- Q1, the card's ready line: "carries 60 Madra", the pool.
-- Q2, the book's Madra row: "46 / 100", live while the book is open.
-- Q3, the run start: the pellets fly while the cabinet's figure stays put, counted from the start threshold to full (8 at half the max, 25 at full). The plan counted from empty (16 at half).
-- Q4, the end card: "MADRA LEFT" over "46 / 100".
-- Q5, one Health rounding rule: the vitals plate's, the current figure rounded up over the max rounded down, on the end card too.
+Approved 2026-11-05, with Lionel's changes (recorded on #89):
+- Q1, the card: **no start threshold at all.** A run starts on whatever the pool holds. The card is always ready (ENTER): "5 min run" on the left, the pool "60 / 100 Madra" on the right. The below-threshold state (rod, hint, refused click) goes, and so do `ResourceManager.get_adventure_madra_threshold()`, `can_start_adventure()` and `select_action()`'s adventure refusal.
+- Q2, the book's Madra row: "46 / 100", live while open, as drawn.
+- Q3, the run start: **no pellets.** Nothing leaves the orb with one pool, so the start goes straight to the zoom.
+- Q4, the end card: "MADRA LEFT" over "46 / 100", as drawn.
+- Q5, Health rounding: the vitals plate's rule (figure rounded up, max rounded down), through one helper both use.
 
 ## What `main` already has
 
