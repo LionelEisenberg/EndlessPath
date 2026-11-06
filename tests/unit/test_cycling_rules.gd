@@ -71,6 +71,43 @@ func test_is_following() -> void:
 		assert_eq(CyclingRules.is_following(case.on, case.was, case.moved), case.follows, case.name)
 
 #-----------------------------------------------------------------------------
+# SEALS
+#-----------------------------------------------------------------------------
+
+## A right key lights the next arrow; a wrong one starts the seal over.
+func test_seal_progress() -> void:
+	var up := CyclingRules.Arrow.UP
+	var left := CyclingRules.Arrow.LEFT
+	var down := CyclingRules.Arrow.DOWN
+	var right := CyclingRules.Arrow.RIGHT
+	var seal: Array[int] = [up, right, down]
+	var cases: Array[Dictionary] = [
+		{"name": "the first arrow", "keyed": 0, "arrow": up, "after": 1},
+		{"name": "the second arrow", "keyed": 1, "arrow": right, "after": 2},
+		{"name": "the last arrow opens it", "keyed": 2, "arrow": down, "after": 3},
+		{"name": "a wrong first key", "keyed": 0, "arrow": left, "after": 0},
+		{"name": "a wrong last key starts it over", "keyed": 2, "arrow": up, "after": 0},
+		{"name": "the first arrow again is wrong at the second", "keyed": 1, "arrow": up, "after": 0},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CyclingRules.seal_progress(seal, case.keyed, case.arrow), case.after, case.name)
+
+## A seal is SEAL_LENGTH arrows, never one arrow three times, and the same seed
+## draws the same seals.
+func test_random_seal() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var twin := RandomNumberGenerator.new()
+	twin.seed = 7
+	for i: int in 200:
+		var seal: Array[int] = CyclingRules.random_seal(rng)
+		assert_eq(seal.size(), CyclingRules.SEAL_LENGTH, "a seal has its three arrows")
+		for arrow: int in seal:
+			assert_true(arrow >= CyclingRules.Arrow.UP and arrow <= CyclingRules.Arrow.RIGHT, "each is an arrow")
+		assert_false(seal[0] == seal[1] and seal[1] == seal[2], "never one arrow three times")
+		assert_eq(CyclingRules.random_seal(twin), seal, "the same seed draws the same seal")
+
+#-----------------------------------------------------------------------------
 # CYCLE RESULT
 #-----------------------------------------------------------------------------
 

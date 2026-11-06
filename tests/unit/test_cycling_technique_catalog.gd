@@ -94,6 +94,22 @@ func test_zones_pay_control_and_seals_pay_mind() -> void:
 		else:
 			assert_eq(technique.minor_stat, -1, "%s, with neither, trains Spirit alone" % technique.id)
 
+## Each seal shows SEAL_LEAD before its node, so a node sits at least that far
+## into the cycle and that far after the one before it (two seals never show at
+## once), and within the cycle; a technique with seals pays for them.
+func test_seals_fit_their_cycle() -> void:
+	var seals: int = 0
+	for technique: CyclingTechniqueData in _techniques():
+		var last: float = 0.0
+		for seconds: float in technique.seal_seconds:
+			seals += 1
+			assert_gte(seconds - last, CyclingRules.SEAL_LEAD, "%s's seal at %s s shows after the one before is done" % [technique.id, seconds])
+			assert_lte(seconds, technique.cycle_duration, "%s's seal at %s s is within its cycle" % [technique.id, seconds])
+			last = seconds
+		if not technique.seal_seconds.is_empty():
+			assert_gt(technique.seal_xp, 0.0, "%s's seals pay" % technique.id)
+	assert_gt(seals, 0, "precondition: the catalog has seals")
+
 ## Every zone is a file of its own that writes out what each tier pays, never
 ## leaning on the class's defaults.
 func test_every_zone_writes_out_its_tier_xp() -> void:

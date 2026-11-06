@@ -12,6 +12,9 @@ extends RefCounted
 ## circle around the ball keeps following, and a cursor in it starts once it
 ## moves, so a cursor resting on the path follows nothing as the ball passes.
 ## FollowWindow measures what the rule reads.
+## So are seals, the game that trains Mind: a seal is SEAL_LENGTH arrows
+## (random_seal()), shown SEAL_LEAD before the ball reaches its node, and each key
+## lights the next arrow or starts the seal over (seal_progress()).
 ## Statics only.
 
 #-----------------------------------------------------------------------------
@@ -20,6 +23,15 @@ extends RefCounted
 
 ## How good a hit was, from worst to best.
 enum Tier { OK, GOOD, PERFECT }
+
+## A seal's arrows, keyed on W A S D or the arrow keys.
+enum Arrow { UP, LEFT, DOWN, RIGHT }
+
+## The arrows in a seal.
+const SEAL_LENGTH: int = 3
+
+## Seconds a seal shows before the ball reaches its node.
+const SEAL_LEAD: float = 1.5
 
 ## A zone's radius in px: the distance from its centre to its edge.
 const ZONE_RADIUS: float = 20.0
@@ -59,6 +71,24 @@ static func tier_for_distance(distance: float) -> Tier:
 ## once it has moved FOLLOW_START_MOVE, so a resting cursor never starts.
 static func is_following(on_ball: bool, was_following: bool, moved: float) -> bool:
 	return on_ball and (was_following or moved >= FOLLOW_START_MOVE)
+
+## Returns how many of `seal`'s arrows are keyed after `arrow` is pressed with
+## `keyed` of them keyed: one more when `arrow` is the next one, else 0, since a
+## wrong key starts the seal over. SEAL_LENGTH keyed means the seal is open.
+static func seal_progress(seal: Array[int], keyed: int, arrow: int) -> int:
+	if keyed < seal.size() and seal[keyed] == arrow:
+		return keyed + 1
+	return 0
+
+## Returns a new seal drawn from `rng`: SEAL_LENGTH arrows, never one arrow
+## SEAL_LENGTH times.
+static func random_seal(rng: RandomNumberGenerator) -> Array[int]:
+	var seal: Array[int] = []
+	while seal.is_empty() or seal.count(seal[0]) == SEAL_LENGTH:
+		seal.clear()
+		for i: int in SEAL_LENGTH:
+			seal.append(rng.randi_range(Arrow.UP, Arrow.RIGHT))
+	return seal
 
 ## Returns the Core Density XP `zone` pays for a hit of `tier`.
 static func xp_for_tier(zone: CyclingZoneData, tier: Tier) -> int:
