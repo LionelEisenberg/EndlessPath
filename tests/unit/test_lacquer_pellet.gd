@@ -89,7 +89,7 @@ func test_a_pellet_with_no_flight_waits() -> void:
 	assert_false(pellet.is_queued_for_deletion())
 
 #-----------------------------------------------------------------------------
-# STAT RAMPS
+# RAMPS
 #-----------------------------------------------------------------------------
 
 ## Each stat's XP pellets fly in a ramp of their own, and the pellet shows it in
@@ -117,3 +117,9 @@ func test_the_strip_has_a_row_for_every_ramp() -> void:
 	var sprite: Sprite2D = pellet.get_node("%Sprite") as Sprite2D
 	assert_eq(sprite.vframes, LacquerPellet.Ramp.size(), "a sprite row for each ramp")
 	assert_eq(sprite.texture.get_height(), sprite.vframes * 20, "each row 20 px tall in the strip")
+
+## Health pellets fly in a crimson row of their own, after the stats' rows.
+func test_health_pellets_fly_in_their_own_row() -> void:
+	var pellet: LacquerPellet = _add_pellet()
+	pellet.set_ramp(LacquerPellet.Ramp.HEALTH)
+	assert_eq((pellet.get_node("%Sprite") as Sprite2D).frame_coords.y, 10, "the row after Control's")

@@ -6,7 +6,8 @@ extends Node2D
 ## view sends it from the ball to the Madra orb (Madra) and from a zone to the
 ## Core orb (XP, in the tier's ramp), and the tribulation off its ring and into
 ## its core. A stat's XP pellets fly in that stat's own ramp (stat_ramp()) to its
-## cell on the cultivator cabinet.
+## cell on the cultivator cabinet. Health pellets fly in Health's crimson ramp to
+## the cabinet's Health orb.
 ## Lacquer kit §1 rules 4 and 6: no glow, halo, alpha or eased colour. Every look
 ## is a frame of one strip (lacquer_pellet_strip_ai.png, a row per Ramp), and every
 ## point it stands on is on the even-px grid. Its life, in whole frames:
@@ -33,9 +34,9 @@ signal delivered
 #-----------------------------------------------------------------------------
 
 ## The strip's rows: the Madra ramp, the cycling hit tiers' brass, cream and tan,
-## then each stat's XP ramp (copper, steel, sky, violet, leaf, orchid). Values
-## are only ever added at the end.
-enum Ramp { MADRA, BRASS, CREAM, TAN, STRENGTH, BODY, AGILITY, SPIRIT, MIND, CONTROL }
+## each stat's XP ramp (copper, steel, sky, violet, leaf, orchid), then Health's
+## crimson. Values are only ever added at the end.
+enum Ramp { MADRA, BRASS, CREAM, TAN, STRENGTH, BODY, AGILITY, SPIRIT, MIND, CONTROL, HEALTH }
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
