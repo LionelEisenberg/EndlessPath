@@ -4,12 +4,13 @@ extends Node2D
 ## CyclingTechnique
 ## The play of one cycling technique. The Madra ball travels the technique's path
 ## once per cycle, easing in and out with a sine, and the carved groove lights
-## behind it. While the cursor follows the ball, on it out to the edge of the ring
-## around it (CURSOR_REACH) and moving with it (CyclingRules.is_following(), over
-## a FollowWindow), it draws Madra, one step every MADRA_PARTICLE_INTERVAL. A
-## cursor resting on the path follows nothing as the ball passes. The press that
-## starts a cycle starts following, and with Auto a streak carries from one cycle
-## into the next.
+## behind it. While the cursor follows the ball it draws Madra, one step every
+## MADRA_PARTICLE_INTERVAL. Following is being in the gold ring around the ball,
+## out to its edge (CURSOR_REACH), once it has started: the press that starts a
+## cycle starts it, and so does a cursor moving in the ring
+## (CyclingRules.is_following(), over a FollowWindow). A cursor resting on the
+## path never starts, so it follows nothing as the ball passes. With Auto a
+## streak carries from one cycle into the next.
 ## Following also trains Spirit: a second clock gathers the time followed, and
 ## every STAT_XP_INTERVAL of it pays Spirit XP through CharacterManager, the
 ## technique's spirit_xp_per_cycle over a fully followed cycle, Madra full or not.
@@ -34,8 +35,8 @@ extends Node2D
 ## The ball has two positions. The drawn one, snapped to the 2 px grid, is what
 ## the player sees, so whether the cursor is on the ball, the ring and the pellets
 ## use it. The true one, the PathFollow2D's, is where the ball is on the path, so
-## how it moves under the cursor, which zones it overlaps and how near a click was
-## use it, and the groove lights to its travelled length (_follow.progress).
+## which zones it overlaps and how near a click was use it, and the groove lights
+## to its travelled length (_follow.progress).
 ## While a cycle runs the technique writes CyclingManager's session snapshot, for
 ## the cabinet and the Now tray to read. The session belongs to the technique that
 ## started it: only that technique ends it, when its cycle ends, is stopped or cut
@@ -277,7 +278,7 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	_follow.progress_ratio = _eased_ratio()
 	_draw_ball()
 	var on_ball: bool = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
-	_following = _follow_window.judge(cycle_delta, on_ball, _follow.global_position, cursor_global)
+	_following = _follow_window.judge(cycle_delta, on_ball, cursor_global)
 	_ball_ring.visible = _following
 	# Whether the frame draws is judged before its steps can fill the pool.
 	var drawing: bool = _following and not _madra_full()
@@ -342,8 +343,8 @@ func wants_pointer(cursor_global: Vector2) -> bool:
 func is_cycling() -> bool:
 	return _cycling
 
-## Returns true while a cycle runs and the cursor follows the ball: on it and
-## moving with it.
+## Returns true while a cycle runs and the cursor follows the ball: in its gold
+## ring, since the press or since it moved there.
 func is_following() -> bool:
 	return _following
 

@@ -404,18 +404,15 @@ func test_rate_falls_to_zero_once_tracking_stops() -> void:
 		assert_eq(CyclingManager.get_madra_rate(), 0.0, "RATE_WINDOW and a frame after the cursor left, at %d FPS" % fps)
 
 func test_rate_rises_and_falls_within_a_second() -> void:
-	# A cursor that catches the ball mid-cycle follows a quarter second later
-	# (FOLLOW_WINDOW), so half a second on the ball draws for a quarter: a quarter
-	# of the steady rate. A window half followed reads half of it.
+	# A cursor that catches the ball mid-cycle follows at once, so a window half
+	# followed reads half the steady rate.
 	_technique.start_cycle()
 	_run(1.0, 60.0, false)
 	assert_eq(CyclingManager.get_madra_rate(), 0.0, "nothing is drawn yet")
 	_run(0.5, 60.0, true)
-	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 4.0, 0.1, "half a second on the ball, a quarter followed")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second of following")
 	_run(0.5, 60.0, true)
-	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE * 0.75, 0.1, "a second on the ball, three quarters followed")
-	_run(0.25, 60.0, true)
-	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "a whole second followed")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "a second of following")
 	_run(0.5, 60.0, false)
 	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second after it stopped")
 
@@ -482,7 +479,9 @@ func test_a_manual_start_begins_from_an_empty_window() -> void:
 
 ## A cursor that catches the ball mid-cycle follows once it has moved with it for
 ## a quarter second; past the ring nothing follows.
-func test_following_needs_the_cursor_on_the_ball_and_moving_with_it() -> void:
+## A cursor that moves onto the ball mid-cycle follows at once, anywhere in the
+## gold circle; past the ring nothing follows.
+func test_following_needs_the_cursor_in_the_ring() -> void:
 	_technique.advance(FRAME, FAR)
 	assert_false(_technique.is_following(), "no cycle runs")
 	_technique.start_cycle()
@@ -490,10 +489,11 @@ func test_following_needs_the_cursor_on_the_ball_and_moving_with_it() -> void:
 	assert_false(_technique.is_following(), "the first frame is off the ball")
 	_run(3.0, 60.0, false)
 	_technique.advance(FRAME, _technique.get_ball_global_position())
-	assert_false(_technique.is_following(), "catching the ball mid-cycle does not follow at once")
-	_run(CyclingRules.FOLLOW_WINDOW, 60.0, true)
-	assert_true(_technique.is_following(), "a quarter second moving with it does")
-	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 1.0, 0.0))
+	assert_true(_technique.is_following(), "catching the ball mid-cycle follows at once")
+	# The ball moves a few px a frame here, so the offsets keep clear of the edge.
+	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(0.0, 24.0))
+	assert_true(_technique.is_following(), "off the ball's centre, still in the ring, it follows")
+	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 10.0, 0.0))
 	assert_false(_technique.is_following(), "past the ring nothing follows")
 
 func test_on_the_ball_uses_the_drawn_ball() -> void:
@@ -519,9 +519,9 @@ func test_the_cursor_follows_on_the_ring_and_not_past_it() -> void:
 	assert_false(_technique.is_following(), "37 px off, past the ring, it does not")
 	await _await_queued_frees()
 
-## The Foundational path starts, crosses itself and ends at one point, where a
-## cursor resting on the path meets the ball three times a cycle. It never
-## follows: no ring, no Madra.
+## The Foundational path starts, crosses itself and ends at one point. A cursor
+## that comes to rest there once the ball has left meets it twice more, at the
+## crossing and at the end, and never follows: no ring, no Madra.
 func test_a_cursor_resting_on_the_path_draws_nothing() -> void:
 	_use_foundation()
 	var resting: Vector2 = _technique.get_ball_global_position()
@@ -530,7 +530,7 @@ func test_a_cursor_resting_on_the_path_draws_nothing() -> void:
 	var met: int = 0
 	var ringed: int = 0
 	_technique.start_cycle()
-	_technique.advance(FRAME, FAR)
+	_run(1.0, 60.0, false)
 	while _technique.is_cycling():
 		_technique.advance(FRAME, resting)
 		if resting.distance_to(_technique.get_ball_global_position()) <= CyclingTechnique.CURSOR_REACH:
@@ -541,8 +541,8 @@ func test_a_cursor_resting_on_the_path_draws_nothing() -> void:
 	assert_eq(pellets[0], 0, "no Madra step")
 	assert_eq(ringed, 0, "and the ring never showed")
 
-## After the press the cursor follows until the creeping ball gets going, then
-## never again: a few steps at the start, none at the crossing or the end.
+## After the press the cursor follows until the creeping ball leaves the ring,
+## then never again: a few steps at the start, none at the crossing or the end.
 func test_a_cursor_resting_after_the_press_draws_only_the_creeping_start() -> void:
 	_use_foundation()
 	var resting: Vector2 = _technique.get_ball_global_position()
@@ -552,8 +552,8 @@ func test_a_cursor_resting_after_the_press_draws_only_the_creeping_start() -> vo
 	while _technique.is_cycling():
 		_technique.advance(FRAME, resting)
 	assert_gt(steps_at.size(), 0, "precondition: the press made the start follow")
-	assert_lte(steps_at.size(), 10, "only the creeping start draws")
-	assert_lt(steps_at.max(), 0.8, "and nothing after it")
+	assert_lte(steps_at.size(), 12, "only the creeping start draws")
+	assert_lt(steps_at.max(), 1.0, "and nothing once the ball has left the ring")
 
 func test_auto_carries_following_into_the_next_cycle() -> void:
 	_make_room(500.0)
@@ -579,7 +579,7 @@ func test_auto_never_starts_following_for_a_resting_cursor() -> void:
 	var completed: Array[int] = [0]
 	_technique.cycle_completed.connect(func(_result: CycleResult) -> void: completed[0] += 1)
 	_technique.start_cycle()
-	_technique.advance(FRAME, FAR)
+	_run(1.0, 60.0, false)
 	while completed[0] < 2:
 		_technique.advance(FRAME, resting)
 	assert_eq(pellets[0], 0, "two cycles of Auto drew nothing for a cursor that never moved")
@@ -646,7 +646,7 @@ func test_a_resting_cursor_earns_no_spirit_xp() -> void:
 	var resting: Vector2 = _technique.get_ball_global_position()
 	watch_signals(_technique)
 	_technique.start_cycle()
-	_technique.advance(FRAME, FAR)
+	_run(1.0, 60.0, false)
 	while _technique.is_cycling():
 		_technique.advance(FRAME, resting)
 	assert_signal_not_emitted(_technique, "stat_xp_paid")
