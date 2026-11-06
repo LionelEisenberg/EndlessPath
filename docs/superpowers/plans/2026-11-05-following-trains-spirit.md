@@ -21,6 +21,14 @@ Lionel approved the canvas as drawn.
 5. **The status line.** The 13 lines of Task 7's table.
 6. **The cycle line.** Chest: "Last cycle · +30 Madra · +12 Spirit XP · no zones", "Last cycle · +80 Madra · +30 Spirit XP · 3 / 4 zones · 1 PERFECT · +75 Core XP"; "Spirit capped" in place of the Spirit XP once the cap took XP; no Spirit part when nothing was followed. Log, one line (RL-05): "Cycle · +80 Madra · +30 Spirit XP · +75 Core XP".
 
+### Lionel's review after playing (2026-11-05)
+
+Three changes, which replace parts of the answers above:
+
+1. **Following is the gold ring** (replaces answer 1's thresholds). Keeping the cursor's place on the ball meant holding the mouse steady in its middle, and catching the ball took a quarter second. Now, once following, the cursor can be anywhere in the ring (36 px). Following starts with the press, or once the cursor has moved 4 px in the ring over the last quarter second (`CyclingRules.FOLLOW_START_MOVE`), so a cursor resting on the path still never starts. Auto still carries a streak and never starts one.
+2. **A switch drops what is banked** (replaces part of answer 3). The last puff, flying from where the old ball had been, was confusing: a switch drops the Spirit XP of the half second not yet paid. A stop and the cycle's end still pay what is left.
+3. **The status line is two fixed instructions** (replaces answer 5 and Task 7's table), changing only as a cycle starts or ends: "Click the Madra ball to begin a cycle." while the ball waits, then "Follow the ball for Madra and Spirit.", with " Click it over a zone for Core XP." for a technique with zones. No seconds, no follow hint, no Madra full or Spirit capped lines: the cabinet shows a full pool and a capped Spirit.
+
 ## Global Constraints
 
 - GDScript: explicit types on every variable and return; public functions without `_` and with a `##` doc; private ones with `_`; `%Unique` node refs; `#---` section headers; no `print()` (Log only).
@@ -243,5 +251,5 @@ The copy, verbatim:
 - **The checks ran as a script.** The Done-when checks drove the real board on the chunk's own save (`user://dev/runs/cycling-follow.tres`, from `path_open`) through a throwaway scene, with screenshots: all passed. The old save was a copy of #97's unversioned save, which migrated to version 4 and cycled (Spirit +4.5 in 3 s, Madra drawn).
 - **`add_stat_xp()` returns the XP the stat took.** #92 left that sum to each sender; CharacterManager already knows it, so the cycling board, #99 and #100 read it from the call.
 - **One payment a frame at most.** A frame that gathers several half seconds (a hitch) pays them together, so `add_stat_xp()` and the puff come at most once a frame.
-- **A resting cursor's head start is about 0.12 s longer than the canvas said** (0.49, 1.06 and 0.39 s there): the window judges the ball's travel over the last quarter second, the average speed of a moment 0.125 s back, not its speed at that instant. The thresholds are the approved ones.
+- **A resting cursor's head start after a press** lasts until the ball leaves the gold ring, about three quarters of a second into a Foundational cycle (the canvas's 0.49 s came from the first rule, which Lionel's review replaced).
 - **The DM-06 cache changed one contract.** A modifier source is asked again only after `stats_changed`, so a test that wears gear by writing the save's slots announces it (`InventoryManager.inventory_changed`), and the loaded-save vitals test binds its save as a load does. No game code writes the slots without the signal.
