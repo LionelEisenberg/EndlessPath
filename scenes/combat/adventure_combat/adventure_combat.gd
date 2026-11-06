@@ -64,7 +64,7 @@ func initialize_combat(
 	self.current_combat_choice = choice
 	self.current_adventure_action = adventure_action
 
-	# Connect PlayerManager.vitals_manager to the trigger_combat_end signal
+	# The player's Health ends the fight at 0 until stop() lets it go
 	if not PlayerManager.vitals_manager.health_changed.is_connected(_on_player_health_changed):
 		PlayerManager.vitals_manager.health_changed.connect(_on_player_health_changed)
 
@@ -98,10 +98,12 @@ static func gold_reward_for(choice: CombatChoice, adventure_action: AdventureAct
 	var base_gold: int = choice.enemy_pool[0].base_gold_drop
 	return floori(base_gold * choice.gold_multiplier * _adventure_gold_multiplier(adventure_action) * CharacterManager.get_gold_multiplier())
 
-## Stops the combat and cleans up.
+## Stops the combat and cleans up. The fight stops listening to the player's
+## Health, so Health reaching 0 once it is over reports no fight.
 func stop() -> void:
 	enemy_nameplate.reset()
-	
+	_let_go_of_player_health()
+
 	# Clear all buffs before freeing combatants
 	if player_combatant and player_combatant.buff_manager:
 		player_combatant.buff_manager.clear_all_buffs()
@@ -120,6 +122,13 @@ func stop() -> void:
 func _create_combatants() -> void:
 	_create_player_combatant()
 	_create_enemy_combatant()
+
+## Disconnects the player's Health handler initialize_combat() connected. The
+## player's vitals manager may have been replaced (PlayerManager.reset_vitals()).
+func _let_go_of_player_health() -> void:
+	var vitals: VitalsManager = PlayerManager.vitals_manager
+	if is_instance_valid(vitals) and vitals.health_changed.is_connected(_on_player_health_changed):
+		vitals.health_changed.disconnect(_on_player_health_changed)
 	
 func _create_player_combatant() -> void:
 	player_combatant = combatant_scene.instantiate()

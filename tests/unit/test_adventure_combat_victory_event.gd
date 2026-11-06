@@ -89,3 +89,26 @@ func test_combat_defeat_does_not_trigger_event() -> void:
 	if _combat_ends.size() == 1:
 		assert_false(_combat_ends[0][0], "the fight ends as a loss")
 	assert_false(EventManager.has_event_triggered(ENEMY_DEFEATED_EVENT), "a loss must not trigger the event")
+
+## Once the fight stops it no longer listens to the player's Health, so Health
+## reaching 0 after it (the dev panel on the map or at home) reports no fight.
+func test_health_at_zero_after_the_fight_reports_nothing() -> void:
+	_start_fight()
+	_combat.enemy_combatant.vitals_manager.apply_vitals_change(LETHAL_DAMAGE)
+	_combat.stop()
+	PlayerManager.vitals_manager.apply_vitals_change(LETHAL_DAMAGE)
+	assert_eq(_combat_ends.size(), 1, "only the won fight ended")
+
+## The player fights on PlayerManager's vitals manager, so its combatant carries
+## none of its own; the enemy's is its own.
+func test_only_the_enemy_carries_a_vitals_manager_of_its_own() -> void:
+	_start_fight()
+	assert_same(_combat.player_combatant.vitals_manager, PlayerManager.vitals_manager, "the player fights on PlayerManager's")
+	assert_eq(_combat.player_combatant.find_children("*", "VitalsManager", true, false).size(), 0, "with none of its own")
+	assert_eq(_combat.enemy_combatant.find_children("*", "VitalsManager", true, false).size(), 1, "the enemy has its own")
+
+## The unused VitalsManager is freed at once, not left orphaned until the frame
+## ends.
+func test_the_players_own_vitals_manager_goes_at_once() -> void:
+	_start_fight()
+	assert_no_new_orphans("the player's combatant leaves no VitalsManager orphaned")

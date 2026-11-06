@@ -9,7 +9,8 @@ extends MenuBookView
 ## and where its total comes from. The right page keeps the last stat pointed
 ## at; Strength is shown when the book opens. While it is shown, the book
 ## follows CharacterManager: every stat, level and XP change, gear's included;
-## and the stage, whose breakthrough raises the cap.
+## the stage, whose breakthrough raises the cap; and the Health and Madra pools
+## the In a fight block shows.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -32,9 +33,15 @@ const NO_EFFECTS_TEXT: String = "Not yet active"
 
 const TableRowScene := preload("res://scenes/inventory/pressed/table_row/table_row.tscn")
 
-## The rows whose value is a Madra amount, printed in Madra ink: the fight
-## block's Madra and Mind's Max Madra.
-const _MADRA_LABELS: Array[String] = ["Madra", "Max Madra"]
+## The rows whose value is a pool's amount, printed in that pool's ink, by
+## label: the fight block's Health and Madra, Body's Max Health and Mind's Max
+## Madra.
+const _POOL_INKS: Dictionary = {
+	"Health": ThemeConstants.BOOK_HEALTH_INK,
+	"Max Health": ThemeConstants.BOOK_HEALTH_INK,
+	"Madra": ThemeConstants.BOOK_MADRA_INK,
+	"Max Madra": ThemeConstants.BOOK_MADRA_INK,
+}
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
@@ -79,8 +86,10 @@ func _ready() -> void:
 	CharacterManager.stat_xp_changed.connect(_refresh_if_shown.unbind(3))
 	# The cap the pages show comes from the stage, so a breakthrough moves it.
 	CultivationManager.advancement_stage_changed.connect(_refresh_if_shown.unbind(1))
-	# The Madra row shows the pool, which cycling and runs move.
-	ResourceManager.madra_changed.connect(_on_madra_changed)
+	# The Health and Madra rows show the pools, which runs, cycling and the dev
+	# panel move.
+	ResourceManager.health_changed.connect(_on_pool_changed)
+	ResourceManager.madra_changed.connect(_on_pool_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -166,11 +175,12 @@ static func source_lines(stat: CharacterAttributesData.AttributeType) -> Array[D
 
 ## The totals a fight reads, a line each, as {"label", "value"}, from
 ## CharacterManager.get_stat(): Health, Madra, Stamina, Dodge chance,
-## Technique cost cut, Cooldown cut, Armor and Ward. Madra is the saved pool
-## over its max, "46 / 100".
+## Technique cost cut, Cooldown cut, Armor and Ward. Health and Madra are the
+## saved pools over their maxima: "62 / 100" as every Health readout prints it
+## (VitalsText), and "46 / 100".
 static func fight_lines() -> Array[Dictionary]:
 	var lines: Array[Dictionary] = [
-		{"label": "Health", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_HEALTH))},
+		{"label": "Health", "value": VitalsText.health_pair(ResourceManager.get_health(), ResourceManager.get_max_health())},
 		{"label": "Madra", "value": "%d / %d" % [floori(ResourceManager.get_madra()), floori(ResourceManager.get_max_madra())]},
 		{"label": "Stamina", "value": _number(CharacterManager.get_stat(StatModifierData.Stat.MAX_STAMINA))},
 		{"label": "Dodge chance", "value": _percent(CharacterManager.get_stat(StatModifierData.Stat.DODGE_CHANCE))},
@@ -207,8 +217,9 @@ func _refresh_if_shown() -> void:
 	if is_visible_in_tree():
 		refresh()
 
-## A pool change rebuilds only the In a fight rows, while the book is shown.
-func _on_madra_changed(_amount: float) -> void:
+## A Health or Madra pool change rebuilds only the In a fight rows, while the
+## book is shown.
+func _on_pool_changed(_amount: float) -> void:
 	if is_visible_in_tree():
 		_rebuild_fight_rows()
 
@@ -272,14 +283,14 @@ func _rebuild_fight_rows() -> void:
 		_add_row(column, lines[index].label, lines[index].value)
 
 ## Adds a TableRow to `container`: `label` in capitals, and the value with its
-## decimal points set for the page, a Madra amount in Madra ink.
+## decimal points set for the page, a Health or Madra amount in its pool's ink.
 func _add_row(container: Container, label: String, value: String) -> TableRow:
 	var row: TableRow = TableRowScene.instantiate() as TableRow
 	container.add_child(row)
 	var value_bbcode: String = LacquerText.decimal_bbcode(value)
-	if _MADRA_LABELS.has(label):
+	if _POOL_INKS.has(label):
 		# The tag goes on after decimal_bbcode(), which escapes every "[" it is given.
-		value_bbcode = "[color=#%s]%s[/color]" % [ThemeConstants.BOOK_MADRA_INK.to_html(false), value_bbcode]
+		value_bbcode = "[color=#%s]%s[/color]" % [(_POOL_INKS[label] as Color).to_html(false), value_bbcode]
 	row.setup(label.to_upper(), value_bbcode)
 	return row
 

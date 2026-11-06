@@ -291,7 +291,7 @@ func test_in_a_fight_lists_every_total() -> void:
 		values[line.label] = line.value
 	assert_eq(labels, ["Health", "Madra", "Stamina", "Dodge chance", "Technique cost cut", "Cooldown cut", "Armor", "Ward"],
 		"In a fight lists every total a fight reads, in order")
-	assert_eq(values.get("Health"), AbilityRow.format_number(CharacterManager.get_stat(Stat.MAX_HEALTH)), "Health is the Max Health total")
+	assert_eq(values.get("Health"), "100 / 100", "Health is the saved pool over its max: a fresh save is full")
 	assert_eq(values.get("Armor"), "6", "Armor is the armor total")
 	assert_eq(values.get("Ward"), "4", "Ward is the Ward total")
 

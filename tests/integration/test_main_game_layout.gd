@@ -16,7 +16,7 @@ const PLACES: Dictionary = {
 	"MainView/ZoneView/ZonePanel": Vector2(1456, 24),
 	"MainView/ZoneView/Dock": Vector2(722, 976),
 	"MainView/LogWindow": Vector2(24, 852),
-	"MainView/GoalsPanel": Vector2(24, 524),
+	"MainView/GoalsPanel": Vector2(24, 616),
 }
 
 #-----------------------------------------------------------------------------
@@ -29,6 +29,16 @@ func test_the_furniture_keeps_its_places_through_an_editor_save() -> void:
 	assert_eq(resaved.pack(edited), OK, "precondition: the scene packs as the editor saves it")
 	var reloaded: Node = autofree(resaved.instantiate())
 	_assert_places(reloaded, "after an editor save")
+
+## The open full log reaches up from the log's slot to the Goals board's top in
+## the zone view: it covers the Goals board exactly, and never the cabinet.
+func test_the_full_log_covers_the_goals_board_and_never_the_cabinet() -> void:
+	var main_game: Node = autofree(MAIN_GAME_SCENE.instantiate())
+	var log_window: Control = main_game.get_node("MainView/LogWindow")
+	var cabinet: Control = main_game.get_node("MainView/ZoneView/CultivatorPlate")
+	var full_log_top: float = log_window.position.y + log_window.size.y - LogWindow.FULL_LOG_HEIGHT
+	assert_eq(full_log_top, ZoneViewState.GOALS_POSITION.y, "it starts at the Goals board's top")
+	assert_true(full_log_top >= cabinet.position.y + cabinet.size.y, "below the cabinet")
 
 #-----------------------------------------------------------------------------
 # HELPERS

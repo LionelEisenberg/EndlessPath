@@ -154,13 +154,15 @@ func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 	var old_vitals: VitalsManager = PlayerManager.vitals_manager
 	var stat_hooks: int = CharacterManager.stats_changed.get_connections().size()
 	var madra_hooks: int = ResourceManager.madra_changed.get_connections().size()
+	var health_hooks: int = ResourceManager.health_changed.get_connections().size()
 	old_vitals.initialize_current_values()
 	old_vitals.stamina_regen = 2.0
 	PlayerManager.reset_vitals()
 	var vitals: VitalsManager = PlayerManager.vitals_manager
 	assert_not_same(vitals, old_vitals, "a new VitalsManager")
-	assert_eq(vitals.current_health, 0.0, "the run's Health does not carry over")
+	assert_eq(vitals.current_stamina, 0.0, "the run's Stamina does not carry over")
 	assert_eq(vitals.stamina_regen, 0.0, "nor its regen")
+	assert_eq(vitals.current_health, ResourceManager.get_health(), "its Health is the save's")
 	assert_true(vitals.is_player, "it is built as at boot: the player's")
 	assert_eq(vitals.get_parent(), PlayerManager, "under PlayerManager")
 	assert_almost_eq(vitals.max_health, CharacterManager.get_total_attributes_data().get_max_health(), 0.001,
@@ -170,6 +172,7 @@ func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 	assert_eq(CharacterManager.stats_changed.get_connections().size(), stat_hooks,
 		"the old manager's stats hook went with it")
 	assert_eq(ResourceManager.madra_changed.get_connections().size(), madra_hooks, "and its Madra hook")
+	assert_eq(ResourceManager.health_changed.get_connections().size(), health_hooks, "and its Health hook")
 
 #-----------------------------------------------------------------------------
 # COMPLETE WITHOUT PLAYING

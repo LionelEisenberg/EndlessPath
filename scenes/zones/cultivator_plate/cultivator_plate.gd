@@ -2,7 +2,11 @@ class_name CultivatorPlate
 extends Control
 
 ## The cultivator cabinet at the zone view's top left (lacquer kit §5.1).
-## Four rows on the lacquer board: the Madra orb with Madra / max (the max is
+## Five rows on the lacquer board, the first three where the vitals plate has
+## them in a run, so no orb moves as a run starts or ends: the Health orb
+## with Health / max, the saved pool (the max is the max Health stat, which
+## Body, gear and any modifier source move), printed as every Health readout
+## prints it (VitalsText); the Madra orb with Madra / max (the max is
 ## the max Madra stat, which Mind, gear and any modifier source move) and, while
 ## the running action earns Madra, its rate; the Core Density orb with the
 ## stage, level and XP beads (all lit, with "Core full" for the XP figure, at the
@@ -11,8 +15,10 @@ extends Control
 ## level and a ring of its XP toward the next level, full at the stage's cap;
 ## gold, at the right of the bottom row.
 ## The orbs are frames of the kit's strips under two pixel-art shaders that
-## animate the fill on their own (lacquer_madra_orb: flowing liquid,
-## lacquer_core_orb: a turning spiral); this script only hands them the fill.
+## animate the fill on their own (lacquer_madra_orb: flowing liquid, which the
+## Health orb's socket takes too, its material on the crimson ramp as on the
+## vitals plate; lacquer_core_orb: a turning spiral); this script only hands
+## them the fill.
 ## The beads are rows of their strip. It reads everything once on _ready, then
 ## follows the managers' signals: the stats follow CharacterManager's
 ## stats_changed and stat_xp_changed, and the stage's change too, since a
@@ -21,7 +27,9 @@ extends Control
 ## held out of the readout (hold_madra, hold_core_xp) until each pellet lands
 ## (release_madra, release_core_xp), so the orbs fill as the pellets arrive, not
 ## as they leave: the Madra shown is the Madra less what is in flight, and the
-## core is shown as it stood that much XP ago, level by level.
+## core is shown as it stood that much XP ago, level by level. Health pellets
+## land on the Health orb (get_health_orb_global_position) and are held the
+## same way (hold_health, release_health).
 ## Each stat's cell is where that stat's XP pellets land
 ## (get_stat_cell_global_position). A sender asks accepts_stat_xp() before it
 ## pays (a capped stat takes none), then holds what the stat took
@@ -38,7 +46,7 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The shader parameter both orbs fill to, 0 to 1.
+## The shader parameter every orb fills to, 0 to 1.
 const FILL_PARAMETER: StringName = &"progress"
 ## Core orb strip columns: the dormant pebble shown at Core Density 0, and the
 ## empty socket (with a seed dot the spiral covers) under the fill from level 1.
@@ -50,14 +58,18 @@ const XP_BEADS_LAST_ROW: int = 18
 ## board and its shadow), and this far below the hovered cell's top.
 const TOOLTIP_X: float = 444.0
 const TOOLTIP_DROP: float = 4.0
-## Held Madra or XP below this is float dust from releasing what was held, and
-## counts as none.
+## Held Health, Madra or XP below this is float dust from releasing what was
+## held, and counts as none.
 const HELD_EPSILON: float = 0.0001
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
+@onready var _health_orb: TextureRect = %HealthOrb
+@onready var _health_fill: ShaderMaterial = _health_orb.material
+@onready var _health_value_label: Label = %HealthValueLabel
+@onready var _health_max_label: Label = %HealthMaxLabel
 @onready var _madra_orb: TextureRect = %MadraOrb
 @onready var _madra_fill: ShaderMaterial = _madra_orb.material
 @onready var _madra_value_label: Label = %MadraValueLabel
@@ -78,7 +90,9 @@ const HELD_EPSILON: float = 0.0001
 # STATE
 #-----------------------------------------------------------------------------
 
-## Madra and Core Density XP on their way to the orbs, left out of the readout.
+## Health, Madra and Core Density XP on their way to the orbs, left out of the
+## readout.
+var _held_health: float = 0.0
 var _held_madra: float = 0.0
 var _held_xp: float = 0.0
 ## Each stat's XP on its way to its cell, AttributeType to float.
@@ -97,6 +111,7 @@ var _hovered_cell: StatCell = null
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
+	ResourceManager.health_changed.connect(_on_health_changed)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
 	ResourceManager.gold_changed.connect(_on_gold_changed)
 	CultivationManager.core_density_xp_updated.connect(_on_core_density_xp_updated)
@@ -114,6 +129,21 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
+
+## Returns the global position of the Health orb's centre, where Health
+## pellets fly to.
+func get_health_orb_global_position() -> Vector2:
+	return _health_orb.global_position + _health_orb.size * 0.5
+
+## Leaves `amount` of the Health out of the readout: it is on its way to the orb.
+func hold_health(amount: float) -> void:
+	_held_health += amount
+	_update_health()
+
+## Shows `amount` of held Health: it has reached the orb.
+func release_health(amount: float) -> void:
+	_held_health = _less_held(_held_health, amount)
+	_update_health()
 
 ## Returns the global position of the Madra orb's centre, where Madra
 ## particles fly to.
@@ -186,11 +216,24 @@ static func rewind_core(level: int, xp: float, xp_back: float, cost: Callable, l
 #-----------------------------------------------------------------------------
 
 func _update_all() -> void:
+	_update_health()
 	_update_madra()
 	_update_rate()
 	_update_core_density()
 	_update_stats()
 	_update_gold()
+
+## Health / max and the orb's liquid at Health / max, the max being the pool's
+## (ResourceManager.get_max_health()), less the Health still flying to it. The
+## figures print as every Health readout does (VitalsText): the Health rounded
+## up, the max rounded down.
+func _update_health() -> void:
+	var health: float = maxf(ResourceManager.get_health() - _held_health, 0.0)
+	var max_health: float = ResourceManager.get_max_health()
+	var fraction: float = clampf(health / max_health, 0.0, 1.0) if max_health > 0.0 else 0.0
+	_health_fill.set_shader_parameter(FILL_PARAMETER, fraction)
+	_health_value_label.text = VitalsText.health_figure(health)
+	_health_max_label.text = " / %s" % VitalsText.health_max_figure(max_health)
 
 ## Madra / max and the orb's liquid at Madra / max, the max being the pool's
 ## (ResourceManager.get_max_madra()).
@@ -335,6 +378,9 @@ static func _less_held(held: float, amount: float) -> float:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
+func _on_health_changed(_amount: float) -> void:
+	_update_health()
+
 ## The rate follows the pool too: a training action's trickle reads 0 at the max.
 func _on_madra_changed(_amount: float) -> void:
 	_update_madra()
@@ -362,10 +408,11 @@ func _on_current_action_changed(_action_data: ZoneActionData) -> void:
 func _on_madra_rate_changed(_rate: float) -> void:
 	_update_rate()
 
-## Mind, gear and any modifier source move the max Madra, so the Madra row
-## re-reads too.
+## Body, Mind, gear and any modifier source move the max Health and Madra, so
+## those rows re-read too.
 func _on_stats_changed() -> void:
 	_update_stats()
+	_update_health()
 	_update_madra()
 
 ## Re-reads the stat from CharacterManager rather than the payload: XP at the cap

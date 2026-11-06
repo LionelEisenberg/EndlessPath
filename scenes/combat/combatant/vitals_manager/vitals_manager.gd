@@ -1,9 +1,10 @@
 class_name VitalsManager
 extends Node
 ## A combatant's Health, Stamina and Madra, each with its max and its regen.
-## The player's Madra is ResourceManager's saved pool: its reads, writes and
-## changes go through ResourceManager, so a run spends from and refills the one
-## pool. An enemy keeps Madra of its own, from its character_attributes_data.
+## The player's Health and Madra are ResourceManager's saved pools: their reads,
+## writes and changes go through ResourceManager, so a run spends from and
+## refills the one pool of each, and what is left comes home. An enemy keeps
+## Health and Madra of its own, from its character_attributes_data.
 
 #-----------------------------------------------------------------------------
 # TYPE ALIASES
@@ -33,13 +34,24 @@ signal stamina_changed(new_stamina: float)
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 
-var max_health: float = 100.0
+## The most Health this combatant holds. The player's is the pool's max
+## (ResourceManager.get_max_health()).
+var max_health: float = 100.0:
+	get:
+		return ResourceManager.get_max_health() if is_player else max_health
 var health_regen: float = 0.0 # Amount per second
+## This combatant's Health. The player's is the saved pool: writing it sets the
+## pool, and the pool's own signal announces the change.
 var current_health: float:
+	get:
+		return ResourceManager.get_health() if is_player else current_health
 	set(value):
+		if is_player:
+			ResourceManager.set_health(value)
+			return
 		current_health = value
 		health_changed.emit(current_health)
-	
+
 ## The most Madra this combatant holds. The player's is the pool's max
 ## (ResourceManager.get_max_madra()).
 var max_madra: float = 100.0:
@@ -77,6 +89,7 @@ func _ready() -> void:
 	if is_player:
 		CharacterManager.stats_changed.connect(_on_stats_changed)
 		ResourceManager.madra_changed.connect(_on_pool_changed)
+		ResourceManager.health_changed.connect(_on_health_pool_changed)
 		_on_stats_changed()
 
 func _process(delta: float) -> void:
@@ -97,16 +110,17 @@ func _update_combat_max() -> void:
 #-----------------------------------------------------------------------------
 
 ## Fills Health and Stamina to their maxima, and an enemy's Madra to its max.
-## The player's Madra is the saved pool, which this never touches.
+## The player's Health is the saved pool, so a run start fills the pool (until
+## body refining refills it at home); the player's Madra pool is never touched.
 func initialize_current_values() -> void:
 	current_health = max_health
 	current_stamina = max_stamina
 	if not is_player:
 		current_madra = max_madra
 
-## Adds each amount (negative to spend), held to [0, max]. The player's Madra
-## change lands in the saved pool quietly, with no log line; a zero change
-## leaves the pool alone.
+## Adds each amount (negative to spend), held to [0, max]. The player's Health
+## and Madra changes land in the saved pools quietly, with no log line; a zero
+## change leaves its pool alone.
 func apply_vitals_change(health_amount: float = 0.0, stamina_amount: float = 0.0, madra_amount: float = 0.0) -> void:
 	_apply_health_change(health_amount)
 	_apply_stamina_change(stamina_amount)
@@ -117,24 +131,32 @@ func apply_vitals_change(health_amount: float = 0.0, stamina_amount: float = 0.0
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## The player's maxima are CharacterManager's derived vitals, so gear and any
-## other modifier source count as well as the base. An enemy's come from its
-## own character_attributes_data instead.
+## The player's max Stamina is CharacterManager's derived stat, so gear and any
+## other modifier source count as well as the base. Its max Health and max
+## Madra are the pools' maxima, read as they stand. An enemy's maxima come from
+## its own character_attributes_data instead.
 func _on_stats_changed() -> void:
-	max_health = CharacterManager.get_stat(Stat.MAX_HEALTH)
 	max_stamina = CharacterManager.get_stat(Stat.MAX_STAMINA)
 
 ## Announces each change to the saved pool as the player's Madra change.
 func _on_pool_changed(new_amount: float) -> void:
 	madra_changed.emit(new_amount)
 
-## Adds or subtracts health, clamping to 0 and max health
+## Announces each change to the saved Health pool as the player's Health change.
+func _on_health_pool_changed(new_amount: float) -> void:
+	health_changed.emit(new_amount)
+
+## Adds or subtracts health, clamping to 0 and max health. The player's goes to
+## the saved pool, quietly.
 func _apply_health_change(amount: float) -> void:
-	var new_health = min(max_health, max(0.0, current_health + amount))
 	if is_player:
-		if abs(current_health - new_health) > 1.0:
-			Log.info("VitalsManager: Health changed by %.1f from %.1f to %.1f" % [amount, current_health, new_health])
-	current_health = new_health
+		if amount != 0.0:
+			var before: float = current_health
+			ResourceManager.add_health(amount, true)
+			if absf(current_health - before) > 1.0:
+				Log.info("VitalsManager: Health changed by %.1f from %.1f to %.1f" % [amount, before, current_health])
+		return
+	current_health = min(max_health, max(0.0, current_health + amount))
 
 ## Adds or subtracts stamina, clamping to 0 and max stamina
 func _apply_stamina_change(amount: float) -> void:
