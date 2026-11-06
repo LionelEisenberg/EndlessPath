@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_page_full_ai.png" id="8_xp_full"]
 [ext_resource type="PackedScene" path="res://scenes/ui/book_frame/book_frame.tscn" id="12_book_frame"]
 [ext_resource type="Resource" path="res://resources/ui/book_styles/character_book_style.tres" id="13_style"]
+[ext_resource type="PackedScene" uid="uid://bnmg8xqwd7dp4" path="res://scenes/inventory/pressed/paper_tag/paper_tag.tscn" id="20_tag"]
 
 [node name="CharacterView" type="Control" unique_id=1384627830 node_paths=PackedStringArray("page_content")]
 visible = false
@@ -286,7 +287,7 @@ offset_bottom = 68.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="DetailValue" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/IconWell"]
+[node name="DetailValue" parent="PageLayer/RightPage/DetailPanel/Header/IconWell" instance=ExtResource("20_tag")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 3

@@ -127,6 +127,19 @@ func test_a_capped_tile_shows_the_cap() -> void:
 	_view.refresh()
 	assert_false((strength_tile.get_node("%CapSeal") as Label).visible, "the seal goes once Strength is under the cap again")
 
+func test_the_xp_fraction_both_bars_share() -> void:
+	var cases: Array[Array] = [
+		# xp, xp_to_next, capped, expected
+		[0.0, 100.0, false, 0.0],
+		[25.0, 100.0, false, 0.25],
+		[155.6, 156.0, false, 155.6 / 156.0],
+		[10.0, 0.0, false, 0.0],
+		[0.0, 156.0, true, 1.0],
+	]
+	for case: Array in cases:
+		assert_almost_eq(AttributeTile.xp_fraction(case[0], case[1], case[2]), case[3], 0.0001,
+			"%s of %s XP, capped %s" % [case[0], case[1], case[2]])
+
 func test_the_book_follows_stats_while_open() -> void:
 	_view.show()
 	_view.refresh()

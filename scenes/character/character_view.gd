@@ -54,7 +54,7 @@ const _POOL_INKS: Dictionary = {
 @onready var _detail_plaque: PageTitle = %DetailPlaque
 @onready var _detail_group: Label = %DetailGroup
 @onready var _detail_icon: TextureRect = %DetailIcon
-@onready var _detail_value: Label = %DetailValue
+@onready var _detail_value: PaperTag = %DetailValue
 @onready var _detail_level: Label = %DetailLevel
 @onready var _detail_xp_bar: LacquerRod = %DetailXpBar
 @onready var _detail_xp_label: Label = %DetailXpLabel
@@ -232,22 +232,18 @@ func _show_details(tile: AttributeTile) -> void:
 	_detail_plaque.title = StatDisplay.name_of(stat)
 	_detail_group.text = StatDisplay.side_name(stat).to_upper()
 	_detail_icon.texture = StatDisplay.icon_of(stat)
-	_detail_value.text = "%.0f" % CharacterManager.get_stat(StatModifierData.for_attribute(stat))
-	# The paper tag hugs its text; an even width keeps its art on the 2 px grid.
-	_detail_value.custom_minimum_size.x = ceilf(_detail_value.get_minimum_size().x / 2.0) * 2.0
+	_detail_value.set_figure("%.0f" % CharacterManager.get_stat(StatModifierData.for_attribute(stat)))
 	_detail_level.text = "Lv %d / %d" % [level, CharacterManager.get_stat_level_cap()]
 
 	# At the cap the bar is full under the seal, and there is no next level.
 	_detail_cap_seal.visible = capped
 	_detail_xp_label.visible = not capped
 	_next_level_caption.visible = not capped
-	if capped:
-		_detail_xp_bar.set_fraction(1.0)
-	else:
-		var xp: float = CharacterManager.get_stat_xp(stat)
-		var xp_to_next: float = CharacterManager.get_stat_xp_to_next(stat)
+	var xp: float = CharacterManager.get_stat_xp(stat)
+	var xp_to_next: float = CharacterManager.get_stat_xp_to_next(stat)
+	_detail_xp_bar.set_fraction(AttributeTile.xp_fraction(xp, xp_to_next, capped))
+	if not capped:
 		_detail_xp_label.text = "%d / %d XP" % [floori(xp), ceili(xp_to_next)]
-		_detail_xp_bar.set_fraction(xp / xp_to_next if xp_to_next > 0.0 else 0.0)
 		_next_level_caption.text = "NOW → LV %d" % (level + 1)
 
 	_detail_description.text = STAT_DESCRIPTIONS.get(stat, "")

@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="3_rod"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_tile_empty_ai.png" id="4_xp_empty"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_xp_tile_full_ai.png" id="5_xp_full"]
+[ext_resource type="PackedScene" uid="uid://bnmg8xqwd7dp4" path="res://scenes/inventory/pressed/paper_tag/paper_tag.tscn" id="6_tag"]
 
 [node name="AttributeTile" type="PanelContainer"]
 custom_minimum_size = Vector2(140, 156)
@@ -34,7 +35,7 @@ offset_bottom = 68.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="ValueLabel" type="Label" parent="Face/Slot"]
+[node name="ValueLabel" parent="Face/Slot" instance=ExtResource("6_tag")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 3

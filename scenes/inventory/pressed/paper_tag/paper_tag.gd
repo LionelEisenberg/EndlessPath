@@ -20,6 +20,12 @@ func set_count(amount: int) -> void:
 	text = BookText.count(amount)
 	_fit_to_grid()
 
+## Prints `figure` on the tag as it is (a stat's total, "12") and keeps the
+## tag's width even.
+func set_figure(figure: String) -> void:
+	text = figure
+	_fit_to_grid()
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------

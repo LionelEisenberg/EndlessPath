@@ -13,7 +13,7 @@ signal hovered(tile: AttributeTile)
 @export var attribute_type: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.STRENGTH
 
 @onready var _icon: TextureRect = %Icon
-@onready var _value_label: Label = %ValueLabel
+@onready var _value_label: PaperTag = %ValueLabel
 @onready var _name_label: Label = %NameLabel
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_bar: LacquerRod = %XpBar
@@ -30,14 +30,17 @@ func _ready() -> void:
 ## full bar with the CAPPED seal across it.
 func set_stat(level: int, xp: float, xp_to_next: float, capped: bool, total: float) -> void:
 	_level_label.text = "Lv %d" % level
-	_value_label.text = "%.0f" % total
-	# The paper tag hugs its text; an even width keeps its art on the 2 px grid.
-	_value_label.custom_minimum_size.x = ceilf(_value_label.get_minimum_size().x / 2.0) * 2.0
-	if capped:
-		_xp_bar.set_fraction(1.0)
-	else:
-		_xp_bar.set_fraction(xp / xp_to_next if xp_to_next > 0.0 else 0.0)
+	_value_label.set_figure("%.0f" % total)
+	_xp_bar.set_fraction(xp_fraction(xp, xp_to_next, capped))
 	_cap_seal.visible = capped
+
+## The share of an XP bar a stat fills, the tile's and the stat's page alike:
+## its XP over what the next level costs, none when that costs 0, and full
+## while capped.
+static func xp_fraction(xp: float, xp_to_next: float, capped: bool) -> float:
+	if capped:
+		return 1.0
+	return xp / xp_to_next if xp_to_next > 0.0 else 0.0
 
 ## Shows or hides the printer's marks round the tile.
 func set_selected(selected: bool) -> void:
