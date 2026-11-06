@@ -6,8 +6,9 @@ extends RefCounted
 ## a scene. A press on the ball that scores a zone is PERFECT, GOOD or OK by how
 ## far the Madra ball's centre is from the zone's centre: under 0.3 of the zone's
 ## 20 px radius (6 px) is PERFECT, under 0.7 of it (14 px) is GOOD, and anything
-## farther is OK. The tier sets the zone's XP, how many XP pellets fly to the
-## Core orb, and the name and colour of the hit's floater.
+## farther is OK. The tier sets the XP the zone pays the technique's other stat
+## (Smooth Flow's Control), how many pellets fly to that stat's cell, and the
+## name and colour of the hit's floater.
 ## Following the ball is judged here too (is_following()): anywhere in the gold
 ## circle around the ball keeps following, and a cursor in it starts once it
 ## moves, so a cursor resting on the path follows nothing as the ball passes.
@@ -90,7 +91,8 @@ static func random_seal(rng: RandomNumberGenerator) -> Array[int]:
 			seal.append(rng.randi_range(Arrow.UP, Arrow.RIGHT))
 	return seal
 
-## Returns the Core Density XP `zone` pays for a hit of `tier`.
+## Returns the XP of the technique's other stat `zone` pays for a hit of
+## `tier`.
 static func xp_for_tier(zone: CyclingZoneData, tier: Tier) -> int:
 	match tier:
 		Tier.PERFECT:
@@ -100,7 +102,7 @@ static func xp_for_tier(zone: CyclingZoneData, tier: Tier) -> int:
 		_:
 			return zone.ok_xp
 
-## Returns how many XP pellets fly from the zone to the Core orb for a hit of
+## Returns how many pellets fly from the zone to the stat's cell for a hit of
 ## `tier`: 8, 5 or 3.
 static func pellet_count(tier: Tier) -> int:
 	match tier:
