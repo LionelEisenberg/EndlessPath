@@ -3,7 +3,9 @@ extends GutTest
 ## Integration test: TRAIN_STATS action drives ZoneProgressionData ticks,
 ## fires effects_per_tick every tick, and effects_on_level once per level crossed.
 ## Progress persists across stop/restart. The test is the clock: it holds
-## ActionManager's tick timer and times it out by hand, one tick each.
+## ActionManager's tick timer and times it out by hand, one tick each. Every
+## manager the flow reads, CultivationManager's stage cap included, is bound to
+## the test's own save.
 
 var _save_data: SaveGameData
 var _training_data: TrainingActionData
@@ -14,6 +16,7 @@ var _original_character_live: SaveGameData
 var _original_zone_live: SaveGameData
 var _original_resource_live: SaveGameData
 var _original_event_live: SaveGameData
+var _original_cultivation_live: SaveGameData
 
 var _tick_signal_count: int = 0
 var _level_signal_levels: Array[int] = []
@@ -27,11 +30,13 @@ func before_each() -> void:
 	_original_zone_live = ZoneManager.live_save_data
 	_original_resource_live = ResourceManager.live_save_data
 	_original_event_live = EventManager.live_save_data
+	_original_cultivation_live = CultivationManager.live_save_data
 
 	CharacterManager.live_save_data = _save_data
 	ZoneManager.live_save_data = _save_data
 	ResourceManager.live_save_data = _save_data
 	EventManager.live_save_data = _save_data
+	CultivationManager.live_save_data = _save_data
 
 	_spirit_award_effect = AwardAttributeEffectData.new()
 	_spirit_award_effect.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
@@ -66,6 +71,7 @@ func after_each() -> void:
 	ZoneManager.live_save_data = _original_zone_live
 	ResourceManager.live_save_data = _original_resource_live
 	EventManager.live_save_data = _original_event_live
+	CultivationManager.live_save_data = _original_cultivation_live
 
 func _on_tick(_data: TrainingActionData, _count: int) -> void:
 	_tick_signal_count += 1
@@ -117,4 +123,20 @@ func test_training_ticks_fire_effects_and_level_up() -> void:
 		"every tick, before and after the restart, is kept")
 	assert_eq(_spirit_level(), 3, "Lv 1 + two levels")
 
+	ActionManager.stop_action()
+
+## The cap is the test save's stage's (LL-07): at Copper, a Spirit at
+## Foundation's cap still gains both levels, whatever stage the session is at.
+func test_training_levels_stop_at_the_bound_saves_cap() -> void:
+	_save_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	var foundation_cap: int = CultivationManager.get_stat_level_cap_of(CultivationManager.AdvancementStage.FOUNDATION)
+	_save_data.stat_training.set_level(CharacterAttributesData.AttributeType.SPIRIT, foundation_cap)
+	assert_eq(CharacterManager.get_stat_level_cap(), CultivationManager.get_stat_level_cap_of(CultivationManager.AdvancementStage.COPPER),
+		"the cap is read from the test's own save")
+
+	ActionManager.select_action(_training_data)
+	ActionManager.action_timer.paused = true
+	_tick(6)
+
+	assert_eq(_spirit_level(), foundation_cap + 2, "both levels land under Copper's cap")
 	ActionManager.stop_action()
