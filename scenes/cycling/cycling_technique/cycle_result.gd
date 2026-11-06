@@ -50,6 +50,14 @@ var stat_xp: Dictionary = {}
 ## that reached it.
 var capped_stats: Array[CharacterAttributesData.AttributeType] = []
 
+## Each zone's state as the cycle ended (CyclingZone.State), in the technique's
+## order: its stud, or SPENT when the ball left it unscored.
+var zone_states: Array[int] = []
+
+## Each seal node's state as the cycle ended (SealNode.State), in the technique's
+## order: OPEN when the ball burst through it, SPENT when it fizzled.
+var seal_states: Array[int] = []
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------

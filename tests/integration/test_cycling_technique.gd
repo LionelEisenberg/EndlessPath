@@ -1082,3 +1082,167 @@ func test_physics_picking_ignores_a_press_on_a_zone_off_the_ball() -> void:
 	await _press_at(zone.global_position)
 	assert_signal_not_emitted(_technique, "zone_scored")
 	assert_true(zone.is_open())
+
+#-----------------------------------------------------------------------------
+# SEALS
+#-----------------------------------------------------------------------------
+
+const TORRENTIAL_PATH: String = "res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres"
+const MIND := CharacterAttributesData.AttributeType.MIND
+## Seeds the seals' arrows, so a test draws the same seals every run.
+const SEAL_SEED: int = 99
+
+## Plays torrential_flow: an 8 s cycle with no zones and three seal nodes the
+## ball reaches at 2, 4.5 and 7 s, each seal showing 1.5 s before.
+func _use_torrential() -> void:
+	_technique.setup(load(TORRENTIAL_PATH))
+	_technique.seal_rng.seed = SEAL_SEED
+
+func _seal(index: int) -> SealNode:
+	return _technique.seal_nodes[index]
+
+## Keys seal `index`'s arrows, each of which must be taken.
+func _key_seal(index: int) -> void:
+	for arrow: int in _seal(index).get_arrows():
+		assert_true(_technique.press_seal(arrow), "precondition: the seal takes its arrow")
+
+func test_the_seals_sit_where_the_ball_arrives() -> void:
+	_use_torrential()
+	assert_eq(_technique.seal_nodes.size(), 3)
+	_technique.start_cycle()
+	var reached: float = 0.0
+	for index: int in 3:
+		var seconds: float = _seal(index).arrive_seconds
+		_run(seconds - reached, 60.0, true)
+		reached = seconds
+		assert_almost_eq(_seal(index).global_position.distance_to(_technique.get_ball_global_position()), 0.0, 2.0,
+			"seal %d sits where the ball is at %s s" % [index, seconds])
+	assert_eq([_seal(0).arrive_seconds, _seal(1).arrive_seconds, _seal(2).arrive_seconds], [2.0, 4.5, 7.0])
+	await _await_queued_frees()
+
+func test_a_seal_shows_its_lead_before_the_ball_arrives() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(0.45, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.IDLE, "not yet")
+	assert_signal_not_emitted(_technique, "seal_shown")
+	_run(0.1, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.SHOWING, "1.5 s before the ball")
+	assert_eq(_seal(0).get_arrows().size(), CyclingRules.SEAL_LENGTH)
+	assert_signal_emit_count(_technique, "seal_shown", 1)
+	assert_eq(get_signal_parameters(_technique, "seal_shown", 0), [_seal(0)])
+	assert_eq(_seal(1).get_state(), SealNode.State.IDLE, "the next seal waits its turn")
+	await _await_queued_frees()
+
+func test_keying_a_seal_opens_it() -> void:
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	assert_eq(_seal(0).get_state(), SealNode.State.OPEN)
+	await _await_queued_frees()
+
+func test_an_open_seal_pays_mind_as_the_ball_bursts_through() -> void:
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	watch_signals(_technique)
+	_run(1.3, 60.0, true)
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0, "nothing until the ball gets there")
+	_run(0.15, 60.0, true)
+	assert_eq(CharacterManager.get_stat_xp(MIND), 5.0, "the seal's 5 Mind XP as the ball bursts through")
+	assert_signal_emit_count(_technique, "seal_burst", 1)
+	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 5.0, 5.0])
+	assert_eq(_seal(0).get_state(), SealNode.State.OPEN, "the node stays green")
+	assert_eq(_technique.get_current_result().get_stat_xp(MIND), 5.0)
+	await _await_queued_frees()
+
+func test_a_missed_seal_fizzles_and_pays_nothing() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(2.1, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.SPENT)
+	assert_signal_emit_count(_technique, "seal_missed", 1)
+	assert_eq(get_signal_parameters(_technique, "seal_missed", 0), [_seal(0)])
+	assert_signal_not_emitted(_technique, "seal_burst")
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
+	await _await_queued_frees()
+
+func test_a_capped_mind_opens_seals_for_nothing() -> void:
+	CharacterManager.set_stat_level(MIND, CharacterManager.get_stat_level_cap())
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	watch_signals(_technique)
+	_run(1.5, 60.0, true)
+	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 5.0, 0.0], "Mind took nothing")
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
+	assert_true(_technique.get_current_result().is_stat_capped(MIND))
+	await _await_queued_frees()
+
+func test_a_stop_drops_an_open_seal() -> void:
+	_use_torrential()
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	_run(1.2, 60.0, true)
+	_technique.stop_cycling()
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0, "the ball never got there")
+	for index: int in 3:
+		assert_eq(_seal(index).get_state(), SealNode.State.IDLE, "seal %d is back to waiting" % index)
+	await _await_queued_frees()
+
+func test_keys_do_nothing_with_no_seal_showing() -> void:
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "smooth_flow, ready: no seals at all")
+	_technique.start_cycle()
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "smooth_flow, cycling: no seals at all")
+	_use_torrential()
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "ready")
+	_technique.start_cycle()
+	_run(0.2, 60.0, true)
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "before the first seal shows")
+	_run(2.3, 60.0, true)
+	assert_eq(_seal(0).get_state(), SealNode.State.SPENT, "precondition: the first seal is gone")
+	assert_eq(_seal(1).get_state(), SealNode.State.IDLE, "precondition: the second has not shown")
+	assert_false(_technique.press_seal(CyclingRules.Arrow.UP), "between seals")
+	await _await_queued_frees()
+
+func test_a_hitch_across_a_seal_s_window() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_technique.advance(2.2, _technique.get_ball_global_position())
+	assert_eq(_seal(0).get_state(), SealNode.State.SPENT, "shown and fizzled in one frame")
+	assert_signal_emit_count(_technique, "seal_shown", 1)
+	assert_signal_emit_count(_technique, "seal_missed", 1)
+	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
+	await _await_queued_frees()
+
+func test_the_result_keeps_each_seal_and_zone_outcome() -> void:
+	_use_torrential()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(0.6, 60.0, true)
+	_key_seal(0)
+	_run(5.0, 60.0, true)
+	assert_eq(_seal(2).get_state(), SealNode.State.SHOWING, "precondition: the third seal shows")
+	_key_seal(2)
+	_run(2.5, 60.0, true)
+	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
+	assert_eq(result.seal_states, [SealNode.State.OPEN, SealNode.State.SPENT, SealNode.State.OPEN] as Array[int])
+	assert_eq(result.zone_states, [] as Array[int], "torrential_flow has no zones")
+	assert_eq(result.get_stat_xp(MIND), 10.0, "two seals paid")
+	await _await_queued_frees()
+
+func test_the_result_keeps_each_zone_outcome() -> void:
+	watch_signals(_technique)
+	var zone: CyclingZone = _approach_zone_0(6.0)
+	assert_true(_technique.try_score_zone(zone))
+	_run(CYCLE_SECONDS, 60.0, true)
+	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
+	assert_eq(result.zone_states, [CyclingZone.State.PERFECT, CyclingZone.State.SPENT, CyclingZone.State.SPENT, CyclingZone.State.SPENT] as Array[int])
+	assert_eq(result.seal_states, [] as Array[int], "smooth_flow has no seals")
