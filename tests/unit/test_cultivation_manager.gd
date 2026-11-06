@@ -10,7 +10,8 @@ extends GutTest
 ## the stats' level cap read live from the current stage, what
 ## loading a save does (a level past the cap is clamped to it, a save with no
 ## milestone ledger is seeded from its level), the stage-name lookups, and the
-## AdvancementStageResource XP curve it reads.
+## AdvancementStageResource XP curve it reads, and the stars Core Density shows
+## as (each an equal share of the stage's cap).
 ##
 ## Each test runs on a fresh SaveGameData that every manager is re-bound to,
 ## with CultivationManager's stage list swapped for deterministic test stages.
@@ -550,3 +551,72 @@ func test_xp_for_level_follows_base_times_scaling() -> void:
 	for case: Dictionary in cases:
 		var stage := _make_stage(Stage.FOUNDATION, case.name, case.base, case.scaling)
 		assert_almost_eq(stage.get_xp_for_level(case.level), case.xp, 0.001, case.name)
+
+#-----------------------------------------------------------------------------
+# STARS
+#-----------------------------------------------------------------------------
+
+## A star lights once its whole share of the stage's cap is reached, and the
+## star after it fills by the levels of its share already reached. The cases: a
+## 100-level stage of 10 stars (empty, one level short of a star, a star, part
+## of the next, the cap), a 40-level stage of 10 stars (4 levels a star), a stage
+## of 9 stars, and levels past the cap or below 0.
+func test_stars_lit_follow_the_level() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "empty", "cap": 100, "stars": 10, "level": 0, "lit": 0, "fill": [0.0, 0.0]},
+		{"name": "a level short of a star", "cap": 100, "stars": 10, "level": 9, "lit": 0, "fill": [0.9, 0.0]},
+		{"name": "one star", "cap": 100, "stars": 10, "level": 10, "lit": 1, "fill": [1.0, 0.0]},
+		{"name": "part of the fourth", "cap": 100, "stars": 10, "level": 34, "lit": 3, "fill": [1.0, 1.0, 1.0, 0.4, 0.0]},
+		{"name": "a failed Tribulation", "cap": 100, "stars": 10, "level": 95, "lit": 9, "fill": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5]},
+		{"name": "the cap", "cap": 100, "stars": 10, "level": 100, "lit": 10, "fill": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]},
+		{"name": "40 levels, a star short", "cap": 40, "stars": 10, "level": 3, "lit": 0, "fill": [0.75, 0.0]},
+		{"name": "40 levels, two stars", "cap": 40, "stars": 10, "level": 8, "lit": 2, "fill": [1.0, 1.0, 0.0]},
+		{"name": "9 stars", "cap": 90, "stars": 9, "level": 45, "lit": 4, "fill": [1.0, 1.0, 1.0, 1.0, 0.5, 0.0]},
+		{"name": "past the cap", "cap": 100, "stars": 10, "level": 130, "lit": 10, "fill": [1.0]},
+		{"name": "below 0", "cap": 100, "stars": 10, "level": -5, "lit": 0, "fill": [0.0]},
+	]
+	for case: Dictionary in cases:
+		var stage := _make_stage(Stage.FOUNDATION, case.name, 1.0, 1.0)
+		stage.max_core_density_level = case.cap
+		stage.core_density_star_count = case.stars
+		assert_eq(stage.get_stars_lit(case.level), case.lit, "%s: stars lit" % case.name)
+		var fills: Array = case.fill
+		for star: int in fills.size():
+			assert_almost_eq(stage.get_star_fill(case.level, star), float(fills[star]), 0.001, "%s: star %d" % [case.name, star])
+
+## A stage with no cap or no stars lights none, and a star past the count is empty.
+func test_a_stage_without_stars_lights_none() -> void:
+	var stage := _make_stage(Stage.FOUNDATION, "No stars", 1.0, 1.0)
+	stage.core_density_star_count = 0
+	assert_eq(stage.get_stars_lit(50), 0)
+	assert_eq(stage.get_star_fill(50, 0), 0.0)
+	stage.core_density_star_count = 10
+	stage.max_core_density_level = 0
+	assert_eq(stage.get_stars_lit(50), 0)
+	assert_eq(stage.get_star_fill(50, 0), 0.0)
+	stage.max_core_density_level = 100
+	assert_eq(stage.get_star_fill(100, 10), 0.0, "there is no eleventh star")
+
+## CultivationManager reads the current stage's star count and the stars its
+## level lights; with no save or stage, none.
+func test_the_manager_reads_the_current_stages_stars() -> void:
+	_stage_resource.core_density_star_count = 10
+	_save.core_density_level = 34
+	assert_eq(CultivationManager.get_core_density_star_count(), 10)
+	assert_eq(CultivationManager.get_core_density_stars_lit(), 3)
+	assert_almost_eq(CultivationManager.get_core_density_star_fill(3), 0.4, 0.001)
+	var copper := _with_copper()
+	copper.core_density_star_count = 5
+	_save.current_advancement_stage = Stage.COPPER
+	_save.core_density_level = 40
+	assert_eq(CultivationManager.get_core_density_star_count(), 5, "the current stage's count")
+	assert_eq(CultivationManager.get_core_density_stars_lit(), 2)
+	_use_stages([])
+	assert_eq(CultivationManager.get_core_density_star_count(), 0)
+	assert_eq(CultivationManager.get_core_density_stars_lit(), 0)
+	assert_eq(CultivationManager.get_core_density_star_fill(0), 0.0)
+
+## Both shipped stages state their star count: ten stars of their cap's levels.
+func test_the_shipped_stages_have_ten_stars() -> void:
+	for stage: AdvancementStageResource in _original_stage_resources:
+		assert_eq(stage.core_density_star_count, 10, stage.stage_name)

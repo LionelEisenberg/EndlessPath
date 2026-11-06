@@ -7,6 +7,9 @@ class_name AdvancementStageResource
 @export var core_xp_scaling_factor: float = 1.0
 ## The highest Core Density level of the stage. XP earned there is lost.
 @export var max_core_density_level: int = 100
+## How many stars Core Density shows as in this stage. Each star is an equal
+## share of max_core_density_level: it lights once that share is reached.
+@export var core_density_star_count: int = 10
 ## The highest level each of the six stats can be trained to in this stage.
 ## Training past it is lost; gear can still lift a total above it.
 @export var stat_level_cap: int = 10
@@ -22,3 +25,20 @@ class_name AdvancementStageResource
 ## times the one before.
 func get_xp_for_level(level: int) -> float:
 	return core_density_base_xp_cost * pow(core_xp_scaling_factor, level - 1)
+
+## The stars Core Density `level` lights in this stage: each star whose whole
+## share of max_core_density_level is reached. 0 with no stars or no cap.
+func get_stars_lit(level: int) -> int:
+	if core_density_star_count <= 0 or max_core_density_level <= 0:
+		return 0
+	var lit: int = floori(float(clampi(level, 0, max_core_density_level)) * core_density_star_count / max_core_density_level)
+	return clampi(lit, 0, core_density_star_count)
+
+## How full star `star` (from 0) is at Core Density `level`, 0 to 1: the part of
+## its share of max_core_density_level already reached. 0 for a star past the
+## count, and with no stars or no cap.
+func get_star_fill(level: int, star: int) -> float:
+	if core_density_star_count <= 0 or max_core_density_level <= 0 or star < 0 or star >= core_density_star_count:
+		return 0.0
+	var stars: float = float(clampi(level, 0, max_core_density_level)) * core_density_star_count / max_core_density_level
+	return clampf(stars - star, 0.0, 1.0)

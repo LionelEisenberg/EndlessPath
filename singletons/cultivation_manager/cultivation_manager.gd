@@ -210,6 +210,26 @@ func get_core_density_cap() -> int:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.max_core_density_level if res else 0
 
+## How many stars Core Density shows as in the current stage. 0 when there is
+## no save or no stage resource.
+func get_core_density_star_count() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.core_density_star_count if res else 0
+
+## The stars the current Core Density level lights in the current stage
+## (AdvancementStageResource.get_stars_lit()). 0 when there is no save or no
+## stage resource.
+func get_core_density_stars_lit() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_stars_lit(floori(get_core_density_level())) if res else 0
+
+## How full star `star` (from 0) is at the current Core Density level, 0 to 1
+## (AdvancementStageResource.get_star_fill()). 0 when there is no save or no
+## stage resource.
+func get_core_density_star_fill(star: int) -> float:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_star_fill(floori(get_core_density_level()), star) if res else 0.0
+
 ## The highest level the six stats can be trained to in the current stage. It is
 ## read from the stage each time, so the breakthrough raises it. 0 when there is
 ## no save or no stage resource.
