@@ -57,9 +57,11 @@ const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
-## A technique drawer or an activity card is 72 tall with a line each, with 8
-## between them (kit §5.5); each line more is 18.
+## An activity card is 72 tall with a line each, and a technique drawer 92 (its
+## Trains row under the detail line), with 8 between them (kit §5.5); each line
+## more is 18.
 const DRAWER_HEIGHT: float = 72.0
+const TECHNIQUE_DRAWER_HEIGHT: float = 92.0
 const DRAWER_GAP: float = 8.0
 const STAT_LINE: float = 18.0
 const StatCaps := preload("res://tests/helpers/stat_caps.gd")
@@ -1035,7 +1037,7 @@ func test_a_rebuild_in_techniques_mode_keeps_the_header() -> void:
 	await wait_process_frames(2)
 	assert_eq(_header_text(), "Techniques")
 	assert_eq(_count_text(), "2 learned")
-	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0, "the chest still hugs the techniques")
+	assert_eq(_panel.size.y, LIST_TOP + 2.0 * TECHNIQUE_DRAWER_HEIGHT + DRAWER_GAP + 24.0, "the chest still hugs the techniques")
 
 func test_activity_count_follows_unlocks_made_in_techniques_mode() -> void:
 	await _add_panel()
@@ -1112,10 +1114,10 @@ func test_the_chest_grows_with_a_drawer_whose_name_wraps() -> void:
 	long_named.id = "test_zone_panel_long_named_technique"
 	long_named.technique_name = "The Exceedingly Long and Winding Name of a Technique"
 	drawer.setup(long_named)
-	var grown: float = drawer.size.y - DRAWER_HEIGHT
+	var grown: float = drawer.size.y - TECHNIQUE_DRAWER_HEIGHT
 	assert_gt(grown, 0.0, "precondition: the long name wraps and the drawer grows")
 	assert_signal_emitted(list, "layout_changed", "the list tells the chest")
-	assert_eq(list.get_content_height(), 3.0 * DRAWER_HEIGHT + 2.0 * DRAWER_GAP + grown, "it measures the taller drawer")
+	assert_eq(list.get_content_height(), 3.0 * TECHNIQUE_DRAWER_HEIGHT + 2.0 * DRAWER_GAP + grown, "it measures the taller drawer")
 	assert_eq(_panel.size.y, chest_height + grown, "the chest grows with the drawer")
 
 func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:

@@ -39,3 +39,13 @@ static func decimal_bbcode(text: String) -> String:
 	if _decimal_point_regex == null:
 		_decimal_point_regex = RegEx.create_from_string(_DECIMAL_POINT_PATTERN)
 	return _decimal_point_regex.sub(text.replace("[", "[lb]"), DECIMAL_POINT_BBCODE, true)
+
+## Returns `words` joined as a list, each word still its own piece for a row of
+## pieces (an icon before each, say): each word but the last two followed by
+## ",", the second to last by " and" (["Madra", "Spirit", "Control"] →
+## ["Madra,", "Spirit and", "Control"]).
+static func list_words(words: PackedStringArray) -> PackedStringArray:
+	var listed: PackedStringArray = words.duplicate()
+	for index: int in listed.size() - 1:
+		listed[index] += " and" if index == listed.size() - 2 else ","
+	return listed

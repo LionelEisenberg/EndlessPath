@@ -218,6 +218,19 @@ func test_pop_stat_shows_the_stat_s_icon_and_name() -> void:
 # TEXT
 #-----------------------------------------------------------------------------
 
+## Words joined as a list on a row of their own pieces: each but the last two
+## followed by a comma, the second to last by " and".
+func test_list_words() -> void:
+	var cases: Array[Array] = [
+		[[], []],
+		[["Spirit"], ["Spirit"]],
+		[["Spirit", "Control"], ["Spirit and", "Control"]],
+		[["Madra", "Spirit", "Control"], ["Madra,", "Spirit and", "Control"]],
+		[["Madra", "Spirit", "Mind", "Control"], ["Madra,", "Spirit,", "Mind and", "Control"]],
+	]
+	for case: Array in cases:
+		assert_eq(LacquerText.list_words(PackedStringArray(case[0])), PackedStringArray(case[1]), "%s" % [case[0]])
+
 func test_rate_format() -> void:
 	assert_eq(LacquerText.rate(1.5), "+1.5")
 	assert_eq(LacquerText.rate(2.0), "+2")
