@@ -168,13 +168,15 @@ func test_a_set_with_misses_reads_its_perfect_count() -> void:
 	assert_string_contains(text, "6 / 10 perfect")
 	assert_false(text.contains("Perfect set"))
 
+## Counted by the signal, not the history, which keeps only the last 200 lines
+## the scripts before this one logged.
 func test_a_finished_set_writes_one_log_line() -> void:
 	ResourceManager.set_health(50.0)
-	var before: int = LogManager.get_history().size()
+	watch_signals(LogManager)
 	_play_set(_ten(CENTRE))
-	var history: Array[String] = LogManager.get_history()
-	assert_eq(history.size(), before + 1, "one line")
-	assert_eq(LogWindow.plain_text(history.back()), "Set · +60 Strength XP · +40 Health")
+	assert_signal_emit_count(LogManager, "message_logged", 1, "one line")
+	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
+	assert_eq(LogWindow.plain_text(line), "Set · +60 Strength XP · +40 Health")
 
 #-----------------------------------------------------------------------------
 # PELLETS
