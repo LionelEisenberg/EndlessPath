@@ -52,6 +52,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	CharacterManager.remove_modifier_source(TEST_SOURCE)
+	BodyRefiningManager.end_set_session()
 	BodyRefiningManager._drills_by_id = _saved_drills_by_id
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
@@ -248,6 +249,84 @@ func test_a_rep_is_recorded_in_the_set_result() -> void:
 	assert_eq(result.count_of(Tier.PERFECT), 1)
 	assert_eq(result.count_of(Tier.GOOD), 1)
 	assert_eq(result.get_health_restored(), 7.0, "4 + 3")
+
+func test_a_rep_records_the_xp_each_stat_took() -> void:
+	var result := DrillSetResult.new(_body_drill)
+	BodyRefiningManager.pay_rep(_body_drill, Tier.PERFECT, result)
+	BodyRefiningManager.pay_rep(_body_drill, Tier.PERFECT, result)
+	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 16.0)
+	assert_eq(result.get_stat_xp(AttributeType.BODY), 8.0)
+	assert_false(result.is_stat_capped(AttributeType.STRENGTH))
+
+## A rep that reaches the cap pays Strength only what reaches it: the result
+## holds what Strength took, and that the cap took the rest.
+func test_a_rep_that_reaches_the_cap_records_what_strength_took() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, cap - 1)
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, cap - 1, CharacterManager.get_stat_xp_to_next(AttributeType.STRENGTH) - 1.0)
+	var result := DrillSetResult.new(_starting_drill)
+	BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
+	assert_true(CharacterManager.is_stat_capped(AttributeType.STRENGTH), "precondition: the rep reached the cap")
+	assert_almost_eq(result.get_stat_xp(AttributeType.STRENGTH), 1.0, 0.0001, "Strength took the 1 XP that reached the cap")
+	assert_true(result.is_stat_capped(AttributeType.STRENGTH), "and the cap took the rest")
+
+func test_a_capped_strength_takes_nothing_and_is_recorded_capped() -> void:
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
+	var result := DrillSetResult.new(_starting_drill)
+	BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
+	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 0.0)
+	assert_true(result.is_stat_capped(AttributeType.STRENGTH))
+
+## What a PERFECT rep restores at the player's Strength total: the board's pay
+## line and the Now strip show it.
+func test_perfect_rep_health_follows_strength() -> void:
+	assert_eq(BodyRefiningManager.perfect_rep_health(_starting_drill), 4.0, "Strength Lv 1 (10)")
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, 10)
+	assert_almost_eq(BodyRefiningManager.perfect_rep_health(_starting_drill), 7.6, 0.0001, "Strength Lv 10 (19)")
+
+#-----------------------------------------------------------------------------
+# THE SET SESSION
+#-----------------------------------------------------------------------------
+
+func test_the_set_session_snapshot() -> void:
+	assert_false(BodyRefiningManager.is_set_running(), "no set runs at first")
+	BodyRefiningManager.start_set_session(10)
+	assert_true(BodyRefiningManager.is_set_running())
+	assert_eq(BodyRefiningManager.get_set_rep(), 1, "a set starts on its first rep")
+	assert_eq(BodyRefiningManager.get_set_reps(), 10)
+	assert_eq(BodyRefiningManager.get_rep_progress(), 0.0)
+	BodyRefiningManager.update_set_session(4, 0.5)
+	assert_eq(BodyRefiningManager.get_set_rep(), 4)
+	assert_eq(BodyRefiningManager.get_rep_progress(), 0.5)
+	assert_almost_eq(BodyRefiningManager.get_set_progress(), 0.35, 0.0001, "three reps and a half of ten")
+	BodyRefiningManager.end_set_session()
+	assert_false(BodyRefiningManager.is_set_running())
+	assert_eq(BodyRefiningManager.get_set_rep(), 0)
+	assert_eq(BodyRefiningManager.get_rep_progress(), 0.0)
+	assert_eq(BodyRefiningManager.get_set_progress(), 0.0)
+
+func test_an_update_without_a_session_does_nothing() -> void:
+	BodyRefiningManager.update_set_session(3, 0.5)
+	assert_false(BodyRefiningManager.is_set_running())
+	assert_eq(BodyRefiningManager.get_set_rep(), 0)
+
+## A set played to its last rep counts once in the play stats; a set stopped
+## short counts nothing. Either ends the session.
+func test_finish_set_counts_a_complete_set_only() -> void:
+	var full := DrillSetResult.new(_starting_drill)
+	for i: int in 10:
+		full.add_rep(Tier.PERFECT, 4.0)
+	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.finish_set(full)
+	assert_eq(_save_data.stats.sets_finished, 1, "a set played to its last rep counts")
+	assert_false(BodyRefiningManager.is_set_running(), "and the session ends")
+	var short := DrillSetResult.new(_starting_drill)
+	for i: int in 4:
+		short.add_rep(Tier.PERFECT, 4.0)
+	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.finish_set(short)
+	assert_eq(_save_data.stats.sets_finished, 1, "a short set counts nothing")
+	assert_false(BodyRefiningManager.is_set_running())
 
 func test_a_rep_of_no_drill_pays_nothing() -> void:
 	ResourceManager.set_health(50.0)

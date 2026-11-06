@@ -5,7 +5,10 @@ extends Node
 ## of the drill catalog. It pays each rep through pay_rep(): Strength XP and the
 ## drill's other stat's XP through CharacterManager.add_stat_xp(), so XP earned at
 ## the cap is lost, and Health through ResourceManager.add_health(), which a
-## capped Strength still refills. Modelled on CyclingManager.
+## capped Strength still refills, recording in the set's result what each stat
+## took. It also holds a snapshot of the set being played, for the Now strip,
+## and counts each set played to its last rep in the play stats (finish_set()).
+## Modelled on CyclingManager.
 
 signal drill_unlocked(drill: DrillData)
 signal equipped_drill_changed(drill: DrillData)
@@ -16,6 +19,12 @@ const Tier = DrillRules.Tier
 var _live_save_data: SaveGameData = null
 var _drill_catalog: DrillList = preload("res://resources/body_refining/drills/drill_list.tres")
 var _drills_by_id: Dictionary = {}  # String -> DrillData
+
+# The running set's snapshot. It is transient: never saved.
+var _set_running: bool = false
+var _set_reps: int = 0
+var _set_rep: int = 0
+var _rep_progress: float = 0.0
 
 func _ready() -> void:
 	_build_catalog_index()
@@ -132,18 +141,87 @@ func pay_rep(drill: DrillData, tier: Tier, result: DrillSetResult = null) -> flo
 	var strength: float = CharacterManager.get_stat(StatModifierData.Stat.STRENGTH)
 	var health: float = DrillRules.health_for_rep(drill, tier, strength)
 	var restored: float = ResourceManager.add_health(health, true) if health > 0.0 else 0.0
-	var strength_xp: float = DrillRules.xp_for_rep(drill.strength_xp_per_rep, tier)
-	if strength_xp > 0.0:
-		CharacterManager.add_stat_xp(AttributeType.STRENGTH, strength_xp)
+	_pay_stat_xp(AttributeType.STRENGTH, DrillRules.xp_for_rep(drill.strength_xp_per_rep, tier), result)
 	if drill.has_minor_stat():
-		var minor_xp: float = DrillRules.xp_for_rep(drill.minor_xp_per_rep, tier)
-		if minor_xp > 0.0:
-			CharacterManager.add_stat_xp(drill.minor_stat as AttributeType, minor_xp)
+		_pay_stat_xp(drill.minor_stat as AttributeType, DrillRules.xp_for_rep(drill.minor_xp_per_rep, tier), result)
 	if result != null:
 		result.add_rep(tier, restored)
 	return restored
 
+## The Health a PERFECT rep of `drill` restores at the player's Strength total
+## (gear included): what the board's pay line and the Now strip show.
+func perfect_rep_health(drill: DrillData) -> float:
+	return DrillRules.health_for_rep(drill, Tier.PERFECT, CharacterManager.get_stat(StatModifierData.Stat.STRENGTH))
+
+# ----- The set session -----
+# A snapshot of the set being played, for the Now strip. The drill board writes
+# it with start, update and end; the rest only read it. It is never saved.
+
+## Starts a set session of `reps` reps, on its first rep with none of it played.
+## A session that is already running is replaced.
+func start_set_session(reps: int) -> void:
+	_set_running = true
+	_set_reps = reps
+	_set_rep = 1
+	_rep_progress = 0.0
+
+## Updates the running session: the rep being played, counted from 1, and how
+## far through it the set is, 0 to 1. Does nothing when no session is running.
+func update_set_session(rep: int, rep_progress: float) -> void:
+	if not _set_running:
+		return
+	_set_rep = rep
+	_rep_progress = clampf(rep_progress, 0.0, 1.0)
+
+## Ends the session and clears the snapshot.
+func end_set_session() -> void:
+	_set_running = false
+	_set_reps = 0
+	_set_rep = 0
+	_rep_progress = 0.0
+
+## Returns true while a set session is running.
+func is_set_running() -> bool:
+	return _set_running
+
+## Returns the rep being played, counted from 1. 0 when no set is running.
+func get_set_rep() -> int:
+	return _set_rep
+
+## Returns how many reps the running set has. 0 when none is running.
+func get_set_reps() -> int:
+	return _set_reps
+
+## Returns how far through the rep being played the set is, 0 to 1.
+func get_rep_progress() -> float:
+	return _rep_progress
+
+## Returns how far through the whole set it is, 0 to 1: the reps behind it and
+## the share of the one being played. 0 when no set is running.
+func get_set_progress() -> float:
+	if not _set_running or _set_reps <= 0:
+		return 0.0
+	return clampf((_set_rep - 1 + _rep_progress) / _set_reps, 0.0, 1.0)
+
+## A set has ended: counts it in the save's play stats when it was played to
+## its last rep (`result` complete), then ends the session. A set stopped short
+## counts nothing.
+func finish_set(result: DrillSetResult) -> void:
+	if result != null and result.is_complete() and _live_save_data:
+		_live_save_data.stats.count_set_finished()
+	end_set_session()
+
 # ----- Private -----
+
+## Pays `stat` `xp` through CharacterManager.add_stat_xp(), and records what the
+## stat took in `result` when one is given: less than paid means the cap took
+## the rest. Paying nothing records nothing.
+func _pay_stat_xp(stat: AttributeType, xp: float, result: DrillSetResult) -> void:
+	if xp <= 0.0:
+		return
+	var taken: float = CharacterManager.add_stat_xp(stat, xp)
+	if result != null:
+		result.record_stat_xp(stat, taken, taken < xp)
 
 func _build_catalog_index() -> void:
 	_drills_by_id.clear()

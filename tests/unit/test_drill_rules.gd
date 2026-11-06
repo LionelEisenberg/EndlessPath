@@ -132,3 +132,62 @@ func test_a_set_of_no_drill_is_never_complete() -> void:
 	result.add_rep(Tier.PERFECT, 0.0)
 	assert_false(result.is_complete())
 	assert_false(result.is_perfect())
+
+func test_a_set_keeps_each_reps_health() -> void:
+	var result := DrillSetResult.new(_body_drill())
+	result.add_rep(Tier.PERFECT, 4.0)
+	result.add_rep(Tier.MISS, 0.0)
+	result.add_rep(Tier.OK, 1.5)
+	assert_eq(result.get_rep_health(0), 4.0)
+	assert_eq(result.get_rep_health(1), 0.0)
+	assert_eq(result.get_rep_health(2), 1.5)
+
+## Health is full for the set's lines only when a scored rep restored nothing and
+## the set restored nothing at all: a set that topped Health up restored some,
+## and a set of misses paid none.
+func test_health_full_needs_a_scored_rep_and_no_health() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a scored rep that restored nothing", "reps": [[Tier.PERFECT, 0.0]], "full": true},
+		{"name": "a miss alone", "reps": [[Tier.MISS, 0.0]], "full": false},
+		{"name": "a rep that topped Health up, then one at the max", "reps": [[Tier.PERFECT, 2.0], [Tier.PERFECT, 0.0]], "full": false},
+		{"name": "no reps", "reps": [], "full": false},
+	]
+	for case: Dictionary in cases:
+		var result := DrillSetResult.new(_body_drill())
+		for rep: Array in case["reps"]:
+			result.add_rep(rep[0], rep[1])
+		assert_eq(result.is_health_full(), case["full"], case["name"])
+
+## The stat XP the set's reps paid, as each stat took it, and whether the cap
+## took any of it.
+func test_a_set_records_the_xp_each_stat_took() -> void:
+	var result := DrillSetResult.new(_body_drill())
+	result.record_stat_xp(AttributeType.STRENGTH, 8.0, false)
+	result.record_stat_xp(AttributeType.STRENGTH, 3.0, true)
+	result.record_stat_xp(AttributeType.BODY, 4.0, false)
+	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 11.0)
+	assert_true(result.is_stat_capped(AttributeType.STRENGTH), "the cap took some of Strength's")
+	assert_eq(result.get_stat_xp(AttributeType.BODY), 4.0)
+	assert_false(result.is_stat_capped(AttributeType.BODY))
+	assert_eq(result.get_stat_xp(AttributeType.AGILITY), 0.0, "a stat the set never paid")
+
+## The log's one line gives what the set paid, in words: Strength's XP or that the
+## cap took it, the drill's other stat's XP when it has one, then the Health or
+## that the pool was full, each rounded to a whole number.
+func test_log_line_reads_what_the_set_paid() -> void:
+	var strength_only: DrillData = _body_drill()
+	strength_only.minor_stat = -1
+	var cases: Array[Dictionary] = [
+		{"name": "XP and Health", "drill": strength_only, "xp": [[AttributeType.STRENGTH, 47.6, false]], "reps": [[Tier.PERFECT, 31.6]], "line": "Set · +48 Strength XP · +32 Health"},
+		{"name": "the cap took it", "drill": strength_only, "xp": [[AttributeType.STRENGTH, 0.0, true]], "reps": [[Tier.PERFECT, 30.0]], "line": "Set · Strength capped · +30 Health"},
+		{"name": "the pool was full", "drill": strength_only, "xp": [[AttributeType.STRENGTH, 60.0, false]], "reps": [[Tier.PERFECT, 0.0]], "line": "Set · +60 Strength XP · Health full"},
+		{"name": "nothing but misses", "drill": strength_only, "xp": [], "reps": [[Tier.MISS, 0.0], [Tier.MISS, 0.0]], "line": "Set · +0 Strength XP · +0 Health"},
+		{"name": "a drill with another stat", "drill": _body_drill(), "xp": [[AttributeType.STRENGTH, 80.0, false], [AttributeType.BODY, 40.0, false]], "reps": [[Tier.PERFECT, 40.0]], "line": "Set · +80 Strength XP · +40 Body XP · +40 Health"},
+	]
+	for case: Dictionary in cases:
+		var result := DrillSetResult.new(case["drill"])
+		for paid: Array in case["xp"]:
+			result.record_stat_xp(paid[0], paid[1], paid[2])
+		for rep: Array in case["reps"]:
+			result.add_rep(rep[0], rep[1])
+		assert_eq(result.log_line(), case["line"], case["name"])
