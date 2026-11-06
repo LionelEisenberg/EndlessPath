@@ -3,9 +3,10 @@ class_name ZoneViewState
 extends MainViewState
 
 ## Where the zone view hangs the Goals board: under the cultivator cabinet,
-## grown for the six stats, 4 px under its rings at y 520, so the cords between
-## the cabinet and the board read (the cords reach 4 px above the board's root).
-const GOALS_POSITION: Vector2 = Vector2(24.0, 524.0)
+## grown for the six stats and the Health row, 4 px under its rings at y 612, so
+## the cords between the cabinet and the board read (the cords reach 4 px above
+## the board's root).
+const GOALS_POSITION: Vector2 = Vector2(24.0, 616.0)
 ## The log's 440x204 slot, whose board grows upward from the bottom line (kit
 ## §5.3).
 const LOG_POSITION: Vector2 = Vector2(24.0, 852.0)

@@ -43,7 +43,7 @@ const BOTTOM_PADDING: float = 22.0
 ## board's body starts under it. The cords (lacquer_goals_cords_ai.png, 24 px)
 ## also reach 4 px above the root, since each view hangs the board 4 px under
 ## its cabinet's rings and the cords must still start at them: the zone view
-## under the cultivator cabinet grown for the six stats
+## under the cultivator cabinet grown for the six stats and Health
 ## (ZoneViewState.GOALS_POSITION), a run under the vitals cabinet
 ## (AdventureViewState.GOALS_POSITION).
 const CORDS_HEIGHT: float = 20.0
