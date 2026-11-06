@@ -76,4 +76,7 @@ Build bottom-up. Run the named test files after each task, then commit.
 
 ## Built differently
 
-(Filled in as the build goes.)
+- **LL-09:** both book tags became `PaperTag` instances. `PaperTag` gained `set_figure()`, so the copied fit is gone instead of moved, and the tags refit when the theme changes, as the Inventory's do. `AttributeTile.xp_fraction()` is the one fraction the tile and the page share.
+- **The cycles row:** `DetailPanel`'s `DetailStack` holds `Header` and `%CyclesRow`. The row's 3 px bottom margin makes the panel grow exactly the canvas's 20 px.
+- **`cycles_to_next_level()`** never returns less than 1 under the cap, as a guard. A stat under the cap always needs some XP, so the guard changes no figure.
+- **Done-when checks:** they ran in the real main scene, driven by `mockups/book_cycling_checks/check.gd` (gitignored). They used `--preset=path_open --save=user://dev/runs/book-cycling-lines.tres`, the real cycling board with a scripted perfect Smooth Flow cycle (four PERFECT presses, +30 Control XP, the count 4 → 3), and the dev commands. The old-save check ran on a copy of the checkout's save.
