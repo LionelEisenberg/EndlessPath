@@ -581,3 +581,93 @@ func test_the_player_moves_the_camera_before_the_map_reads_it() -> void:
 	var zone_map: Node = main_view.get_node("%ZoneTilemap")
 	assert_lt(transition.process_priority, zone_map.get_node("%MapMarkers").process_priority, "before the markers place themselves")
 	assert_lt(transition.process_priority, zone_map.process_priority, "and before the map hit-tests the pointer")
+
+#-----------------------------------------------------------------------------
+# SEAL KEYS
+#-----------------------------------------------------------------------------
+
+const VIEW_SCENE: PackedScene = preload("res://scenes/cycling/cycling_view/cycling_view.tscn")
+## Each seal action and the arrow it keys.
+const SEAL_ACTIONS: Dictionary = {
+	&"cycling_seal_up": CyclingRules.Arrow.UP,
+	&"cycling_seal_left": CyclingRules.Arrow.LEFT,
+	&"cycling_seal_down": CyclingRules.Arrow.DOWN,
+	&"cycling_seal_right": CyclingRules.Arrow.RIGHT,
+}
+
+## The seal action that keys `arrow`.
+func _action_for(arrow: int) -> StringName:
+	return SEAL_ACTIONS.find_key(arrow)
+
+## A real cycling board playing torrential_flow, shown, its technique stepped by
+## hand.
+func _seal_board() -> CyclingView:
+	CyclingManager.unlock_technique("torrential_flow")
+	CyclingManager.equip_technique("torrential_flow")
+	var view: CyclingView = VIEW_SCENE.instantiate() as CyclingView
+	_main_view.cycling_view = view
+	add_child_autofree(view)
+	view.show()
+	(view.get_node("%CyclingTechnique") as CyclingTechnique).set_process(false)
+	return view
+
+## Starts a cycle on the board and steps it 0.6 s, so its first seal shows.
+func _show_first_seal(view: CyclingView) -> void:
+	var technique: CyclingTechnique = view.get_node("%CyclingTechnique") as CyclingTechnique
+	technique.start_cycle()
+	for i: int in 36:
+		technique.advance(1.0 / 60.0, technique.get_ball_global_position())
+
+func _first_seal(view: CyclingView) -> SealNode:
+	return (view.get_node("%CyclingTechnique") as CyclingTechnique).seal_nodes[0]
+
+## Each seal action is its arrow; another action, a release or no action is none.
+func test_arrow_for() -> void:
+	for action: StringName in SEAL_ACTIONS:
+		assert_eq(CyclingViewState.arrow_for(_action_press(action)), SEAL_ACTIONS[action], String(action))
+	assert_eq(CyclingViewState.arrow_for(_action_press(&"close_cycling_view")), -1, "another action")
+	var release: InputEventAction = _action_press(&"cycling_seal_up")
+	release.pressed = false
+	assert_eq(CyclingViewState.arrow_for(release), -1, "a release")
+
+## W and the arrow keys are the seal keys; holding one sends echoes, which key
+## nothing.
+func test_a_held_seal_key_presses_once() -> void:
+	var cases: Array[Dictionary] = [
+		{"key": KEY_W, "arrow": CyclingRules.Arrow.UP},
+		{"key": KEY_A, "arrow": CyclingRules.Arrow.LEFT},
+		{"key": KEY_S, "arrow": CyclingRules.Arrow.DOWN},
+		{"key": KEY_D, "arrow": CyclingRules.Arrow.RIGHT},
+		{"key": KEY_UP, "arrow": CyclingRules.Arrow.UP},
+		{"key": KEY_LEFT, "arrow": CyclingRules.Arrow.LEFT},
+		{"key": KEY_DOWN, "arrow": CyclingRules.Arrow.DOWN},
+		{"key": KEY_RIGHT, "arrow": CyclingRules.Arrow.RIGHT},
+	]
+	for case: Dictionary in cases:
+		var key := InputEventKey.new()
+		key.physical_keycode = case.key
+		key.pressed = true
+		assert_eq(CyclingViewState.arrow_for(key), case.arrow, "%s keys its arrow" % OS.get_keycode_string(case.key))
+		key.echo = true
+		assert_eq(CyclingViewState.arrow_for(key), -1, "%s held: its echo keys nothing" % OS.get_keycode_string(case.key))
+
+func test_seal_keys_reach_the_board() -> void:
+	var view: CyclingView = _seal_board()
+	_show_first_seal(view)
+	var seal: SealNode = _first_seal(view)
+	assert_eq(seal.get_state(), SealNode.State.SHOWING, "precondition: a seal shows")
+	_state.handle_input(_action_press(_action_for(seal.get_arrows()[0])))
+	assert_eq(seal.get_keyed(), 1, "the key reached the seal")
+
+func test_seal_keys_while_closing_are_dropped() -> void:
+	var view: CyclingView = _seal_board()
+	var player: BoardTransition = _give_main_view_a_bound_player()
+	_state._on_start_cycling(null)
+	player.finish()
+	_show_first_seal(view)
+	_state._on_stop_cycling()
+	assert_true(_main_view.is_board_closing(), "precondition: the board closes")
+	var seal: SealNode = _first_seal(view)
+	assert_eq(seal.get_state(), SealNode.State.SHOWING, "precondition: the seal still shows")
+	_state.handle_input(_action_press(_action_for(seal.get_arrows()[0])))
+	assert_eq(seal.get_keyed(), 0, "the key is dropped")

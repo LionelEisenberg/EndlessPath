@@ -564,3 +564,30 @@ func test_stopping_the_cycling_action_resets_the_technique() -> void:
 func test_a_press_on_the_ball_reaches_it_through_the_board() -> void:
 	await _press_at(_technique.get_ball_global_position())
 	assert_true(_technique.is_cycling(), "the board and the figure box let the press through to the ball")
+
+#-----------------------------------------------------------------------------
+# SEALS
+#-----------------------------------------------------------------------------
+
+## Plays torrential_flow on the board, `seconds` into a cycle with the cursor on
+## the ball; its seal RNG seeded.
+func _play_torrential(seconds: float) -> void:
+	CyclingManager.unlock_technique(TORRENTIAL_ID)
+	CyclingManager.equip_technique(TORRENTIAL_ID)
+	_technique.seal_rng.seed = 99
+	_technique.start_cycle()
+	for i: int in roundi(seconds / FRAME):
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+
+func test_press_seal_reaches_the_technique() -> void:
+	_play_torrential(0.6)
+	var seal: SealNode = _technique.seal_nodes[0]
+	assert_true(_view.press_seal(seal.get_arrows()[0]), "the seal takes its first arrow")
+	assert_eq(seal.get_keyed(), 1)
+	await _await_queued_frees()
+
+## A click on Auto or the close button gives it no keyboard focus, so the arrow
+## keys still reach the seals instead of moving focus.
+func test_the_board_s_buttons_take_no_keyboard_focus() -> void:
+	assert_eq((_node("CloseButton") as Control).focus_mode, Control.FOCUS_NONE)
+	assert_eq((_node("AutoToggle") as Control).focus_mode, Control.FOCUS_NONE)

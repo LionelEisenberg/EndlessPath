@@ -158,6 +158,12 @@ static func status_line(running: bool, has_zones: bool) -> String:
 func get_status_text() -> String:
 	return _status_label.text
 
+## The player keyed `arrow` (a CyclingRules.Arrow) on the seal that shows, if
+## any (CyclingTechnique.press_seal()). CyclingViewState hands it the seal keys.
+## Returns whether the seal took it as its next arrow.
+func press_seal(arrow: int) -> bool:
+	return _technique.press_seal(arrow)
+
 ## Returns the board's rect in the screen's space, as laid out now: where a transition
 ## scales the view out of the cultivator to, and back into.
 func get_board_rect() -> Rect2:
