@@ -232,9 +232,10 @@ func test_pellets_carry_only_what_was_taken() -> void:
 #-----------------------------------------------------------------------------
 
 ## Review Focus 4: closing mid-set keeps what the reps paid and reports nothing.
+## The log line is watched by its signal: the history keeps only 200 lines.
 func test_closing_mid_set_keeps_what_was_paid() -> void:
 	ResourceManager.set_health(50.0)
-	var lines_before: int = LogManager.get_history().size()
+	watch_signals(LogManager)
 	_lift(0, CENTRE)
 	_lift(1, CENTRE)
 	_view.close()
@@ -242,7 +243,7 @@ func test_closing_mid_set_keeps_what_was_paid() -> void:
 	assert_eq(ResourceManager.get_health(), 58.0, "the two reps' Health stays")
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "and their XP")
 	assert_eq(_plate_health(), "58", "shown at once, nothing left in flight")
-	assert_eq(LogManager.get_history().size(), lines_before, "no log line")
+	assert_signal_not_emitted(LogManager, "message_logged", "no log line")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "no set counted")
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
 	await wait_process_frames(1)
