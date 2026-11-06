@@ -266,18 +266,23 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PanelPressed"
 
-[node name="Header" type="HBoxContainer" parent="PageLayer/RightPage/DetailPanel"]
+[node name="DetailStack" type="VBoxContainer" parent="PageLayer/RightPage/DetailPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="PageLayer/RightPage/DetailPanel/DetailStack"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 
-[node name="IconWell" type="TextureRect" parent="PageLayer/RightPage/DetailPanel/Header"]
+[node name="IconWell" type="TextureRect" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header"]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 texture = ExtResource("5_slot")
 
-[node name="DetailIcon" type="TextureRect" parent="PageLayer/RightPage/DetailPanel/Header/IconWell"]
+[node name="DetailIcon" type="TextureRect" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header/IconWell"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 4.0
@@ -287,7 +292,7 @@ offset_bottom = 68.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="DetailValue" parent="PageLayer/RightPage/DetailPanel/Header/IconWell" instance=ExtResource("20_tag")]
+[node name="DetailValue" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header/IconWell" instance=ExtResource("20_tag")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 3
@@ -305,13 +310,13 @@ theme_type_variation = &"LabelBookTag"
 text = "10"
 horizontal_alignment = 2
 
-[node name="Info" type="Control" parent="PageLayer/RightPage/DetailPanel/Header"]
+[node name="Info" type="Control" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="DetailLevel" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
+[node name="DetailLevel" type="Label" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header/Info"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = -2.0
@@ -320,7 +325,7 @@ offset_bottom = 43.0
 theme_type_variation = &"LabelBookItemName"
 text = "Lv 1 / 10"
 
-[node name="DetailXpBar" parent="PageLayer/RightPage/DetailPanel/Header/Info" instance=ExtResource("6_rod")]
+[node name="DetailXpBar" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header/Info" instance=ExtResource("6_rod")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 52.0
@@ -331,7 +336,7 @@ full_texture = ExtResource("8_xp_full")
 steps = 98
 round_down = true
 
-[node name="DetailXpLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
+[node name="DetailXpLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header/Info"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 212.0
@@ -341,7 +346,7 @@ offset_bottom = 65.0
 theme_type_variation = &"LabelBookDetail"
 text = "0 / 100 XP"
 
-[node name="DetailCapSeal" type="Label" parent="PageLayer/RightPage/DetailPanel/Header/Info"]
+[node name="DetailCapSeal" type="Label" parent="PageLayer/RightPage/DetailPanel/DetailStack/Header/Info"]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(66, 26)
@@ -354,6 +359,21 @@ theme_type_variation = &"LabelBookSeal"
 text = "CAPPED"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="CyclesRow" type="MarginContainer" parent="PageLayer/RightPage/DetailPanel/DetailStack"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 88
+theme_override_constants/margin_bottom = 3
+
+[node name="CyclesLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/DetailStack/CyclesRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookDetail"
+text = "4 perfect cycles to Lv 4"
+autowrap_mode = 3
 
 [node name="DescriptionBox" type="MarginContainer" parent="PageLayer/RightPage"]
 layout_mode = 2

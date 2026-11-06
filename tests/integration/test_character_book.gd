@@ -296,6 +296,66 @@ func test_a_capped_spirit_shows_madra_per_cycle_alone() -> void:
 	assert_eq(_first_effect_value(), "%d" % roundi(CyclingManager.get_technique(SMOOTH_FLOW).get_madra_per_cycle(multiplier)),
 		"at the cap, Madra per cycle shows its current figure alone")
 
+## The cycles to the next level are the XP it still needs over what one
+## perfect cycle of the technique pays the stat, rounded up: none while the
+## stat is capped, with no technique, or when the technique pays it nothing.
+func test_cycles_to_next_level_reads_the_equipped_technique() -> void:
+	var smooth: CyclingTechniqueData = CyclingManager.get_technique(SMOOTH_FLOW)
+	var torrential: CyclingTechniqueData = CyclingManager.get_technique(TORRENTIAL_FLOW)
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 3, 40.0)
+	CharacterManager.set_stat_level(Attribute.CONTROL, 2, 30.0)
+	var cases: Array[Array] = [
+		# stat, technique, cycles
+		[Attribute.SPIRIT, smooth, ceili((CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) - 40.0) / 30.0)],
+		[Attribute.CONTROL, smooth, 4],
+		[Attribute.MIND, smooth, 0],
+		[Attribute.MIND, torrential, 7],
+		[Attribute.STRENGTH, smooth, 0],
+		[Attribute.SPIRIT, null, 0],
+	]
+	for case: Array in cases:
+		var technique_name: String = case[1].technique_name if case[1] != null else "no technique"
+		assert_eq(CharacterView.cycles_to_next_level(case[0], case[1]), case[2],
+			"%s with %s" % [StatDisplay.name_of(case[0]), technique_name])
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	assert_eq(CharacterView.cycles_to_next_level(Attribute.SPIRIT, smooth), 0, "a capped stat counts no cycles")
+
+## One cycle reads in the singular.
+func test_a_count_of_one_reads_in_the_singular() -> void:
+	assert_eq(CharacterView.cycles_line(1, 4), "1 perfect cycle to Lv 4")
+	assert_eq(CharacterView.cycles_line(4, 4), "4 perfect cycles to Lv 4")
+
+func test_the_cycles_line_follows_the_equipped_technique() -> void:
+	CharacterManager.set_stat_level(Attribute.CONTROL, 2, 30.0)
+	_equip_technique(SMOOTH_FLOW)
+	_view.show()
+	_view.select_attribute(Attribute.CONTROL)
+	_view.refresh()
+	assert_true((_view.get_node("%CyclesRow") as Control).visible, "Smooth Flow trains Control, so its page counts cycles")
+	assert_eq(_label("CyclesLabel").text, CharacterView.cycles_line(4, 3))
+	_equip_technique(FOUNDATIONAL)
+	assert_false((_view.get_node("%CyclesRow") as Control).visible,
+		"equipping a technique that pays Control nothing hides the line at once")
+
+func test_the_cycles_line_names_no_technique() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 3, 40.0)
+	_equip_technique(SMOOTH_FLOW)
+	_view.select_attribute(Attribute.SPIRIT)
+	_view.refresh()
+	for technique: CyclingTechniqueData in CyclingManager.get_all_techniques():
+		assert_false(technique.technique_name in _label("CyclesLabel").text, "the line never names %s" % technique.technique_name)
+
+func test_physical_and_capped_pages_show_no_cycles_line() -> void:
+	_equip_technique(SMOOTH_FLOW)
+	for stat: Attribute in StatDisplay.PHYSICAL:
+		_view.select_attribute(stat)
+		_view.refresh()
+		assert_false((_view.get_node("%CyclesRow") as Control).visible, "%s shows no cycles line" % StatDisplay.name_of(stat))
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	_view.select_attribute(Attribute.SPIRIT)
+	_view.refresh()
+	assert_false((_view.get_node("%CyclesRow") as Control).visible, "a capped Spirit shows no cycles line")
+
 func test_the_page_shows_a_row_per_effect() -> void:
 	_view.select_attribute(Attribute.SPIRIT)
 	var block: CharacterAttributesData = CharacterManager.get_total_attributes_data()

@@ -6,11 +6,13 @@ extends MenuBookView
 ## toward the next level and its total, and under them "In a fight": the totals
 ## a fight reads. The right page describes the stat pointed at: its level
 ## against the stage's cap and its XP, what it does now and at the next level,
-## and where its total comes from. The right page keeps the last stat pointed
-## at; Strength is shown when the book opens. While it is shown, the book
-## follows CharacterManager: every stat, level and XP change, gear's included;
-## the stage, whose breakthrough raises the cap; and the Health and Madra pools
-## the In a fight block shows.
+## and where its total comes from. A Spiritual stat the equipped cycling
+## technique trains also says how many perfect cycles of it the next level
+## takes, never naming the technique. The right page keeps the last stat
+## pointed at; Strength is shown when the book opens. While it is shown, the
+## book follows CharacterManager: every stat, level and XP change, gear's
+## included; the stage, whose breakthrough raises the cap; the equipped
+## technique; and the Health and Madra pools the In a fight block shows.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -60,6 +62,8 @@ const _POOL_INKS: Dictionary = {
 @onready var _detail_xp_bar: LacquerRod = %DetailXpBar
 @onready var _detail_xp_label: Label = %DetailXpLabel
 @onready var _detail_cap_seal: Label = %DetailCapSeal
+@onready var _cycles_row: Control = %CyclesRow
+@onready var _cycles_label: Label = %CyclesLabel
 @onready var _detail_description: Label = %DetailDescription
 @onready var _next_level_caption: Label = %NextLevelCaption
 @onready var _effect_rows: VBoxContainer = %EffectRows
@@ -87,6 +91,8 @@ func _ready() -> void:
 	CharacterManager.stat_xp_changed.connect(_refresh_if_shown.unbind(3))
 	# The cap the pages show comes from the stage, so a breakthrough moves it.
 	CultivationManager.advancement_stage_changed.connect(_refresh_if_shown.unbind(1))
+	# Madra per cycle and the cycles line read the equipped technique.
+	CyclingManager.equipped_technique_changed.connect(_refresh_if_shown.unbind(1))
 	# The Health and Madra rows show the pools, which runs, cycling and the dev
 	# panel move.
 	ResourceManager.health_changed.connect(_on_pool_changed)
@@ -168,6 +174,23 @@ static func effect_lines(stat: CharacterAttributesData.AttributeType, now: Chara
 						_number(effect.calculate_value(next)),
 					))
 	return lines
+
+## How many cycles of `technique`, each played at its best, the stat's next
+## level takes: the XP it still needs over what one such cycle pays the stat
+## (CyclingTechniqueData.get_xp_per_cycle()), rounded up. 0 while the stat is
+## capped, with no technique, or when the technique pays the stat nothing.
+static func cycles_to_next_level(stat: CharacterAttributesData.AttributeType, technique: CyclingTechniqueData) -> int:
+	if technique == null or CharacterManager.is_stat_capped(stat):
+		return 0
+	var per_cycle: float = technique.get_xp_per_cycle(stat)
+	if per_cycle <= 0.0:
+		return 0
+	var needed: float = CharacterManager.get_stat_xp_to_next(stat) - CharacterManager.get_stat_xp(stat)
+	return maxi(1, ceili(needed / per_cycle))
+
+## The cycles line: "4 perfect cycles to Lv 5". It names no technique.
+static func cycles_line(count: int, next_level: int) -> String:
+	return "%d perfect %s to Lv %d" % [count, "cycle" if count == 1 else "cycles", next_level]
 
 ## Where the stat's total comes from, a line each, as {"label", "value"}: the
 ## value its trained level gives ("Trained (Lv 4)", "13"), then the bonus of
@@ -251,10 +274,15 @@ func _show_details(tile: AttributeTile) -> void:
 	if not capped:
 		_detail_xp_label.text = "%d / %d XP" % [floori(xp), ceili(xp_to_next)]
 		_next_level_caption.text = "NOW → LV %d" % (level + 1)
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	var cycles: int = cycles_to_next_level(stat, technique)
+	_cycles_row.visible = cycles > 0
+	if cycles > 0:
+		_cycles_label.text = cycles_line(cycles, level + 1)
 
 	_detail_description.text = STAT_DESCRIPTIONS.get(stat, "")
 
-	var lines: Array[Dictionary] = effect_lines(stat, now, _next_level_block(stat, now, level), AbilityManager.get_unlocked_abilities(), CyclingManager.get_equipped_technique())
+	var lines: Array[Dictionary] = effect_lines(stat, now, _next_level_block(stat, now, level), AbilityManager.get_unlocked_abilities(), technique)
 	_clear_rows(_effect_rows)
 	for line: Dictionary in lines:
 		_add_row(_effect_rows, line.label, line.now if capped else "%s → %s" % [line.now, line.next])
