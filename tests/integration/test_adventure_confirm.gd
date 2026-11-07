@@ -12,6 +12,8 @@ const BOARD_SCENE: PackedScene = preload("res://scenes/zones/adventure_confirm/a
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const AURA_WELL_ID: String = "aura_well_training"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
+## Opens Riverbank Training, which the Health lines then name.
+const RIVERBANK_EVENT: String = "riverbank_training_opened"
 
 var _original_save: SaveGameData = null
 var _board: AdventureConfirmBoard = null
@@ -92,6 +94,7 @@ func test_the_question_puts_the_board_up_once() -> void:
 
 ## Each low pool shows as its figure, the cabinet's, with what refills it.
 func test_the_board_names_each_low_pool() -> void:
+	EventManager.trigger_event(RIVERBANK_EVENT)
 	var cases: Array[Dictionary] = [
 		{"name": "Health", "health": 37.2, "madra": 100.0, "shown": [true, false], "health_text": "38 / 100", "madra_text": "", "advice": AdventureConfirmBoard.HEALTH_ADVICE},
 		{"name": "Madra", "health": 100.0, "madra": 40.0, "shown": [false, true], "health_text": "", "madra_text": "40 / 100", "advice": AdventureConfirmBoard.MADRA_ADVICE},
@@ -106,6 +109,20 @@ func test_the_board_names_each_low_pool() -> void:
 		if case.shown[1]:
 			assert_eq(_pool_text("MadraPool"), case.madra_text, "%s: Madra as the cabinet reads it" % case.name)
 		assert_eq(_advice(), case.advice, "%s: what refills it" % case.name)
+		_board.dismissed.emit()
+
+## A won first fight can send the player home hurt before First Steps Out's end
+## opens Riverbank Training: until then the Health lines don't name it.
+func test_the_health_lines_name_the_river_only_once_it_is_open() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Health", "health": 38.0, "madra": 100.0, "advice": AdventureConfirmBoard.HEALTH_ADVICE_BEFORE_RIVER},
+		{"name": "both", "health": 38.0, "madra": 40.0, "advice": AdventureConfirmBoard.BOTH_ADVICE_BEFORE_RIVER},
+		{"name": "no Health", "health": 0.0, "madra": 100.0, "advice": AdventureConfirmBoard.NO_HEALTH_ADVICE_BEFORE_RIVER},
+		{"name": "Madra", "health": 100.0, "madra": 40.0, "advice": AdventureConfirmBoard.MADRA_ADVICE},
+	]
+	for case: Dictionary in cases:
+		_ask(case.health, case.madra)
+		assert_eq(_advice(), case.advice, "%s: before the river opens" % case.name)
 		_board.dismissed.emit()
 
 ## Head out takes the board down and starts the run.
