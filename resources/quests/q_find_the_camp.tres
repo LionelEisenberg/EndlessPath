@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="QuestData" format=3]
+
+[ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="1_qftc"]
+[ext_resource type="Script" uid="uid://dg16ukxsxuhbr" path="res://scripts/resource_definitions/quests/quest_step_data.gd" id="2_qftc"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qftc"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="4_qftc"]
+[ext_resource type="Resource" path="res://resources/unlocks/refugee_camp_map_owned.tres" id="5_qftc"]
+[ext_resource type="Resource" uid="uid://bunlock_mrch_discov" path="res://resources/unlocks/merchant_discovered.tres" id="6_qftc"]
+[ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/effects/award_resource_effect_data.gd" id="7_qftc"]
+
+[sub_resource type="Resource" id="Resource_award_gold"]
+script = ExtResource("7_qftc")
+resource_type = 1
+amount = 50.0
+quiet = false
+effect_type = 2
+
+[sub_resource type="Resource" id="Resource_step1"]
+script = ExtResource("2_qftc")
+step_id = "find_camp"
+description = "Find the refugee camp in the Shallow Woods"
+completion_conditions = Array[ExtResource("4_qftc")]([ExtResource("5_qftc"), ExtResource("6_qftc")])
+
+[resource]
+script = ExtResource("1_qftc")
+quest_id = "q_find_the_camp"
+quest_name = "Find the Camp"
+description = "The [INTERVENER]'s map leads to a refugee camp in the Shallow Woods. A merchant there trades gear for gold."
+steps = Array[ExtResource("2_qftc")]([SubResource("Resource_step1")])
+completion_effects = Array[ExtResource("3_qftc")]([SubResource("Resource_award_gold")])
