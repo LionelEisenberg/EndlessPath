@@ -158,14 +158,14 @@ func test_quest_row_shows_current_step() -> void:
 	await wait_process_frames(1)
 	assert_true(_is_shown("QuestRow"))
 	assert_true(_is_shown("Divider"))
-	assert_eq(_text("QuestNameLabel"), "Awaken Your Core")
+	assert_eq(_text("QuestNameLabel"), "Awaken Your Spirit")
 	assert_eq(_text("QuestStepLabel"), "Fill your Madra by cycling")
 
 func test_reads_active_quest_on_ready() -> void:
 	QuestManager.start_quest(FILL_CORE_QUEST_ID)
 	_add_goals()
 	assert_true(_is_shown("QuestRow"))
-	assert_eq(_text("QuestNameLabel"), "Awaken Your Core")
+	assert_eq(_text("QuestNameLabel"), "Awaken Your Spirit")
 
 func test_shows_the_first_active_quest() -> void:
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
@@ -227,8 +227,8 @@ func test_a_stat_step_figure_follows_the_stat() -> void:
 	assert_eq(_text("QuestFigureLabel"), "Lv 2 / 3")
 
 ## A step measured on Core Density shows the core's stars up to its target in
-## place of its figure: Harden Your Core's level 10 is the first star, filling
-## level by level. Other measured steps keep their figure.
+## place of its figure: Harden Your Core's level 20 is the first two stars, the
+## first filling level by level. Other measured steps keep their figure.
 func test_a_core_density_step_shows_its_stars() -> void:
 	var save := SaveGameData.new()
 	save.core_density_level = 3.0
@@ -237,11 +237,11 @@ func test_a_core_density_step_shows_its_stars() -> void:
 	_add_goals()
 	assert_eq(_text("QuestNameLabel"), "Harden Your Core", "precondition: the quest shows")
 	assert_true(_is_shown("QuestStars"))
-	assert_false(_is_shown("QuestFigureLabel"), "no 3 / 10")
-	assert_eq(_steps("QuestStars"), [3] as Array[int], "one star, three tenths up")
+	assert_false(_is_shown("QuestFigureLabel"), "no 3 / 20")
+	assert_eq(_steps("QuestStars"), [3, 0] as Array[int], "two stars, the first three tenths up")
 	save.core_density_level = 7.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
-	assert_eq(_steps("QuestStars"), [7] as Array[int], "it follows the core")
+	assert_eq(_steps("QuestStars"), [7, 0] as Array[int], "it follows the core")
 
 func test_refreshes_on_save_reset() -> void:
 	_add_goals()

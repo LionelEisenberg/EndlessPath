@@ -6,6 +6,6 @@
 script = ExtResource("1_qrcd")
 condition_id = "q_reach_cd_10"
 condition_type = 1
-target_value = 10
+target_value = 20
 comparison_op = ">="
 metadata/_custom_type_script = "uid://bk5wuop0jogg4"

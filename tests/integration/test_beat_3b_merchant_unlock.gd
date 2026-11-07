@@ -1,9 +1,9 @@
 extends GutTest
 
 ## Integration test: full Beat 3b flow.
-## 1. NPCs 1 to 3 are talked to; NPC 3 starts the quest. CD < 10 → NPC 4 hidden,
-##    Merchant hidden, quest step 1 not complete.
-## 2. CD reaches 10 → step 1 complete, NPC 4 visible.
+## 1. NPCs 1, 2, 3 and 5 are talked to; NPC 5 starts the quest. CD < 20 → NPC 4
+##    hidden, Merchant hidden, quest step 1 not complete.
+## 2. CD reaches 20, two stars → step 1 complete, NPC 4 visible.
 ## 3. Fire celestial_intervener_dialogue_4 event → step 2 completes → quest
 ##    completes → map in inventory.
 ## 4. Filter a fake pool with the refugee camp + a control encounter → camp eligible.
@@ -19,6 +19,7 @@ const MAP_ITEM_ID: String = "refugee_camp_map"
 const NPC1_ACTION_ID: String = "celestial_intervener_dialogue_1"
 const NPC2_ACTION_ID: String = "celestial_intervener_dialogue_2"
 const NPC3_ACTION_ID: String = "celestial_intervener_dialogue_3"
+const NPC5_ACTION_ID: String = "celestial_intervener_dialogue_5"
 const ENEMY_DEFEATED_EVENT: String = "q_first_steps_enemy_defeated"
 
 func before_each() -> void:
@@ -51,29 +52,32 @@ func _filter_pool(pool: Array) -> Array:
 			result.append(enc)
 	return result
 
-func _push_cd_to_10() -> void:
+func _push_cd_to_20() -> void:
 	var save := PersistenceManager.save_game_data
-	save.core_density_level = 10.0
+	save.core_density_level = 20.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 
-## Talks to NPCs 1 to 3 with each one's own gate met first. NPC 3 starts the quest.
-func _play_through_npc_3() -> void:
+## Talks to NPCs 1, 2, 3 and 5 with each one's own gate met first. NPC 5 starts the
+## quest.
+func _play_through_npc_5() -> void:
 	assert_eq(DevCommands.complete_action(NPC1_ACTION_ID), "", "precondition: NPC 1 is talked to")
 	assert_eq(DevCommands.set_madra(100.0), "", "precondition: Madra reaches 100")
 	assert_eq(DevCommands.complete_action(NPC2_ACTION_ID), "", "precondition: NPC 2 is talked to")
 	assert_eq(DevCommands.trigger_event(ENEMY_DEFEATED_EVENT), "", "precondition: the first fight is won")
 	assert_eq(DevCommands.complete_action(NPC3_ACTION_ID), "", "precondition: NPC 3 is talked to")
+	assert_eq(DevCommands.set_stat_level(&"strength", 2), "", "precondition: Strength reaches Lv 2")
+	assert_eq(DevCommands.complete_action(NPC5_ACTION_ID), "", "precondition: NPC 5 is talked to")
 
 func test_full_beat_3b_flow() -> void:
-	# --- NPC 3 starts the quest. ---
-	_play_through_npc_3()
+	# --- NPC 5 starts the quest. ---
+	_play_through_npc_5()
 	assert_true(QuestManager.has_active_quest(QUEST_ID), "quest should be active")
-	assert_false(_has_action(NPC4_ACTION_ID), "NPC 4 must be hidden before CD 10")
+	assert_false(_has_action(NPC4_ACTION_ID), "NPC 4 must be hidden before two stars")
 	assert_false(InventoryManager.has_item(MAP_ITEM_ID), "map must not be owned yet")
 
-	# --- Reach CD 10 → quest step 1 completes, NPC 4 visible. ---
-	_push_cd_to_10()
-	assert_true(_has_action(NPC4_ACTION_ID), "NPC 4 must be visible at CD 10")
+	# --- Reach CD 20 → quest step 1 completes, NPC 4 visible. ---
+	_push_cd_to_20()
+	assert_true(_has_action(NPC4_ACTION_ID), "NPC 4 must be visible at two stars")
 
 	# --- NPC 4 click fires dialogue_4 event → quest step 2 + completion. ---
 	EventManager.trigger_event(NPC4_ACTION_ID)

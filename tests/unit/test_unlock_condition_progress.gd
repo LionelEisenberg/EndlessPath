@@ -58,7 +58,7 @@ func test_measurable_conditions_read_current_and_target() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "Madra", "condition": load(MADRA_FULL_PATH), "current": 60.0, "target": 100.0},
 		{"name": "gold", "condition": gold_condition, "current": 12.0, "target": 50.0},
-		{"name": "Core Density level", "condition": load(REACH_CD_10_PATH), "current": 4.0, "target": 10.0},
+		{"name": "Core Density level", "condition": load(REACH_CD_10_PATH), "current": 4.0, "target": 20.0},
 		{"name": "Strength level", "condition": _stat_level_condition("strength", 3), "current": 2.0, "target": 3.0},
 	]
 	for case: Dictionary in cases:

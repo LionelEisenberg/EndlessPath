@@ -28,7 +28,7 @@ completion_event_id = "celestial_intervener_dialogue_2"
 [resource]
 script = ExtResource("2_qfc02")
 quest_id = "q_fill_core"
-quest_name = "Awaken Your Core"
-description = "Fill your Madra core and return to speak with the stranger."
+quest_name = "Awaken Your Spirit"
+description = "Fill your Madra by cycling, then return to the stranger."
 steps = Array[ExtResource("3_qfc03")]([SubResource("Resource_step1"), SubResource("Resource_step2")])
 completion_effects = Array[ExtResource("1_qfc01")]([SubResource("Resource_completion_trigger")])

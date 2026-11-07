@@ -4,7 +4,7 @@ extends GutTest
 ## its file writes out the values it would otherwise leave to its script's
 ## defaults (Godot's text saver drops a value equal to the default, and a
 ## changed default would then silently change the action), it unlocks with the
-## adventure when "Awaken Your Core" is done, and the valley lists it under
+## adventure when "Awaken Your Spirit" is done, and the valley lists it under
 ## Cultivate right after Wilderness Cycling.
 
 const ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/body_refining_action.tres"
@@ -29,7 +29,7 @@ func test_it_unlocks_with_the_adventure() -> void:
 	var action: ZoneActionData = load(ACTION_PATH)
 	assert_eq(action.unlock_conditions.size(), 1, "one condition")
 	if action.unlock_conditions.size() == 1:
-		assert_eq(action.unlock_conditions[0].condition_id, UNLOCK_ID, "Awaken Your Core done, as the adventure")
+		assert_eq(action.unlock_conditions[0].condition_id, UNLOCK_ID, "Awaken Your Spirit done, as the adventure")
 
 func test_spirit_valley_lists_it_after_cycling() -> void:
 	var zone: ZoneData = load(ZONE_PATH)
