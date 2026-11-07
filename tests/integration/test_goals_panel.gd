@@ -454,7 +454,7 @@ func test_the_list_returns_when_the_quest_ends() -> void:
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
 	await wait_process_frames(1)
 	assert_false(_is_shown("MilestoneTextLabel"), "precondition: folded")
-	EventManager.trigger_event(FIRST_STEPS_ENEMY_EVENT)
+	EventManager.trigger_event(FIRST_STEPS_ADVENTURE_EVENT)
 	EventManager.trigger_event(FIRST_STEPS_RETURN_EVENT)
 	assert_true(QuestManager.has_completed_quest(FIRST_STEPS_QUEST_ID), "precondition: the quest completed")
 	await wait_process_frames(1)
