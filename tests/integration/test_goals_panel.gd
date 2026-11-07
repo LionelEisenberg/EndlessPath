@@ -3,9 +3,9 @@ extends GutTest
 ## Integration tests for the lacquer Goals board (GoalsPanel, lacquer kit
 ## §5.2): the first active quest's current step with a progress figure only for
 ## measurable steps, the Breakthrough milestone in its three states (each
-## requirement still short, a line each, with Core Density towards the stage's
-## cap on the rod; everything met, which faces the Tribulation; a stage with no
-## next stage), the milestone alone when no quest is active, the milestone
+## requirement still short, a line each, over the core's stars; everything met,
+## which faces the Tribulation; a stage with no next stage, with no stars), a
+## Core Density quest step's stars, the milestone alone when no quest is active, the milestone
 ## waiting for NPC 4 (the end of Beat 3b's chain) in Foundation, and the board
 ## hiding while it has no goal at all. No text is cut off (the developer's rule):
 ## a long step wraps and the board grows to hold it.
@@ -25,7 +25,8 @@ const CORE_DENSITY_QUEST_ID: String = "q_reach_core_density_10"
 ## goes on the board once it latches.
 const NPC_4_EVENT: String = "celestial_intervener_dialogue_4"
 
-const MILESTONE_ROD_STEPS: int = 138
+const EMPTY_STARS: Array[int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+const FULL_STARS: Array[int] = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
 ## The board's height with both rows of one line each (kit §5.2: 272 to 492).
 const FULL_HEIGHT: float = 220.0
 
@@ -93,6 +94,14 @@ func _text(unique_name: String) -> String:
 
 func _is_shown(unique_name: String) -> bool:
 	return (_node(unique_name) as CanvasItem).is_visible_in_tree()
+
+## The steps a star row shows, 0 (empty) to 10 (lit), one per star.
+func _steps(unique_name: String) -> Array[int]:
+	var row: LacquerStarRow = _node(unique_name) as LacquerStarRow
+	var steps: Array[int] = []
+	for index: int in row.get_star_count():
+		steps.append(row.get_star_step(index))
+	return steps
 
 ## A one-quest catalog with a single step, for text the real quests do not
 ## have. With no conditions the step waits for an event that never fires; with
@@ -201,6 +210,23 @@ func test_gold_step_figure_follows_gold() -> void:
 	ResourceManager.add_gold(20.0)
 	assert_eq(_text("QuestFigureLabel"), "20 / 50")
 
+## A step measured on Core Density shows the core's stars up to its target in
+## place of its figure: Harden Your Core's level 10 is the first star, filling
+## level by level. Other measured steps keep their figure.
+func test_a_core_density_step_shows_its_stars() -> void:
+	var save := SaveGameData.new()
+	save.core_density_level = 3.0
+	save.quest_progression.active_quests[CORE_DENSITY_QUEST_ID] = 0
+	_use_fresh_save(save, false)
+	_add_goals()
+	assert_eq(_text("QuestNameLabel"), "Harden Your Core", "precondition: the quest shows")
+	assert_true(_is_shown("QuestStars"))
+	assert_false(_is_shown("QuestFigureLabel"), "no 3 / 10")
+	assert_eq(_steps("QuestStars"), [3] as Array[int], "one star, three tenths up")
+	save.core_density_level = 7.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_steps("QuestStars"), [7] as Array[int], "it follows the core")
+
 func test_refreshes_on_save_reset() -> void:
 	_add_goals()
 	QuestManager.start_quest(FILL_CORE_QUEST_ID)
@@ -221,9 +247,8 @@ func test_refreshes_on_save_reset() -> void:
 func test_milestone_text() -> void:
 	_add_goals()
 	assert_eq(_text("MilestoneNameLabel"), "Breakthrough")
-	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
-	assert_eq(_text("MilestoneFigureLabel"), "0 / 100")
-	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), 0)
+	assert_string_contains(_text("MilestoneTextLabel"), "Fill your core")
+	assert_eq(_steps("MilestoneStars"), EMPTY_STARS, "ten empty stars")
 
 ## Each requirement still short gets a line of its own: the core's, then each
 ## main stat below the cap.
@@ -231,7 +256,7 @@ func test_milestone_lists_every_missing_requirement() -> void:
 	var cap: int = CharacterManager.get_stat_level_cap()
 	_add_goals()
 	var text: String = _text("MilestoneTextLabel")
-	assert_string_contains(text, "Raise Core Density to 100")
+	assert_string_contains(text, "Fill your core")
 	assert_string_contains(text, "Strength Lv 1 / %d" % cap)
 	assert_string_contains(text, "Spirit Lv 1 / %d" % cap)
 
@@ -245,12 +270,11 @@ func test_milestone_at_the_cap_asks_for_the_tribulation() -> void:
 	assert_eq(CultivationManager.get_core_density_level(), 100.0, "precondition: the save loaded at the cap")
 	_add_goals()
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
-	assert_true(_is_shown("MilestoneFigureLabel"))
-	assert_eq(_text("MilestoneFigureLabel"), "100 / 100")
-	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+	assert_true(_is_shown("MilestoneStars"))
+	assert_eq(_steps("MilestoneStars"), FULL_STARS)
 
 ## A full core with the main stats short drops the core's line but still waits:
-## the stats' lines stand alone over the full rod.
+## the stats' lines stand alone over the full stars.
 func test_a_full_core_waits_for_the_main_stats() -> void:
 	var save := SaveGameData.new()
 	save.core_density_level = 100.0
@@ -259,9 +283,9 @@ func test_a_full_core_waits_for_the_main_stats() -> void:
 	_add_goals()
 	var text: String = _text("MilestoneTextLabel")
 	assert_false(text.contains("Face the Tribulation"), "the trial waits for the stats")
-	assert_false(text.contains("Raise Core Density"), "the full core asks for nothing more")
+	assert_false(text.contains("Fill your core"), "the full core asks for nothing more")
 	assert_string_contains(text, "Strength Lv 1 / %d" % cap)
-	assert_eq(_text("MilestoneFigureLabel"), "100 / 100", "the figure reads the full core")
+	assert_eq(_steps("MilestoneStars"), FULL_STARS, "the stars show the full core")
 
 ## The level-up that brings the last main stat to the cap turns a board that is
 ## already up to the Tribulation.
@@ -286,54 +310,55 @@ func test_a_full_copper_core_still_reads_reached() -> void:
 	_add_goals()
 	assert_true(CultivationManager.is_core_full(), "precondition: the Copper core is full")
 	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
-	assert_false(_is_shown("MilestoneFigureLabel"))
+	assert_false(_is_shown("MilestoneStars"), "nothing left to fill toward")
 
 func test_milestone_follows_level_up() -> void:
 	_add_goals()
 	var save: SaveGameData = PersistenceManager.save_game_data
 	save.core_density_level = 50.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
-	assert_eq(_text("MilestoneFigureLabel"), "50 / 100")
-	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), 69)
+	assert_eq(_steps("MilestoneStars"), [10, 10, 10, 10, 10, 0, 0, 0, 0, 0] as Array[int])
+	save.core_density_level = 34.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_steps("MilestoneStars").slice(2, 5), [10, 4, 0] as Array[int], "the fourth star four tenths up")
 
 ## The stage changes under a board that is already up, and only
 ## advancement_stage_changed says so.
 func test_milestone_follows_the_stage_change() -> void:
 	_add_goals()
-	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_string_contains(_text("MilestoneTextLabel"), "Fill your core")
 	var save: SaveGameData = PersistenceManager.save_game_data
 	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
 	CultivationManager.advancement_stage_changed.emit(save.current_advancement_stage)
 	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
 
-## A new save under a board that stood on Copper brings the figure back.
-func test_the_figure_returns_with_a_new_save() -> void:
+## A new save under a board that stood on Copper brings the stars back.
+func test_the_stars_return_with_a_new_save() -> void:
 	var copper_save := SaveGameData.new()
 	copper_save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
 	_use_fresh_save(copper_save)
 	_add_goals()
-	assert_false(_is_shown("MilestoneFigureLabel"), "precondition: no figure on Copper")
+	assert_false(_is_shown("MilestoneStars"), "precondition: no stars on Copper")
 	_use_fresh_save()
-	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
-	assert_true(_is_shown("MilestoneFigureLabel"))
-	assert_eq(_text("MilestoneFigureLabel"), "0 / 100")
+	assert_string_contains(_text("MilestoneTextLabel"), "Fill your core")
+	assert_true(_is_shown("MilestoneStars"))
+	assert_eq(_steps("MilestoneStars"), EMPTY_STARS)
 
-## The cap is the stage's own: a stage that fills at 40 asks for 40, and its full
-## core reads 40 / 40.
+## The cap is the stage's own: a stage that fills at 40 lights a star every 4
+## levels, and its full core lights all ten.
 func test_milestone_reads_the_stages_cap() -> void:
 	_use_a_short_stage(40)
 	var save := SaveGameData.new()
 	save.core_density_level = 20.0
 	_use_fresh_save(save)
 	_add_goals()
-	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 40")
-	assert_eq(_text("MilestoneFigureLabel"), "20 / 40")
-	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.5 * MILESTONE_ROD_STEPS))
+	assert_string_contains(_text("MilestoneTextLabel"), "Fill your core")
+	assert_eq(_steps("MilestoneStars"), [10, 10, 10, 10, 10, 0, 0, 0, 0, 0] as Array[int], "20 of 40: five stars")
 	StatCaps.cap_main_stats()
 	save.core_density_level = 40.0
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
-	assert_eq(_text("MilestoneFigureLabel"), "40 / 40")
+	assert_eq(_steps("MilestoneStars"), FULL_STARS)
 
 #-----------------------------------------------------------------------------
 # THE BREAKTHROUGH WAITS FOR NPC 4
@@ -381,7 +406,7 @@ func test_npc_4_hands_the_board_to_the_breakthrough() -> void:
 	assert_true(QuestManager.has_completed_quest(CORE_DENSITY_QUEST_ID), "precondition: the quest completed")
 	assert_false(_is_shown("QuestRow"))
 	assert_true(_is_shown("MilestoneRow"))
-	assert_string_contains(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_string_contains(_text("MilestoneTextLabel"), "Fill your core")
 
 ## The wait is Foundation's: Copper has no condition, so its line shows on a save
 ## that never talked to NPC 4.
