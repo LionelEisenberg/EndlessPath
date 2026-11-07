@@ -2,17 +2,18 @@ extends GutTest
 
 ## Content tests for the drill catalog (resources/body_refining/drills/): each
 ## drill trains Strength and at most one other Physical stat, ids are unique,
-## every value is written out in its file, and the roster holds the numbers the
-## "Body refining drills" canvas approved.
+## every value is written out in its file (its words and icon too), and the roster
+## holds the numbers the "Body refining drills" canvas approved.
 
 const AttributeType = CharacterAttributesData.AttributeType
 
 const DRILL_LIST_PATH: String = "res://resources/body_refining/drills/drill_list.tres"
 
-## Every field a drill file writes out. The icon waits for #100 and #106.
+## Every field a drill file writes out.
 const WRITTEN_FIELDS: Array[String] = [
-	"id", "drill_name", "minor_stat", "strength_xp_per_rep", "minor_xp_per_rep",
-	"health_per_rep", "input_kind", "rep_seconds", "reps_per_set",
+	"id", "drill_name", "icon", "minor_stat", "strength_xp_per_rep", "minor_xp_per_rep",
+	"health_per_rep", "input_kind", "rep_seconds", "reps_per_set", "play_hint",
+	"ready_line", "play_line",
 ]
 
 func _drills() -> Array[DrillData]:
@@ -64,6 +65,15 @@ func test_the_approved_roster() -> void:
 		assert_eq(drill.input_kind, want["input"], "%s's input" % drill.id)
 		assert_eq(drill.rep_seconds, want["seconds"], "%s's rep length" % drill.id)
 		assert_eq(drill.reps_per_set, 10, "%s's set" % drill.id)
+
+## The drill drawer and the board read each drill's words and icon: how it plays,
+## and the footer's line before a set and during one.
+func test_every_drill_has_its_words_and_icon() -> void:
+	for drill: DrillData in _drills():
+		assert_not_null(drill.icon, "%s has an icon" % drill.id)
+		assert_false(drill.play_hint.is_empty(), "%s says how it plays" % drill.id)
+		assert_false(drill.ready_line.is_empty(), "%s has a line before a set" % drill.id)
+		assert_false(drill.play_line.is_empty(), "%s has a line during one" % drill.id)
 
 func test_a_new_save_starts_with_the_first_drill() -> void:
 	var save := SaveGameData.new()
