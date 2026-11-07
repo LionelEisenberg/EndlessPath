@@ -5,13 +5,13 @@ extends Control
 ## cabinet in the zone view, and under the vitals cabinet that stands in its
 ## place in adventures.
 ## Row 1 shows the first active quest's name and current step, with a
-## current / target figure on the name row when the step can be measured.
-## Row 2 is the Breakthrough milestone on a jade rod, in three states: each
-## requirement of the Tribulation still short, a line each ("Raise Core Density
-## to <cap>" while the core is not full, then each main stat below the cap,
-## "Strength Lv 3 / 10"), with Core Density on the rod (level / cap); "Face the
-## Tribulation" once nothing is missing; and "<Stage> reached" on a full rod,
-## with no figure, once the stage has no next stage. The milestone waits for the
+## current / target figure on the name row when the step can be measured; a step
+## measured on Core Density shows the core's stars up to its target instead.
+## Row 2 is the Breakthrough milestone over the core's stars (LacquerStarRow), in
+## three states: each requirement of the Tribulation still short, a line each
+## ("Fill your core" while the core is not full, then each main stat below the
+## cap, "Strength Lv 3 / 10"); "Face the Tribulation" once nothing is missing;
+## and "<Stage> reached", with no stars, once the stage has no next stage. The milestone waits for the
 ## stage's breakthrough_goal_condition to latch (Foundation's: NPC 4 talked, the
 ## end of Beat 3b's chain). With one row hidden the divider hides too and the
 ## other row takes its place (the Rows container does the move). With neither
@@ -36,7 +36,7 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## Board-local space under the last row: the milestone rod ends at 198 and the
+## Board-local space under the last row: the milestone's stars end at 198 and the
 ## board at 220 (kit §5.2: screen 470 and 492).
 const BOTTOM_PADDING: float = 22.0
 ## The strip at the top of the board's root that the cords hang in; the
@@ -50,6 +50,8 @@ const CORDS_HEIGHT: float = 20.0
 ## The quest name's line is shared with the figure: the gap between them (the
 ## name row's separation).
 const NAME_FIGURE_GAP: float = 8.0
+## The milestone's first line while the core is not full.
+const FILL_CORE_LINE: String = "Fill your core"
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -77,8 +79,9 @@ const NAME_FIGURE_GAP: float = 8.0
 @onready var _quest_step_label: Label = %QuestStepLabel
 @onready var _milestone_row: Control = %MilestoneRow
 @onready var _milestone_text_label: Label = %MilestoneTextLabel
-@onready var _milestone_rod: LacquerRod = %MilestoneRod
-@onready var _milestone_figure_label: Label = %MilestoneFigureLabel
+@onready var _quest_stars: LacquerStarRow = %QuestStars
+@onready var _milestone_progress: Control = %ProgressMargin
+@onready var _milestone_stars: LacquerStarRow = %MilestoneStars
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -148,42 +151,60 @@ func _update_quest() -> void:
 		_quest_name_label.text = quest.quest_name
 		_quest_step_label.text = step.description
 		var figure: String = step.get_progress_text()
+		var core_target: int = _core_density_target(step)
 		_quest_figure.visible = not figure.is_empty()
-		if _quest_figure.visible:
+		_quest_figure_label.visible = core_target <= 0
+		_quest_stars.visible = core_target > 0
+		if _quest_stars.visible:
+			_quest_stars.set_fills(_stars_up_to(core_target))
+		elif _quest_figure.visible:
 			_quest_figure_label.text = figure
 		_fit_quest_name()
 	_fit_rows()
 
 ## The milestone row, hidden until the stage's breakthrough_goal_condition has
 ## latched, then in one of three states. A stage with no next stage reads
-## "<Stage> reached" on a full rod, with no figure. With nothing missing it reads
-## "Face the Tribulation" on a full rod, with the figure at cap / cap. Otherwise
-## it lists what is still missing, a line each: "Raise Core Density to <cap>"
-## while the core is not full, then each main stat below the cap, with the rod
-## and the figure at level / cap.
+## "<Stage> reached", with no stars: nothing is left to fill toward. With nothing
+## missing it reads "Face the Tribulation" over the full stars. Otherwise it lists
+## what is still missing, a line each: "Fill your core" while the core is not
+## full, then each main stat below the cap, over the core's stars.
 func _update_milestone() -> void:
 	var condition: UnlockConditionData = CultivationManager.get_breakthrough_goal_condition()
 	_milestone_row.visible = condition == null or UnlockManager.is_condition_unlocked(condition.condition_id)
-	var cap: int = CultivationManager.get_core_density_cap()
 	var reached: bool = not CultivationManager.has_next_stage()
 	if reached:
 		_milestone_text_label.text = "%s reached" % CultivationManager.get_current_advancement_stage_name()
-		_milestone_rod.set_fraction(1.0)
 	elif TribulationActionData.get_missing_requirements().is_empty():
 		_milestone_text_label.text = "Face the Tribulation"
-		_milestone_rod.set_fraction(1.0)
-		_milestone_figure_label.text = "%d / %d" % [cap, cap]
 	else:
-		var level: int = floori(CultivationManager.get_core_density_level())
 		var lines: Array[String] = []
 		if not CultivationManager.is_core_full():
-			lines.append("Raise Core Density to %d" % cap)
+			lines.append(FILL_CORE_LINE)
 		lines.append_array(TribulationActionData.get_missing_requirements(false))
-		_milestone_text_label.text = "\n".join(lines)
-		_milestone_rod.set_fraction(float(level) / cap)
-		_milestone_figure_label.text = "%d / %d" % [level, cap]
-	_milestone_figure_label.visible = not reached
+		_milestone_text_label.text = "
+".join(lines)
+	_milestone_progress.visible = not reached
+	_milestone_stars.set_fills(CultivationManager.get_star_fills_at(floori(CultivationManager.get_core_density_level())))
 	_fit_rows()
+
+## The Core Density level a quest step's figure measures, or 0 when it measures
+## something else.
+static func _core_density_target(step: QuestStepData) -> int:
+	var condition: UnlockConditionData = step.get_measured_condition()
+	if condition == null or condition.condition_type != UnlockConditionData.ConditionType.CULTIVATION_LEVEL:
+		return 0
+	return floori(condition.get_target_value())
+
+## The core's stars as far as `target` levels reach: as many as the target needs
+## (a level-10 step, one of Foundation's ten-level stars), filled as the core
+## stands.
+static func _stars_up_to(target: int) -> Array[float]:
+	var cap: int = CultivationManager.get_core_density_cap()
+	var fills: Array[float] = CultivationManager.get_star_fills_at(floori(CultivationManager.get_core_density_level()))
+	if cap <= 0:
+		return fills
+	var count: int = ceili(float(mini(target, cap)) * fills.size() / cap)
+	return fills.slice(0, count)
 
 ## The quest name wraps in the row's 358 px, less the figure and its gap while the
 ## figure shows. The width is set as a minimum and as the size, so the name's lines

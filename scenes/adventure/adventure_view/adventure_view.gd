@@ -76,7 +76,12 @@ var _combats_fought: int = 0
 var _gold_earned: int = 0
 var _loot_items: Array[Resource] = []
 var _adventure_start_time: float = 0.0
+## The Core Density level when the run started, for the end card's stars.
+var _core_level_at_start: int = 0
 var _pending_victory: bool = false
+## Set when the run's fight is lost. Only a lost fight marks a lost run: a run may
+## start at 0 Health, and one that times out or is left early then is no loss.
+var _fight_lost: bool = false
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -128,7 +133,9 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	_gold_earned = 0
 	_loot_items.clear()
 	_adventure_start_time = Time.get_ticks_msec() / 1000.0
+	_core_level_at_start = floori(CultivationManager.get_core_density_level())
 	_pending_victory = false
+	_fight_lost = false
 
 	# Listen for item awards during this adventure
 	if InventoryManager and not InventoryManager.item_awarded.is_connected(_on_item_awarded):
@@ -165,10 +172,10 @@ func stop_adventure() -> void:
 		LogManager.log_message("[color=cyan]Adventure Ended[/color]")
 
 	# Determine end condition from current state. The save's play stats count a win,
-	# Health at 0 and a timeout; a retreat counts nothing. Neither does a stop with
+	# a lost fight and a timeout; a retreat counts nothing. Neither does a stop with
 	# no run on: the adventure action is current while the start's zoom runs, before the
-	# run starts, and a save switch can stop it then, with the timer stopped and
-	# Health as the last run left it.
+	# run starts, and a save switch can stop it then, with the timer stopped. Health is
+	# no clue: a run may start at 0, and only a lost fight ends one as a loss.
 	var is_victory: bool = false
 	var defeat_reason: String = ""
 	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
@@ -178,7 +185,7 @@ func stop_adventure() -> void:
 		is_victory = true
 		if run_is_on:
 			stats.count_adventure_won()
-	elif PlayerManager.vitals_manager.current_health <= 0.0:
+	elif _fight_lost:
 		defeat_reason = "Your health reached zero"
 		if run_is_on:
 			stats.count_adventure_lost()
@@ -208,6 +215,7 @@ func stop_adventure() -> void:
 	_release_fight_boards()
 
 	_pending_victory = false
+	_fight_lost = false
 
 	adventure_completed.emit(result_data)
 
@@ -332,6 +340,7 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 
 	if current_action_data:
 		if not successful:
+			_fight_lost = true
 			ActionManager.stop_action(successful)
 
 ## The dock and the cabinet let go of the fight: no press reaches it, the dock
@@ -410,8 +419,9 @@ func _land_beads() -> void:
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Fills Health and Stamina; Madra is the saved pool as it stands. The cabinet
-## shows them and the dock previews the loadout.
+## Fills Stamina; Health and Madra are the saved pools as they stand, so a run
+## starts on the Health the last one left. The cabinet shows them and the dock
+## previews the loadout.
 func _initialize_combat_resources() -> void:
 	PlayerManager.vitals_manager.initialize_current_values()
 	vitals_plate.setup_vitals(PlayerManager.vitals_manager)
@@ -433,6 +443,9 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	result.tiles_total = adventure_tilemap.get_total_tile_count()
 	result.madra_left = ResourceManager.get_madra()
 	result.madra_max = ResourceManager.get_max_madra()
+	result.core_density_xp_earned = adventure_tilemap.get_core_density_xp_earned()
+	result.core_density_level_before = _core_level_at_start
+	result.core_density_level_after = floori(CultivationManager.get_core_density_level())
 	result.loot_items = _loot_items.duplicate()
 	return result
 

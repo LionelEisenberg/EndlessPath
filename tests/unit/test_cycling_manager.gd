@@ -35,6 +35,12 @@ func after_each() -> void:
 	CyclingManager._live_save_data = _saved_live_save_data
 	CyclingManager._techniques_by_id = _saved_techniques_by_id
 
+# ----- The catalog -----
+
+func test_get_technique() -> void:
+	assert_eq(CyclingManager.get_technique("tech_a"), _technique_a)
+	assert_null(CyclingManager.get_technique("no_such_technique"), "an unknown id gives null")
+
 # ----- Default state -----
 
 func test_default_save_has_foundation_unlocked() -> void:
@@ -82,6 +88,34 @@ func test_unlock_technique_emits_signal() -> void:
 func test_unlock_technique_unknown_id_pushes_error() -> void:
 	CyclingManager.unlock_technique("nonexistent")
 	assert_push_error("unknown technique_id")
+
+# ----- Auto -----
+
+func test_auto_is_locked_on_a_new_save() -> void:
+	assert_false(CyclingManager.is_auto_unlocked("foundation_technique"))
+	assert_eq(_save_data.auto_cycling_technique_ids, [] as Array[String])
+
+func test_unlock_auto_is_saved_for_that_technique_only() -> void:
+	CyclingManager.unlock_auto("tech_a")
+	assert_true(CyclingManager.is_auto_unlocked("tech_a"))
+	assert_false(CyclingManager.is_auto_unlocked("foundation_technique"), "a perfect cycle unlocks only its own technique")
+	assert_eq(_save_data.auto_cycling_technique_ids, ["tech_a"] as Array[String])
+
+func test_unlock_auto_announces_the_technique_once() -> void:
+	watch_signals(CyclingManager)
+	CyclingManager.unlock_auto("tech_a")
+	CyclingManager.unlock_auto("tech_a")
+	assert_signal_emit_count(CyclingManager, "auto_unlocked", 1)
+	assert_signal_emitted_with_parameters(CyclingManager, "auto_unlocked", [_technique_a])
+	assert_eq(_save_data.auto_cycling_technique_ids.count("tech_a"), 1, "unlocking twice changes nothing")
+
+func test_unlock_auto_refuses_an_unknown_id() -> void:
+	watch_signals(CyclingManager)
+	CyclingManager.unlock_auto("nonexistent")
+	assert_push_error("unknown technique_id")
+	assert_false(CyclingManager.is_auto_unlocked("nonexistent"))
+	assert_signal_not_emitted(CyclingManager, "auto_unlocked")
+	assert_true(_save_data.auto_cycling_technique_ids.is_empty())
 
 # ----- equip_technique -----
 

@@ -21,6 +21,8 @@ enum ResourceType {
 
 ## Health below this share of the max is low (is_health_low()).
 const LOW_HEALTH_RATIO: float = 0.5
+## Madra below this share of the max is low (is_madra_low()).
+const LOW_MADRA_RATIO: float = 0.5
 
 #-----------------------------------------------------------------------------
 # RESOURCE DATA (Held by this manager)
@@ -116,6 +118,10 @@ func get_madra() -> float:
 ## modifiers). Every Madra readout shows the pool against it.
 func get_max_madra() -> float:
 	return CharacterManager.get_stat(StatModifierData.Stat.MAX_MADRA)
+
+## True when Madra is below LOW_MADRA_RATIO of the max.
+func is_madra_low() -> bool:
+	return get_madra() < get_max_madra() * LOW_MADRA_RATIO
 
 ## Lowers a pool above the max to the max, emitting nothing. Returns whether
 ## it did.

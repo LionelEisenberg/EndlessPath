@@ -44,8 +44,9 @@ const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_hea
 ## keeps its space, so the header and the list never move up.
 const HEADER_TOP: float = 177.0
 const LIST_TOP: float = 208.0
-## A finished cycle's line sits under the Now tray and pushes the rest down this far.
-const LAST_CYCLE_PUSH: float = 26.0
+## A finished cycle's card stands 20 px under the Now tray and pushes the rest
+## down by its height (64 with one row) and 20.
+const LAST_CYCLE_PUSH: float = 84.0
 ## The lore board's 264 tall at least (it grows with its text), and the 12 px
 ## under it before the header.
 const LORE_MIN_HEIGHT: float = 264.0
@@ -60,9 +61,11 @@ const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
-## A technique drawer or an activity card is 72 tall with a line each, with 8
-## between them (kit §5.5); each line more is 18.
+## An activity card is 72 tall with a line each, and a technique drawer 92 (its
+## Trains row under the detail line), with 8 between them (kit §5.5); each line
+## more is 18.
 const DRAWER_HEIGHT: float = 72.0
+const TECHNIQUE_DRAWER_HEIGHT: float = 92.0
 const DRAWER_GAP: float = 8.0
 const STAT_LINE: float = 18.0
 const StatCaps := preload("res://tests/helpers/stat_caps.gd")
@@ -1002,59 +1005,73 @@ func test_techniques_mode_lists_unlocked_techniques() -> void:
 	assert_eq(_header_text(), "Techniques")
 	assert_eq(_count_text(), "3 learned")
 
-## A finished cycle's result, as the board records it on CyclingManager.
-func _last_cycle(madra: float, scored: int, total: int, perfect: int, xp: int) -> CycleResult:
+## A finished cycle's result, as the board records it on CyclingManager: the
+## Madra, the Spirit and Control XP, and the zones' studs.
+func _last_cycle(madra: float, spirit_xp: float, control_xp: float) -> CycleResult:
 	var result := CycleResult.new()
 	result.madra_added = madra
-	result.zones_scored = scored
-	result.zones_total = total
-	result.perfect_count = perfect
-	result.xp = xp
+	result.record_stat_xp(CharacterAttributesData.AttributeType.SPIRIT, spirit_xp, false)
+	result.record_stat_xp(CharacterAttributesData.AttributeType.CONTROL, control_xp, false)
+	result.zone_states = [CyclingZone.State.PERFECT, CyclingZone.State.GOOD, CyclingZone.State.SPENT, CyclingZone.State.OK] as Array[int]
 	return result
 
-func _last_cycle_label() -> Label:
-	return _node("LastCycleLabel") as Label
+func _last_cycle_card() -> LastCycleCard:
+	return _node("LastCycleCard") as LastCycleCard
 
-func test_the_last_cycle_line_shows_the_result() -> void:
+func test_the_last_cycle_card_shows_the_result() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
 	_panel.set_techniques_mode(true)
-	assert_false(_last_cycle_label().visible, "no line before a cycle ends")
-	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 3, 4, 1, 75))
-	assert_true(_last_cycle_label().visible)
-	assert_eq(_last_cycle_label().text, "Last cycle · +199 Madra · 3 / 4 zones · 1 PERFECT · +75 Core XP")
+	assert_false(_last_cycle_card().visible, "no card before a cycle ends")
+	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 30.0, 21.0))
+	assert_true(_last_cycle_card().visible)
+	var madra: Label = _last_cycle_card().get_node("%MadraChip").get_node("%Amount") as Label
+	assert_eq(madra.text, "+199", "the card shows the cycle's result")
 
-func test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down() -> void:
+## The card stands 20 px under the Now tray and pushes the header and the
+## drawers down by its height and 20.
+func test_the_card_pushes_the_rest_down() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
 	_panel.set_techniques_mode(true)
-	CyclingManager.set_last_cycle_result(_last_cycle(12345.0, 10, 12, 10, 99999))
-	var label: Label = _last_cycle_label()
-	assert_eq(label.text, "Last cycle · +12345 Madra · 10 / 12 zones · 10 PERFECT · +99999 Core XP", "the whole line")
-	assert_eq(label.get_line_count(), 2, "wider than the tray, it wraps")
-	assert_eq(label.get_visible_line_count(), 2, "and both lines show")
-	assert_gte(label.size.y, label.get_minimum_size().y, "its box holds both lines")
-	var push: float = label.size.y + 8.0
-	assert_gt(push, LAST_CYCLE_PUSH, "precondition: two lines push further than one")
-	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + push, "the header moves down under both lines")
+	CyclingManager.set_last_cycle_result(_last_cycle(80.0, 30.0, 21.0))
+	await wait_process_frames(2)
+	var card: LastCycleCard = _last_cycle_card()
+	assert_eq(card.size.y, LastCycleCard.ONE_LINE_HEIGHT, "precondition: one row")
+	assert_eq(card.position.y, _strip().position.y + STRIP_HEIGHT + 20.0, "20 px under the Now tray")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LAST_CYCLE_PUSH, "the header moves down")
+	assert_eq(_technique_list().position.y, LIST_TOP + LAST_CYCLE_PUSH, "and the drawers with it")
+
+## A card whose chips wrap grows, and pushes the header and the drawers further.
+func test_a_growing_card_pushes_the_rest_further() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	var result: CycleResult = _last_cycle(12345.0, 12345.0, 12345.0)
+	result.record_stat_xp(CharacterAttributesData.AttributeType.MIND, 12345.0, false)
+	CyclingManager.set_last_cycle_result(result)
+	await wait_process_frames(2)
+	var push: float = _last_cycle_card().size.y + 20.0
+	assert_gt(push, LAST_CYCLE_PUSH, "precondition: the chips wrapped")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + push, "the header moves down under the whole card")
 	assert_eq(_technique_list().position.y, LIST_TOP + push, "and the drawers with it")
 
-func test_the_last_cycle_line_shows_only_while_cycling() -> void:
+func test_the_last_cycle_card_shows_only_while_cycling() -> void:
 	await _add_panel()
-	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
-	assert_false(_last_cycle_label().visible, "the activities never show it")
+	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 12.0, 0.0))
+	assert_false(_last_cycle_card().visible, "the activities never show it")
 	_panel.set_techniques_mode(true)
-	assert_true(_last_cycle_label().visible)
+	assert_true(_last_cycle_card().visible)
 	_panel.set_techniques_mode(false)
-	assert_false(_last_cycle_label().visible)
+	assert_false(_last_cycle_card().visible)
 
-func test_clearing_the_last_cycle_hides_the_line() -> void:
+func test_clearing_the_last_cycle_hides_the_card() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
 	_panel.set_techniques_mode(true)
-	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
+	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 12.0, 0.0))
 	CyclingManager.clear_last_cycle_result()
-	assert_false(_last_cycle_label().visible)
+	assert_false(_last_cycle_card().visible)
 
 func test_leaving_techniques_mode_restores_activities() -> void:
 	CyclingManager.unlock_technique(SMOOTH_ID)
@@ -1143,7 +1160,7 @@ func test_a_rebuild_in_techniques_mode_keeps_the_header() -> void:
 	await wait_process_frames(2)
 	assert_eq(_header_text(), "Techniques")
 	assert_eq(_count_text(), "2 learned")
-	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0, "the chest still hugs the techniques")
+	assert_eq(_panel.size.y, LIST_TOP + 2.0 * TECHNIQUE_DRAWER_HEIGHT + DRAWER_GAP + 24.0, "the chest still hugs the techniques")
 
 func test_activity_count_follows_unlocks_made_in_techniques_mode() -> void:
 	await _add_panel()
@@ -1233,10 +1250,10 @@ func test_the_chest_grows_with_a_drawer_whose_name_wraps() -> void:
 	long_named.id = "test_zone_panel_long_named_technique"
 	long_named.technique_name = "The Exceedingly Long and Winding Name of a Technique"
 	drawer.setup(long_named)
-	var grown: float = drawer.size.y - DRAWER_HEIGHT
+	var grown: float = drawer.size.y - TECHNIQUE_DRAWER_HEIGHT
 	assert_gt(grown, 0.0, "precondition: the long name wraps and the drawer grows")
 	assert_signal_emitted(list, "layout_changed", "the list tells the chest")
-	assert_eq(list.get_content_height(), 3.0 * DRAWER_HEIGHT + 2.0 * DRAWER_GAP + grown, "it measures the taller drawer")
+	assert_eq(list.get_content_height(), 3.0 * TECHNIQUE_DRAWER_HEIGHT + 2.0 * DRAWER_GAP + grown, "it measures the taller drawer")
 	assert_eq(_panel.size.y, chest_height + grown, "the chest grows with the drawer")
 
 func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:

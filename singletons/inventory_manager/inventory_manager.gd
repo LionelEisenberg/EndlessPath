@@ -42,6 +42,9 @@ func get_material_items() -> Dictionary[MaterialDefinitionData, int]:
 func get_quest_items() -> Dictionary[ItemDefinitionData, int]:
 	return live_save_data.inventory.quest_items
 
+## Announces the award (item_awarded), then routes it by item_type: stacks for
+## materials, quest items and consumables, grid slots for equipment. A drill
+## manual teaches its drill and is not kept.
 func award_items(item: ItemDefinitionData, quantity: int) -> void:
 	item_awarded.emit(item, quantity)
 	match item.item_type:
@@ -68,6 +71,16 @@ func award_items(item: ItemDefinitionData, quantity: int) -> void:
 				_award_consumable(item as ConsumableDefinitionData, quantity)
 				if LogManager:
 					LogManager.log_message("[color=cyan]Obtained %dx %s[/color]" % [quantity, item.item_name])
+			else:
+				Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
+		ItemDefinitionData.ItemType.DRILL_MANUAL:
+			# A manual is read as it arrives and not kept: one reading teaches,
+			# however many copies came.
+			if item is DrillManualDefinitionData:
+				var manual := item as DrillManualDefinitionData
+				var taught: bool = manual.teach()
+				if LogManager:
+					LogManager.log_message(manual.log_line(taught))
 			else:
 				Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 		_:

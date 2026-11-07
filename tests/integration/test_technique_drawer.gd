@@ -1,7 +1,8 @@
 extends GutTest
 
 ## Integration tests for the technique drawer (TechniqueDrawer), the zone chest's
-## drawer for one learned cycling technique: its detail line, icon and name, the
+## drawer for one learned cycling technique: its detail line, the stats it trains,
+## icon and name, the
 ## drawer in use tagged IN USE, the NEW seal (cleared when the pointer leaves the
 ## drawer or on a press), the Madra figure at the player's Spirit, equip on
 ## click (and nothing on the drawer in use), the
@@ -17,7 +18,7 @@ const SMOOTH_ID: String = "smooth_flow"
 const TORRENTIAL_ID: String = "torrential_flow"
 const FIXTURE_ID: String = "test_technique_drawer_technique"
 
-const DRAWER_SIZE: Vector2 = Vector2(392, 72)
+const DRAWER_SIZE: Vector2 = Vector2(392, 92)
 ## The title's line (kit §5.5).
 const TITLE_LINE_HEIGHT: float = 20.0
 ## Names the shipped techniques don't have: one wider than the row leaves
@@ -72,6 +73,12 @@ func _fixture(technique_name: String, madra: float, seconds: float, zone_count: 
 		technique.cycling_zones.append(CyclingZoneData.new())
 	return technique
 
+## `technique` with `count` seals along its cycle.
+func _with_seals(technique: CyclingTechniqueData, count: int) -> CyclingTechniqueData:
+	for i: int in count:
+		technique.seal_seconds.append(1.0 + i)
+	return technique
+
 func _press(drawer: TechniqueDrawer, button: MouseButton = MOUSE_BUTTON_LEFT, pressed: bool = true) -> void:
 	var event := InputEventMouseButton.new()
 	event.button_index = button
@@ -94,6 +101,8 @@ func test_detail_text() -> void:
 	assert_eq(TechniqueDrawer.detail_text(_fixture("A", 50.0, 8.0, 0)), "50 Madra · 8 s cycle · no zones")
 	assert_eq(TechniqueDrawer.detail_text(_fixture("B", 200.0, 15.0, 4)), "200 Madra · 15 s cycle · 4 zones")
 	assert_eq(TechniqueDrawer.detail_text(_fixture("C", 250.0, 8.0, 1)), "250 Madra · 8 s cycle · 1 zone")
+	assert_eq(TechniqueDrawer.detail_text(_with_seals(_fixture("D", 50.0, 8.0, 0), 3)), "50 Madra · 8 s cycle · 3 seals")
+	assert_eq(TechniqueDrawer.detail_text(_with_seals(_fixture("E", 50.0, 8.0, 0), 1)), "50 Madra · 8 s cycle · 1 seal")
 
 ## The figure is Madra a cycle at the multiplier, rounded to a whole number.
 func test_detail_text_at_a_multiplier() -> void:
@@ -104,6 +113,41 @@ func test_detail_text_at_a_multiplier() -> void:
 	]
 	for case: Dictionary in cases:
 		assert_eq(TechniqueDrawer.detail_text(_fixture("A", case.madra, 15.0, 4), case.multiplier), case.text, case.name)
+
+#-----------------------------------------------------------------------------
+# WHAT IT TRAINS
+#-----------------------------------------------------------------------------
+
+## The Trains row: "Trains", then each stat the technique trains, Spirit first,
+## with its 16 px icon, the names joined as a list.
+func test_the_trains_row_names_what_a_technique_trains() -> void:
+	CyclingManager.unlock_technique(TORRENTIAL_ID)
+	var stats: Dictionary = {
+		"Spirit": CharacterAttributesData.AttributeType.SPIRIT,
+		"Mind": CharacterAttributesData.AttributeType.MIND,
+		"Control": CharacterAttributesData.AttributeType.CONTROL,
+	}
+	var cases: Array[Dictionary] = [
+		{"id": FOUNDATION_ID, "words": {"Spirit": "Spirit"}},
+		{"id": SMOOTH_ID, "words": {"Spirit": "Spirit and", "Control": "Control"}},
+		{"id": TORRENTIAL_ID, "words": {"Spirit": "Spirit and", "Mind": "Mind"}},
+	]
+	for case: Dictionary in cases:
+		var drawer: TechniqueDrawer = _drawer(case.id)
+		assert_eq((_node(drawer, "TrainsLabel") as Label).text, "Trains", case.id)
+		for stat_name: String in stats:
+			var shows: bool = case.words.has(stat_name)
+			assert_eq((_node(drawer, stat_name + "Entry") as Control).visible, shows, "%s: the %s entry %s" % [case.id, stat_name, "shows" if shows else "hides"])
+			if shows:
+				assert_eq((_node(drawer, stat_name + "Name") as Label).text, case.words[stat_name], "%s: %s's word" % [case.id, stat_name])
+				assert_eq((_node(drawer, stat_name + "Icon") as TextureRect).texture, StatDisplay.icon_of(stats[stat_name]), "%s: %s's icon" % [case.id, stat_name])
+
+func test_trained_stats() -> void:
+	var spirit := CharacterAttributesData.AttributeType.SPIRIT
+	var plain := _fixture("A", 30.0, 8.0, 0)
+	assert_eq(TechniqueDrawer.trained_stats(plain), [spirit] as Array[CharacterAttributesData.AttributeType], "following trains Spirit")
+	plain.minor_stat = CharacterAttributesData.AttributeType.CONTROL
+	assert_eq(TechniqueDrawer.trained_stats(plain), [spirit, CharacterAttributesData.AttributeType.CONTROL] as Array[CharacterAttributesData.AttributeType], "then the technique's other stat")
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -234,7 +278,7 @@ func test_a_name_that_wraps_beside_the_seal_fits_once_it_clears() -> void:
 	drawer.mouse_exited.emit()
 	assert_false(drawer.is_new_shown(), "precondition: the pointer leaving cleared the seal")
 	assert_eq(title.get_line_count(), 1, "without the seal the name fits one line")
-	assert_eq(drawer.size, DRAWER_SIZE, "and the drawer is 72 again")
+	assert_eq(drawer.size, DRAWER_SIZE, "and the drawer is 92 again")
 	assert_signal_emitted(drawer, "height_changed", "which the list hears")
 	_assert_the_list_reads_its_height(drawer)
 

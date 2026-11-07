@@ -321,7 +321,16 @@ func test_v5_gives_an_old_save_no_sets() -> void:
 	data.save_version = 4
 	data.migrate()
 	assert_eq(data.stats.sets_finished, 0)
-	assert_eq(data.save_version, 5, "version 5 is the set count's")
+	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
+## A save from before Auto had to be earned comes out with every Auto locked,
+## and the current version: the step moves nothing.
+func test_v6_gives_an_old_save_every_auto_locked() -> void:
+	var data := SaveGameData.new()
+	data.save_version = 5
+	data.migrate()
+	assert_true(data.auto_cycling_technique_ids.is_empty())
+	assert_eq(data.save_version, 6, "version 6 is the Auto list's")
 	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
 
 ## A save from before drills comes out with the starting drill unlocked and

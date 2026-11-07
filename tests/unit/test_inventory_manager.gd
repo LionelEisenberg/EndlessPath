@@ -392,6 +392,46 @@ func test_award_quest_item_stacks() -> void:
 	assert_eq(_inventory.quest_items.get(def, 0), 3, "quest items should stack")
 
 #-----------------------------------------------------------------------------
+# AWARD ITEMS - DRILL MANUALS
+#-----------------------------------------------------------------------------
+
+## Runs `work` on a fresh save bound by every manager, since a manual's teaching
+## writes BodyRefiningManager's save, then puts the original back.
+func _with_fresh_save(work: Callable) -> void:
+	var original: SaveGameData = PersistenceManager.save_game_data
+	var save := SaveGameData.new()
+	PersistenceManager.save_game_data = save
+	PersistenceManager.save_data_reset.emit()
+	_inventory = save.inventory
+	work.call()
+	PersistenceManager.save_game_data = original
+	PersistenceManager.save_data_reset.emit()
+
+func test_award_drill_manual_teaches_and_keeps_nothing() -> void:
+	_with_fresh_save(func() -> void:
+		var manual := DrillManualDefinitionData.new()
+		manual.drill_id = "horse_stance"
+		watch_signals(InventoryManager)
+
+		InventoryManager.award_items(manual, 2)
+
+		assert_true(BodyRefiningManager.is_drill_unlocked("horse_stance"), "the manual teaches its drill")
+		assert_signal_emitted_with_parameters(InventoryManager, "item_awarded", [manual, 2])
+		assert_false(InventoryManager.has_item(manual.item_id), "a manual isn't kept")
+		assert_eq(_inventory.quest_items.size() + _inventory.materials.size() + _inventory.consumables.size() + _inventory.equipment.size(), 0, "nothing lands in the bag")
+	)
+
+func test_an_item_claiming_the_manual_type_teaches_nothing() -> void:
+	_with_fresh_save(func() -> void:
+		var impostor := ItemDefinitionData.new()
+		impostor.item_type = ItemDefinitionData.ItemType.DRILL_MANUAL
+
+		InventoryManager.award_items(impostor, 1)
+
+		assert_eq(BodyRefiningManager.get_unlocked_drills().size(), 1, "only the starting drill is known")
+	)
+
+#-----------------------------------------------------------------------------
 # HAS_ITEM
 #-----------------------------------------------------------------------------
 

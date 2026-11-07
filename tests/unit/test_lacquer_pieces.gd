@@ -122,6 +122,23 @@ func test_rod_steps() -> void:
 	rod.set_fraction(0.5)
 	assert_eq(rod.get_step(), 76)
 
+## A rod that rounds down shows only the steps its fraction has earned, so it
+## reads full only at 1.0 (the Character book's XP bars).
+func test_a_rod_can_round_down() -> void:
+	var rod := _make_well_rod()
+	rod.round_down = true
+	var cases: Array[Array] = [
+		# fraction, step of 152
+		[0.0, 0],
+		[1.9 / 152.0, 1],
+		[0.5, 76],
+		[151.9 / 152.0, 151],
+		[1.0, 152],
+	]
+	for case: Array in cases:
+		rod.set_fraction(case[0])
+		assert_eq(rod.get_step(), case[1], "fraction %s" % case[0])
+
 func test_rod_clamps() -> void:
 	var rod := _make_well_rod()
 	rod.set_fraction(-0.5)
@@ -201,6 +218,19 @@ func test_floater_pops_a_haul_as_counts_and_icons() -> void:
 	floater.pop("+1.5 Madra", ThemeConstants.LACQUER_MADRA)
 	assert_true(floater.get_icons().is_empty(), "plain text clears the icons")
 
+func test_pop_stat_shows_the_stat_s_icon_and_name() -> void:
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	var control := CharacterAttributesData.AttributeType.CONTROL
+	floater.pop_stat("PERFECT +12", control, ThemeConstants.LACQUER_BRASS)
+	var parsed: String = (floater.get_node("%Text") as RichTextLabel).get_parsed_text()
+	assert_true(floater.visible, "pop_stat shows the floater")
+	assert_eq(floater.get_text(), "PERFECT +12 Control", "the lead, then the stat's name")
+	assert_eq(floater.get_icons(), [StatDisplay.icon_of(control)] as Array[Texture2D], "the stat's icon")
+	assert_true(parsed.begins_with("PERFECT +12 "), "the lead comes first: %s" % parsed)
+	assert_true(parsed.ends_with(" Control"), "the name comes after the icon: %s" % parsed)
+	assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS, "in the colour given")
+
 ## A floater can pop icons and text in any order: the body refining board's
 ## "[Strength] capped" and "[Health] full" under a rep's tier.
 func test_floater_pops_parts_of_icons_and_text() -> void:
@@ -219,6 +249,19 @@ func test_floater_pops_parts_of_icons_and_text() -> void:
 #-----------------------------------------------------------------------------
 # TEXT
 #-----------------------------------------------------------------------------
+
+## Words joined as a list on a row of their own pieces: each but the last two
+## followed by a comma, the second to last by " and".
+func test_list_words() -> void:
+	var cases: Array[Array] = [
+		[[], []],
+		[["Spirit"], ["Spirit"]],
+		[["Spirit", "Control"], ["Spirit and", "Control"]],
+		[["Madra", "Spirit", "Control"], ["Madra,", "Spirit and", "Control"]],
+		[["Madra", "Spirit", "Mind", "Control"], ["Madra,", "Spirit,", "Mind and", "Control"]],
+	]
+	for case: Array in cases:
+		assert_eq(LacquerText.list_words(PackedStringArray(case[0])), PackedStringArray(case[1]), "%s" % [case[0]])
 
 func test_rate_format() -> void:
 	assert_eq(LacquerText.rate(1.5), "+1.5")

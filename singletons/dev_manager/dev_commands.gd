@@ -302,13 +302,15 @@ static func travel_to_zone(zone_id: String) -> String:
 	_while_paused(ZoneManager.set_current_zone_by_id.bind(zone_id))
 	return _succeed("Travelled to %s" % zone_id)
 
-## Fills the player's Health and Stamina; the Madra pool stays as it is.
-## Refuses unless an adventure runs.
+## Fills the player's Health and Stamina: the saved Health pool to its max, and
+## the run's Stamina; the Madra pool stays as it is. Refuses unless an adventure
+## runs.
 static func refill_vitals() -> String:
 	var running: ZoneActionData = ActionManager.get_current_action()
 	if running == null or running.action_type != ZoneActionData.ActionType.ADVENTURE:
 		return "No adventure is running"
 	var vitals: VitalsManager = PlayerManager.vitals_manager
+	_while_paused(ResourceManager.set_health.bind(ResourceManager.get_max_health()))
 	_while_paused(vitals.initialize_current_values)
 	return _succeed("Refilled Health and Stamina")
 

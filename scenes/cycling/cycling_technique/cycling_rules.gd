@@ -6,12 +6,16 @@ extends RefCounted
 ## a scene. A press on the ball that scores a zone is PERFECT, GOOD or OK by how
 ## far the Madra ball's centre is from the zone's centre: under 0.3 of the zone's
 ## 20 px radius (6 px) is PERFECT, under 0.7 of it (14 px) is GOOD, and anything
-## farther is OK. The tier sets the zone's XP, how many XP pellets fly to the
-## Core orb, and the name and colour of the hit's floater.
+## farther is OK. The tier sets the XP the zone pays the technique's other stat
+## (Smooth Flow's Control), how many pellets fly to that stat's cell, and the
+## name and colour of the hit's floater.
 ## Following the ball is judged here too (is_following()): anywhere in the gold
 ## circle around the ball keeps following, and a cursor in it starts once it
 ## moves, so a cursor resting on the path follows nothing as the ball passes.
 ## FollowWindow measures what the rule reads.
+## So are seals, the game that trains Mind: a seal is SEAL_LENGTH arrows
+## (random_seal()), shown SEAL_LEAD before the ball reaches its node, and each key
+## lights the next arrow or starts the seal over (seal_progress()).
 ## Statics only.
 
 #-----------------------------------------------------------------------------
@@ -20,6 +24,15 @@ extends RefCounted
 
 ## How good a hit was, from worst to best.
 enum Tier { OK, GOOD, PERFECT }
+
+## A seal's arrows, keyed on W A S D or the arrow keys.
+enum Arrow { UP, LEFT, DOWN, RIGHT }
+
+## The arrows in a seal.
+const SEAL_LENGTH: int = 3
+
+## Seconds a seal shows before the ball reaches its node.
+const SEAL_LEAD: float = 1.5
 
 ## A zone's radius in px: the distance from its centre to its edge.
 const ZONE_RADIUS: float = 20.0
@@ -36,6 +49,10 @@ const FOLLOW_WINDOW: float = 0.25
 ## px a cursor on the ball must have moved over the window to start following:
 ## a resting one never does, and a twitch does not either.
 const FOLLOW_START_MOVE: float = 4.0
+
+## The share of the full rate an unlocked Auto pays while nobody follows the
+## ball, for Madra and Spirit XP alike.
+const AUTO_RATE: float = 0.4
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -60,7 +77,26 @@ static func tier_for_distance(distance: float) -> Tier:
 static func is_following(on_ball: bool, was_following: bool, moved: float) -> bool:
 	return on_ball and (was_following or moved >= FOLLOW_START_MOVE)
 
-## Returns the Core Density XP `zone` pays for a hit of `tier`.
+## Returns how many of `seal`'s arrows are keyed after `arrow` is pressed with
+## `keyed` of them keyed: one more when `arrow` is the next one, else 0, since a
+## wrong key starts the seal over. SEAL_LENGTH keyed means the seal is open.
+static func seal_progress(seal: Array[int], keyed: int, arrow: int) -> int:
+	if keyed < seal.size() and seal[keyed] == arrow:
+		return keyed + 1
+	return 0
+
+## Returns a new seal drawn from `rng`: SEAL_LENGTH arrows, never one arrow
+## SEAL_LENGTH times.
+static func random_seal(rng: RandomNumberGenerator) -> Array[int]:
+	var seal: Array[int] = []
+	while seal.is_empty() or seal.count(seal[0]) == SEAL_LENGTH:
+		seal.clear()
+		for i: int in SEAL_LENGTH:
+			seal.append(rng.randi_range(Arrow.UP, Arrow.RIGHT))
+	return seal
+
+## Returns the XP of the technique's other stat `zone` pays for a hit of
+## `tier`.
 static func xp_for_tier(zone: CyclingZoneData, tier: Tier) -> int:
 	match tier:
 		Tier.PERFECT:
@@ -70,7 +106,7 @@ static func xp_for_tier(zone: CyclingZoneData, tier: Tier) -> int:
 		_:
 			return zone.ok_xp
 
-## Returns how many XP pellets fly from the zone to the Core orb for a hit of
+## Returns how many pellets fly from the zone to the stat's cell for a hit of
 ## `tier`: 8, 5 or 3.
 static func pellet_count(tier: Tier) -> int:
 	match tier:
@@ -92,8 +128,8 @@ static func tier_name(tier: Tier) -> String:
 		_:
 			return "OK"
 
-## Returns the colour of a hit of `tier`, for its floater and XP pellets:
-## brass for PERFECT, cream for GOOD and tan for OK.
+## Returns the colour of a hit of `tier`, for its floater: brass for PERFECT,
+## cream for GOOD and tan for OK.
 static func tier_color(tier: Tier) -> Color:
 	match tier:
 		Tier.PERFECT:

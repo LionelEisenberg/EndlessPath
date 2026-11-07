@@ -15,6 +15,8 @@
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="12_cfyns"]
 [ext_resource type="PackedScene" uid="uid://ix8ck2f5o613" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="13_item_slot"]
 [ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/iron_shortsword.tres" id="14_sword"]
+[ext_resource type="Texture2D" uid="uid://cwubwjpwdtuc1" path="res://assets/ui/lacquer/lacquer_ic_core_ai.png" id="16_core_icon"]
+[ext_resource type="PackedScene" path="res://scenes/common/lacquer/lacquer_star_row/lacquer_star_row.tscn" id="17_stars"]
 [ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/makeshift_dagger.tres" id="15_dagger"]
 
 [sub_resource type="Animation" id="Animation_reset"]
@@ -324,8 +326,8 @@ stretch_mode = 2
 
 [node name="StatsGridMargin" type="MarginContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=1039059675]
 layout_mode = 2
-theme_override_constants/margin_top = 40
-theme_override_constants/margin_bottom = 40
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_bottom = 20
 
 [node name="StatsGrid" type="GridContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGridMargin" unique_id=160975452]
 layout_mode = 2
@@ -507,6 +509,60 @@ layout_mode = 2
 theme_type_variation = &"LabelEndCardStatValue"
 text = "0"
 horizontal_alignment = 1
+
+[node name="CoreDensityMargin" type="MarginContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_bottom = 24
+
+[node name="CoreDensityStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("16_core_icon")
+expand_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat/StatInfo"]
+layout_mode = 2
+theme_type_variation = &"LabelEndCardStatName"
+text = "CORE DENSITY"
+
+[node name="CoreDensityLine" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat/StatInfo"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="StarsHolder" type="Control" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat/StatInfo/CoreDensityLine"]
+custom_minimum_size = Vector2(396, 36)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="CoreDensityStars" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat/StatInfo/CoreDensityLine/StarsHolder" instance=ExtResource("17_stars")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 198.0
+offset_bottom = 18.0
+scale = Vector2(2, 2)
+theme_override_constants/separation = 2
+paper = true
+
+[node name="CoreDensityValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/CoreDensityMargin/CoreDensityStat/StatInfo/CoreDensityLine"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelEndCardStatValue"
+theme_override_colors/font_color = Color(0.18431373, 0.41960785, 0.2901961, 1)
+text = "+0"
+autowrap_mode = 3
 
 [node name="BottomDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=752016833]
 custom_minimum_size = Vector2(0, 12)

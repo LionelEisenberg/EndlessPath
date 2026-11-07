@@ -26,6 +26,9 @@ extends Control
 @onready var merchant_view: MerchantView = %MerchantView
 @onready var tribulation_view: TribulationView = %TribulationView
 @onready var body_refining_view: BodyRefiningView = %BodyRefiningView
+## The "Head out?" board the adventure card asks with below half Health or
+## Madra (AdventureConfirmState).
+@onready var adventure_confirm_board: AdventureConfirmBoard = %AdventureConfirmBoard
 
 ## The zone view's furniture the boards in the map gap work with. The cabinet takes
 ## the cycling and body refining boards' pellets (it is handed to them in _ready()); the
@@ -59,6 +62,7 @@ extends Control
 @onready var merchant_view_state: MainViewState = %MainViewStateMachine/MerchantViewState
 @onready var tribulation_view_state: MainViewState = %MainViewStateMachine/TribulationViewState
 @onready var body_refining_view_state: MainViewState = %MainViewStateMachine/BodyRefiningViewState
+@onready var adventure_confirm_state: MainViewState = %MainViewStateMachine/AdventureConfirmState
 
 ## State stack
 @onready var state_stack: Array[MainViewState] = []
@@ -91,6 +95,7 @@ func _ready() -> void:
 	merchant_view_state.scene_root = self
 	tribulation_view_state.scene_root = self
 	body_refining_view_state.scene_root = self
+	adventure_confirm_state.scene_root = self
 
 	_hand_cabinet_to_boards()
 	board_transition = get_node_or_null("%BoardTransition") as BoardTransition

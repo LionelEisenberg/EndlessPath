@@ -5,7 +5,9 @@ enum ItemType {
 	MATERIAL,
 	CONSUMABLE,
 	EQUIPMENT,
-	QUEST_ITEM
+	QUEST_ITEM,
+	## Teaches a drill when it arrives and is not kept (DrillManualDefinitionData).
+	DRILL_MANUAL,
 }
 
 @export var item_id: String = ""
@@ -22,6 +24,11 @@ enum ItemType {
 ## The item's inline 16 px icon: mini_icon, or icon when it has none.
 func get_mini_icon() -> Texture2D:
 	return mini_icon if mini_icon != null else icon
+
+## Whether a loot roll may drop the item now. Every item may, unless a subclass
+## says it would be wasted (a manual whose drill is known).
+func can_drop() -> bool:
+	return true
 
 func _to_string() -> String:
 	return "ItemDefinitionData(item_id: %s, item_name: %s, description: %s, icon: %s, item_type: %s, stack_size: %s, base_value: %s)" % [
@@ -44,6 +51,8 @@ func _get_item_type() -> String:
 			return "Equipment"
 		ItemType.QUEST_ITEM:
 			return "Quest Item"
+		ItemType.DRILL_MANUAL:
+			return "Drill Manual"
 		_:
 			Log.warn("ItemDefinitionData: item_type %s not recognized" % str(item_type))
 			return ""

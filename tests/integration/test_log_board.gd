@@ -233,3 +233,45 @@ func test_full_log_keeps_only_the_history_limit_while_open() -> void:
 	assert_false(parsed.contains("Entry 004"), "the oldest lines are dropped")
 	assert_true(parsed.contains("Entry 005"), "the oldest kept line is still there")
 	assert_true(parsed.contains("Entry %03d" % (LogManager.HISTORY_LIMIT + 4)), "and the newest")
+
+#-----------------------------------------------------------------------------
+# ICONS
+#-----------------------------------------------------------------------------
+
+const MADRA_ICON_PATH: String = "res://assets/ui/lacquer/lacquer_mini_madra_ai.png"
+## A cycle's log line with one icon, the way CycleResult writes it.
+const ICON_LINE: String = "[color=cyan]Cycle [img=16x16]res://assets/ui/lacquer/lacquer_mini_madra_ai.png[/img] +80[/color]"
+
+func _line_icons(age: int) -> RichTextLabel:
+	return _node("LineIcons%d" % age) as RichTextLabel
+
+func test_plain_text_drops_images() -> void:
+	assert_eq(LogWindow.plain_text(ICON_LINE), "Cycle  +80", "the image goes, and its path with it")
+
+func test_line_parts() -> void:
+	assert_eq(LogWindow.line_parts(ICON_LINE), ["Cycle ", load(MADRA_ICON_PATH), " +80"], "each run of text, and the icon where it stands")
+	assert_eq(LogWindow.line_parts("A [img]res://no/such/icon.png[/img] B"), ["A ", " B"], "an image that does not load is left out")
+	assert_eq(LogWindow.line_parts("[color=gold]Gained [b]5[/b] Gold[/color]"), ["Gained 5 Gold"], "a line with no image is one run of text")
+
+## A line with icons shows on its row's rich text twin, the label hidden; a
+## plain line stays a label. get_parsed_text() shows an image as one space.
+func test_a_line_with_icons_shows_them_on_the_board() -> void:
+	_add_log()
+	_log_lines([ICON_LINE])
+	assert_true(_line_icons(0).visible, "the twin shows the line")
+	assert_false(_line_label(0).visible, "its label steps aside")
+	assert_eq(_line_icons(0).get_parsed_text(), "Cycle   +80", "the text, the image between")
+	_log_lines(["Resumed Aura Well"])
+	assert_true(_line_label(0).visible, "a plain line is a label")
+	assert_false(_line_icons(0).visible, "and its row's twin hides")
+	assert_true(_line_icons(1).visible, "the icon line moves up a row on its twin")
+	assert_false(_line_label(1).visible)
+	assert_eq(_line_icons(1).get_parsed_text(), "Cycle   +80")
+
+func test_the_full_log_shows_a_line_s_icons() -> void:
+	_log_lines([ICON_LINE])
+	_add_log()
+	_log.toggle_full_log()
+	var parsed: String = (_node("FullLogText") as RichTextLabel).get_parsed_text()
+	assert_true(parsed.contains("Cycle   +80"), "the line, the image between its text: %s" % parsed)
+	assert_false(parsed.contains("res://"), "not the image's path")

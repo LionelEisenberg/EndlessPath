@@ -10,11 +10,11 @@
 [ext_resource type="Texture2D" uid="uid://727dej2is3t7" path="res://assets/ui/lacquer/lacquer_socket_drawer_ai.png" id="8_socket"]
 
 [node name="TechniqueDrawer" type="Control" unique_id=746242882]
-custom_minimum_size = Vector2(392, 72)
+custom_minimum_size = Vector2(392, 92)
 layout_mode = 3
 anchors_preset = 0
 offset_right = 392.0
-offset_bottom = 72.0
+offset_bottom = 92.0
 size_flags_horizontal = 0
 size_flags_vertical = 0
 mouse_default_cursor_shape = 2
@@ -26,14 +26,14 @@ unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 0
 offset_right = 392.0
-offset_bottom = 72.0
+offset_bottom = 92.0
 mouse_filter = 2
 
 [node name="Face" type="NinePatchRect" parent="Drawer" unique_id=1701626978]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 394.0
-offset_bottom = 74.0
+offset_bottom = 94.0
 mouse_filter = 2
 texture = ExtResource("3_drawer")
 patch_margin_left = 4
@@ -128,6 +128,90 @@ offset_bottom = 56.0
 theme_type_variation = &"LabelLacquerDetail"
 text = "200 Madra · 15 s cycle · 4 zones"
 autowrap_mode = 3
+
+[node name="TrainsRow" type="HFlowContainer" parent="Drawer" unique_id=567294101]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 58.0
+offset_right = 380.0
+offset_bottom = 76.0
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 0
+
+[node name="TrainsLabel" type="Label" parent="Drawer/TrainsRow" unique_id=524337188]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "Trains"
+
+[node name="SpiritEntry" type="HBoxContainer" parent="Drawer/TrainsRow" unique_id=839551993]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="SpiritIcon" type="TextureRect" parent="Drawer/TrainsRow/SpiritEntry" unique_id=1743676922]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SpiritName" type="Label" parent="Drawer/TrainsRow/SpiritEntry" unique_id=1479229154]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "Spirit"
+
+[node name="MindEntry" type="HBoxContainer" parent="Drawer/TrainsRow" unique_id=404724669]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="MindIcon" type="TextureRect" parent="Drawer/TrainsRow/MindEntry" unique_id=881967658]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MindName" type="Label" parent="Drawer/TrainsRow/MindEntry" unique_id=1060339540]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "Mind"
+
+[node name="ControlEntry" type="HBoxContainer" parent="Drawer/TrainsRow" unique_id=279506359]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="ControlIcon" type="TextureRect" parent="Drawer/TrainsRow/ControlEntry" unique_id=1663988996]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ControlName" type="Label" parent="Drawer/TrainsRow/ControlEntry" unique_id=1182528039]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "Control"
 
 [node name="HoverFrame" parent="Drawer" unique_id=635056038 instance=ExtResource("6_frame")]
 unique_name_in_owner = true

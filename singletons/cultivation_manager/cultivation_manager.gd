@@ -37,8 +37,6 @@ const PATH_POINTS_PER_STAGE: Dictionary = {
 const PATH_POINT_LEVEL_INTERVAL: int = 10
 ## Written to the player's log when the core fills and a next stage waits.
 const CORE_FULL_LOG: String = "Your core is full. With Strength and Spirit at the cap, the Tribulation waits in Spirit Valley."
-## The short "Core full" text the cabinet, the cycle line and the zone floaters show while the core is full.
-const CORE_FULL_TEXT: String = "Core full"
 
 #-----------------------------------------------------------------------------
 # PLAYER DATA (Held by this manager)
@@ -209,6 +207,57 @@ func get_core_density_level() -> float:
 func get_core_density_cap() -> int:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.max_core_density_level if res else 0
+
+## How many stars Core Density shows as in the current stage. 0 when there is
+## no save or no stage resource.
+func get_core_density_star_count() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.core_density_star_count if res else 0
+
+## The stars the current Core Density level lights in the current stage
+## (AdvancementStageResource.get_stars_lit()). 0 when there is no save or no
+## stage resource.
+func get_core_density_stars_lit() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_stars_lit(floori(get_core_density_level())) if res else 0
+
+## How full star `star` (from 0) is at the current Core Density level, 0 to 1
+## (AdvancementStageResource.get_star_fill()). 0 when there is no save or no
+## stage resource.
+func get_core_density_star_fill(star: int) -> float:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_star_fill(floori(get_core_density_level()), star) if res else 0.0
+
+## Every star's fill at Core Density `level` in the current stage, one entry per
+## star (AdvancementStageResource.get_star_fills()): what a star row shows for
+## that level. Empty when there is no save or no stage resource.
+func get_star_fills_at(level: int) -> Array[float]:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_star_fills(level) if res else ([] as Array[float])
+
+## `levels` of Core Density said in the current stage's stars, for a line that
+## counts levels: "half a star", "a star", "a star and a half", "2 stars", "2 and
+## a half stars", or
+## "N levels" when the levels make no whole or half star (or there are no stars).
+func describe_levels_in_stars(levels: int) -> String:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	var fallback: String = "%d level%s" % [levels, "" if levels == 1 else "s"]
+	if res == null or res.core_density_star_count <= 0 or res.max_core_density_level <= 0:
+		return fallback
+	# In whole numbers: levels make whole or half stars when their half-stars do.
+	var half_stars: int = levels * res.core_density_star_count * 2
+	if levels <= 0 or half_stars % res.max_core_density_level != 0:
+		return fallback
+	@warning_ignore("integer_division")
+	var halves: int = half_stars / res.max_core_density_level
+	@warning_ignore("integer_division")
+	var whole: int = halves / 2
+	var half: bool = halves % 2 == 1
+	if whole == 0:
+		return "half a star"
+	if whole == 1:
+		return "a star and a half" if half else "a star"
+	return "%d and a half stars" % whole if half else "%d stars" % whole
 
 ## The highest level the six stats can be trained to in the current stage. It is
 ## read from the stage each time, so the breakthrough raises it. 0 when there is

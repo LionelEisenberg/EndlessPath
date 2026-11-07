@@ -219,7 +219,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelLacquerDetail"
 theme_override_styles/normal = ExtResource("4_wrap_pad")
-text = "4 cracks end the trial and cost 5 levels of Core Density."
+text = "4 cracks end the trial and cost half a star of Core Density."
 autowrap_mode = 3
 
 [node name="ButtonRow" type="HBoxContainer" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox" unique_id=435160136]

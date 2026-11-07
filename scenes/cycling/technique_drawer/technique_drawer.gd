@@ -1,13 +1,15 @@
 class_name TechniqueDrawer
 extends Control
 ## A technique drawer in the zone chest while the player cycles: a lacquer
-## drawer with one learned technique's icon, name, NEW seal, IN USE tag and one
-## detail line. It copies ZoneActionButton's nodes and positions (lacquer kit
-## §5.5 › Card internals, positions local to the drawer). It is 392 x 72 while
-## its name and its detail line fit a line each. A longer one wraps, never cut,
-## and the drawer grows by its extra lines, never wider, on the cards' faces (a
-## 9-slice with the socket as its own piece, ZoneActionButton.fit_face), and the
-## list that holds it re-measures.
+## drawer with one learned technique's icon, name, NEW seal, IN USE tag, one
+## detail line and, under it, the Trains row: "Trains", then each stat the
+## technique trains with its 16 px icon ("Trains [icon] Spirit and [icon]
+## Control"). It copies ZoneActionButton's nodes and positions (lacquer kit §5.5
+## › Card internals, positions local to the drawer). It is 392 x 92 while its
+## name, its detail line and its Trains row fit a line each. A longer one wraps,
+## never cut, and the drawer grows by its extra lines, never wider, on the
+## cards' faces (a 9-slice with the socket as its own piece,
+## ZoneActionButton.fit_face), and the list that holds it re-measures.
 ##
 ## The drawer in use (the equipped technique) is pulled out to (-2, -2) on the
 ## running face and tagged IN USE. A left press on any other drawer equips its
@@ -38,14 +40,18 @@ const FLASH_TIMES: int = 2
 ## Where the drawer in use is drawn, pulled out of the list.
 const IN_USE_OFFSET: Vector2 = Vector2(-2, -2)
 
-## The drawer's width, and its height with one line of name and one of detail.
+## The drawer's width, and its height with one line each of name, detail and
+## Trains row.
 const DRAWER_WIDTH: float = 392.0
-const SHORT_HEIGHT: float = 72.0
-## The detail line starts this far under the name's last line, and the drawer
-## ends this far under the detail line's (kit §5.5: the name at y 14, the
-## detail at 38).
+const SHORT_HEIGHT: float = 92.0
+## The detail line starts this far under the name's last line, the Trains row
+## this far under the detail line's, and the drawer ends this far under the
+## row's (kit §5.5: the name at y 14, the detail at 38).
 const DETAIL_GAP: float = 4.0
-const ROOM_UNDER_DETAIL: float = 16.0
+const TRAINS_GAP: float = 2.0
+const ROOM_UNDER_TRAINS: float = 16.0
+## A line of the Trains row: its words are 18 px tall, its icons 16.
+const TRAINS_LINE_HEIGHT: float = 18.0
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -63,6 +69,23 @@ var technique: CyclingTechniqueData = null
 @onready var _tag: TextureRect = %Tag
 @onready var _tag_label: Label = %TagLabel
 @onready var _detail: Label = %Detail
+@onready var _trains_row: HFlowContainer = %TrainsRow
+## Each stat's entry in the Trains row, its icon and its word.
+@onready var _trains_entries: Dictionary = {
+	CharacterAttributesData.AttributeType.SPIRIT: %SpiritEntry,
+	CharacterAttributesData.AttributeType.MIND: %MindEntry,
+	CharacterAttributesData.AttributeType.CONTROL: %ControlEntry,
+}
+@onready var _trains_icons: Dictionary = {
+	CharacterAttributesData.AttributeType.SPIRIT: %SpiritIcon,
+	CharacterAttributesData.AttributeType.MIND: %MindIcon,
+	CharacterAttributesData.AttributeType.CONTROL: %ControlIcon,
+}
+@onready var _trains_names: Dictionary = {
+	CharacterAttributesData.AttributeType.SPIRIT: %SpiritName,
+	CharacterAttributesData.AttributeType.MIND: %MindName,
+	CharacterAttributesData.AttributeType.CONTROL: %ControlName,
+}
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
 @onready var _flash_frame: LacquerFrameOverlay = %FlashFrame
 
@@ -74,6 +97,7 @@ func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	gui_input.connect(_on_gui_input)
+	_trains_row.minimum_size_changed.connect(_layout_text)
 	if technique != null:
 		_apply_technique()
 
@@ -89,19 +113,28 @@ func setup(data: CyclingTechniqueData) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns a technique's detail line: "80 Madra · 15 s cycle · 4 zones", with
-## "no zones" or "1 zone" where the count is 0 or 1. The figure is Madra a cycle
-## at `madra_multiplier` (Spirit's), rounded to a whole number.
+## Returns a technique's detail line: "80 Madra · 15 s cycle · 4 zones", its
+## seals for a technique with no zones ("50 Madra · 8 s cycle · 3 seals"), "1
+## zone" or "1 seal" for one, and "no zones" with neither. The figure is Madra a
+## cycle at `madra_multiplier` (Spirit's), rounded to a whole number.
 static func detail_text(data: CyclingTechniqueData, madra_multiplier: float = 1.0) -> String:
-	var zones: String
-	match data.cycling_zones.size():
-		0:
-			zones = "no zones"
-		1:
-			zones = "1 zone"
-		var count:
-			zones = "%d zones" % count
-	return "%d Madra · %d s cycle · %s" % [roundi(data.get_madra_per_cycle(madra_multiplier)), roundi(data.cycle_duration), zones]
+	var zones: int = data.cycling_zones.size()
+	var seals: int = data.seal_seconds.size()
+	var count: String = "no zones"
+	if zones > 0:
+		count = "1 zone" if zones == 1 else "%d zones" % zones
+	elif seals > 0:
+		count = "1 seal" if seals == 1 else "%d seals" % seals
+	return "%d Madra · %d s cycle · %s" % [roundi(data.get_madra_per_cycle(madra_multiplier)), roundi(data.cycle_duration), count]
+
+## Returns the stats a technique trains, as its Trains row lists them: Spirit,
+## which following trains, then the technique's other stat (minor_stat), if it
+## has one.
+static func trained_stats(data: CyclingTechniqueData) -> Array[CharacterAttributesData.AttributeType]:
+	var stats: Array[CharacterAttributesData.AttributeType] = [CharacterAttributesData.AttributeType.SPIRIT]
+	if data.minor_stat >= 0:
+		stats.append(data.minor_stat as CharacterAttributesData.AttributeType)
+	return stats
 
 ## Re-applies what depends on state: the drawer's offset, the IN USE tag and its
 ## colour, and the NEW seal with the text and the face laid out around it. The list
@@ -148,7 +181,23 @@ func _apply_technique() -> void:
 	_icon.texture = technique.icon
 	_title.text = technique.technique_name
 	_detail.text = detail_text(technique, CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier())
+	_apply_trains()
 	refresh()
+
+## Shows an entry in the Trains row for each stat the technique trains
+## (trained_stats()), its icon and its word of the list, and hides the others.
+func _apply_trains() -> void:
+	var stats: Array[CharacterAttributesData.AttributeType] = trained_stats(technique)
+	var names: PackedStringArray = []
+	for stat: CharacterAttributesData.AttributeType in stats:
+		names.append(StatDisplay.name_of(stat))
+	var words: PackedStringArray = LacquerText.list_words(names)
+	for stat: CharacterAttributesData.AttributeType in _trains_entries:
+		var index: int = stats.find(stat)
+		(_trains_entries[stat] as Control).visible = index >= 0
+		if index >= 0:
+			(_trains_icons[stat] as TextureRect).texture = StatDisplay.icon_of(stat)
+			(_trains_names[stat] as Label).text = words[index]
 
 ## Shows the NEW seal while the technique is unseen, then lays the text out
 ## around it.
@@ -157,14 +206,19 @@ func _refresh_new_seal() -> void:
 	_layout_text()
 
 ## Lays the text out: the title row the activity cards share, wrapping, then the
-## detail line under the name's last line, wrapping inside its width, and the
-## drawer tall enough for both, on even px. Tells the list when the height
+## detail line under the name's last line, wrapping inside its width, then the
+## Trains row, its entries moving to another line rather than being cut, and the
+## drawer tall enough for all three, on even px. Tells the list when the height
 ## changes.
 func _layout_text() -> void:
+	if technique == null:
+		return
 	ZoneActionButton.layout_title_row(_title, _new_seal, _tag)
 	_detail.position.y = _title.position.y + _title.size.y + DETAIL_GAP
 	_detail.size = Vector2(_detail.size.x, 2.0 * ceilf(_detail.get_minimum_size().y / 2.0))
-	var height: float = maxf(SHORT_HEIGHT, _detail.position.y + _detail.size.y + ROOM_UNDER_DETAIL)
+	_trains_row.position.y = _detail.position.y + _detail.size.y + TRAINS_GAP
+	_trains_row.size.y = maxf(TRAINS_LINE_HEIGHT, _trains_row.get_combined_minimum_size().y)
+	var height: float = maxf(SHORT_HEIGHT, 2.0 * ceilf((_trains_row.position.y + _trains_row.size.y + ROOM_UNDER_TRAINS) / 2.0))
 	var changed: bool = height != custom_minimum_size.y
 	custom_minimum_size = Vector2(DRAWER_WIDTH, height)
 	size = custom_minimum_size

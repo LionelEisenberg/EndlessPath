@@ -66,6 +66,51 @@ func test_a_cycle_of_no_length_pays_no_spirit_xp_per_second() -> void:
 	assert_eq(technique.get_spirit_xp_per_second(), 0.0)
 
 #-----------------------------------------------------------------------------
+# XP PER CYCLE
+#-----------------------------------------------------------------------------
+
+## A zone paying `perfect` at PERFECT.
+func _zone(perfect: int) -> CyclingZoneData:
+	var zone := CyclingZoneData.new()
+	zone.perfect_xp = perfect
+	return zone
+
+## A cycle at its best pays each stat: Spirit its spirit_xp_per_cycle, the
+## technique's other stat every zone at PERFECT and every seal opened, any
+## other stat nothing.
+func test_xp_per_cycle() -> void:
+	var spirit_only := CyclingTechniqueData.new()
+	spirit_only.spirit_xp_per_cycle = 12.0
+	var zones := CyclingTechniqueData.new()
+	zones.spirit_xp_per_cycle = 30.0
+	zones.minor_stat = CharacterAttributesData.AttributeType.CONTROL
+	zones.cycling_zones = [_zone(6), _zone(6), _zone(12), _zone(6)]
+	var seals := CyclingTechniqueData.new()
+	seals.spirit_xp_per_cycle = 16.0
+	seals.minor_stat = CharacterAttributesData.AttributeType.MIND
+	seals.seal_seconds = [2.0, 4.5, 7.0]
+	seals.seal_xp = 5.0
+	var spirit := CharacterAttributesData.AttributeType.SPIRIT
+	var mind := CharacterAttributesData.AttributeType.MIND
+	var control := CharacterAttributesData.AttributeType.CONTROL
+	var strength := CharacterAttributesData.AttributeType.STRENGTH
+	var cases: Array[Dictionary] = [
+		{"name": "Spirit only: Spirit", "technique": spirit_only, "stat": spirit, "expected": 12.0},
+		{"name": "Spirit only: Mind", "technique": spirit_only, "stat": mind, "expected": 0.0},
+		{"name": "Spirit only: Control", "technique": spirit_only, "stat": control, "expected": 0.0},
+		{"name": "zones: Spirit", "technique": zones, "stat": spirit, "expected": 30.0},
+		{"name": "zones: Control, every zone PERFECT", "technique": zones, "stat": control, "expected": 30.0},
+		{"name": "zones: Mind", "technique": zones, "stat": mind, "expected": 0.0},
+		{"name": "seals: Mind, every seal opened", "technique": seals, "stat": mind, "expected": 15.0},
+		{"name": "seals: Control", "technique": seals, "stat": control, "expected": 0.0},
+		{"name": "zones: Strength", "technique": zones, "stat": strength, "expected": 0.0},
+		{"name": "seals: Strength", "technique": seals, "stat": strength, "expected": 0.0},
+	]
+	for case: Dictionary in cases:
+		var technique: CyclingTechniqueData = case.technique
+		assert_almost_eq(technique.get_xp_per_cycle(case.stat), case.expected, 0.0001, case.name)
+
+#-----------------------------------------------------------------------------
 # SEEN TECHNIQUES IN THE SAVE
 #-----------------------------------------------------------------------------
 
