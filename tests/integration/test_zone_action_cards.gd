@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for the lacquer activity cards (ZoneActionButton and its
 ## presenters): the running tag, clicks, the NEW seal and when it clears, what
-## each presenter's detail line and right column show, the adventure's pool
-## and how gear moves its max, and long text: no card cuts its text, a long
+## each presenter's detail line and right column show, the adventure's pools,
+## their blink and how gear moves their maxima, and long text: no card cuts its text, a long
 ## title, detail, figure or list of finds wraps and the card grows by its lines.
 ## Cards are built with setup_action on a fresh save, as the zone panel builds
 ## them.
@@ -111,6 +111,39 @@ func _equip_mind_ring(mind: float) -> void:
 	var instance := ItemInstanceData.new()
 	instance.item_definition = ring
 	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.ACCESSORY, -1, 0)
+
+## Equips a fixture robe that adds this share of the trained Body: 10 Health of
+## max per point.
+func _equip_body_robe(share: float) -> void:
+	var robe := EquipmentDefinitionData.new()
+	robe.item_id = "test_zone_action_cards_robe"
+	robe.item_name = "Fixture Robe"
+	robe.slot_type = EquipmentDefinitionData.EquipmentSlot.ARMOR
+	robe.stat_percent_bonuses[&"body"] = share
+	var instance := ItemInstanceData.new()
+	instance.item_definition = robe
+	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.ARMOR)
+
+## The adventure card's blink timer.
+func _blink_timer(card: ZoneActionButton) -> Timer:
+	return (card._presenter as AdventurePresenter).get_node("%BlinkTimer") as Timer
+
+## The adventure card's pool figures, Health then Madra.
+func _pool_texts(card: ZoneActionButton) -> Array[String]:
+	var texts: Array[String] = []
+	for pool_name: String in ["HealthPool", "MadraPool"]:
+		texts.append(_pool_text(card, pool_name).get_parsed_text())
+	return texts
+
+## Whether each pool figure shows dim tan, Health then Madra.
+func _pool_dims(card: ZoneActionButton) -> Array[bool]:
+	var dims: Array[bool] = []
+	for pool_name: String in ["HealthPool", "MadraPool"]:
+		dims.append(_pool_text(card, pool_name).get_theme_color(&"default_color") == ThemeConstants.LACQUER_DIM)
+	return dims
+
+func _pool_text(card: ZoneActionButton, pool_name: String) -> RichTextLabel:
+	return card.get_detail_slot().find_child(pool_name, true, false).get_node("%YieldText") as RichTextLabel
 
 ## The height of a card with this many detail lines under its title's lines (an
 ## unseen card's title can wrap beside its NEW seal).
@@ -245,12 +278,35 @@ func test_click_on_running_card_signals_and_keeps_it() -> void:
 	assert_signal_emitted(card, "card_pressed_while_running")
 	assert_eq(_current_id(), AURA_WELL_ID)
 
-## A fresh save's 25 Madra starts a run: no Madra figure refuses the click.
-func test_a_click_on_the_adventure_starts_it_on_any_pool() -> void:
+## At half or more of both pools a click starts the run at once.
+func test_a_click_on_the_adventure_starts_it_at_half_or_more() -> void:
 	_run_aura_well()
+	ResourceManager.set_madra(50.0)
+	ResourceManager.set_health(50.0)
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	watch_signals(ActionManager)
 	_click(card)
 	assert_eq(_current_id(), ADVENTURE_ID, "the adventure takes over")
+	assert_signal_not_emitted(ActionManager, "adventure_confirm_requested", "nothing asks")
+
+## Below half of either pool a click asks first, and starts nothing.
+func test_a_click_on_the_adventure_below_half_asks_first() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Health below half", "health": 49.0, "madra": 100.0},
+		{"name": "Madra below half", "health": 100.0, "madra": 49.0},
+		{"name": "both", "health": 10.0, "madra": 10.0},
+		{"name": "no Health", "health": 0.0, "madra": 100.0},
+	]
+	_run_aura_well()
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	for case: Dictionary in cases:
+		ResourceManager.set_health(case.health)
+		ResourceManager.set_madra(case.madra)
+		watch_signals(ActionManager)
+		_click(card)
+		assert_signal_emitted(ActionManager, "adventure_confirm_requested", "%s: the click asks" % case.name)
+		assert_eq(get_signal_parameters(ActionManager, "adventure_confirm_requested"), [card.action_data], "%s: about this run" % case.name)
+		assert_eq(_current_id(), AURA_WELL_ID, "%s: the Aura Well runs on" % case.name)
 
 #-----------------------------------------------------------------------------
 # NEW SEAL
@@ -368,19 +424,57 @@ func test_story_detail_is_the_description() -> void:
 # ADVENTURE
 #-----------------------------------------------------------------------------
 
-## A run starts on any pool, so the card is always ready and shows the pool.
-func test_adventure_shows_the_pool_and_enter() -> void:
+## The card always reads ready: both pools on the detail line, as the cabinet
+## reads them, and the run's length in the right column.
+func test_adventure_shows_both_pools_and_enter() -> void:
 	var cases: Array[Dictionary] = [
-		{"name": "an empty pool", "madra": 0.0, "right": "0 / 100 Madra"},
-		{"name": "a new character's 25", "madra": 25.0, "right": "25 / 100 Madra"},
-		{"name": "a full pool", "madra": 100.0, "right": "100 / 100 Madra"},
+		{"name": "full", "health": 100.0, "madra": 100.0, "texts": ["100 / 100", "100 / 100"]},
+		{"name": "a new character's 25 Madra", "health": 100.0, "madra": 25.0, "texts": ["100 / 100", "25 / 100"]},
+		{"name": "Health rounds up, as the cabinet's", "health": 37.2, "madra": 60.0, "texts": ["38 / 100", "60 / 100"]},
+		{"name": "empty", "health": 0.0, "madra": 0.0, "texts": ["0 / 100", "0 / 100"]},
 	]
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	for case: Dictionary in cases:
+		ResourceManager.set_health(case.health)
 		ResourceManager.set_madra(case.madra)
-		assert_has(_texts(card.get_detail_slot()), "5 min run", "%s: the run's length on the left" % case.name)
-		assert_eq(card.get_detail_right_text(), case.right, "%s: the pool in the right column" % case.name)
+		assert_eq(_pool_texts(card), case.texts, "%s: Health, then Madra" % case.name)
+		assert_eq(card.get_detail_right_text(), "5 min run", "%s: the run's length in the right column" % case.name)
 		assert_eq(_tag_text(card), "ENTER", "%s: always ready" % case.name)
+
+## A pool below half blinks: its figure steps to dim tan and back while it is
+## low; a pool at half or more stays lit.
+func test_a_low_pool_blinks() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Health low", "health": 30.0, "madra": 100.0, "dims": [true, false]},
+		{"name": "Madra low", "health": 100.0, "madra": 30.0, "dims": [false, true]},
+		{"name": "both low", "health": 30.0, "madra": 30.0, "dims": [true, true]},
+		{"name": "neither", "health": 50.0, "madra": 50.0, "dims": [false, false]},
+	]
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	var timer: Timer = _blink_timer(card)
+	for case: Dictionary in cases:
+		ResourceManager.set_health(case.health)
+		ResourceManager.set_madra(case.madra)
+		var low: bool = case.dims.has(true)
+		assert_eq(not timer.is_stopped(), low, "%s: the blink runs only while a pool is low" % case.name)
+		assert_eq(_pool_dims(card), [false, false], "%s: lit first" % case.name)
+		if low:
+			timer.timeout.emit()
+			assert_eq(_pool_dims(card), case.dims, "%s: the low figures dim" % case.name)
+			timer.timeout.emit()
+			assert_eq(_pool_dims(card), [false, false], "%s: and light again" % case.name)
+
+## Back at half, the blink stops, lit.
+func test_the_blink_stops_once_the_pool_is_back_at_half() -> void:
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	var timer: Timer = _blink_timer(card)
+	ResourceManager.set_madra(100.0)
+	ResourceManager.set_health(30.0)
+	timer.timeout.emit()
+	assert_eq(_pool_dims(card), [true, false], "precondition: Health dim")
+	ResourceManager.set_health(50.0)
+	assert_true(timer.is_stopped(), "the blink stops")
+	assert_eq(_pool_dims(card), [false, false], "lit")
 
 #-----------------------------------------------------------------------------
 # LONG TEXT: NO CARD CUTS ITS TEXT, IT GROWS
@@ -490,8 +584,22 @@ func test_adventure_follows_the_max_madra() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	ResourceManager.set_madra(60.0)
 	_equip_mind_ring(5.0)
-	assert_eq(card.get_detail_right_text(), "60 / 150 Madra", "the ring raises the max to 150")
+	assert_eq(_pool_texts(card)[1], "60 / 150", "the ring raises the max to 150")
 	ResourceManager.set_madra(140.0)
-	assert_eq(card.get_detail_right_text(), "140 / 150 Madra")
+	assert_eq(_pool_texts(card)[1], "140 / 150")
 	InventoryManager.unequip_item(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, 0)
-	assert_eq(card.get_detail_right_text(), "100 / 100 Madra", "taking the ring off brings the pool down to the new max")
+	assert_eq(_pool_texts(card)[1], "100 / 100", "taking the ring off brings the pool down to the new max")
+
+## Half is half of the max as it stands: gear that raises max Health puts 60
+## under half of 140, and the card blinks; taking it off stops it.
+func test_gear_moves_the_low_health_line() -> void:
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	var timer: Timer = _blink_timer(card)
+	ResourceManager.set_madra(100.0)
+	ResourceManager.set_health(60.0)
+	assert_true(timer.is_stopped(), "precondition: 60 / 100 is not low")
+	_equip_body_robe(0.4)
+	assert_eq(_pool_texts(card)[0], "60 / 140", "the robe raises the max to 140")
+	assert_false(timer.is_stopped(), "and 60 blinks")
+	InventoryManager.unequip_item(EquipmentDefinitionData.EquipmentSlot.ARMOR)
+	assert_true(timer.is_stopped(), "taking it off stops the blink")

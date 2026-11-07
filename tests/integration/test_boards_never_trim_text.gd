@@ -36,6 +36,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/zones/zone_panel/last_cycle_card/last_cycle_card.tscn",
 	"res://scenes/zones/zone_action_button/zone_action_button.tscn",
 	"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn",
+	"res://scenes/zones/adventure_confirm/adventure_confirm_board.tscn",
 	"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn",
 	"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn",
 	"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn",
@@ -170,7 +171,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn": ["StatNeedLabel", "ReadyLabel"],
 		"res://scenes/cycling/technique_drawer/technique_drawer.tscn": ["Title", "Detail"],
 		"res://scenes/cycling/cycling_view/cycling_view.tscn": ["ActionLabel", "TitleLabel", "StatusLabel"],
-		"res://scenes/character/character_view.tscn": ["DetailDescription"],
+		"res://scenes/character/character_view.tscn": ["DetailDescription", "CyclesLabel"],
 		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
 	}
 	for path: String in wrapping:

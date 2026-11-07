@@ -22,6 +22,9 @@ const Stat := StatModifierData.Stat
 const TEST_SOURCE: StringName = &"test_character_book"
 const BASIC_STRIKE: String = "res://resources/abilities/basic_strike.tres"
 const EMPTY_PALM: String = "res://resources/abilities/empty_palm.tres"
+const FOUNDATIONAL: String = "foundation_technique"
+const SMOOTH_FLOW: String = "smooth_flow"
+const TORRENTIAL_FLOW: String = "torrential_flow"
 
 var _view: CharacterView
 var _previous_save: SaveGameData
@@ -73,6 +76,16 @@ func _sword() -> ItemInstanceData:
 	instance.item_definition = sword
 	return instance
 
+## Unlocks and equips the cycling technique with this id.
+func _equip_technique(technique_id: String) -> void:
+	CyclingManager.unlock_technique(technique_id)
+	CyclingManager.equip_technique(technique_id)
+
+## The parsed value of the right page's first WHAT IT DOES row.
+func _first_effect_value() -> String:
+	var row := _view.get_node("%EffectRows").get_child(0) as TableRow
+	return (row.get_node("%Value") as RichTextLabel).get_parsed_text()
+
 ## Swaps in a Foundation whose stats cap at `foundation_cap`, leading to a Copper
 ## whose stats cap at `copper_cap`. after_each() restores the real stages.
 func _use_stat_caps(foundation_cap: int, copper_cap: int) -> void:
@@ -111,7 +124,7 @@ func test_a_tile_shows_its_level_xp_and_total() -> void:
 	assert_eq((tile.get_node("%LevelLabel") as Label).text, "Lv 4", "the tile shows Spirit's level")
 	assert_eq((tile.get_node("%ValueLabel") as Label).text, "%.0f" % CharacterManager.get_stat(Stat.SPIRIT),
 		"the tag shows Spirit's total")
-	assert_eq(bar.get_step(), roundi(30.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
+	assert_eq(bar.get_step(), floori(30.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
 		"the bar holds Spirit's XP toward its next level")
 	assert_false((tile.get_node("%CapSeal") as Label).visible, "a stat under the cap shows no seal")
 
@@ -127,6 +140,30 @@ func test_a_capped_tile_shows_the_cap() -> void:
 	_view.refresh()
 	assert_false((strength_tile.get_node("%CapSeal") as Label).visible, "the seal goes once Strength is under the cap again")
 
+func test_the_xp_fraction_both_bars_share() -> void:
+	var cases: Array[Array] = [
+		# xp, xp_to_next, capped, expected
+		[0.0, 100.0, false, 0.0],
+		[25.0, 100.0, false, 0.25],
+		[155.6, 156.0, false, 155.6 / 156.0],
+		[10.0, 0.0, false, 0.0],
+		[0.0, 156.0, true, 1.0],
+	]
+	for case: Array in cases:
+		assert_almost_eq(AttributeTile.xp_fraction(case[0], case[1], case[2]), case[3], 0.0001,
+			"%s of %s XP, capped %s" % [case[0], case[1], case[2]])
+
+## Just short of a level, neither XP bar reads full: each shows only the steps
+## the XP has earned.
+func test_the_bars_never_read_full_short_of_a_level() -> void:
+	CharacterManager.set_stat_level(Attribute.BODY, 3)
+	CharacterManager.add_stat_xp(Attribute.BODY, CharacterManager.get_stat_xp_to_next(Attribute.BODY) - 0.4)
+	assert_eq(CharacterManager.get_stat_level(Attribute.BODY), 3, "precondition: Body is still Lv 3")
+	_view.select_attribute(Attribute.BODY)
+	_view.refresh()
+	for bar: LacquerRod in [_tile("BodyTile").get_node("%XpBar"), _view.get_node("%DetailXpBar")]:
+		assert_lt(bar.get_step(), bar.steps, "%s is not full 0.4 XP short of the level" % bar.get_parent().name)
+
 func test_the_book_follows_stats_while_open() -> void:
 	_view.show()
 	_view.refresh()
@@ -135,7 +172,7 @@ func test_the_book_follows_stats_while_open() -> void:
 	assert_eq((tile.get_node("%LevelLabel") as Label).text, "Lv 2", "a level gained shows on the open book")
 	CharacterManager.add_stat_xp(Attribute.SPIRIT, 10.0)
 	var bar := tile.get_node("%XpBar") as LacquerRod
-	assert_eq(bar.get_step(), roundi(10.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
+	assert_eq(bar.get_step(), floori(10.0 / CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) * bar.steps),
 		"XP gained moves the open book's bar")
 
 func test_the_book_follows_gear_while_open() -> void:
@@ -185,17 +222,18 @@ func test_every_stat_has_a_description() -> void:
 
 func test_each_stat_names_what_it_does() -> void:
 	var abilities: Array[AbilityData] = [load(BASIC_STRIKE) as AbilityData, load(EMPTY_PALM) as AbilityData]
+	var technique: CyclingTechniqueData = CyclingManager.get_technique(SMOOTH_FLOW)
 	var cases: Array[Dictionary] = [
 		{"stat": Attribute.STRENGTH, "labels": ["Basic Strike damage"]},
 		{"stat": Attribute.BODY, "labels": ["Max Health"]},
 		{"stat": Attribute.AGILITY, "labels": ["Max Stamina", "Stamina regen", "Dodge chance"]},
-		{"stat": Attribute.SPIRIT, "labels": ["Empty Palm damage"]},
+		{"stat": Attribute.SPIRIT, "labels": ["Madra per cycle", "Empty Palm damage"]},
 		{"stat": Attribute.MIND, "labels": ["Max Madra"]},
 		{"stat": Attribute.CONTROL, "labels": ["Technique cost cut", "Cooldown cut"]},
 	]
 	for case: Dictionary in cases:
 		var labels: Array[String] = []
-		var lines: Array[Dictionary] = CharacterView.effect_lines(case.stat, CharacterAttributesData.make(), CharacterAttributesData.make(), abilities)
+		var lines: Array[Dictionary] = CharacterView.effect_lines(case.stat, CharacterAttributesData.make(), CharacterAttributesData.make(), abilities, technique)
 		for line: Dictionary in lines:
 			labels.append(line.label)
 		assert_eq(labels, case.labels, "%s names what it does" % StatDisplay.name_of(case.stat))
@@ -213,18 +251,124 @@ func test_now_and_next_come_from_the_blocks_functions() -> void:
 	assert_eq(palm.now, AbilityRow.format_number(palm_effect.calculate_value(now)), "Empty Palm's damage now is calculate_value() on the now block")
 	assert_eq(palm.next, AbilityRow.format_number(palm_effect.calculate_value(next)), "Empty Palm's damage next is calculate_value() on the next block")
 
+## Spirit's first line is the Madra a cycle of the technique draws, now and one
+## level up, each figure the one the technique's drawer prints at that Spirit.
+func test_spirit_reads_madra_per_cycle_first() -> void:
+	var now := CharacterAttributesData.make({&"spirit": 12.0})
+	var next := CharacterAttributesData.make({&"spirit": 13.0})
+	var no_abilities: Array[AbilityData] = []
+	for technique_id: String in [FOUNDATIONAL, SMOOTH_FLOW, TORRENTIAL_FLOW]:
+		var technique: CyclingTechniqueData = CyclingManager.get_technique(technique_id)
+		var line: Dictionary = CharacterView.effect_lines(Attribute.SPIRIT, now, next, no_abilities, technique)[0]
+		assert_eq(line.label, "Madra per cycle", "%s: Madra per cycle comes first" % technique_id)
+		assert_string_starts_with(TechniqueDrawer.detail_text(technique, now.get_cycling_madra_multiplier()), "%s Madra " % line.now,
+			"%s: the now figure is the drawer's" % technique_id)
+		assert_string_starts_with(TechniqueDrawer.detail_text(technique, next.get_cycling_madra_multiplier()), "%s Madra " % line.next,
+			"%s: the next figure is the drawer's one level up" % technique_id)
+
+## With no technique there is no Madra per cycle line.
+func test_spirit_without_a_technique_has_no_madra_per_cycle() -> void:
+	var abilities: Array[AbilityData] = [load(EMPTY_PALM) as AbilityData]
+	var lines: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, CharacterAttributesData.make(), CharacterAttributesData.make(), abilities)
+	assert_eq(lines.size(), 1, "only Empty Palm's line")
+
+## The next figures read the stat's total one level up, the worn gear counted
+## again: +15% Spirit gives +1 at Lv 4 (13) and +2 at Lv 5 (14).
+func test_next_figures_count_the_gear_the_next_level_adds() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 4)
+	var cowl: EquipmentDefinitionData = GearFixture.item({&"spirit": 0.15})
+	cowl.item_id = "test_character_book_cowl"
+	cowl.slot_type = EquipmentDefinitionData.EquipmentSlot.HEAD
+	var instance := ItemInstanceData.new()
+	instance.item_definition = cowl
+	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.HEAD)
+	_equip_technique(SMOOTH_FLOW)
+	_view.select_attribute(Attribute.SPIRIT)
+	_view.refresh()
+	assert_eq(_first_effect_value(), "112 → 128", "Spirit 14 now and 16 at Lv 5: 80 Madra x 1.4, then x 1.6")
+
+func test_a_capped_spirit_shows_madra_per_cycle_alone() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	_equip_technique(SMOOTH_FLOW)
+	_view.select_attribute(Attribute.SPIRIT)
+	_view.refresh()
+	var multiplier: float = CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier()
+	assert_eq(_first_effect_value(), "%d" % roundi(CyclingManager.get_technique(SMOOTH_FLOW).get_madra_per_cycle(multiplier)),
+		"at the cap, Madra per cycle shows its current figure alone")
+
+## The cycles to the next level are the XP it still needs over what one
+## perfect cycle of the technique pays the stat, rounded up: none while the
+## stat is capped, with no technique, or when the technique pays it nothing.
+func test_cycles_to_next_level_reads_the_equipped_technique() -> void:
+	var smooth: CyclingTechniqueData = CyclingManager.get_technique(SMOOTH_FLOW)
+	var torrential: CyclingTechniqueData = CyclingManager.get_technique(TORRENTIAL_FLOW)
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 3, 40.0)
+	CharacterManager.set_stat_level(Attribute.CONTROL, 2, 30.0)
+	var cases: Array[Array] = [
+		# stat, technique, cycles
+		[Attribute.SPIRIT, smooth, ceili((CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) - 40.0) / 30.0)],
+		[Attribute.CONTROL, smooth, 4],
+		[Attribute.MIND, smooth, 0],
+		[Attribute.MIND, torrential, 7],
+		[Attribute.STRENGTH, smooth, 0],
+		[Attribute.SPIRIT, null, 0],
+	]
+	for case: Array in cases:
+		var technique_name: String = case[1].technique_name if case[1] != null else "no technique"
+		assert_eq(CharacterView.cycles_to_next_level(case[0], case[1]), case[2],
+			"%s with %s" % [StatDisplay.name_of(case[0]), technique_name])
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	assert_eq(CharacterView.cycles_to_next_level(Attribute.SPIRIT, smooth), 0, "a capped stat counts no cycles")
+
+## One cycle reads in the singular.
+func test_a_count_of_one_reads_in_the_singular() -> void:
+	assert_eq(CharacterView.cycles_line(1, 4), "1 perfect cycle to Lv 4")
+	assert_eq(CharacterView.cycles_line(4, 4), "4 perfect cycles to Lv 4")
+
+func test_the_cycles_line_follows_the_equipped_technique() -> void:
+	CharacterManager.set_stat_level(Attribute.CONTROL, 2, 30.0)
+	_equip_technique(SMOOTH_FLOW)
+	_view.show()
+	_view.select_attribute(Attribute.CONTROL)
+	_view.refresh()
+	assert_true((_view.get_node("%CyclesRow") as Control).visible, "Smooth Flow trains Control, so its page counts cycles")
+	assert_eq(_label("CyclesLabel").text, CharacterView.cycles_line(4, 3))
+	_equip_technique(FOUNDATIONAL)
+	assert_false((_view.get_node("%CyclesRow") as Control).visible,
+		"equipping a technique that pays Control nothing hides the line at once")
+
+func test_the_cycles_line_names_no_technique() -> void:
+	CharacterManager.set_stat_level(Attribute.SPIRIT, 3, 40.0)
+	_equip_technique(SMOOTH_FLOW)
+	_view.select_attribute(Attribute.SPIRIT)
+	_view.refresh()
+	for technique: CyclingTechniqueData in CyclingManager.get_all_techniques():
+		assert_false(technique.technique_name in _label("CyclesLabel").text, "the line never names %s" % technique.technique_name)
+
+func test_physical_and_capped_pages_show_no_cycles_line() -> void:
+	_equip_technique(SMOOTH_FLOW)
+	for stat: Attribute in StatDisplay.PHYSICAL:
+		_view.select_attribute(stat)
+		_view.refresh()
+		assert_false((_view.get_node("%CyclesRow") as Control).visible, "%s shows no cycles line" % StatDisplay.name_of(stat))
+	CharacterManager.set_stat_level(Attribute.SPIRIT, CharacterManager.get_stat_level_cap())
+	_view.select_attribute(Attribute.SPIRIT)
+	_view.refresh()
+	assert_false((_view.get_node("%CyclesRow") as Control).visible, "a capped Spirit shows no cycles line")
+
 func test_the_page_shows_a_row_per_effect() -> void:
 	_view.select_attribute(Attribute.SPIRIT)
 	var block: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	var known: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, block, block, AbilityManager.get_unlocked_abilities())
-	var every: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, block, block, AbilityManager.get_all_abilities())
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	var known: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, block, block, AbilityManager.get_unlocked_abilities(), technique)
+	var every: Array[Dictionary] = CharacterView.effect_lines(Attribute.SPIRIT, block, block, AbilityManager.get_all_abilities(), technique)
 	assert_lt(known.size(), every.size(), "precondition: the locked Power Font stays off the page")
 	assert_eq(_view.get_node("%EffectRows").get_child_count(), known.size(), "a row per line Spirit's known techniques give")
 
 func test_a_stat_with_no_known_technique_says_so() -> void:
 	PersistenceManager.save_game_data.unlocked_ability_ids = ["enforce"]
-	_view.select_attribute(Attribute.SPIRIT)
-	assert_true(_label("NoEffectsLabel").visible, "Spirit with no Spirit technique known says so")
+	_view.select_attribute(Attribute.STRENGTH)
+	assert_true(_label("NoEffectsLabel").visible, "Strength with no physical technique known says so")
 	assert_eq(_view.get_node("%EffectRows").get_child_count(), 0, "and lists no row")
 	_view.select_attribute(Attribute.BODY)
 	assert_false(_label("NoEffectsLabel").visible, "Body always has its Max Health line")
