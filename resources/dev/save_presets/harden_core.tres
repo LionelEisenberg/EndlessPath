@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SavePresetData" format=3]
+
+[ext_resource type="Script" uid="uid://dgwhqtvd2nitn" path="res://scripts/resource_definitions/dev/save_preset_data.gd" id="1_preset"]
+
+[resource]
+script = ExtResource("1_preset")
+preset_id = "harden_core"
+title = "Harden Your Core"
+description = "Strength Lv 2 and Horse Stance learned. Harden Your Core asks for two stars."
+story_through = "beat_2b"
