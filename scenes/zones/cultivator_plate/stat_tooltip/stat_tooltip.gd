@@ -11,7 +11,8 @@ extends PanelContainer
 ## unmet cost never reads as met. A long line wraps and the board grows; its
 ## height is rounded up to even so its 2x art stays on the 2 px grid. It is
 ## top-level and never takes the pointer, so its owner places it by screen
-## position (show_at()) and hides it.
+## position (show_at()) and hides it. set_text() fills it with any two lines,
+## so other screens reuse the piece.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -45,6 +46,13 @@ func _ready() -> void:
 func set_figure(stat: CharacterAttributesData.AttributeType, level: int, xp: float, xp_to_next: float, capped: bool, stage_name: String, has_next_stage: bool) -> void:
 	_title_label.text = TITLE_FORMAT % [StatDisplay.name_of(stat), level]
 	_figure_label.text = figure_text(level, xp, xp_to_next, capped, stage_name, has_next_stage)
+	_fit()
+
+## Fills the board with any title and figure line, for an owner other than a
+## stat cell (the cycling board's locked Auto toggle).
+func set_text(title: String, figure: String) -> void:
+	_title_label.text = title
+	_figure_label.text = figure
 	_fit()
 
 ## Shows the board with its top-left corner at `top_left` (screen px).

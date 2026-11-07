@@ -5,7 +5,8 @@ extends GutTest
 ## wrap and keep the board on screen, the title that follows the equipped
 ## technique, the result a cycle leaves for the chest and the one log line it
 ## writes, the Madra and stat pellets that bring what a cycle drew to the cabinet,
-## the floater a scored zone or an opened seal pops, the Auto toggle, a press that
+## the floater a scored zone or an opened seal pops, the Auto toggle (locked until
+## a perfect cycle unlocks it, then starting cycles by itself), a press that
 ## reaches the ball through the board, and what a close or a reopening leaves
 ## behind. The board
 ## is built the way MainView builds it: the cabinet beside it, the view shown
@@ -572,9 +573,31 @@ func test_hiding_the_view_pays_the_spirit_xp_without_pellets() -> void:
 # AUTO
 #-----------------------------------------------------------------------------
 
+## Plays a cycle from the press to its end with the cursor on the ball,
+## pressing each zone as `tiers` says ("P" PERFECT under 3 px from its centre,
+## "G" GOOD between 8 and 12 px). Returns the finished cycle's result.
+func _play_cycle(tiers: String) -> CycleResult:
+	var follow := _technique.get_node("%PathFollow2D") as PathFollow2D
+	_technique.press_ball()
+	for _frame: int in roundi((CYCLE_SECONDS + 1.0) * 60.0):
+		if not _technique.is_cycling():
+			break
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+		for index: int in _technique.cycling_zones.size():
+			var zone: CyclingZone = _technique.cycling_zones[index]
+			if zone.get_state() != CyclingZone.State.ACTIVE:
+				continue
+			var distance: float = follow.global_position.distance_to(zone.global_position)
+			var tier: String = tiers[index]
+			if (tier == "P" and distance < 3.0) or (tier == "G" and distance > 8.0 and distance < 12.0):
+				_technique.try_score_zone(zone)
+	return _last_result()
+
 func test_auto_toggle_sets_auto_cycle() -> void:
+	CyclingManager.unlock_auto(SMOOTH_ID)
 	var toggle := _node("AutoToggle") as TextureButton
 	assert_true(toggle.toggle_mode)
+	assert_false(toggle.disabled, "an unlocked toggle takes a press")
 	assert_false(toggle.button_pressed)
 	assert_false(_technique.auto_cycle)
 	toggle.button_pressed = true
@@ -582,13 +605,118 @@ func test_auto_toggle_sets_auto_cycle() -> void:
 	toggle.button_pressed = false
 	assert_false(_technique.auto_cycle)
 
-func test_a_toggle_that_starts_pressed_is_honoured() -> void:
-	var built: CyclingView = VIEW_SCENE.instantiate() as CyclingView
-	(built.get_node("%AutoToggle") as TextureButton).button_pressed = true
-	add_child_autofree(built)
-	var built_technique := built.get_node("%CyclingTechnique") as CyclingTechnique
-	built_technique.set_process(false)
-	assert_true(built_technique.auto_cycle, "the technique follows the toggle from the start")
+func test_a_locked_toggle_keeps_auto_off() -> void:
+	var toggle := _node("AutoToggle") as TextureButton
+	assert_true(_view.is_auto_locked(), "a new save has every Auto locked")
+	assert_true(toggle.disabled, "the locked toggle takes no press")
+	assert_true((_node("AutoLock") as TextureRect).visible)
+	toggle.button_pressed = true
+	assert_false(toggle.button_pressed, "set anyway, it turns itself off")
+	assert_false(_technique.auto_cycle)
+
+func test_a_toggle_that_starts_pressed_is_honoured_once_unlocked() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "unlocked", "unlocked": true, "auto": true},
+		{"name": "locked", "unlocked": false, "auto": false},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		CyclingManager.unlock_technique(SMOOTH_ID)
+		CyclingManager.equip_technique(SMOOTH_ID)
+		if case.unlocked:
+			CyclingManager.unlock_auto(SMOOTH_ID)
+		var built: CyclingView = VIEW_SCENE.instantiate() as CyclingView
+		(built.get_node("%AutoToggle") as TextureButton).button_pressed = true
+		add_child_autofree(built)
+		var built_technique := built.get_node("%CyclingTechnique") as CyclingTechnique
+		built_technique.set_process(false)
+		assert_eq(built_technique.auto_cycle, case.auto, case.name)
+		built.hide()
+
+func test_switching_to_a_locked_technique_turns_auto_off() -> void:
+	CyclingManager.unlock_auto(SMOOTH_ID)
+	(_node("AutoToggle") as TextureButton).button_pressed = true
+	CyclingManager.equip_technique(FOUNDATION_ID)
+	assert_true(_view.is_auto_locked())
+	assert_false((_node("AutoToggle") as TextureButton).button_pressed)
+	assert_false(_technique.auto_cycle)
+	await _await_queued_frees()
+
+func test_unlock_hint_names_each_technique_s_perfect_cycle() -> void:
+	var cases: Array[Dictionary] = [
+		{"path": FOUNDATION_PATH, "hint": "Play a perfect cycle: follow the ball the whole cycle."},
+		{"path": SMOOTH_PATH, "hint": "Play a perfect cycle: follow the ball the whole cycle and press every zone PERFECT."},
+		{"path": TORRENTIAL_PATH, "hint": "Play a perfect cycle: follow the ball the whole cycle and open every seal."},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CyclingView.unlock_hint(load(case.path)), case.hint, case.path)
+
+func test_hovering_the_locked_toggle_shows_the_tooltip_not_the_status_line() -> void:
+	var toggle := _node("AutoToggle") as TextureButton
+	var tooltip := _node("AutoTooltip") as StatTooltip
+	var status: String = _view.get_status_text()
+	toggle.mouse_entered.emit()
+	assert_true(tooltip.visible)
+	assert_eq((tooltip.get_node("%TitleLabel") as Label).text, "Unlock Auto")
+	assert_eq((tooltip.get_node("%FigureLabel") as Label).text, CyclingView.unlock_hint(load(SMOOTH_PATH)))
+	assert_false((_node("AutoHover") as Control).visible, "no hover frame on a locked toggle")
+	assert_eq(_view.get_status_text(), status, "the status line never changes for the lock")
+	assert_lt(tooltip.get_global_rect().end.y, toggle.get_global_rect().position.y, "the tooltip rises above the toggle")
+	toggle.mouse_exited.emit()
+	assert_false(tooltip.visible)
+
+func test_hovering_an_unlocked_toggle_shows_its_frame() -> void:
+	CyclingManager.unlock_auto(SMOOTH_ID)
+	var toggle := _node("AutoToggle") as TextureButton
+	toggle.mouse_entered.emit()
+	assert_true((_node("AutoHover") as Control).visible)
+	assert_false((_node("AutoTooltip") as Control).visible)
+	toggle.mouse_exited.emit()
+	assert_false((_node("AutoHover") as Control).visible)
+
+func test_a_perfect_cycle_unlocks_auto_for_its_technique() -> void:
+	watch_signals(LogManager)
+	var result: CycleResult = _play_cycle("PPPP")
+	assert_true(result.is_perfect(), "precondition: four PERFECTs, followed throughout")
+	assert_true(CyclingManager.is_auto_unlocked(SMOOTH_ID))
+	assert_false(CyclingManager.is_auto_unlocked(FOUNDATION_ID), "only the technique it was played with")
+	assert_false(_view.is_auto_locked())
+	assert_false((_node("AutoToggle") as TextureButton).button_pressed, "Auto stays off")
+	assert_false((_node("AutoLock") as Control).visible)
+	var floater := _node("UnlockFloater") as LacquerFloater
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "PERFECT CYCLE · Auto unlocked")
+	assert_true((_node("AutoFlash") as Control).visible, "the toggle flashes")
+	var last: int = get_signal_emit_count(LogManager, "message_logged") - 1
+	assert_eq(get_signal_parameters(LogManager, "message_logged", last), ["[color=yellow]Smooth Flow Technique · Auto unlocked[/color]"])
+
+func test_a_near_miss_leaves_auto_locked() -> void:
+	watch_signals(CyclingManager)
+	var result: CycleResult = _play_cycle("PPGP")
+	assert_true(result.followed_throughout, "precondition: followed the whole way")
+	assert_false(result.is_perfect())
+	assert_true(_view.is_auto_locked())
+	assert_signal_not_emitted(CyclingManager, "auto_unlocked")
+
+func test_the_status_line_under_auto() -> void:
+	var smooth: CyclingTechniqueData = load(SMOOTH_PATH)
+	var foundation: CyclingTechniqueData = load(FOUNDATION_PATH)
+	var auto: String = "Auto cycles on at 40%. Follow the ball for the full rate."
+	assert_eq(CyclingView.status_line(true, foundation, false, true), auto)
+	assert_eq(CyclingView.status_line(true, smooth, false, true), auto + " Click it over a zone for Control XP.")
+	assert_eq(CyclingView.status_line(false, smooth, false, true), "Click the Madra ball to begin a cycle.", "waiting reads as ever")
+
+func test_auto_starts_a_cycle_and_its_status_line() -> void:
+	CyclingManager.unlock_auto(SMOOTH_ID)
+	(_node("AutoToggle") as TextureButton).button_pressed = true
+	await wait_process_frames(2)
+	assert_true(_technique.is_cycling(), "the board starts a cycle by itself")
+	assert_string_starts_with(_view.get_status_text(), "Auto cycles on at 40%.")
+	(_node("AutoToggle") as TextureButton).button_pressed = false
+	_technique.stop_cycling()
+	await wait_process_frames(2)
+	assert_false(_technique.is_cycling(), "with Auto off the ball waits for a press")
 
 #-----------------------------------------------------------------------------
 # SHOWING, HIDING AND CLOSING

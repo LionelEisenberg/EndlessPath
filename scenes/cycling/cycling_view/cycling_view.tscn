@@ -11,6 +11,9 @@
 [ext_resource type="Texture2D" uid="uid://bd3hcxpotahpw" path="res://assets/ui/lacquer/cycling/lacquer_cyc_auto_on_ai.png" id="9_auto_on"]
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="10_frame"]
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="11_frame_hover"]
+[ext_resource type="Texture2D" uid="uid://ytueiattwprh" path="res://assets/ui/lacquer/lacquer_mini_lock_ai.png" id="12_lock"]
+[ext_resource type="PackedScene" path="res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn" id="13_tooltip"]
+[ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="14_floater"]
 
 [node name="CyclingView" type="Control" unique_id=368495127]
 layout_mode = 3
@@ -138,10 +141,25 @@ text = "Auto · off"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="AutoLock" type="TextureRect" parent="AutoToggle" unique_id=1093472615]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 30.0
+offset_top = 10.0
+offset_right = 46.0
+offset_bottom = 26.0
+mouse_filter = 2
+texture = ExtResource("12_lock")
+
 [node name="AutoHover" parent="AutoToggle" unique_id=1846203957 instance=ExtResource("10_frame")]
 unique_name_in_owner = true
 layout_mode = 1
 theme_override_styles/panel = ExtResource("11_frame_hover")
+
+[node name="AutoFlash" parent="AutoToggle" unique_id=1530982264 instance=ExtResource("10_frame")]
+unique_name_in_owner = true
+layout_mode = 1
 
 [node name="EffectsLayer" type="Control" parent="." unique_id=730459182]
 unique_name_in_owner = true
@@ -152,3 +170,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="UnlockFloater" parent="." unique_id=1462093817 instance=ExtResource("14_floater")]
+unique_name_in_owner = true
+visible = false
+
+[node name="AutoTooltip" parent="." unique_id=902615738 instance=ExtResource("13_tooltip")]
+unique_name_in_owner = true
+z_index = 10

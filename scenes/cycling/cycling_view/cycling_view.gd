@@ -29,7 +29,14 @@ extends Control
 ## line, the floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
 ## the pellets in flight are freed. Opening it again forgets the last cycle's
-## result, so reopening starts clean. A press on the
+## result, so reopening starts clean.
+## The Auto toggle is locked until the equipped technique's Auto is unlocked:
+## a lock beside "Auto" on a darkened toggle that takes no press, and on hover a
+## tooltip board above it that says what a perfect cycle is for the technique.
+## A perfect cycle (CycleResult.is_perfect()) unlocks it through CyclingManager:
+## a floater over the ball, two brass flashes on the toggle and one log line.
+## With Auto unlocked and on, the board starts a cycle whenever the ball is
+## ready, and the running status line opens with AUTO_LINE. A press on the
 ## ball reaches it through the board: the root and the effects layer ignore the
 ## mouse and the board and the figure box pass it, and only physics picking
 ## takes a press that no Control stopped.
@@ -45,6 +52,9 @@ extends Control
 ## as a cycle starts or ends.
 const READY: String = "Click the Madra ball to begin a cycle."
 const FOLLOW: String = "Follow the ball for Madra and Spirit."
+## In place of FOLLOW while Auto runs, read as a cycle starts, with Auto's rate
+## as a percent.
+const AUTO_LINE: String = "Auto cycles on at %d%%. Follow the ball for the full rate."
 const ZONES_CLAUSE: String = " Click it over a zone for %s XP."
 const SEALS_CLAUSE: String = " Open each seal with W A S D for %s XP."
 
@@ -53,9 +63,25 @@ const SEALS_CLAUSE: String = " Open each seal with W A S D for %s XP."
 const CAPPED_FORMAT: String = "%s · %s capped"
 const SEAL_OPEN_TEXT: String = "OPEN"
 
-## The Auto toggle's text.
+## The Auto toggle's text: on, off, and beside the lock while it is locked.
 const AUTO_ON_TEXT: String = "Auto · on"
 const AUTO_OFF_TEXT: String = "Auto · off"
+const AUTO_LOCKED_TEXT: String = "Auto"
+
+## The locked toggle's tooltip: UNLOCK_TITLE, then UNLOCK_HINT with a part for
+## each game the technique has (ZONES_HINT, SEALS_HINT) and a full stop.
+const UNLOCK_TITLE: String = "Unlock Auto"
+const UNLOCK_HINT: String = "Play a perfect cycle: follow the ball the whole cycle"
+const ZONES_HINT: String = " and press every zone PERFECT"
+const SEALS_HINT: String = " and open every seal"
+
+## The unlock: the floater over the ball, in brass, and the log line, with the
+## technique's name.
+const UNLOCK_FLOATER_TEXT: String = "PERFECT CYCLE · Auto unlocked"
+const UNLOCK_LOG_FORMAT: String = "[color=yellow]%s · Auto unlocked[/color]"
+
+## Px between the top of the Auto toggle and the bottom of its tooltip.
+const TOOLTIP_GAP: float = 6.0
 
 ## Px between a zone's or a seal node's centre and the top of its floater as it
 ## pops. The floater rises from there by get_rise().
@@ -95,6 +121,11 @@ const _FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer
 
 ## The Auto label sits this many px lower while the toggle is pressed in.
 const _AUTO_PRESS_DROP: float = 2.0
+## The locked toggle: its art darkened, its label faded and moved right of the
+## lock, so the whole button reads as disabled.
+const _AUTO_LOCKED_ART: Color = Color(0.42, 0.42, 0.42, 1.0)
+const _AUTO_LOCKED_LABEL_ALPHA: float = 0.6
+const _AUTO_LOCKED_LABEL_SHIFT: float = 10.0
 
 ## The board's rows from its top. The figure box stands at FIGURE_TOP, or lower
 ## to stay FIGURE_GAP under the title's last line, and the footer (the status
@@ -122,6 +153,10 @@ const BOARD_ROOM: float = 30.0
 @onready var _auto_toggle: TextureButton = %AutoToggle
 @onready var _auto_label: Label = %AutoLabel
 @onready var _auto_hover: LacquerFrameOverlay = %AutoHover
+@onready var _auto_flash: LacquerFrameOverlay = %AutoFlash
+@onready var _auto_lock: TextureRect = %AutoLock
+@onready var _auto_tooltip: StatTooltip = %AutoTooltip
+@onready var _unlock_floater: LacquerFloater = %UnlockFloater
 @onready var _effects_layer: Control = %EffectsLayer
 
 #-----------------------------------------------------------------------------
@@ -145,6 +180,10 @@ var _other_capped: bool = false
 ## How many Madra pellets the view has sent: the index that sways the stream.
 var _madra_pellets_sent: int = 0
 
+## Whether Auto ran as the running cycle started: the status line opens with
+## AUTO_LINE until the next cycle starts.
+var _auto_line: bool = false
+
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------
@@ -157,18 +196,19 @@ func _ready() -> void:
 	_technique.stat_xp_paid.connect(_on_stat_xp_paid)
 	_technique.seal_burst.connect(_on_seal_burst)
 	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
+	CyclingManager.auto_unlocked.connect(_on_auto_unlocked)
 	ActionManager.stop_cycling.connect(_on_stop_cycling)
 	_close_button.pressed.connect(_on_close_pressed)
 	_auto_toggle.toggled.connect(_on_auto_toggled)
-	_auto_toggle.mouse_entered.connect(_auto_hover.show)
-	_auto_toggle.mouse_exited.connect(_auto_hover.hide)
+	_auto_toggle.mouse_entered.connect(_on_auto_hovered)
+	_auto_toggle.mouse_exited.connect(_on_auto_unhovered)
 	visibility_changed.connect(_on_visibility_changed)
-	_technique.auto_cycle = _auto_toggle.button_pressed
-	_show_auto_state(_auto_toggle.button_pressed)
 	_load_equipped_technique()
+	_refresh_auto()
 	_on_visibility_changed()
 
 func _process(_delta: float) -> void:
+	_start_auto_cycle()
 	_update_status()
 	_place_floaters()
 	_update_cursor(get_global_mouse_position())
@@ -178,25 +218,43 @@ func _process(_delta: float) -> void:
 #-----------------------------------------------------------------------------
 
 ## Returns the status line: READY while no cycle runs; while one runs, FOLLOW,
-## then ZONES_CLAUSE if `technique` has zones and SEALS_CLAUSE if it has seals,
-## each with its other stat's name, unless it has no other stat or that stat is
-## `other_capped`.
-static func status_line(running: bool, technique: CyclingTechniqueData, other_capped: bool) -> String:
+## or AUTO_LINE when `auto` runs, then ZONES_CLAUSE if `technique` has zones
+## and SEALS_CLAUSE if it has seals, each with its other stat's name, unless it
+## has no other stat or that stat is `other_capped`.
+static func status_line(running: bool, technique: CyclingTechniqueData, other_capped: bool, auto: bool = false) -> String:
 	if not running:
 		return READY
+	var lead: String = AUTO_LINE % roundi(CyclingRules.AUTO_RATE * 100.0) if auto else FOLLOW
 	if technique == null or technique.minor_stat < 0 or other_capped:
-		return FOLLOW
+		return lead
 	var stat_name: String = StatDisplay.name_of(technique.minor_stat as CharacterAttributesData.AttributeType)
-	var line: String = FOLLOW
+	var line: String = lead
 	if not technique.cycling_zones.is_empty():
 		line += ZONES_CLAUSE % stat_name
 	if not technique.seal_seconds.is_empty():
 		line += SEALS_CLAUSE % stat_name
 	return line
 
+## Returns what the locked Auto toggle's tooltip says unlocks `technique`'s
+## Auto: UNLOCK_HINT, then ZONES_HINT if it has zones and SEALS_HINT if it has
+## seals, and a full stop.
+static func unlock_hint(technique: CyclingTechniqueData) -> String:
+	var hint: String = UNLOCK_HINT
+	if technique != null and not technique.cycling_zones.is_empty():
+		hint += ZONES_HINT
+	if technique != null and not technique.seal_seconds.is_empty():
+		hint += SEALS_HINT
+	return hint + "."
+
 ## Returns the status line's text.
 func get_status_text() -> String:
 	return _status_label.text
+
+## Returns whether the Auto toggle is locked: the equipped technique's Auto is
+## not unlocked yet, or no technique is set up.
+func is_auto_locked() -> bool:
+	var technique: CyclingTechniqueData = _technique.technique_data
+	return technique == null or not CyclingManager.is_auto_unlocked(technique.id)
 
 ## The player keyed `arrow` (a CyclingRules.Arrow) on the seal that shows, if
 ## any (CyclingTechnique.press_seal()). CyclingViewState hands it the seal keys.
@@ -232,6 +290,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 	_title_label.text = technique.technique_name
 	_relayout_board()
 	_rebuild_floaters()
+	_refresh_auto()
 	CyclingManager.clear_last_cycle_result()
 
 #-----------------------------------------------------------------------------
@@ -241,7 +300,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## Shows the status line for the technique's state this frame, and lays the
 ## board out again when the line changes.
 func _update_status() -> void:
-	var line: String = status_line(_technique.is_cycling(), _technique.technique_data, _other_capped)
+	var line: String = status_line(_technique.is_cycling(), _technique.technique_data, _other_capped, _auto_line)
 	if line == _status_label.text:
 		return
 	_status_label.text = line
@@ -353,6 +412,8 @@ func _place_floaters() -> void:
 	for index: int in mini(_seal_floaters.size(), _technique.seal_nodes.size()):
 		if _seal_floaters[index].visible:
 			_place_floater(_seal_floaters[index], _technique.seal_nodes[index].global_position)
+	if _unlock_floater.visible:
+		_place_floater(_unlock_floater, _technique.get_ball_global_position())
 
 ## Puts `floater` FLOATER_LIFT px above `centre` and raises it by its rise,
 ## centred on it on the 2 px grid, but kept FLOATER_BOARD_MARGIN px inside the
@@ -369,12 +430,49 @@ func _place_floater(floater: LacquerFloater, centre: Vector2) -> void:
 # AUTO
 #-----------------------------------------------------------------------------
 
-## Shows the toggle's state on its label: its text, cream pressed in (2 px
-## lower) or tan.
-func _show_auto_state(on: bool) -> void:
+## Gates the toggle on the equipped technique's unlock. Locked, it is off and
+## takes no press, and the technique's auto_cycle is off; unlocked, the
+## technique follows the toggle. Then shows the state.
+func _refresh_auto() -> void:
+	var locked: bool = is_auto_locked()
+	if locked:
+		_auto_toggle.set_pressed_no_signal(false)
+	_auto_toggle.disabled = locked
+	_auto_toggle.mouse_default_cursor_shape = Control.CURSOR_ARROW if locked else Control.CURSOR_POINTING_HAND
+	_technique.auto_cycle = _auto_toggle.button_pressed
+	if locked:
+		_auto_hover.hide()
+	else:
+		_auto_tooltip.hide()
+	_show_auto_state(locked, _auto_toggle.button_pressed)
+
+## Shows the toggle's state: locked, the lock beside a faded AUTO_LOCKED_TEXT on
+## darkened art; unlocked, its text on its label, cream pressed in (2 px lower)
+## or tan.
+func _show_auto_state(locked: bool, on: bool) -> void:
+	_auto_lock.visible = locked
+	_auto_toggle.self_modulate = _AUTO_LOCKED_ART if locked else Color.WHITE
+	if locked:
+		_auto_label.text = AUTO_LOCKED_TEXT
+		_auto_label.add_theme_color_override(&"font_color", Color(ThemeConstants.LACQUER_DIM, _AUTO_LOCKED_LABEL_ALPHA))
+		_auto_label.position = Vector2(_AUTO_LOCKED_LABEL_SHIFT, 0.0)
+		return
 	_auto_label.text = AUTO_ON_TEXT if on else AUTO_OFF_TEXT
 	_auto_label.add_theme_color_override(&"font_color", ThemeConstants.LACQUER_CREAM if on else ThemeConstants.LACQUER_TAN)
-	_auto_label.position.y = _AUTO_PRESS_DROP if on else 0.0
+	_auto_label.position = Vector2(0.0, _AUTO_PRESS_DROP if on else 0.0)
+
+## Starts a cycle while Auto runs and the ball is ready: as Auto is turned on,
+## as the board opens, after a switch or a stop.
+func _start_auto_cycle() -> void:
+	if _technique.is_auto_running() and not _technique.is_cycling():
+		_technique.start_cycle(false)
+
+## Shows the locked toggle's tooltip above it, right edges aligned, with what
+## unlocks the equipped technique's Auto.
+func _show_auto_tooltip() -> void:
+	_auto_tooltip.set_text(UNLOCK_TITLE, unlock_hint(_technique.technique_data))
+	var toggle: Rect2 = _auto_toggle.get_global_rect()
+	_auto_tooltip.show_at(Vector2(toggle.end.x - _auto_tooltip.size.x, toggle.position.y - TOOLTIP_GAP - _auto_tooltip.size.y))
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -410,6 +508,8 @@ func _on_hidden() -> void:
 	_technique.stop_cycling()
 	for floater: LacquerFloater in _floaters + _seal_floaters:
 		floater.stop()
+	_unlock_floater.stop()
+	_auto_tooltip.hide()
 	_free_pellets()
 
 func _on_equipped_technique_changed(technique: CyclingTechniqueData) -> void:
@@ -420,12 +520,28 @@ func _on_equipped_technique_changed(technique: CyclingTechniqueData) -> void:
 func _on_cycling_started() -> void:
 	var stat: int = _technique.technique_data.minor_stat
 	_other_capped = stat >= 0 and CharacterManager.is_stat_capped(stat as CharacterAttributesData.AttributeType)
+	_auto_line = _technique.is_auto_running()
 
 ## A cycle ran to its end: its result goes to CyclingManager for the chest, and
-## one line goes to the log.
+## one line goes to the log. A perfect cycle unlocks its technique's Auto.
 func _on_cycle_completed(result: CycleResult) -> void:
 	CyclingManager.set_last_cycle_result(result)
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
+	var technique: CyclingTechniqueData = _technique.technique_data
+	if result.is_perfect() and not CyclingManager.is_auto_unlocked(technique.id):
+		CyclingManager.unlock_auto(technique.id)
+
+## A technique's Auto unlocked. For the technique on the board: the floater pops
+## over the ball, the toggle unlocks and flashes its brass frame twice (it stays
+## off), and the log gets one line.
+func _on_auto_unlocked(technique: CyclingTechniqueData) -> void:
+	if technique != _technique.technique_data:
+		return
+	_refresh_auto()
+	_auto_flash.flash(TechniqueDrawer.FLASH_TIMES)
+	_unlock_floater.pop(UNLOCK_FLOATER_TEXT, ThemeConstants.LACQUER_BRASS)
+	_place_floater(_unlock_floater, _technique.get_ball_global_position())
+	LogManager.log_message(UNLOCK_LOG_FORMAT % technique.technique_name)
 
 ## A step of Madra left the ball: the stream's next pellet carries it to the
 ## cabinet's Madra orb, which shows it once the pellet lands.
@@ -484,9 +600,21 @@ func _on_stat_xp_paid(stat: CharacterAttributesData.AttributeType, from_pos: Vec
 	var cell: Vector2 = cultivator_plate.get_stat_cell_global_position(stat)
 	_send_stat_pellets(stat, PelletFlight.burst(from_pos, cell, STAT_PELLETS, STAT_PELLET_FLIGHT, STAT_PELLET_FLIGHT_STEP, STAT_BURST_REACH), amount)
 
-func _on_auto_toggled(on: bool) -> void:
-	_technique.auto_cycle = on
-	_show_auto_state(on)
+## The toggle was pressed, or set: a locked toggle stays off (_refresh_auto()).
+func _on_auto_toggled(_on: bool) -> void:
+	_refresh_auto()
+
+## The pointer reached the toggle: the hover frame, or while it is locked the
+## tooltip that says what unlocks Auto.
+func _on_auto_hovered() -> void:
+	if is_auto_locked():
+		_show_auto_tooltip()
+	else:
+		_auto_hover.show()
+
+func _on_auto_unhovered() -> void:
+	_auto_hover.hide()
+	_auto_tooltip.hide()
 
 func _on_close_pressed() -> void:
 	ActionManager.stop_action()
