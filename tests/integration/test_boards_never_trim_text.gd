@@ -23,7 +23,8 @@ extends GutTest
 ## board, the zone chest's Now strip, its activity cards with the presenters that
 ## fill them (the adventure's holds no Label: its card prints its line) and its
 ## technique drawers, the cycling board, the body refining board, the Character
-## book with its stat tile, and the cultivator cabinet with its stat cells.
+## book with its stat tile, the cultivator cabinet with its stat cells, and the
+## adventure's end card.
 const BOARD_SCENES: Array[String] = [
 	"res://scenes/adventure/adventure_chest/adventure_chest.tscn",
 	"res://scenes/adventure/adventure_chest/expedition_page/expedition_page.tscn",
@@ -48,6 +49,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/zones/cultivator_plate/cultivator_plate.tscn",
 	"res://scenes/zones/cultivator_plate/stat_cell/stat_cell.tscn",
 	"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn",
+	"res://scenes/adventure/adventure_end_card/adventure_end_card.tscn",
 ]
 
 ## Where the whole-scene walk reads.
@@ -173,6 +175,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/cycling/cycling_view/cycling_view.tscn": ["ActionLabel", "TitleLabel", "StatusLabel"],
 		"res://scenes/character/character_view.tscn": ["DetailDescription", "CyclesLabel"],
 		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
+		"res://scenes/adventure/adventure_end_card/adventure_end_card.tscn": ["CoreDensityValueLabel"],
 	}
 	for path: String in wrapping:
 		var board: Node = (load(path) as PackedScene).instantiate()

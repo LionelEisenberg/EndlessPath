@@ -113,6 +113,30 @@ func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
 	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "a repeat of the win pays nothing more")
 	assert_eq(_view.adventure_tilemap.get_core_density_xp_earned(), 9.0, "and the run's total keeps it")
 
+## The run's result carries its Core Density for the end card: the XP its
+## rewards paid, and the level before and after. A lost run keeps it.
+func test_the_result_carries_the_runs_core_density() -> void:
+	PersistenceManager.save_game_data.core_density_level = 3.0
+	_start_adventure(300)
+	var award := AwardCoreDensityXpEffectData.new()
+	award.amount = 31.0
+	var choice := CombatChoice.new()
+	var pool: Array[CombatantData] = [AMORPHOUS_SPIRIT]
+	choice.enemy_pool = pool
+	choice.success_effects.append(award)
+	_view.adventure_tilemap._current_combat_choice = choice
+	_view._on_start_combat(choice)
+	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.stop_adventure()
+
+	assert_eq(_results.size(), 1, "precondition: the run ended")
+	if _results.size() == 1:
+		assert_false(_results[0].is_victory, "a retreat, not a win")
+		assert_eq(_results[0].core_density_xp_earned, 31.0, "what the kill paid")
+		assert_eq(_results[0].core_density_level_before, 3)
+		assert_eq(_results[0].core_density_level_after, floori(CultivationManager.get_core_density_level()))
+		assert_gt(_results[0].core_density_level_after, 3, "the kill bought levels")
+
 ## The chest stays in sight beside the end card, and its Run ledger counts the
 ## boss's Core Density: the boss's win announces the run's figures before it ends
 ## the run.
