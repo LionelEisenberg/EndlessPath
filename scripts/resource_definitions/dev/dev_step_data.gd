@@ -25,6 +25,7 @@ class_name DevStepData extends Resource
 ##   ADVANCE_STAGE        nothing
 ##   TRAVEL               target_id: a zone id
 ##   RAISE_STAT_TO_CAP    target_id: a stat key (strength, body, agility, spirit, mind, control)
+##   SET_STAT_LEVEL       target_id: a stat key; amount: the level
 ## A kind is stored as an int in .tres files: append a kind, never insert or reorder one.
 enum Kind {
 	COMPLETE_ACTION,
@@ -41,6 +42,7 @@ enum Kind {
 	ADVANCE_STAGE,
 	TRAVEL,
 	RAISE_STAT_TO_CAP,
+	SET_STAT_LEVEL,
 }
 
 @export var kind: Kind = Kind.COMPLETE_ACTION
@@ -86,6 +88,8 @@ func apply() -> String:
 			return DevCommands.travel_to_zone(target_id)
 		Kind.RAISE_STAT_TO_CAP:
 			return DevCommands.raise_stat_to_cap(StringName(target_id))
+		Kind.SET_STAT_LEVEL:
+			return DevCommands.set_stat_level(StringName(target_id), _whole_amount())
 	return "Unknown step kind: %d" % kind
 
 #-----------------------------------------------------------------------------
@@ -125,6 +129,8 @@ func describe() -> String:
 			return "Travel to %s" % target_id
 		Kind.RAISE_STAT_TO_CAP:
 			return "Raise %s to the stage cap" % target_id
+		Kind.SET_STAT_LEVEL:
+			return "Set %s to Lv %d" % [target_id, _whole_amount()]
 	return "Unknown step kind %d" % kind
 
 ## Everything wrong with the step, one line each; empty when it is sound. A line starts
@@ -182,7 +188,7 @@ func _problem_with_target() -> String:
 		Kind.TRAVEL:
 			if not ZoneManager.has_zone(target_id):
 				return "unknown zone"
-		Kind.RAISE_STAT_TO_CAP:
+		Kind.RAISE_STAT_TO_CAP, Kind.SET_STAT_LEVEL:
 			if CharacterAttributesData.stat_from_key(StringName(target_id)) == -1:
 				return "unknown stat"
 		Kind.REACH_CORE_DENSITY, Kind.SET_MADRA, Kind.SET_GOLD, Kind.ADVANCE_STAGE:
@@ -195,7 +201,7 @@ func _problem_with_target() -> String:
 ## amount.
 func _problem_with_amount() -> String:
 	match kind:
-		Kind.REACH_CORE_DENSITY:
+		Kind.REACH_CORE_DENSITY, Kind.SET_STAT_LEVEL:
 			if _whole_amount() < 1:
 				return "the level must be at least 1"
 		Kind.SET_MADRA:
