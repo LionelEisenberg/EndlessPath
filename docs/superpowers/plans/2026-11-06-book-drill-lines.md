@@ -48,4 +48,6 @@ Build bottom-up. Run `tests/integration/test_character_book.gd` after each task,
 
 ## What was built differently
 
-(Filled in as the build ends.)
+- The row under the XP bar is renamed in the scene, `CyclesRow` / `CyclesLabel` to `EstimateRow` / `EstimateLabel`, since it now holds either count. No node was added.
+- `test_a_stat_with_no_known_technique_says_so` became `test_every_stat_has_a_line`, with no ability known at all.
+- The Done-when checks ran in the real main scene through a scripted driver (gitignored, `mockups/book_drill_checks/`) on `--save=user://dev/runs/book-physical-lines.tres`, a new save, and on a copy of an old save. All passed: a PERFECT rep restored 4 Health against the page's 4; one perfect set took the count from 2 to 1; a level moved "4 → 4.4" to "4.4 → 4.8"; each of the four drills set Health per rep and the sets lines as approved; a capped Strength read "7.6" alone with no sets line.
