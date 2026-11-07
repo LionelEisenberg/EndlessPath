@@ -171,7 +171,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn": ["StatNeedLabel", "ReadyLabel"],
 		"res://scenes/cycling/technique_drawer/technique_drawer.tscn": ["Title", "Detail"],
 		"res://scenes/cycling/cycling_view/cycling_view.tscn": ["ActionLabel", "TitleLabel", "StatusLabel"],
-		"res://scenes/character/character_view.tscn": ["DetailDescription", "CyclesLabel"],
+		"res://scenes/character/character_view.tscn": ["DetailDescription", "EstimateLabel"],
 		"res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn": ["FigureLabel"],
 	}
 	for path: String in wrapping:

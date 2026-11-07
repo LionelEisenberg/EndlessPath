@@ -360,7 +360,7 @@ text = "CAPPED"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CyclesRow" type="MarginContainer" parent="PageLayer/RightPage/DetailPanel/DetailStack"]
+[node name="EstimateRow" type="MarginContainer" parent="PageLayer/RightPage/DetailPanel/DetailStack"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -368,7 +368,7 @@ mouse_filter = 2
 theme_override_constants/margin_left = 88
 theme_override_constants/margin_bottom = 3
 
-[node name="CyclesLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/DetailStack/CyclesRow"]
+[node name="EstimateLabel" type="Label" parent="PageLayer/RightPage/DetailPanel/DetailStack/EstimateRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelBookDetail"
@@ -385,7 +385,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(468, 0)
 layout_mode = 2
 theme_type_variation = &"LabelBookInk"
-text = "Raw physical power. Your physical techniques hit harder."
+text = "Raw physical power. Your physical techniques hit harder, and each rep restores more Health."
 autowrap_mode = 3
 
 [node name="EffectsBox" type="MarginContainer" parent="PageLayer/RightPage"]
@@ -421,15 +421,6 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 3
-
-[node name="NoEffectsLabel" type="Label" parent="PageLayer/RightPage/EffectsBox/EffectsColumn"]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(468, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBookInk"
-text = "Not yet active"
-autowrap_mode = 3
 
 [node name="SourcesBox" type="MarginContainer" parent="PageLayer/RightPage"]
 layout_mode = 2
