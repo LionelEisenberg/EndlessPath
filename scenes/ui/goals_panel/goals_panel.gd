@@ -13,7 +13,10 @@ extends Control
 ## cap, "Strength Lv 3 / 10"); "Face the Tribulation" once nothing is missing;
 ## and "<Stage> reached", with no stars, once the stage has no next stage. The milestone waits for the
 ## stage's breakthrough_goal_condition to latch (Foundation's: NPC 4 talked, the
-## end of Beat 3b's chain). With one row hidden the divider hides too and the
+## end of Beat 3b's chain). While the quest row shows, the milestone's list of
+## what is missing folds away and the row keeps its name and stars, so the two
+## rows fit above the zone view's log (Find the Camp runs beside it, after NPC
+## 4); the list returns when the quest ends. With one row hidden the divider hides too and the
 ## other row takes its place (the Rows container does the move). With neither
 ## row, on a fresh save before its first quest, the board hides all of itself,
 ## its cords too, and lets clicks through to the map; its root stays visible,
@@ -21,7 +24,8 @@ extends Control
 ## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into a
 ## top, a tiled middle and a bottom slice, so the board is 220 px tall with both
 ## rows on one line each, 150 px with the milestone alone and 146 px with the
-## quest alone (the least the top and bottom slices take). The cords are their
+## quest alone (the least the top and bottom slices take); 200 px with the quest
+## over the folded milestone. The cords are their
 ## own node and texture, which set_cords_visible() can hide; their two brass
 ## hooks are drawn on the top slice, which then swaps for a hookless copy.
 ## No text is cut off: the quest's name and step and the milestone's name and
@@ -90,6 +94,9 @@ const FILL_CORE_LINE: String = "Fill your core"
 ## Whether the view hangs the board on its cords (set_cords_visible()). They
 ## show only while the board does.
 var _cords_wanted: bool = true
+## Whether the milestone's text is its list of what is missing, which folds away
+## while the quest row shows (_fit_rows()).
+var _milestone_lists_missing: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -167,11 +174,13 @@ func _update_quest() -> void:
 ## "<Stage> reached", with no stars: nothing is left to fill toward. With nothing
 ## missing it reads "Face the Tribulation" over the full stars. Otherwise it lists
 ## what is still missing, a line each: "Fill your core" while the core is not
-## full, then each main stat below the cap, over the core's stars.
+## full, then each main stat below the cap, over the core's stars. The list
+## folds while the quest row shows (_fit_rows()).
 func _update_milestone() -> void:
 	var condition: UnlockConditionData = CultivationManager.get_breakthrough_goal_condition()
 	_milestone_row.visible = condition == null or UnlockManager.is_condition_unlocked(condition.condition_id)
 	var reached: bool = not CultivationManager.has_next_stage()
+	_milestone_lists_missing = false
 	if reached:
 		_milestone_text_label.text = "%s reached" % CultivationManager.get_current_advancement_stage_name()
 	elif TribulationActionData.get_missing_requirements().is_empty():
@@ -183,6 +192,7 @@ func _update_milestone() -> void:
 		lines.append_array(TribulationActionData.get_missing_requirements(false))
 		_milestone_text_label.text = "
 ".join(lines)
+		_milestone_lists_missing = true
 	_milestone_progress.visible = not reached
 	_milestone_stars.set_fills(CultivationManager.get_star_fills_at(floori(CultivationManager.get_core_density_level())))
 	_fit_rows()
@@ -219,11 +229,13 @@ func _fit_quest_name() -> void:
 	_quest_name_label.size.x = room
 	_quest_name_label.update_minimum_size()
 
-## The divider stands only between two rows. With neither row the board has no
-## goal to show and hides all of itself but its root, and lets clicks through.
-## Then the board fits its rows.
+## The divider stands only between two rows, and the milestone's list folds
+## while the quest row shows. With neither row the board has no goal to show and
+## hides all of itself but its root, and lets clicks through. Then the board fits
+## its rows.
 func _fit_rows() -> void:
 	_divider.visible = _quest_row.visible and _milestone_row.visible
+	_milestone_text_label.visible = not (_milestone_lists_missing and _quest_row.visible)
 	var has_goal: bool = _quest_row.visible or _milestone_row.visible
 	_board.visible = has_goal
 	_title_label.visible = has_goal

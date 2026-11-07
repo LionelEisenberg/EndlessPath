@@ -7,7 +7,7 @@ extends Resource
 
 ## The save format this build writes. migrate() brings an older save up to it,
 ## and a save with a higher number was written by a newer build.
-const CURRENT_VERSION: int = 7
+const CURRENT_VERSION: int = 8
 
 ## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
 @export var save_version: int = 0
@@ -75,6 +75,14 @@ func _verify_stat_training() -> bool:
 #-----------------------------------------------------------------------------
 
 @export var unlock_progression: UnlockProgressionData = UnlockProgressionData.new()
+
+## The version 8 step, each key an old condition and its value the new one it
+## stands for: Riverbank Training opened with Awaken Your Spirit's end, and NPC
+## 3's talk with a won fight.
+const V8_UNLOCK_MOVES: Dictionary[String, String] = {
+	"q_fill_core_completed": "riverbank_training_opened",
+	"q_first_steps_enemy_defeated": "q_first_steps_adventure_ended",
+}
 
 #-----------------------------------------------------------------------------
 # EVENT MANAGER
@@ -355,6 +363,9 @@ func _run_version_steps() -> bool:
 	# an old save (every drill's Auto locked), so the step moves nothing.
 	if save_version < 7:
 		save_version = 7
+	if save_version < 8:
+		_migrate_to_v8()
+		save_version = 8
 	return true
 
 ## True when CultivationManager, which the version 2 step reads the stat caps
@@ -414,6 +425,20 @@ func _stat_level_cap_of_save_stage() -> int:
 ## A save from before the Health pool starts full.
 func _migrate_to_v3() -> void:
 	health = HEALTH_UNSET
+
+## Version step 8, run only for a save older than version 8. Riverbank Training
+## used to open with Awaken Your Spirit's end, and now with First Steps Out's;
+## NPC 3's talk used to open with a won fight, and now as the first adventure
+## ends. A save that had met an old condition keeps what it opened, so no one
+## loses the river or NPC 3 mid-game.
+func _migrate_to_v8() -> void:
+	if unlock_progression == null:
+		return
+	var unlocked: Array[String] = unlock_progression.unlocked_condition_ids
+	for old_id: String in V8_UNLOCK_MOVES:
+		var new_id: String = V8_UNLOCK_MOVES[old_id]
+		if old_id in unlocked and not new_id in unlocked:
+			unlocked.append(new_id)
 
 ## Moves the current zone off an id in ZONE_ID_MIGRATIONS, such as the hidden Test
 ## Zone. Not a version step: it runs on every load. The dev panel can walk a save

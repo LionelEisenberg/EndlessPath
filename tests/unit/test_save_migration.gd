@@ -4,7 +4,8 @@ extends GutTest
 ## (version 1 moves the old accessories; version 2 turns the stat values a
 ## version 1 save kept into trained levels, capped by the save's own stage;
 ## version 3 leaves Health unset for the bind to fill; version 4, the drill
-## fields, moves nothing), a version step that
+## fields, moves nothing; version 8 keeps Riverbank Training open for a save
+## that had it), a version step that
 ## cannot run, repair(), reset(), the training record a new or reset save writes out, and
 ## the save fields added for the map-first zone view. A save written before
 ## those fields existed must load with their defaults, and a save standing in
@@ -339,7 +340,6 @@ func test_v7_gives_an_old_save_every_drill_auto_locked() -> void:
 	data.save_version = 6
 	data.migrate()
 	assert_true(data.auto_drill_ids.is_empty())
-	assert_eq(data.save_version, 7, "version 7 is the drill Auto list's")
 	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
 
 func test_v7_skips_a_current_save() -> void:
@@ -347,6 +347,45 @@ func test_v7_skips_a_current_save() -> void:
 	data.auto_drill_ids.append("horse_stance")
 	data.migrate()
 	assert_eq(data.auto_drill_ids, ["horse_stance"] as Array[String], "a current save's unlocks are its own")
+
+## Riverbank Training used to open with Awaken Your Spirit's end: a save from
+## before version 8 that had finished it keeps the river, and one that had not
+## waits for First Steps Out's end.
+func test_v8_keeps_riverbank_training_for_a_save_that_had_it() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "past Awaken Your Spirit", "unlocked": ["q_fill_core_completed"] as Array[String], "opens": true},
+		{"name": "before it", "unlocked": ["celestial_intervener_dialogue_1"] as Array[String], "opens": false},
+		{"name": "already open", "unlocked": ["q_fill_core_completed", "riverbank_training_opened"] as Array[String], "opens": true},
+	]
+	for case: Dictionary in cases:
+		var data := SaveGameData.new()
+		data.save_version = 7
+		data.unlock_progression.unlocked_condition_ids = (case.unlocked as Array[String]).duplicate()
+		data.migrate()
+		var unlocked: Array[String] = data.unlock_progression.unlocked_condition_ids
+		assert_eq("riverbank_training_opened" in unlocked, case.opens, "%s: the river is open" % case.name)
+		assert_eq(unlocked.count("riverbank_training_opened"), 1 if case.opens else 0, "%s: latched once" % case.name)
+		assert_eq(data.save_version, 8, "%s: version 8 is the river's" % case.name)
+
+## NPC 3's talk used to open with a won fight: a save that had won one keeps the
+## talk, and one that had not waits for its first adventure to end.
+func test_v8_keeps_npc_3_for_a_save_that_had_won_a_fight() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "won a fight", "unlocked": ["q_first_steps_enemy_defeated"] as Array[String], "opens": true},
+		{"name": "won none", "unlocked": ["q_fill_core_completed"] as Array[String], "opens": false},
+	]
+	for case: Dictionary in cases:
+		var data := SaveGameData.new()
+		data.save_version = 7
+		data.unlock_progression.unlocked_condition_ids = (case.unlocked as Array[String]).duplicate()
+		data.migrate()
+		assert_eq("q_first_steps_adventure_ended" in data.unlock_progression.unlocked_condition_ids, case.opens, "%s: NPC 3's gate is met" % case.name)
+
+func test_v8_skips_a_current_save() -> void:
+	var data := SaveGameData.new_current()
+	data.unlock_progression.unlocked_condition_ids.append("q_fill_core_completed")
+	data.migrate()
+	assert_false("riverbank_training_opened" in data.unlock_progression.unlocked_condition_ids, "a current save opens the river in play")
 
 ## A save from before drills comes out with the starting drill unlocked and
 ## equipped, nothing seen yet, and the current version.

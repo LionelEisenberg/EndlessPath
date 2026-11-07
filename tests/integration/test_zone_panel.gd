@@ -23,6 +23,8 @@ const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
 const TRIBULATION_ID: String = "spirit_valley_tribulation"
 const BODY_REFINING_ID: String = "riverbank_training_action"
+## Opens Riverbank Training: First Steps Out's end.
+const BODY_REFINING_UNLOCK: String = "riverbank_training_opened"
 
 ## The unlock condition that reveals the Tribulation's card.
 const FULL_CORE_CONDITION: String = "core_density_full"
@@ -388,7 +390,7 @@ func test_tray_shows_the_cycle_ready() -> void:
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	await wait_process_frames(2)
-	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "10 s cycle", "Now"] as Array[String])
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(CYCLING_ID).icon, "the action's icon")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is empty")
@@ -419,7 +421,7 @@ func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
 	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
 	CyclingManager.end_cycle_session()
 	await wait_process_frames(1)
-	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String], "the rate back at +0")
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "10 s cycle", "Now"] as Array[String], "the rate back at +0")
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark again")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "and the rod empty")
 
@@ -436,7 +438,7 @@ func test_tray_names_the_equipped_technique() -> void:
 	assert_has(texts, "Smooth Flow Technique")
 	assert_has(texts, "15 s cycle")
 	assert_does_not_have(texts, "Foundational Technique")
-	assert_does_not_have(texts, "8 s cycle")
+	assert_does_not_have(texts, "10 s cycle")
 
 func test_cycling_tray_takes_no_clicks() -> void:
 	# A press on the running tray scrolls the chest to its card; the cycling card
@@ -595,6 +597,25 @@ func test_tray_reads_paused_when_an_idle_action_unlocks_mid_session() -> void:
 	await wait_process_frames(2)
 	assert_eq(_current_id(), MERCHANT_ID, "precondition: the shop is still open")
 	_assert_empty_tray("Aura Well · paused")
+
+## After a run nothing resumes on its own, so the tray names no idle action as
+## paused, whichever ran before the run, and keeps saying so when an idle
+## action unlocks. A pick runs it again.
+func test_tray_reads_nothing_running_after_a_run() -> void:
+	await _add_panel()
+	_unlock_everything()
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	ActionManager.select_action(ZoneManager.get_action_by_id(ADVENTURE_ID))
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	assert_null(ActionManager.get_current_action(), "precondition: nothing runs")
+	_assert_empty_tray("Nothing running")
+	UnlockManager.condition_unlocked.emit(FULL_CORE_CONDITION)
+	await wait_process_frames(2)
+	_assert_empty_tray("Nothing running")
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "Spring Forest Foraging", "the pick shows in the tray")
 
 func test_strip_press_flashes_the_running_card() -> void:
 	await _add_panel()
@@ -1189,7 +1210,7 @@ func test_cycling_card_shows_new_after_a_technique_unlock() -> void:
 func test_body_refining_card_shows_new_after_a_drill_unlock() -> void:
 	# ZoneManager marks the body refining action unseen when a drill unlocks; the
 	# chest's rebuild is what shows the card's NEW seal again.
-	UnlockManager.force_unlock_condition(FORAGING_EVENT)
+	UnlockManager.force_unlock_condition(BODY_REFINING_UNLOCK)
 	ZoneManager.mark_action_seen(BODY_REFINING_ID)
 	await _add_panel()
 	var card: ZoneActionButton = _panel.get_card(BODY_REFINING_ID) as ZoneActionButton

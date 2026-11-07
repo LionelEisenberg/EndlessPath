@@ -107,3 +107,39 @@ func test_a_long_frame_is_judged_against_the_frame_before_it() -> void:
 	window.judge(1.0 / 60.0, true, _ball(1.0 / 60.0) + offset)
 	var after: Vector2 = _ball(6.0 + 1.0 / 60.0)
 	assert_true(window.judge(6.0, true, after + offset), "the cursor moved with the ball through the hitch")
+
+## A cursor that slips out of the circle keeps following while the grace holds,
+## and back in it follows on: from a still cursor, so no move is needed.
+func test_a_slip_the_grace_holds_keeps_following() -> void:
+	var cursor := Vector2(100.0, 0.0)
+	var window := FollowWindow.new()
+	window.reset(true)
+	for _frame: int in 30:
+		window.judge(1.0 / 60.0, true, cursor)
+	var held: Array[bool] = []
+	for _frame: int in 6:
+		held.append(window.judge(1.0 / 60.0, false, FAR))
+		assert_true(window.is_in_grace(), "the grace holds it")
+	assert_false(held.has(false), "six frames off the ball, 0.1 s, keep following")
+	assert_true(window.judge(1.0 / 60.0, true, cursor), "back on the ball it follows on")
+	assert_false(window.is_in_grace())
+
+func test_a_slip_past_the_grace_ends_following() -> void:
+	var cursor := Vector2(100.0, 0.0)
+	var window := FollowWindow.new()
+	window.reset(true)
+	for _frame: int in 30:
+		window.judge(1.0 / 60.0, true, cursor)
+	for _frame: int in 6:
+		window.judge(1.0 / 60.0, false, FAR)
+	assert_false(window.judge(1.0 / 60.0, false, FAR), "the seventh frame off the ball ends it")
+	assert_false(window.is_in_grace())
+	assert_false(window.judge(1.0 / 60.0, true, cursor), "and a still cursor back on the ball does not start again")
+
+## A grace keeps following; it never starts it.
+func test_no_grace_for_a_cursor_that_was_not_following() -> void:
+	var window := FollowWindow.new()
+	window.reset(false)
+	window.judge(1.0 / 60.0, true, Vector2(100.0, 0.0))
+	assert_false(window.judge(1.0 / 60.0, false, FAR))
+	assert_false(window.is_in_grace())

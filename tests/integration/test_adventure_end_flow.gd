@@ -2,13 +2,17 @@ extends GutTest
 
 ## How an adventure run ends and what the end card is told. Drives the real
 ## AdventureView scene through ActionManager, the same way the zone starts a run.
-## It also checks how each end counts in the save's play stats (PlayStatsData).
+## It also checks how each end counts in the save's play stats (PlayStatsData),
+## and that no end starts an idle action.
 
 const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adventure_view.tscn")
 const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixture.gd")
 const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
 const CoreCurve := preload("res://tests/helpers/core_curve.gd")
+## The story event that unlocks Spring Forest Foraging, the zone's first idle action.
+const FORAGING_EVENT: String = "q_fill_core_completed"
+const FORAGING_ID: String = "sprint_forest_foraging_action"
 
 var _view: AdventureView
 var _results: Array[AdventureResultData] = []
@@ -19,7 +23,7 @@ var _original_stages: Array[AdvancementStageResource]
 
 func before_each() -> void:
 	_original_stages = CoreCurve.use_fixed_curve()
-	# Ending a run resumes the zone's idle action, which writes to the save.
+	# Ending a run counts it and runs its effects, which write to the save.
 	# Run on a fresh one, never the developer's save loaded in memory.
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
@@ -37,8 +41,9 @@ func after_each() -> void:
 	CoreCurve.restore(_original_stages)
 	if ActionManager.get_current_action() is AdventureActionData:
 		ActionManager.clear_current_action()
-	# Ending a run resumes the zone's idle action. Stop it properly, since
-	# clearing it would leave its tick timer connected for the next test.
+	# A run's end starts nothing, but a test may leave an action running. Stop
+	# it properly, since clearing it would leave its tick timer connected for the
+	# next test.
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	# AdventureTilemap creates its AdventureMapGenerator node with .new() and
@@ -222,6 +227,34 @@ func test_a_run_at_zero_health_ends_as_its_time_or_its_retreat_says() -> void:
 		assert_eq(stats.adventures_lost, 0, "%s: no loss at 0 Health" % case.name)
 		assert_eq(stats.adventures_timed_out, case.timed_out, "%s: the timeout count" % case.name)
 
+## Every way a run ends leaves nothing running, though foraging ran before the
+## run: the boss falls, a fight is lost, the clock runs out, and the dev
+## panel's Exit as victory or defeat. Each case starts on a fresh save.
+func test_every_way_a_run_ends_starts_nothing() -> void:
+	for way: String in ["boss win", "lost fight", "time ran out", "dev exit as victory", "dev exit as defeat"]:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		_results.clear()
+		EventManager.trigger_event(FORAGING_EVENT)
+		assert_eq(_current_action_id(), FORAGING_ID, "%s: precondition, foraging runs" % way)
+		_start_adventure_from_the_zone(1 if way == "time ran out" else 300)
+		match way:
+			"boss win", "lost fight":
+				var choice := _boss_choice(RecordingEffect.new())
+				choice.is_boss = way == "boss win"
+				_view.adventure_tilemap._current_combat_choice = choice
+				_view._on_start_combat(choice)
+				_view.combat.trigger_combat_end.emit(way == "boss win", 0)
+			"time ran out":
+				await wait_for_signal(_view.adventure_completed, 3.0)
+			"dev exit as victory":
+				_view.force_end_adventure(true)
+			"dev exit as defeat":
+				_view.force_end_adventure(false)
+		assert_eq(_results.size(), 1, "%s: the run ended" % way)
+		assert_null(ActionManager.get_current_action(), "%s: nothing runs" % way)
+		assert_true(ActionManager.action_timer.is_stopped(), "%s: no foraging timer ticks" % way)
+
 func test_stopping_with_no_run_counts_nothing() -> void:
 	# The adventure action is current while the start's zoom runs, before any run has
 	# started, and a save switch can stop it then: that is no end. Health at 0 and a
@@ -272,6 +305,18 @@ func _start_adventure(time_limit_seconds: int) -> void:
 	action.time_limit_seconds = time_limit_seconds
 	ActionManager._set_current_action(action)
 	ActionManager.confirm_adventure_start(action)
+
+## Starts the Shallow Woods adventure as a card click does, stopping what runs,
+## then the run once the start's zoom would end.
+func _start_adventure_from_the_zone(time_limit_seconds: int) -> void:
+	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
+	action.time_limit_seconds = time_limit_seconds
+	ActionManager.select_action(action)
+	ActionManager.confirm_adventure_start(action)
+
+func _current_action_id() -> String:
+	var current: ZoneActionData = ActionManager.get_current_action()
+	return current.action_id if current else ""
 
 func _boss_choice(failure_effect: EffectData) -> CombatChoice:
 	var choice := CombatChoice.new()

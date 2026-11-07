@@ -11,8 +11,11 @@ extends RefCounted
 ## name and colour of the hit's floater.
 ## Following the ball is judged here too (is_following()): anywhere in the gold
 ## circle around the ball keeps following, and a cursor in it starts once it
-## moves, so a cursor resting on the path follows nothing as the ball passes.
-## FollowWindow measures what the rule reads.
+## moves, so a cursor resting on the path follows nothing as the ball passes. A
+## slip out of the circle no longer than FOLLOW_GRACE keeps following
+## (grace_holds()). FollowWindow measures what the rules read.
+## So is the ball's ease (eased_ratio()), and a perfect cycle's share of the
+## cycle followed (followed_enough(), misses_allowed()).
 ## So are seals, the game that trains Mind: a seal is SEAL_LENGTH arrows
 ## (random_seal()), shown SEAL_LEAD before the ball reaches its node, and each key
 ## lights the next arrow or starts the seal over (seal_progress()).
@@ -50,6 +53,20 @@ const FOLLOW_WINDOW: float = 0.25
 ## a resting one never does, and a twitch does not either.
 const FOLLOW_START_MOVE: float = 4.0
 
+## Seconds of a slip out of the gold circle that still keep following.
+const FOLLOW_GRACE: float = 0.1
+
+## The share of a cycle a perfect cycle needs followed.
+const PERFECT_FOLLOWED_SHARE: float = 0.95
+
+## Seconds the ball takes to reach its even speed at a cycle's start, and to
+## slow from it at the end.
+const EASE_SECONDS: float = 1.0
+
+## How far short of a limit a sum of frames may fall and still count as there.
+## It absorbs float error.
+const _EPSILON: float = 0.000001
+
 ## The share of the full rate an unlocked Auto pays while nobody follows the
 ## ball, for Madra and Spirit XP alike.
 const AUTO_RATE: float = 0.4
@@ -76,6 +93,40 @@ static func tier_for_distance(distance: float) -> Tier:
 ## once it has moved FOLLOW_START_MOVE, so a resting cursor never starts.
 static func is_following(on_ball: bool, was_following: bool, moved: float) -> bool:
 	return on_ball and (was_following or moved >= FOLLOW_START_MOVE)
+
+## Returns whether a slip of `slip_seconds` out of the gold circle still keeps
+## following: it is no longer than FOLLOW_GRACE.
+static func grace_holds(slip_seconds: float) -> bool:
+	return slip_seconds <= FOLLOW_GRACE + _EPSILON
+
+## Returns whether a cycle followed for `followed_ratio` of its time (0 to 1)
+## was followed enough to be perfect: PERFECT_FOLLOWED_SHARE of it.
+static func followed_enough(followed_ratio: float) -> bool:
+	return followed_ratio >= PERFECT_FOLLOWED_SHARE - _EPSILON
+
+## Returns whether a cycle `duration` seconds long that has missed
+## `missed_seconds` of following so far can still be followed enough to be
+## perfect.
+static func misses_allowed(missed_seconds: float, duration: float) -> bool:
+	return missed_seconds <= (1.0 - PERFECT_FOLLOWED_SHARE) * duration + _EPSILON
+
+## Returns the ball's share of the path `seconds` into a cycle `duration` long,
+## 0 at the start and 1 at the end. Its speed rises along a half cosine over the
+## first EASE_SECONDS, holds even, and falls the same way over the last
+## EASE_SECONDS. A cycle shorter than two of them ramps over half of it each way.
+static func eased_ratio(seconds: float, duration: float) -> float:
+	if duration <= 0.0:
+		return 1.0
+	var t: float = clampf(seconds, 0.0, duration)
+	var ramp: float = minf(EASE_SECONDS, duration / 2.0)
+	# The even speed, in shares of the path a second: each ramp covers half of
+	# what that speed would over the same time.
+	var speed: float = 1.0 / (duration - ramp)
+	if t <= ramp:
+		return _ramp_distance(t, ramp) * speed
+	if t >= duration - ramp:
+		return 1.0 - _ramp_distance(duration - t, ramp) * speed
+	return (ramp / 2.0 + t - ramp) * speed
 
 ## Returns how many of `seal`'s arrows are keyed after `arrow` is pressed with
 ## `keyed` of them keyed: one more when `arrow` is the next one, else 0, since a
@@ -138,3 +189,12 @@ static func tier_color(tier: Tier) -> Color:
 			return ThemeConstants.LACQUER_CREAM
 		_:
 			return ThemeConstants.LACQUER_TAN
+
+#-----------------------------------------------------------------------------
+# PRIVATE
+#-----------------------------------------------------------------------------
+
+## Returns the distance a ball covers `t` seconds into a ramp `ramp` seconds long
+## up to a speed of 1, its speed rising along a half cosine.
+static func _ramp_distance(t: float, ramp: float) -> float:
+	return t / 2.0 - ramp / TAU * sin(PI * t / ramp)

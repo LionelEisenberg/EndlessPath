@@ -45,6 +45,8 @@ const PIN_PATH: String = "user://__test_save_presets_pin.cfg"
 const TRIBULATION_ACTION: String = "spirit_valley_tribulation"
 ## Opens once merchant_discovered fires, the last step of beat_3b.
 const MERCHANT_ACTION: String = "spirit_valley_merchant"
+## Opens at NPC 3's talk, which ends First Steps Out in beat_2.
+const RIVERBANK_ACTION: String = "riverbank_training_action"
 
 ## The starting presets the spec names: each id with the beat it starts through ("" for
 ## none).
@@ -53,6 +55,7 @@ const STARTING_PRESETS: Dictionary = {
 	"adventure_open": {"story_through": "beat_1"},
 	"path_open": {"story_through": "beat_2"},
 	"harden_core": {"story_through": "beat_2b"},
+	"find_the_camp": {"story_through": "beat_3b_map"},
 	"merchant_open": {"story_through": "beat_3b"},
 	"tribulation_ready": {"story_through": "beat_9_ready"},
 	"copper": {"story_through": "beat_9"},
@@ -244,6 +247,22 @@ func test_copper_keeps_the_levels_it_broke_through_with() -> void:
 	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), foundation_cap, "Strength keeps Foundation's cap")
 	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), foundation_cap, "and so does Spirit")
 
+## Riverbank Training opens as First Steps Out ends, at NPC 3's talk: adventure_open
+## stops before it, and every later preset is past it.
+func test_riverbank_training_opens_with_first_steps_out_s_end() -> void:
+	var cases: Dictionary = {
+		"adventure_open": false,
+		"path_open": true,
+		"harden_core": true,
+		"merchant_open": true,
+		"tribulation_ready": true,
+	}
+	for preset_id: String in cases:
+		ActionManager.cancel_current_action()
+		if not _build_shipped(preset_id):
+			continue
+		assert_eq(_is_available(RIVERBANK_ACTION), cases[preset_id], "%s: Riverbank Training is open" % preset_id)
+
 ## path_open ends on NPC 3's talk, so the body refining beat is the one to play.
 func test_path_open_starts_on_temper_your_body() -> void:
 	if not _build_shipped("path_open"):
@@ -261,11 +280,23 @@ func test_harden_core_has_two_stars_to_fill() -> void:
 	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), 2, "Strength is at Lv 2")
 	assert_true(BodyRefiningManager.is_drill_unlocked("horse_stance"), "Horse Stance is learned")
 
+## find_the_camp stops between the map and the camp: the map in hand, Find the
+## Camp on its one step, and the Traveling Merchant not yet in Spirit Valley.
+func test_find_the_camp_has_the_map_and_no_merchant() -> void:
+	if not _build_shipped("find_the_camp"):
+		return
+	assert_true(InventoryManager.has_item("refugee_camp_map"), "the map is in hand")
+	assert_eq(QuestManager.get_active_quest_ids(), ["q_find_the_camp"] as Array[String], "Find the Camp runs")
+	assert_eq(QuestManager.get_current_step_index("q_find_the_camp"), 0, "on its one step")
+	assert_false(_is_available(MERCHANT_ACTION), "the merchant waits for the camp")
+
+## merchant_open starts after the camp: Find the Camp is done.
 func test_merchant_open_has_the_merchant_and_700_gold() -> void:
 	if not _build_shipped("merchant_open"):
 		return
 	assert_true(_is_available(MERCHANT_ACTION), "the Traveling Merchant is in Spirit Valley")
 	assert_eq(ResourceManager.get_gold(), 700.0, "with gold for every piece")
+	assert_true(QuestManager.has_completed_quest("q_find_the_camp"), "Find the Camp is done")
 
 #-----------------------------------------------------------------------------
 # SAVE THIS GAME AS A PRESET

@@ -8,10 +8,12 @@ extends Control
 ## 32 px, then "+80", or "capped" in brass for a stat the cap took XP from), and
 ## on the right the cycle's score: a stud for each zone (PERFECT, GOOD, OK or
 ## missed) or each seal node (opened or missed), the board's sockets at half
-## size. A technique with neither has no score. A row too crowded for one line
-## wraps its chips onto another rather than trim them, and the card grows with
-## it: ONE_LINE_HEIGHT tall with one line, as much taller as the row grows. It
-## emits height_changed when its height changes, for the chest to lay out again.
+## size. A technique with neither shows how much of the cycle was followed in
+## the score's place ("Followed 93%", or "Followed all"). A row too crowded for
+## one line wraps its chips onto another rather than trim them, and the card
+## grows with it: ONE_LINE_HEIGHT tall with one line, as much taller as the row
+## grows. It emits height_changed when its height changes, for the chest to lay
+## out again.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -37,6 +39,11 @@ const ROOM_UNDER_ROW: float = 12.0
 const AMOUNT_FORMAT: String = "+%d"
 const CAPPED_TEXT: String = "capped"
 
+## A followed share, floored to a whole percent so it never reads 100% short of
+## all of the cycle, and the whole cycle followed.
+const FOLLOWED_FORMAT: String = "Followed %d%%"
+const FOLLOWED_ALL_TEXT: String = "Followed all"
+
 ## The studs strip's frames: a zone's PERFECT, GOOD and OK studs, a zone the
 ## ball left unscored, an opened seal node and one the ball got to first.
 const STUD_PERFECT: int = 0
@@ -61,6 +68,7 @@ const _STUD_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/last_cyc
 	CharacterAttributesData.AttributeType.CONTROL: %ControlChip,
 }
 @onready var _score: HBoxContainer = %Score
+@onready var _followed: Label = %Followed
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -74,7 +82,8 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Shows `result`: the Madra's chip, a chip for each stat the cycle paid
-## (CycleResult.get_paid_stats()), the others hidden, and the score's studs.
+## (CycleResult.get_paid_stats()), the others hidden, and the score's studs, or
+## for a cycle with no zones or seals how much of it was followed.
 func show_result(result: CycleResult) -> void:
 	_show_chip(_madra_chip, _MADRA_ICON, AMOUNT_FORMAT % roundi(result.madra_added), false)
 	var paid: Array[CharacterAttributesData.AttributeType] = result.get_paid_stats()
@@ -87,7 +96,17 @@ func show_result(result: CycleResult) -> void:
 		var amount: String = CAPPED_TEXT if capped else AMOUNT_FORMAT % roundi(result.get_stat_xp(stat))
 		_show_chip(chip, StatDisplay.icon_of(stat), amount, capped)
 	_show_score(result)
+	_followed.visible = not _score.visible
+	_followed.text = followed_text(result.followed_ratio)
 	_fit_height()
+
+## Returns the followed label's text for a cycle followed for `ratio` of its
+## time: FOLLOWED_ALL_TEXT for all of it, else FOLLOWED_FORMAT with the share
+## floored to a whole percent.
+static func followed_text(ratio: float) -> String:
+	if ratio >= 1.0 - 0.000001:
+		return FOLLOWED_ALL_TEXT
+	return FOLLOWED_FORMAT % floori(ratio * 100.0)
 
 ## Returns the studs strip's frame for a zone's state as the cycle ended
 ## (CyclingZone.State): its stud, or a missed zone.

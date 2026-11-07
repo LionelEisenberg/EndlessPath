@@ -3,14 +3,20 @@ extends Node2D
 
 ## CyclingTechnique
 ## The play of one cycling technique. The Madra ball travels the technique's path
-## once per cycle, easing in and out with a sine, and the carved groove lights
-## behind it. While the cursor follows the ball it draws Madra, one step every
+## once per cycle, speeding up over its first second and slowing over its last
+## (CyclingRules.eased_ratio()), and the carved groove lights behind it where the
+## ball paid: followed, or carried by Auto. A slip leaves a dark gap. While the
+## cursor follows the ball it draws Madra, one step every
 ## MADRA_PARTICLE_INTERVAL. Following is being in the gold ring around the ball,
 ## out to its edge (CURSOR_REACH), once it has started: the press that starts a
 ## cycle starts it, and so does a cursor moving in the ring
 ## (CyclingRules.is_following(), over a FollowWindow). A cursor resting on the
-## path never starts, so it follows nothing as the ball passes. With Auto a
-## streak carries from one cycle into the next.
+## path never starts, so it follows nothing as the ball passes. A slip out of the
+## ring short enough for the grace keeps following: its seconds are held, paid as
+## followed once the cursor is back, and dropped as missed if the grace runs out.
+## With Auto a streak carries from one cycle into the next.
+## A cycle that can no longer be perfect (can_still_be_perfect()) dims the
+## following ring.
 ## Auto chains cycles. Once the technique's Auto is unlocked (a perfect cycle,
 ## CycleResult.is_perfect()), an Auto cycle that nobody follows still pays, at
 ## CyclingRules.AUTO_RATE of the full rate for Madra and Spirit alike, and its
@@ -108,10 +114,15 @@ const MADRA_PARTICLE_INTERVAL: float = 0.08
 const STAT_XP_INTERVAL: float = 0.5
 
 ## How far short of MADRA_PARTICLE_INTERVAL the Madra timer may be and still pay
-## its step. It absorbs float error: an 8 s cycle holds exactly 100 steps, so its
+## its step. It absorbs float error: a 10 s cycle holds exactly 125 steps, so its
 ## last step falls on the cycle's last instant, and the frames' sum can miss it
 ## by a hair at some frame rates.
 const _STEP_EPSILON: float = 0.000001
+
+## The step a finished cycle's Madra is snapped to. The steps' sum drifts by a
+## hair (125 steps of 0.3 sum to 37.4999...), which the card's and the log's
+## whole numbers would round the wrong way.
+const _RESULT_MADRA_SNAP: float = 0.0001
 
 ## The frames of the ball's swirl, and how many of them play each second.
 const SWIRL_FRAMES: int = 8
@@ -129,6 +140,9 @@ const GROOVE_SWEEP_SECONDS: float = 0.5
 ## The seconds of one breath of the waiting ball: up from 60 px through 64 to
 ## 68 and back (see breath_level()).
 const BREATH_SECONDS: float = 2.0
+
+## The following ring's tint once the cycle can no longer be perfect.
+const RING_LOST_MODULATE: Color = Color(0.45, 0.45, 0.45, 1.0)
 
 ## The ball ring's frames: the steady ring around a ready ball, and the solid tan
 ## ring while the cursor follows it.
@@ -189,8 +203,19 @@ var seal_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _cycling: bool = false
 ## Whether the cursor follows the ball this frame: the follow window's verdict.
 var _following: bool = false
-## Whether every frame of the running cycle so far has followed the ball.
-var _followed_throughout: bool = false
+## Seconds of the running cycle the cursor has not followed the ball, a grace
+## that ran out included.
+var _missed_seconds: float = 0.0
+## Seconds of a slip a grace holds following through, paid once the cursor is
+## back in the ring and dropped if the grace runs out.
+var _held_seconds: float = 0.0
+## How far along the path the ball was as the slip a grace holds began.
+var _slip_progress: float = 0.0
+## The stretches of the path the running cycle has lit, as x to y path lengths,
+## oldest first: where the ball paid.
+var _lit_spans: Array[Vector2] = []
+## Whether the newest lit span still grows with the ball.
+var _span_open: bool = false
 ## Whether the running cycle moves the ball at an even speed: an Auto cycle.
 ## Decided as the cycle starts, so turning Auto on or off mid-cycle never makes
 ## the ball jump.
@@ -278,16 +303,20 @@ func start_cycle(starts_following: bool = true) -> bool:
 	_followed_seconds = 0.0
 	_unpaid_spirit_seconds = 0.0
 	_follow_window.reset(starts_following)
-	_followed_throughout = true
+	_missed_seconds = 0.0
+	_held_seconds = 0.0
+	_lit_spans.clear()
+	_span_open = false
 	_flat = is_auto_running()
 	_result = _new_result()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
 	for seal: SealNode in seal_nodes:
 		seal.reset()
-	_groove.set_lit_length(-1.0)
+	_groove.hold_light()
 	_groove.set_swept_length(-1.0)
 	_ball_ring.visible = false
+	_ball_ring.self_modulate = Color.WHITE
 	CyclingManager.start_cycle_session(technique_data.cycle_duration)
 	cycling_started.emit()
 	return true
@@ -301,9 +330,11 @@ func stop_cycling() -> void:
 ## Moves the play on by `delta` seconds, with the cursor at `cursor_global`.
 ## While no cycle runs only the swirl moves and the ball waits at the start. While
 ## one runs, in this order: the ball moves and is drawn, the follow window judges
-## the frame and the cursor draws Madra if it follows (or Auto draws at its rate
-## if nobody follows), the zones turn active or spent, the groove's sweep and
-## trail move on, the frame joins the rate window and the session is updated.
+## the frame and the cursor draws Madra if it follows (a frame a grace holds is
+## held, and Auto draws at its rate if nobody follows), the zones turn active or
+## spent, the groove's sweep and lit spans move on, the ring dims once the cycle
+## can no longer be perfect, the frame joins the rate window and the session is
+## updated.
 ## The cycle ends once its time is up. A frame that runs past the end counts
 ## only the time left in the cycle, so a long hitch draws no Madra beyond it.
 func advance(delta: float, cursor_global: Vector2) -> void:
@@ -316,13 +347,16 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	var duration: float = technique_data.cycle_duration
 	var cycle_delta: float = minf(delta, duration - _elapsed)
 	_elapsed = minf(_elapsed + delta, duration)
+	var previous_progress: float = _follow.progress
 	_follow.progress_ratio = _ball_ratio()
 	_draw_ball()
 	var on_ball: bool = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
+	var was_in_grace: bool = _follow_window.is_in_grace()
 	_following = _follow_window.judge(cycle_delta, on_ball, cursor_global)
+	var in_grace: bool = _follow_window.is_in_grace()
+	if in_grace and not was_in_grace:
+		_slip_progress = previous_progress
 	_ball_ring.visible = _following
-	if not _following:
-		_followed_throughout = false
 	# The share of the full rate the frame pays: all of it while followed,
 	# Auto's while nobody follows, nothing otherwise.
 	var share: float = 1.0 if _following else (CyclingRules.AUTO_RATE if is_auto_running() else 0.0)
@@ -330,16 +364,27 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	var drawing: bool = share > 0.0 and not _madra_full()
 	if _following:
 		_set_ring_frame(_RING_FOLLOWING)
-		_draw_madra(cycle_delta)
-		_follow_spirit(cycle_delta)
-	elif share > 0.0:
-		_draw_madra(cycle_delta * share)
-		_gather_spirit(cycle_delta * share)
+	if in_grace:
+		_held_seconds += cycle_delta
+	elif _following:
+		# Back in the ring: the slip the grace held was followed after all.
+		_draw_madra(cycle_delta + _held_seconds)
+		_follow_spirit(cycle_delta + _held_seconds)
+		_held_seconds = 0.0
+	else:
+		# A grace that ran out was never followed.
+		var unfollowed: float = cycle_delta + _held_seconds
+		_missed_seconds += unfollowed
+		_held_seconds = 0.0
+		if share > 0.0:
+			_draw_madra(unfollowed * share)
+			_gather_spirit(unfollowed * share)
 	_result.followed_ratio = _followed_seconds / duration if duration > 0.0 else 0.0
 	_update_zones()
 	_update_seals(cycle_delta)
 	_groove.set_swept_length(_path_length * minf(_elapsed / GROOVE_SWEEP_SECONDS, 1.0))
-	_groove.set_lit_length(_follow.progress)
+	_light_groove(share > 0.0, previous_progress, was_in_grace and not _following)
+	_ball_ring.self_modulate = Color.WHITE if can_still_be_perfect() else RING_LOST_MODULATE
 	_record_rate(cycle_delta, share if drawing else 0.0)
 	_update_session()
 	if _elapsed >= duration:
@@ -410,9 +455,25 @@ func is_auto_running() -> bool:
 	return auto_cycle and technique_data != null and CyclingManager.is_auto_unlocked(technique_data.id)
 
 ## Returns true while a cycle runs and the cursor follows the ball: in its gold
-## ring, since the press or since it moved there.
+## ring, since the press or since it moved there, or just out of it while a grace
+## holds.
 func is_following() -> bool:
 	return _following
+
+## Returns whether the running cycle can still be perfect
+## (CycleResult.is_perfect()): its misses still leave
+## CyclingRules.PERFECT_FOLLOWED_SHARE of it to follow, no zone has ended other
+## than PERFECT and no seal has fizzled. False while no cycle runs.
+func can_still_be_perfect() -> bool:
+	if not _cycling or not CyclingRules.misses_allowed(_missed_seconds, technique_data.cycle_duration):
+		return false
+	for zone: CyclingZone in cycling_zones:
+		if zone.get_state() != CyclingZone.State.PERFECT and not zone.is_open():
+			return false
+	for seal: SealNode in seal_nodes:
+		if seal.get_state() == SealNode.State.SPENT:
+			return false
+	return true
 
 ## Returns the ball's drawn centre in global coordinates, on even px. It is the
 ## start of the path while no cycle runs.
@@ -429,15 +490,16 @@ func get_current_result() -> CycleResult:
 #-----------------------------------------------------------------------------
 
 ## Returns the ball's share of the path at the elapsed time, 0 at the start and
-## 1 once the cycle's time is up: eased in and out with a sine, or at an even
-## speed in a flat (Auto) cycle, so chained Auto cycles never slow at their ends.
+## 1 once the cycle's time is up: eased (CyclingRules.eased_ratio()), or at an
+## even speed in a flat (Auto) cycle, so chained Auto cycles never slow at their
+## ends.
 func _ball_ratio() -> float:
 	return _cycle_fraction(_elapsed) if _flat else _eased_ratio_at(_elapsed)
 
 ## Returns the eased ball's share of the path `seconds` into a cycle, which
 ## places the seal nodes.
 func _eased_ratio_at(seconds: float) -> float:
-	return 0.5 - 0.5 * cos(PI * _cycle_fraction(seconds))
+	return CyclingRules.eased_ratio(seconds, technique_data.cycle_duration)
 
 ## Returns `seconds` as a share of the cycle, 0 to 1.
 func _cycle_fraction(seconds: float) -> float:
@@ -587,6 +649,24 @@ func _update_seals(delta: float) -> void:
 			seal.fizzle()
 			seal_missed.emit(seal)
 
+## Moves the groove's lit spans on for a frame in which the ball went from
+## `previous_progress` to where it is now: one that `paid` lights the path it
+## covered, joining the newest span while it is open. A frame that pays nothing
+## closes it, and when a grace has just `lapsed`, its span ends where the slip
+## began.
+func _light_groove(paid: bool, previous_progress: float, lapsed: bool) -> void:
+	if paid:
+		if _span_open:
+			_lit_spans[-1].y = _follow.progress
+		else:
+			_lit_spans.append(Vector2(previous_progress, _follow.progress))
+			_span_open = true
+	elif _span_open:
+		_span_open = false
+		if lapsed:
+			_lit_spans[-1].y = _slip_progress
+	_groove.set_lit_spans(_lit_spans)
+
 ## Adds a running frame to the rate window: its `delta` seconds and the Madra the
 ## cursor drew in it, which is `share` of the technique's Madra per second over
 ## those seconds: 1 while it followed with room under the max, Auto's rate
@@ -617,9 +697,11 @@ func _update_session() -> void:
 		drawn += frame.y
 	CyclingManager.update_cycle_session(_elapsed, drawn / covered if covered > 0.0 else 0.0)
 
-## Ends the cycle that has run its time: every zone still open is spent, the
-## session ends, the ball goes back to the start and cycle_completed carries the
-## result. The groove stays lit until the next cycle's sweep. With auto_cycle on,
+## Ends the cycle that has run its time: every zone still open is spent, a slip
+## a grace still held is paid as followed, the Madra total is snapped to
+## _RESULT_MADRA_SNAP, the session ends, the ball goes back
+## to the start and cycle_completed carries the result. The groove keeps the
+## cycle's light, gaps and all, until the next cycle's sweep. With auto_cycle on,
 ## the next cycle starts at once, following if this one ended following, and the
 ## rate window carries into it: the session is updated again in the same frame,
 ## so the rate does not read 0 for a frame between two cycles. Otherwise the
@@ -632,7 +714,12 @@ func _finish_cycle() -> void:
 		_result.zone_states.append(zone.get_state())
 	for seal: SealNode in seal_nodes:
 		_result.seal_states.append(seal.get_state())
-	_result.followed_throughout = _followed_throughout
+	if _held_seconds > 0.0:
+		_draw_madra(_held_seconds)
+		_follow_spirit(_held_seconds)
+		_held_seconds = 0.0
+		_result.followed_ratio = _followed_seconds / technique_data.cycle_duration
+	_result.madra_added = snappedf(_result.madra_added, _RESULT_MADRA_SNAP)
 	var carried: bool = _following
 	_pay_unpaid_spirit()
 	_cycling = false
@@ -659,7 +746,10 @@ func _return_to_ready() -> void:
 	var was_cycling: bool = _cycling
 	_cycling = false
 	_following = false
-	_followed_throughout = false
+	_missed_seconds = 0.0
+	_held_seconds = 0.0
+	_lit_spans.clear()
+	_span_open = false
 	_flat = false
 	_elapsed = 0.0
 	_madra_timer = 0.0
@@ -764,6 +854,7 @@ func _show_ready() -> void:
 	var level: int = breath_level(_breath_clock)
 	_show_ball_frame(level)
 	_ball_ring.visible = true
+	_ball_ring.self_modulate = Color.WHITE
 	_set_ring_frame(_RING_READY_BY_BREATH[level])
 
 ## Shows the swirl frame for the swirl clock, from the row of the strip for

@@ -18,9 +18,12 @@ const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
 
 const FILL_CORE_QUEST_ID: String = "q_fill_core"
 const FIRST_STEPS_QUEST_ID: String = "q_first_steps"
-const FIRST_STEPS_ENEMY_EVENT: String = "q_first_steps_enemy_defeated"
+const FIRST_STEPS_ADVENTURE_EVENT: String = "q_first_steps_adventure_ended"
 const FIRST_STEPS_RETURN_EVENT: String = "celestial_intervener_dialogue_3"
 const CORE_DENSITY_QUEST_ID: String = "q_reach_core_density_10"
+## NPC 4's talk, whose effects complete Harden Your Core and start Find the Camp.
+const NPC_4_ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_4.tres"
+const FIND_THE_CAMP_QUEST_ID: String = "q_find_the_camp"
 ## NPC 4's event, and the condition that wraps it: Foundation's Breakthrough
 ## goes on the board once it latches.
 const NPC_4_EVENT: String = "celestial_intervener_dialogue_4"
@@ -29,6 +32,9 @@ const EMPTY_STARS: Array[int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 const FULL_STARS: Array[int] = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
 ## The board's height with both rows of one line each (kit §5.2: 272 to 492).
 const FULL_HEIGHT: float = 220.0
+## The board's height with a one-line quest over the folded milestone: its name
+## and stars, without its list (#146): its detail line and the gap above it go.
+const FOLDED_HEIGHT: float = 200.0
 
 var _goals: GoalsPanel = null
 var _original_stage_resources: Array[AdvancementStageResource] = []
@@ -182,20 +188,20 @@ func test_figure_follows_madra() -> void:
 func test_event_step_has_no_figure() -> void:
 	_add_goals()
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
-	assert_eq(_text("QuestStepLabel"), "Defeat an enemy in combat")
+	assert_eq(_text("QuestStepLabel"), "Venture into the Shallow Woods")
 	assert_false(_is_shown("QuestFigureLabel"))
 
 func test_refreshes_on_step_advance() -> void:
 	_add_goals()
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
-	EventManager.trigger_event(FIRST_STEPS_ENEMY_EVENT)
+	EventManager.trigger_event(FIRST_STEPS_ADVENTURE_EVENT)
 	assert_eq(QuestManager.get_current_step_index(FIRST_STEPS_QUEST_ID), 1, "precondition: the step advanced")
 	assert_eq(_text("QuestStepLabel"), "Return to the Celestial [INTERVENER]")
 
 func test_completed_quest_falls_back_to_milestone() -> void:
 	_add_goals()
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
-	EventManager.trigger_event(FIRST_STEPS_ENEMY_EVENT)
+	EventManager.trigger_event(FIRST_STEPS_ADVENTURE_EVENT)
 	EventManager.trigger_event(FIRST_STEPS_RETURN_EVENT)
 	assert_true(QuestManager.has_completed_quest(FIRST_STEPS_QUEST_ID), "precondition: the quest completed")
 	await wait_process_frames(1)
@@ -408,21 +414,65 @@ func test_a_quest_before_npc_4_stands_alone() -> void:
 		assert_true(_is_shown(piece), "%s shows with the first goal" % piece)
 	assert_eq(_goals.mouse_filter, Control.MOUSE_FILTER_STOP)
 
-## NPC 4 completes Harden Your Core, the last quest, and its talk puts the
-## Breakthrough on the board in the quest's place, for the climb to the cap.
-func test_npc_4_hands_the_board_to_the_breakthrough() -> void:
+## NPC 4 completes Harden Your Core and starts Find the Camp, and its talk puts
+## the Breakthrough on the board under it, folded while the quest runs.
+func test_npc_4_hands_the_board_to_find_the_camp_and_the_breakthrough() -> void:
 	var save := SaveGameData.new()
 	save.quest_progression.active_quests[CORE_DENSITY_QUEST_ID] = 1
 	_use_fresh_save(save, false)
 	_add_goals()
 	assert_eq(_text("QuestStepLabel"), "Return to the Celestial [INTERVENER]", "precondition: NPC 4 is next")
 	assert_false(_is_shown("MilestoneRow"), "precondition: no Breakthrough yet")
-	EventManager.trigger_event(NPC_4_EVENT)
+	for effect: EffectData in (load(NPC_4_ACTION_PATH) as ZoneActionData).success_effects:
+		effect.process()
 	await wait_process_frames(1)
 	assert_true(QuestManager.has_completed_quest(CORE_DENSITY_QUEST_ID), "precondition: the quest completed")
-	assert_false(_is_shown("QuestRow"))
+	assert_eq(_text("QuestNameLabel"), "Find the Camp")
+	assert_eq(_text("QuestStepLabel"), "Find the refugee camp in the Shallow Woods")
 	assert_true(_is_shown("MilestoneRow"))
+	assert_false(_is_shown("MilestoneTextLabel"), "the Breakthrough's list folds under the quest")
+
+#-----------------------------------------------------------------------------
+# THE BREAKTHROUGH FOLDS UNDER A QUEST (#146)
+#-----------------------------------------------------------------------------
+
+## While a quest row shows, the Breakthrough's list of what is missing folds
+## away: its name and stars stay, and the board is one line shorter.
+func test_a_quest_folds_the_milestones_list() -> void:
+	_add_goals()
+	QuestManager.start_quest(FILL_CORE_QUEST_ID)
+	await wait_process_frames(1)
+	assert_true(_is_shown("QuestRow"))
+	assert_true(_is_shown("MilestoneNameLabel"))
+	assert_true(_is_shown("MilestoneStars"))
+	assert_false(_is_shown("MilestoneTextLabel"), "the list folds")
+	assert_eq(_goals.size.y, FOLDED_HEIGHT, "the board is one detail line shorter than two full rows")
+
+## The list comes back when the quest ends, and folds again when one starts.
+func test_the_list_returns_when_the_quest_ends() -> void:
+	_add_goals()
+	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
+	await wait_process_frames(1)
+	assert_false(_is_shown("MilestoneTextLabel"), "precondition: folded")
+	EventManager.trigger_event(FIRST_STEPS_ADVENTURE_EVENT)
+	EventManager.trigger_event(FIRST_STEPS_RETURN_EVENT)
+	assert_true(QuestManager.has_completed_quest(FIRST_STEPS_QUEST_ID), "precondition: the quest completed")
+	await wait_process_frames(1)
+	assert_true(_is_shown("MilestoneTextLabel"), "the list returns with the quest done")
 	assert_string_contains(_text("MilestoneTextLabel"), "Fill your core")
+
+## "Face the Tribulation" is the call to act, not a list: it stays under a quest.
+func test_face_the_tribulation_stays_under_a_quest() -> void:
+	var save := SaveGameData.new()
+	save.core_density_level = 100.0
+	_use_fresh_save(save)
+	StatCaps.cap_main_stats()
+	_add_goals()
+	QuestManager.start_quest(FILL_CORE_QUEST_ID)
+	await wait_process_frames(1)
+	assert_true(_is_shown("QuestRow"), "precondition: a quest shows")
+	assert_true(_is_shown("MilestoneTextLabel"))
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
 
 ## The wait is Foundation's: Copper has no condition, so its line shows on a save
 ## that never talked to NPC 4.
