@@ -488,6 +488,22 @@ func test_stopping_mid_set_pays_the_stored_xp_and_counts_nothing() -> void:
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
 	assert_false(_play.is_set_running())
 
+## A set ends once its tenth rep's piece is back at rest. Stopped in that moment,
+## after the tenth rep landed, it is finished, not dropped: counted, reported and
+## paid, so a perfect set stopped there still unlocks Auto.
+func test_stopping_after_the_tenth_rep_finishes_the_set() -> void:
+	watch_signals(_play)
+	for rep: int in 10:
+		_lift(rep, CENTRE)
+	_at(36.0 + CENTRE + 0.1)
+	assert_true(_play.is_set_running(), "precondition: the tenth stone is still setting down")
+	_play.stop_set()
+	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported")
+	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "and counted")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "its XP paid")
+	assert_false(_play.is_set_running())
+	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
+
 ## Review Focus 3: the save on quit comes before the play hears of it, so closing
 ## the window mid-set pays the set's stored XP (and saves again).
 func test_closing_the_window_mid_set_pays_the_stored_xp() -> void:

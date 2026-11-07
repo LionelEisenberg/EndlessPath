@@ -225,11 +225,15 @@ func handle_press_event(event: InputEvent) -> bool:
 	return true
 
 ## Drops a set in progress: its reps' Health stays, the XP they stored is paid,
-## and it is neither counted nor reported. The session ends, the hold is let go,
-## the floaters and the ring hide and the stage goes back to rest. The beads keep
-## what they showed. Auto's next set may start at once.
+## and it is neither counted nor reported. A set whose last rep has landed, its
+## piece still coming back to rest, is finished instead: paid, counted and
+## reported. The session ends, the hold is let go, the floaters and the ring hide
+## and the stage goes back to rest. The beads keep what they showed. Auto's next
+## set may start at once.
 func stop_set() -> void:
-	if _set_running:
+	if _set_running and _result.is_complete():
+		_finish()
+	elif _set_running:
 		_set_running = false
 		BodyRefiningManager.pay_stored_xp(_result)
 		BodyRefiningManager.end_set_session()

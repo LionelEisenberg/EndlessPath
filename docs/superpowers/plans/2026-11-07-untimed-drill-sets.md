@@ -26,7 +26,7 @@
 1. A press held through a rep's end (a drop, a stance landing) must start nothing until it is released and pressed again: tested in Tasks 2 and 3.
 2. A long pause (a minute with the board open) between reps judges nothing on any drill: one test per run (Tasks 2 to 5) and one on the board (Task 6).
 3. Quitting the game mid-set must not lose the set's stored XP: the save on close comes first in tree order, so `DrillPlay` pays and saves again on `NOTIFICATION_WM_CLOSE_REQUEST` (Task 6).
-4. Two leaves caught out of turn: the ring and the Now strip follow the first bead not lit, not the judged count's bead (Task 6), and the pour sends each pellet from its own leaf's bead (Task 8).
+4. Two leaves caught out of turn: the ring follows the first bead not lit and the Now strip the reps landed plus one, not the judged count's bead (Task 6), and the pour sends each pellet from its own leaf's bead (Task 8).
 5. Auto's pace across sets: the next Auto set waits for `reps × rep_seconds` from the last one's start, and toggling Auto or reopening the board starts one at once (Task 6).
 
 ---
@@ -156,4 +156,13 @@
 
 ## What was built differently
 
-(Filled in as the build goes.)
+- **XP at the set's end** came from Lionel's review of the canvas ("Yes, add it", then "actually just implement"), so no canvas board draws it. The set-done beat keeps the canvas's brass frame, and the pour from the beads plays beside it, so a set that pays no XP (all misses, a capped Strength) still has its beat.
+- **Closing the window mid-set** pays the stored XP and saves again from `DrillPlay`: `PersistenceManager`, the first autoload, saves on the close request before the play hears it.
+- **Horse Stance's arc starts at 0.12**, `BAND_LOW`, around the standing needle (it started at 0.2), as the approved answer says; otherwise the sink into the arc would eat half a Perfect's allowance. Its gauge lights brass only while a rep's needle is in the arc: between reps the resting arc touches the standing needle.
+- **A stopped set** pays its XP and ends the session itself, uncounted, unless its last rep has landed: a set stopped while its tenth stone sets down, or while the player stands from the tenth stance, is finished (paid, counted, reported, a perfect one unlocking Auto). The final review caught the first version dropping it.
+- **The per-rep "capped" pop** reads `CharacterManager.is_stat_capped()` at the rep, since a rep's XP is only stored; a set that crosses the cap shows "capped" on its result line only.
+- **Built in a different order than the plan's tasks said:** `rep_at()` and `judges_starting_press()` left the contract with their last callers (Tasks 6 and 7), and the base `get_end_usec()` changed with `TimedPressRun` (Task 5), so every commit compiles; `FallingLeafRun`'s own `get_end_usec()` went, being the new base. The field `_rep_usec` keeps its name, documented as Auto's pace.
+- **Not tested:** the two drills' new footer copy (CLAUDE.md: exact wording is checked by eye).
+- **The Now strip** needed no code: its ring and rod read the session, whose set progress now counts the reps landed (Task 1). Only its docs changed.
+- **Merging main** brought #148's Stone Lifting target; its "a missed slot leaves no mark" check now covers the drop alone, since a slot nobody lifts in no longer exists.
+- **In the scripted Done-when run** a steady set took 20.9 s (Stone Lifting), 30.3 s (Horse Stance), 14.6 s (Falling Leaf) and 17.7 s (Waterfall Tempering); Auto started Stone Lifting sets at 0, 40 and 80 s.
