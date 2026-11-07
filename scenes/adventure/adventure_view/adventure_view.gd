@@ -44,6 +44,9 @@ const BEAD_BURST_REACH: float = 48.0
 ## One bead carries about this much Core Density XP; a burst has 1 to MAX_BEADS.
 const BEAD_XP: float = 4.0
 const MAX_BEADS: int = 16
+## Fired as each fight ends, however it ends. Riverbank Training's condition
+## shares its id.
+const FIRST_FIGHT_ENDED_EVENT: String = "first_fight_ended"
 const _BEAD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 
 #-----------------------------------------------------------------------------
@@ -315,6 +318,11 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 			LogManager.log_message("[color=green]Combat Victory![/color]")
 		else:
 			LogManager.log_message("[color=red]Combat Defeat...[/color]")
+
+	# Every fight's end passes here, won, lost or cut short when the run stops,
+	# and the first one opens Riverbank Training: a fight is the only thing that
+	# spends Health. EventManager keeps the event once.
+	EventManager.trigger_event(FIRST_FIGHT_ENDED_EVENT)
 
 	# Track combat stats
 	_combats_fought += 1

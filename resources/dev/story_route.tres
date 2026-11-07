@@ -22,6 +22,11 @@ script = ExtResource("3_step")
 kind = 1
 target_id = "q_first_steps_enemy_defeated"
 
+[sub_resource type="Resource" id="beat_2_fight_ended"]
+script = ExtResource("3_step")
+kind = 1
+target_id = "first_fight_ended"
+
 [sub_resource type="Resource" id="beat_2_talk_3"]
 script = ExtResource("3_step")
 target_id = "celestial_intervener_dialogue_3"
@@ -101,7 +106,7 @@ reached_when = "q_fill_core_completed"
 script = ExtResource("2_beat")
 beat_id = "beat_2"
 title = "First Steps Out"
-steps = Array[ExtResource("3_step")]([SubResource("beat_2_enemy_defeated"), SubResource("beat_2_talk_3"), SubResource("beat_2_buy_awakening"), SubResource("beat_2_equip_smooth_flow"), SubResource("beat_2_equip_empty_palm")])
+steps = Array[ExtResource("3_step")]([SubResource("beat_2_enemy_defeated"), SubResource("beat_2_fight_ended"), SubResource("beat_2_talk_3"), SubResource("beat_2_buy_awakening"), SubResource("beat_2_equip_smooth_flow"), SubResource("beat_2_equip_empty_palm")])
 reached_when = "celestial_intervener_dialogue_3"
 
 [sub_resource type="Resource" id="beat_2b"]

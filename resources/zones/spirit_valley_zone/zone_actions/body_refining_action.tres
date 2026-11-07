@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bxpum1crl78bj" path="res://scripts/resource_definitions/zones/zone_action_data/body_refining_action_data/body_refining_action_data.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_cond"]
-[ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="3_unlock"]
+[ext_resource type="Resource" path="res://resources/unlocks/first_fight_ended.tres" id="3_unlock"]
 [ext_resource type="Texture2D" path="res://assets/ui/lacquer/icons/ic_stone_ai.png" id="4_icon"]
 
 [resource]
