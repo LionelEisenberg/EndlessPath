@@ -162,7 +162,7 @@ func release_hud_boards(holder: MainViewState) -> void:
 ## map's input and the chest's About go off at once and the transition plays the
 ## board in; MainView turns nothing else over. Without one, the open is instant: the
 ## dock and About hide and the map takes no input (see set_board_mode()), the chest
-## lists the techniques for a board that swaps it, the log and Goals hide, through
+## turns to the board's mode for a board that swaps it, the log and Goals hide, through
 ## spec.holder, for a board that moves them, and the board's view shows. Each piece
 ## is skipped when it is missing, as it is on the MainViews the view-state tests
 ## build.
@@ -175,7 +175,7 @@ func open_board(spec: BoardTransitionSpec) -> void:
 		return
 	set_board_mode(true)
 	if spec.swaps_chest and zone_panel != null:
-		zone_panel.set_techniques_mode(true)
+		zone_panel.set_chest_mode(spec.chest_mode)
 	if spec.moves_hud_boards:
 		hide_hud_boards(spec.holder)
 	if spec.view != null:
@@ -194,7 +194,7 @@ func close_board(spec: BoardTransitionSpec, on_closed: Callable) -> void:
 	if spec.moves_hud_boards:
 		release_hud_boards(spec.holder)
 	if spec.swaps_chest and zone_panel != null:
-		zone_panel.set_techniques_mode(false)
+		zone_panel.set_chest_mode(ZonePanel.ChestMode.ACTIVITIES)
 	set_board_mode(false)
 	if on_closed.is_valid():
 		on_closed.call()
@@ -240,13 +240,16 @@ func change_state(new_state: MainViewState) -> void:
 
 ## The cycling board sends its Madra and XP pellets into the cultivator cabinet,
 ## and the body refining board its XP and Health pellets, so each is handed the
-## cabinet. A cycling_view that is not a CyclingView (the view-state tests stand a
-## plain Control in) is left alone, and so is a missing body refining board.
+## cabinet. The body refining board is handed the chest too, which takes its own
+## clicks while the board is up. A cycling_view that is not a CyclingView (the
+## view-state tests stand a plain Control in) is left alone, and so is a missing
+## body refining board.
 func _hand_cabinet_to_boards() -> void:
 	if cycling_view is CyclingView:
 		(cycling_view as CyclingView).cultivator_plate = cultivator_plate
 	if body_refining_view != null:
 		body_refining_view.cultivator_plate = cultivator_plate
+		body_refining_view.chest = zone_panel
 
 ## Hands the transition the pieces it moves: the dock, the chest, the HUD boards
 ## (the Goals board first, then the log: the order they step off the screen in),

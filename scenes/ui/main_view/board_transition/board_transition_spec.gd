@@ -4,9 +4,10 @@ extends RefCounted
 ## BoardTransitionSpec
 ## What a board in the zone view's map gap tells BoardTransition about itself:
 ## its view, where its board stands on the screen, whether it swaps the zone
-## chest's rows (cycling turns the activities to the techniques) and whether it
-## moves the HUD boards (the Tribulation steps the Goals board and the log off
-## the left edge). A new board gets the open and close by filling one in.
+## chest's rows (cycling turns the activities to the techniques, body refining to
+## the drills) and whether it moves the HUD boards (the Tribulation steps the
+## Goals board and the log off the left edge). A new board gets the open and close
+## by filling one in.
 
 #-----------------------------------------------------------------------------
 # FIELDS
@@ -18,9 +19,11 @@ var view: Control
 ## The board's rectangle on the screen at full size. The camera brings the
 ## cultivator to its horizontal centre, a little under its vertical centre.
 var board_rect: Rect2
-## True when the board swaps the zone chest from the activities to the
-## techniques (cycling).
+## True when the board swaps the zone chest from the activities to chest_mode.
 var swaps_chest: bool = false
+## What a board that swaps the chest turns it to: the techniques (cycling) or the
+## drills (body refining).
+var chest_mode: ZonePanel.ChestMode = ZonePanel.ChestMode.TECHNIQUES
 ## True when the board steps the Goals board and the log off the left edge of
 ## the screen (the Tribulation).
 var moves_hud_boards: bool = false

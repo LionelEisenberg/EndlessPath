@@ -4,7 +4,8 @@ extends GutTest
 ## board in the zone view's map gap from one progress value (design: "Behaviour
 ## rules"): the shield that takes the mouse while it moves, the close callbacks
 ## and the opened and closed signals, the zone chest swapping to its techniques
-## (cycling) and the HUD boards stepping off the left edge (Tribulation), and the
+## (cycling) or its drills (body refining) and the HUD boards stepping off the
+## left edge (Tribulation), and the
 ## camera, the dock, the chest and the boards back at rest after a close, played
 ## back from wherever a reversal finds them.
 ## The player is built from its scene with its processing off and driven by
@@ -259,6 +260,22 @@ func test_the_chest_swaps_at_the_swap_point_both_ways() -> void:
 	_transition.advance(0.002)
 	assert_almost_eq(_t(), 299.0, NEAR, "precondition: back to t 299")
 	assert_false(_chest.is_techniques_mode(), "back below the swap, the activities again")
+
+## The body refining board swaps the chest to the learned drills at the same
+## point, and back.
+func test_a_drills_board_swaps_the_chest_to_the_drills_both_ways() -> void:
+	_spec.chest_mode = ZonePanel.ChestMode.DRILLS
+	_transition.open(_spec)
+	_transition.advance(0.299)
+	assert_almost_eq(_t(), 299.0, NEAR, "precondition: t 299")
+	assert_eq(_chest.get_chest_mode(), ZonePanel.ChestMode.ACTIVITIES, "the activities until the swap")
+	_transition.advance(0.002)
+	assert_eq(_chest.get_chest_mode(), ZonePanel.ChestMode.DRILLS, "the drills from the swap")
+	_transition.finish()
+	assert_eq(_chest.get_drill_list().get_drawer_count(), BodyRefiningManager.get_unlocked_drills().size(), "a drawer per learned drill")
+	_transition.close()
+	_transition.finish()
+	assert_eq(_chest.get_chest_mode(), ZonePanel.ChestMode.ACTIVITIES, "the activities once it has closed")
 
 ## The plain way a row goes is a rebuild of the chest's list; this frees one row
 ## by hand, so the player holds one freed row among live ones.

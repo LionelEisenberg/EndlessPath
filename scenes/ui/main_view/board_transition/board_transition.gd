@@ -3,8 +3,8 @@ extends Control
 
 ## BoardTransition
 ## Opens and closes a board in the zone view's map gap (the cycling board, the
-## Tribulation board) as one reversible transition, described by the board's
-## BoardTransitionSpec.
+## body refining board, the Tribulation board) as one reversible transition,
+## described by the board's BoardTransitionSpec.
 ##
 ## Progress. The whole transition is one progress value, 0 (closed) to 1
 ## (open), and a direction: opening, open, closing or closed. advance() moves
@@ -35,11 +35,12 @@ extends Control
 ##   hidden once it is off it;
 ## - the board's view: hidden before the board's start, then scaled to
 ##   board_scale(t) about the point the camera brings the cultivator to;
-## - the zone chest, for a board that swaps it (cycling): the activities mode
-##   before CHEST_SWAP_MS and the techniques mode from it; the rows of the list
-##   that shows slid right by their position.x (the activities stepping out, the
-##   techniques stepping in); and the chest's frame held between the two modes'
-##   heights from the swap to CHEST_END_MS;
+## - the zone chest, for a board that swaps it: the activities mode before
+##   CHEST_SWAP_MS and the board's mode from it (the techniques for cycling, the
+##   drills for body refining); the rows of the list that shows slid right by
+##   their position.x (the activities stepping out, the board's drawers stepping
+##   in); and the chest's frame held between the two modes' heights from the swap
+##   to CHEST_END_MS;
 ## - the HUD boards (the Goals board, then the log), for a board that moves them
 ##   (the Tribulation): stepped off the left edge of the screen;
 ## - itself: a full-screen shield that takes every click while it moves, and
@@ -101,9 +102,9 @@ var _hud_travel: Array[float] = []
 ## The view's top-left on the screen at full size.
 var _view_origin: Vector2 = Vector2.ZERO
 
-## The chest's height in the activities mode and in the techniques mode.
+## The chest's height in the activities mode and in the board's mode.
 var _activities_height: float = 0.0
-var _techniques_height: float = 0.0
+var _board_mode_height: float = 0.0
 ## True while the chest's frame is held to a height.
 var _holds_height: bool = false
 ## The rows the chest slides and the x each rests at. A row may be freed while
@@ -402,12 +403,12 @@ func _swaps_chest() -> bool:
 
 ## The chest's mode, its rows and its height at t.
 func _apply_chest(t: float) -> void:
-	var techniques: bool = t >= BoardTransitionTiming.CHEST_SWAP_MS
-	if _zone_panel.is_techniques_mode() != techniques:
-		_switch_chest(techniques)
+	var mode: ZonePanel.ChestMode = _spec.chest_mode if t >= BoardTransitionTiming.CHEST_SWAP_MS else ZonePanel.ChestMode.ACTIVITIES
+	if _zone_panel.get_chest_mode() != mode:
+		_switch_chest(mode)
 	_slide_rows(t)
 	if t > BoardTransitionTiming.CHEST_SWAP_MS and t < BoardTransitionTiming.CHEST_END_MS:
-		_zone_panel.set_height_override(BoardTransitionTiming.chest_height(t, _activities_height, _techniques_height))
+		_zone_panel.set_height_override(BoardTransitionTiming.chest_height(t, _activities_height, _board_mode_height))
 		_holds_height = true
 	else:
 		_release_height()
@@ -415,17 +416,17 @@ func _apply_chest(t: float) -> void:
 ## Turns the chest to the other list: the rows that showed go back to rest,
 ## the heights are read again (the last cycle's line may have changed since),
 ## and the new list's rows are taken.
-func _switch_chest(techniques: bool) -> void:
+func _switch_chest(mode: ZonePanel.ChestMode) -> void:
 	_restore_rows()
-	_zone_panel.set_techniques_mode(techniques)
+	_zone_panel.set_chest_mode(mode)
 	_read_chest_heights()
 	_take_rows()
 
-## Reads the chest's height in each mode. Asking for the techniques' height
-## may rebuild the hidden technique list.
+## Reads the chest's height in the activities mode and the board's. Asking for the
+## board's may rebuild its hidden list of drawers.
 func _read_chest_heights() -> void:
-	_activities_height = _zone_panel.chest_height_for(false)
-	_techniques_height = _zone_panel.chest_height_for(true)
+	_activities_height = _zone_panel.chest_height_for_mode(ZonePanel.ChestMode.ACTIVITIES)
+	_board_mode_height = _zone_panel.chest_height_for_mode(_spec.chest_mode)
 
 ## Takes the rows of the list that shows and the x each rests at now, and
 ## watches the containers that lay them out.
@@ -452,10 +453,10 @@ func _let_go_of_rows() -> void:
 	_rows.clear()
 	_row_rest_x.clear()
 
-## Slides the rows to t: the activities' rows out to the right, the
-## techniques' rows in from the right, each from the x it rests at.
+## Slides the rows to t: the activities' rows out to the right, the board's
+## drawers in from the right, each from the x it rests at.
 func _slide_rows(t: float) -> void:
-	var stepping_in: bool = _zone_panel.is_techniques_mode()
+	var stepping_in: bool = _zone_panel.get_chest_mode() != ZonePanel.ChestMode.ACTIVITIES
 	var travel: float = _zone_panel.size.x
 	var count: int = _rows.size()
 	for index: int in count:

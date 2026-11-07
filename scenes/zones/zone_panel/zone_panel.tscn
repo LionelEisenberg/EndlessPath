@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" uid="uid://fwisr8gt3pur" path="res://scenes/zones/zone_panel/activity_list/activity_list.tscn" id="14_list"]
 [ext_resource type="Texture2D" uid="uid://dt1lk5srus118" path="res://assets/ui/lacquer/lacquer_lore_ai.png" id="15_lore"]
 [ext_resource type="PackedScene" uid="uid://bmqbtx5prppv8" path="res://scenes/zones/zone_panel/technique_list/technique_list.tscn" id="16_techniques"]
+[ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/drill_drawer_list/drill_drawer_list.tscn" id="17_drills"]
 
 [node name="ZonePanel" type="Control" unique_id=478649513]
 layout_mode = 3
@@ -211,6 +212,15 @@ offset_left = 16.0
 offset_top = 208.0
 offset_right = 408.0
 offset_bottom = 280.0
+
+[node name="DrillDrawerList" parent="SlideClip" unique_id=1453977025 instance=ExtResource("17_drills")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 208.0
+offset_right = 408.0
+offset_bottom = 300.0
 
 [node name="ActivityList" parent="." unique_id=593821855 instance=ExtResource("14_list")]
 unique_name_in_owner = true

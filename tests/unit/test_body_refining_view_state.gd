@@ -3,8 +3,8 @@ extends GutTest
 ## Unit tests for how BodyRefiningViewState opens and closes the body refining
 ## board on MainView's state stack. A start sets the board up for the action and
 ## pushes the state once; entering blocks the full log, turns the dock and the
-## map's input off and shows the board, leaving the chest, the Goals board and the
-## log where they stand. Escape stops the action; the drill's presses go to the
+## map's input off, turns the chest to the learned drills and shows the board,
+## leaving the Goals board and the log where they stand. Escape stops the action; the drill's presses go to the
 ## board. A stop halts the set at once and closes the board, removing only the
 ## state. On a MainView with no transition the open and the close are instant;
 ## given a real BoardTransition, driven by advance() and finish(), they play out,
@@ -21,6 +21,7 @@ const STATE_SCRIPT_PATH: String = "res://scenes/ui/main_view/states/body_refinin
 const MAIN_GAME_SCENE_PATH: String = "res://scenes/main/main_game/main_game.tscn"
 const LOG_WINDOW_SCENE: PackedScene = preload("res://scenes/ui/log_window/log_window.tscn")
 const TRANSITION_SCENE: PackedScene = preload("res://scenes/ui/main_view/board_transition/board_transition.tscn")
+const ZONE_PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
 
 const ACTION_ID: String = "riverbank_training_action"
 ## An idle action, which resumes when body refining stops.
@@ -156,8 +157,8 @@ func test_start_sets_the_board_up_for_the_action() -> void:
 	assert_false(_main_view.dock.visible, "the dock is off")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "and the map takes no input")
 
-## The chest, the Goals board and the log stay where they stand: the board leaves
-## them as cycling's does.
+## The Goals board and the log stay where they stand: the board leaves them as
+## cycling's does.
 func test_the_goals_board_and_the_log_stay() -> void:
 	_state._on_start_body_refining(_action())
 	assert_true(_main_view.goals_panel.visible, "Goals shows")
@@ -173,6 +174,15 @@ func test_escape_stops_the_action() -> void:
 	assert_ne(ActionManager.get_current_action(), _action(), "Escape stops body refining")
 	assert_eq(_times_on_the_stack(), 0, "the board's state leaves the stack")
 	assert_false(_view.visible, "and the board hides")
+
+## On a MainView with no transition the chest turns to the learned drills at once,
+## and back to the activities when the board closes.
+func test_the_chest_turns_to_the_drills_and_back() -> void:
+	_main_view.zone_panel = add_child_autofree(ZONE_PANEL_SCENE.instantiate()) as ZonePanel
+	_state._on_start_body_refining(_action())
+	assert_eq(_main_view.zone_panel.get_chest_mode(), ZonePanel.ChestMode.DRILLS, "the chest lists the drills")
+	_state._on_stop_body_refining()
+	assert_eq(_main_view.zone_panel.get_chest_mode(), ZonePanel.ChestMode.ACTIVITIES, "and the activities again")
 
 func test_the_press_action_reaches_the_view() -> void:
 	_state._on_start_body_refining(_action())
@@ -217,8 +227,8 @@ func test_stop_without_the_state_on_the_stack_changes_nothing() -> void:
 # THE STATE ON THE TRANSITION
 #-----------------------------------------------------------------------------
 
-## Start hands the player the board: the view, its board's rect, a spec that leaves
-## the chest and the HUD boards alone, and the state as holder.
+## Start hands the player the board: the view, its board's rect, a spec that swaps
+## the chest to the drills and leaves the HUD boards alone, and the state as holder.
 func test_start_opens_the_board_through_the_transition() -> void:
 	var player: BoardTransition = _give_main_view_a_player()
 	var rest: Rect2 = _view.get_board_rect()
@@ -227,7 +237,8 @@ func test_start_opens_the_board_through_the_transition() -> void:
 	assert_not_null(spec, "the player was handed the board")
 	assert_same(spec.view, _view, "the body refining view")
 	assert_eq(spec.board_rect, rest, "framed by the board's own rect")
-	assert_false(spec.swaps_chest, "it leaves the chest")
+	assert_true(spec.swaps_chest, "it swaps the chest")
+	assert_eq(spec.chest_mode, ZonePanel.ChestMode.DRILLS, "to the drills")
 	assert_false(spec.moves_hud_boards, "and the Goals board and the log")
 	assert_same(spec.holder, _state, "the state holds it")
 	assert_true(_main_view.is_board_moving(), "the board opens")

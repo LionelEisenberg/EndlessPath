@@ -26,9 +26,11 @@ extends Control
 ## no pellet flies.
 ##
 ## The root covers the screen and stops every click, as the Tribulation board's
-## does, so none reaches the chest or the map while the board is up: a mouse press
-## anywhere is the drill's (_gui_input()), and keys come from the view state
-## through handle_press_event(). The close button and Esc stop the action.
+## does, so none reaches the map while the board is up: a mouse press anywhere is
+## the drill's (_gui_input()), but on the chest, which takes its own clicks while
+## it shows (_has_point()) so that a drill drawer picks its drill and never plays.
+## Keys come from the view state through handle_press_event(). The close button
+## and Esc stop the action.
 ## halt() stops a set in progress and frees the pellets in flight, which show
 ## what they carried at once, leaving the board drawn for a transition to shrink
 ## it away; close() also hides it. get_board_rect() says where the board stands.
@@ -100,6 +102,9 @@ const BOARD_ROOM: float = 30.0
 ## The cultivator cabinet the pellets fly into. MainView sets it; with none, no
 ## pellet is sent.
 var cultivator_plate: CultivatorPlate = null
+## The zone chest, which takes its own clicks while it shows. MainView sets it;
+## with none, every click is the board's.
+var chest: Control = null
 
 ## The drill the board plays: the equipped one.
 var _drill: DrillData = null
@@ -119,10 +124,17 @@ func _ready() -> void:
 	_show_ready_line()
 
 ## Every mouse event that reaches the root, on the board or anywhere around it, is
-## the board's: a press of the drill's button lifts, and nothing passes beneath.
+## the board's: a press of the drill's button plays, and nothing passes beneath.
 func _gui_input(event: InputEvent) -> void:
 	_drill_play.handle_press_event(event)
 	accept_event()
+
+## The root covers the screen but the chest while it shows, so the chest's drawers
+## take their own clicks.
+func _has_point(point: Vector2) -> bool:
+	if chest != null and chest.is_visible_in_tree() and chest.get_global_rect().has_point(get_global_transform() * point):
+		return false
+	return Rect2(Vector2.ZERO, size).has_point(point)
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
