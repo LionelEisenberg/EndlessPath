@@ -327,7 +327,8 @@ func test_a_snapshot_is_copied_not_shared() -> void:
 ## a first time of play.
 func test_binding_a_snapshot_records_no_first_time() -> void:
 	var snapshot := SaveGameData.new_current()
-	snapshot.core_density_level = 10.0
+	# Two stars: REACH_CD_10's goal since #109.
+	snapshot.core_density_level = 20.0
 	var preset := _preset("test_unlatched_snapshot", "")
 	preset.snapshot = snapshot
 	assert_eq(DevManager.build_preset(preset), "", "precondition: the preset builds")

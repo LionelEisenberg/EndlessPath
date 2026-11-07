@@ -1,7 +1,7 @@
 label dialogue_1
 join celestial_intervener center
 celestial_intervener: Oop got you out of there just in time huh? Yeah that was what we call a [color=red][TIMELINE ALTERING EVENT][/color], and we tend to look a little down on that, so I decided to help you out!
-celestial_intervener: Anywho, your [color=blue][CORE][color] is running a little dry there, we're safe here, so take some time to cycle and get back to me when you're all plumped up!
+celestial_intervener: Anywho, your [color=blue]Madra[/color] is running a little dry. We're safe here, so sit and cycle: it fills your Madra and trains your Spirit. Come back when you're all plumped up!
 leave celestial_intervener
 [end_timeline]
 label dialogue_2
@@ -12,13 +12,22 @@ leave celestial_intervener
 [end_timeline]
 label dialogue_3
 join celestial_intervener center
-celestial_intervener: Oh good! Hopefully these spirits haven't been giving you TOO much trouble, otherwise... Well you'll be in for a suprise!
-celestial_intervener: [REPORT REQUESTED] - Okay I don't have too much more time before I need to leave, strengthen your core while cycling with that fancy new cycling technique! Let me know when you've progressed a little more and I'll give you some tips before heading out of here.
+celestial_intervener: You made it back! Took a few hits out there, huh? Here at home, your wounds won't close on their own.
+celestial_intervener: Head down to the river and train your body. Every rep patches you up and builds your Strength. Come find me once you're a little stronger.
+celestial_intervener: Oh, and that win earned you a path point. Spend it on your Path!
 leave celestial_intervener
 [end_timeline]
 label dialogue_4
 join celestial_intervener center
-celestial_intervener: Look at you! Core's humming nicely now, eh? Right before I slip off, I'm gonna leave you something useful.
+celestial_intervener: Two stars already! Your core's coming along nicely.
+celestial_intervener: I have to go soon, so listen. Fill all ten stars, and train Strength and Spirit as far as this stage allows. Then the heavens will test you: the Tribulation.
 celestial_intervener: Here, take this map. There's a little refugee camp tucked away in the woods — go find them. Got a merchant with them who'll trade you real gear for coin. Tell 'em I sent you!
+leave celestial_intervener
+[end_timeline]
+label dialogue_5
+join celestial_intervener center
+celestial_intervener: Look at those arms! That's how you grow here: cycling trains your Spirit, and the river trains your Strength.
+celestial_intervener: Your core's another story: it only deepens in a fight. Every enemy you beat fills it a little, and every star you fill earns a path point.
+celestial_intervener: Take this manual too. It teaches Horse Stance, another drill for the river. Now go fill two stars of your core!
 leave celestial_intervener
 [end_timeline]

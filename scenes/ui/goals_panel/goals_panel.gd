@@ -263,9 +263,10 @@ func _on_core_density_level_updated(_xp: float, _level: float) -> void:
 func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
 	refresh()
 
-## A main stat's new level changes what the milestone still asks for.
+## A stat's new level moves a stat step's figure, and changes what the milestone
+## still asks for.
 func _on_stat_level_changed(_stat: CharacterAttributesData.AttributeType, _level: int) -> void:
-	_update_milestone()
+	refresh()
 
 ## The stage's breakthrough_goal_condition latching puts the milestone on the
 ## board.

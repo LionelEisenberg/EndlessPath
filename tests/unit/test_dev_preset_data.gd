@@ -126,6 +126,7 @@ func test_kind_numbers_never_change() -> void:
 		"ADVANCE_STAGE": 11,
 		"TRAVEL": 12,
 		"RAISE_STAT_TO_CAP": 13,
+		"SET_STAT_LEVEL": 14,
 	}
 	assert_eq(DevStepData.Kind, expected, "a step's kind is stored as an int: append only")
 
@@ -163,6 +164,7 @@ func test_a_good_step_validates() -> void:
 	_assert_valid(_step(Kind.ADVANCE_STAGE))
 	_assert_valid(_step(Kind.TRAVEL, ZONE_ID))
 	_assert_valid(_step(Kind.RAISE_STAT_TO_CAP, "strength"))
+	_assert_valid(_step(Kind.SET_STAT_LEVEL, "strength", 2.0))
 
 ## One assertion per rule.
 func test_validate_catches_each_bad_step() -> void:
@@ -177,6 +179,8 @@ func test_validate_catches_each_bad_step() -> void:
 	_assert_flagged(_step(Kind.AWARD_ITEM, QUEST_FILE, 1.0), "not an item")
 	_assert_flagged(_step(Kind.TRAVEL, "Nowhere"), "unknown zone")
 	_assert_flagged(_step(Kind.RAISE_STAT_TO_CAP, "willpower"), "unknown stat")
+	_assert_flagged(_step(Kind.SET_STAT_LEVEL, "willpower", 2.0), "unknown stat")
+	_assert_flagged(_step(Kind.SET_STAT_LEVEL, "strength", 0.0), "level")
 	_assert_flagged(_step(Kind.REACH_CORE_DENSITY, "", 0.0), "level")
 	_assert_flagged(_step(Kind.REACH_CORE_DENSITY, "", -5.0), "level")
 	_assert_flagged(_step(Kind.EQUIP_ABILITY, "empty_palm", 0.0), "slot")

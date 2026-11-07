@@ -246,9 +246,9 @@ func test_quests_label_shows_the_current_step() -> void:
 	var quests: Label = _label(tab, "QuestsLabel")
 	assert_eq(quests.text, "No quests started yet", "precondition: a fresh save has none")
 	QuestManager.start_quest(FILL_CORE)
-	assert_eq(quests.text, "Awaken Your Core — step 1: Fill your Madra by cycling", "the quest, its step and what the step asks")
+	assert_eq(quests.text, "Awaken Your Spirit — step 1: Fill your Madra by cycling", "the quest, its step and what the step asks")
 	DevCommands.set_madra(100.0)
-	assert_eq(quests.text, "Awaken Your Core — step 2: Return to the Celestial [INTERVENER]", "the next step once the first is done")
+	assert_eq(quests.text, "Awaken Your Spirit — step 2: Return to the Celestial [INTERVENER]", "the next step once the first is done")
 
 #-----------------------------------------------------------------------------
 # ACTIONS

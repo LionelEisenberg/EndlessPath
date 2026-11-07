@@ -331,7 +331,7 @@ func test_finished_quest_ticks_every_step() -> void:
 	for index: int in rows.size():
 		assert_true(_is_ticked(rows[index]), "step %d is ticked" % index)
 		assert_eq((rows[index].get_node("%Text") as Label).text, quest.steps[index].description)
-	assert_eq((rows[0].get_node("%Figure") as Label).text, "10 / 10", "a finished step reads its target")
+	assert_eq((rows[0].get_node("%Figure") as Label).text, "20 / 20", "a finished step reads its target, two stars of levels")
 	assert_false((rows[1].get_node("%Figure") as Control).is_visible_in_tree(), "an event step has no figure")
 
 func test_quest_in_progress_shows_reached_steps_only() -> void:

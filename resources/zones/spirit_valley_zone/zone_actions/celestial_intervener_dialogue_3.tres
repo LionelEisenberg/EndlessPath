@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="3_r2vv0"]
 [ext_resource type="Script" uid="uid://dnny6lt7o8jep" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="4_43dbk"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_ld4ux"]
-[ext_resource type="Resource" uid="uid://d1vxkodelucwu" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_n0njg"]
+[ext_resource type="Resource" uid="uid://bqfsendefeat01" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_n0njg"]
 [ext_resource type="Resource" path="res://resources/unlocks/celestial_intervener_dialogue_2.tres" id="7_cid2"]
 [ext_resource type="Texture2D" uid="uid://lobvyu83antr" path="res://assets/ui/lacquer/icons/ic_story_ai.png" id="20_icon"]
 
@@ -15,9 +15,9 @@ event_id = "celestial_intervener_dialogue_3"
 effect_type = 1
 metadata/_custom_type_script = "uid://cc0ky7w2fsg10"
 
-[sub_resource type="Resource" id="Resource_start_q_reach_cd_10"]
+[sub_resource type="Resource" id="Resource_start_temper_your_body"]
 script = ExtResource("4_43dbk")
-quest_id = "q_reach_core_density_10"
+quest_id = "q_temper_body"
 effect_type = 5
 
 [resource]
@@ -31,5 +31,5 @@ description = "Having bloodied your hands in battle, you return to the [INTERVEN
 icon = ExtResource("20_icon")
 unlock_conditions = Array[ExtResource("5_ld4ux")]([ExtResource("6_n0njg"), ExtResource("7_cid2")])
 max_completions = 1
-success_effects = Array[ExtResource("1_8qa6f")]([SubResource("Resource_trigger_dialogue_3"), SubResource("Resource_start_q_reach_cd_10")])
+success_effects = Array[ExtResource("1_8qa6f")]([SubResource("Resource_trigger_dialogue_3"), SubResource("Resource_start_temper_your_body")])
 metadata/_custom_type_script = "uid://10xqk22j564o"

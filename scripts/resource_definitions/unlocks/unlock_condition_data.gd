@@ -12,6 +12,7 @@ enum ConditionType {
 	ITEM_OWNED, # Check inventory for item
 	RESOURCE_AMOUNT, # Check resource quantity (madra/gold)
 	ATTRIBUTE_VALUE, # Check attribute value
+	STAT_LEVEL, # Check a stat's trained level: optional_params {"stat": "<stat key>"}
 }
 
 @export var condition_id: String = "" # Unique identifier for this condition
@@ -59,20 +60,30 @@ func evaluate() -> bool:
 			var current_value = CharacterManager.get_total_attributes_data().get_attribute(attribute_type)
 			return _compare_values(current_value, target_value, comparison_op)
 
+		ConditionType.STAT_LEVEL:
+			return _compare_values(get_current_value(), target_value, comparison_op)
+
 	return false
 
 ## True when progress toward this condition can be shown as current / target:
-## RESOURCE_AMOUNT and CULTIVATION_LEVEL conditions.
+## RESOURCE_AMOUNT, CULTIVATION_LEVEL and STAT_LEVEL conditions.
 func is_measurable() -> bool:
 	return condition_type == ConditionType.RESOURCE_AMOUNT \
-		or condition_type == ConditionType.CULTIVATION_LEVEL
+		or condition_type == ConditionType.CULTIVATION_LEVEL \
+		or condition_type == ConditionType.STAT_LEVEL
 
 ## The value evaluate() compares against the target: the Madra or gold amount,
-## or the Core Density level. 0.0 for a condition that is not measurable.
+## the Core Density level, or the stat's trained level, which gear never moves
+## (0.0 when the key names no stat). 0.0 for a condition that is not measurable.
 func get_current_value() -> float:
 	match condition_type:
 		ConditionType.CULTIVATION_LEVEL:
 			return CultivationManager.get_core_density_level()
+		ConditionType.STAT_LEVEL:
+			var stat: int = CharacterAttributesData.stat_from_key(StringName(str(optional_params.get("stat", ""))))
+			if stat == -1:
+				return 0.0
+			return float(CharacterManager.get_stat_level(stat as AttributeType))
 		ConditionType.RESOURCE_AMOUNT:
 			var resource_type: String = str(optional_params.get("resource_type", "madra"))
 			if resource_type == "madra":

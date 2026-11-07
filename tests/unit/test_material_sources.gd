@@ -3,7 +3,7 @@ extends GutTest
 ## MaterialSources (spec: Data the tabs read): where a material is gathered.
 ## Only sources the player can already see are listed: activities they have
 ## unlocked, in zones the map shows them. Today the only one is Spring Forest
-## Foraging in Spirit Valley, which unlocks when "Awaken Your Core" completes.
+## Foraging in Spirit Valley, which unlocks when "Awaken Your Spirit" completes.
 
 const SPIRIT_FERN_PATH: String = "res://resources/items/materials/spirit_fern.tres"
 const DEWDROP_TEAR_PATH: String = "res://resources/items/materials/dewdrop_tear.tres"

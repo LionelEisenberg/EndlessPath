@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_qtbs"]
+
+[resource]
+script = ExtResource("1_qtbs")
+condition_id = "q_temper_body_strength"
+condition_type = 8
+target_value = 2
+comparison_op = ">="
+optional_params = {
+"stat": "strength"
+}
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

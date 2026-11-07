@@ -649,7 +649,7 @@ func test_count_label() -> void:
 	assert_eq((_node("CountLabel") as Label).text, "1 here")
 	_unlock_everything()
 	await wait_process_frames(2)
-	assert_eq((_node("CountLabel") as Label).text, "11 here")
+	assert_eq((_node("CountLabel") as Label).text, "12 here")
 
 func test_rebuilds_on_unlock() -> void:
 	await _add_panel()

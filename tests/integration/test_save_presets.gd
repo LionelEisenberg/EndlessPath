@@ -52,6 +52,7 @@ const STARTING_PRESETS: Dictionary = {
 	"fresh": {"story_through": ""},
 	"adventure_open": {"story_through": "beat_1"},
 	"path_open": {"story_through": "beat_2"},
+	"harden_core": {"story_through": "beat_2b"},
 	"merchant_open": {"story_through": "beat_3b"},
 	"tribulation_ready": {"story_through": "beat_9_ready"},
 	"copper": {"story_through": "beat_9"},
@@ -242,6 +243,23 @@ func test_copper_keeps_the_levels_it_broke_through_with() -> void:
 	var foundation_cap: int = (load(FOUNDATION_STAGE) as AdvancementStageResource).stat_level_cap
 	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), foundation_cap, "Strength keeps Foundation's cap")
 	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), foundation_cap, "and so does Spirit")
+
+## path_open ends on NPC 3's talk, so the body refining beat is the one to play.
+func test_path_open_starts_on_temper_your_body() -> void:
+	if not _build_shipped("path_open"):
+		return
+	assert_eq(QuestManager.get_active_quest_ids(), ["q_temper_body"] as Array[String], "Temper Your Body runs")
+	assert_eq(QuestManager.get_current_step_index("q_temper_body"), 0, "on its first step")
+
+## harden_core starts after the body refining beat: Strength at Lv 2, Horse Stance
+## learned, and two stars of the core to fill.
+func test_harden_core_has_two_stars_to_fill() -> void:
+	if not _build_shipped("harden_core"):
+		return
+	assert_eq(QuestManager.get_active_quest_ids(), ["q_reach_core_density_10"] as Array[String], "Harden Your Core runs")
+	assert_eq(QuestManager.get_current_step_index("q_reach_core_density_10"), 0, "on its first step")
+	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), 2, "Strength is at Lv 2")
+	assert_true(BodyRefiningManager.is_drill_unlocked("horse_stance"), "Horse Stance is learned")
 
 func test_merchant_open_has_the_merchant_and_700_gold() -> void:
 	if not _build_shipped("merchant_open"):

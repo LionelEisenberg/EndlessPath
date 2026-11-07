@@ -26,15 +26,17 @@ func get_measured_condition() -> UnlockConditionData:
 
 ## The step's progress figure, as the Goals board and the Journal print it:
 ## the measured condition's current and target values, whole numbers rounded
-## down ("25 / 100"), or "" when the step measures nothing. A `finished` step
-## reads its target as its current value ("100 / 100"), whatever that value is
-## now.
+## down ("25 / 100"), a stat's level read as one ("Lv 1 / 2"), or "" when the
+## step measures nothing. A `finished` step reads its target as its current
+## value ("100 / 100"), whatever that value is now.
 func get_progress_text(finished: bool = false) -> String:
 	var condition: UnlockConditionData = get_measured_condition()
 	if condition == null:
 		return ""
 	var target: int = floori(condition.get_target_value())
 	var current: int = target if finished else floori(condition.get_current_value())
+	if condition.condition_type == UnlockConditionData.ConditionType.STAT_LEVEL:
+		return "Lv %d / %d" % [current, target]
 	return "%d / %d" % [current, target]
 
 
