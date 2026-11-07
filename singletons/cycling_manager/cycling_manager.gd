@@ -8,6 +8,9 @@ extends Node
 
 signal technique_unlocked(technique: CyclingTechniqueData)
 signal equipped_technique_changed(technique: CyclingTechniqueData)
+## Emitted once when a technique's Auto unlocks: a perfect cycle was played with
+## it. Unlocking it again announces nothing.
+signal auto_unlocked(technique: CyclingTechniqueData)
 ## Emitted when the running cycle's measured Madra rate moves to another tenth (the
 ## rate snapped to RATE_STEP changes), including the drop to 0 when the session
 ## ends. The rate passed is the measured one, not snapped.
@@ -127,6 +130,32 @@ func has_unequipped_unlocks() -> bool:
 		if technique_id != equipped:
 			return true
 	return false
+
+# ----- Auto -----
+# Each technique's Auto unlocks with a perfect cycle played on it (the cycling
+# board decides that, CycleResult.is_perfect()) and stays unlocked: the save
+# keeps the technique ids. Until then the board's Auto toggle is locked.
+
+## Unlocks Auto for the technique with this ID and announces it. Idempotent: a
+## technique whose Auto is already unlocked changes nothing and is not announced
+## again. An ID outside the catalog is refused.
+func unlock_auto(technique_id: String) -> void:
+	if not _live_save_data:
+		return
+	if technique_id in _live_save_data.auto_cycling_technique_ids:
+		return
+	if not _techniques_by_id.has(technique_id):
+		push_error("CyclingManager: unknown technique_id '%s'" % technique_id)
+		return
+	_live_save_data.auto_cycling_technique_ids.append(technique_id)
+	Log.info("CyclingManager: Unlocked Auto for '%s'" % technique_id)
+	auto_unlocked.emit(_techniques_by_id[technique_id])
+
+## Returns true once the technique's Auto is unlocked.
+func is_auto_unlocked(technique_id: String) -> bool:
+	if not _live_save_data:
+		return false
+	return technique_id in _live_save_data.auto_cycling_technique_ids
 
 # ----- Seen techniques -----
 

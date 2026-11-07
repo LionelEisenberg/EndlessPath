@@ -92,6 +92,7 @@ func _full_save() -> SaveGameData:
 	save.equipped_cycling_technique_id = "smooth_flow"
 	save.seen_cycling_technique_ids.append("foundation_technique")
 	save.seen_cycling_techniques_initialized = true
+	save.auto_cycling_technique_ids.append("smooth_flow")
 	save.unlocked_drill_ids.append("horse_stance")
 	save.equipped_drill_id = "horse_stance"
 	save.seen_drill_ids.append("stone_lifting")

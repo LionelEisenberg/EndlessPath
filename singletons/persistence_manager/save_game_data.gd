@@ -7,7 +7,7 @@ extends Resource
 
 ## The save format this build writes. migrate() brings an older save up to it,
 ## and a save with a higher number was written by a newer build.
-const CURRENT_VERSION: int = 5
+const CURRENT_VERSION: int = 6
 
 ## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
 @export var save_version: int = 0
@@ -142,6 +142,9 @@ func _verify_current_selected_zone_id() -> bool:
 ## Set once CyclingManager has marked every technique unlocked at the time as seen,
 ## so a save from before the NEW seal doesn't light it on every drawer.
 @export var seen_cycling_techniques_initialized: bool = false
+## technique_ids whose Auto the player has unlocked with a perfect cycle. Empty
+## for a new save, and for a save from before Auto had to be earned.
+@export var auto_cycling_technique_ids: Array[String] = []
 
 #-----------------------------------------------------------------------------
 # BODY REFINING MANAGER
@@ -341,6 +344,10 @@ func _run_version_steps() -> bool:
 	# save, so the step moves nothing.
 	if save_version < 5:
 		save_version = 5
+	# Version 6 added the techniques whose Auto is unlocked. Its empty default
+	# suits an old save (every Auto locked), so the step moves nothing.
+	if save_version < 6:
+		save_version = 6
 	return true
 
 ## True when CultivationManager, which the version 2 step reads the stat caps
