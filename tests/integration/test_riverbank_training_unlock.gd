@@ -1,14 +1,14 @@
 extends GutTest
 
-## Riverbank Training opens as the first fight ends, however it ends: a win, a
-## loss, or a fight the run cuts short when it stops. A run with no fight opens
-## nothing, since only a fight spends Health. Drives the real AdventureView scene
-## through ActionManager, the way the zone starts a run.
+## Riverbank Training opens when First Steps Out ends, at NPC 3's talk, or at
+## once when a fight is lost: a lost fight sends the player home at 0 Health, and
+## the river is the only home source of Health. A won fight, a fight the run's
+## stop cuts short, and a run with no fight open nothing. Drives the real
+## AdventureView scene through ActionManager, the way the zone starts a run.
 
 const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adventure_view.tscn")
 const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
-const FIRST_FIGHT_ENDED: String = "first_fight_ended"
 const ENEMY_DEFEATED: String = "q_first_steps_enemy_defeated"
 const RIVERBANK_ACTION: String = "riverbank_training_action"
 const SPIRIT_VALLEY_ID: String = "SpiritValley"
@@ -40,17 +40,16 @@ func after_each() -> void:
 # TESTS
 #-----------------------------------------------------------------------------
 
-func test_every_way_a_fight_ends_opens_riverbank_training() -> void:
+func test_only_a_lost_fight_opens_riverbank_training() -> void:
 	var cases: Array[Dictionary] = [
-		{"name": "a won fight", "end": "win", "enemy_defeated": true},
-		{"name": "a lost fight", "end": "loss", "enemy_defeated": false},
-		{"name": "a fight the run's stop cuts short", "end": "stop", "enemy_defeated": false},
+		{"name": "a won fight", "end": "win", "opens": false, "enemy_defeated": true},
+		{"name": "a lost fight", "end": "loss", "opens": true, "enemy_defeated": false},
+		{"name": "a fight the run's stop cuts short", "end": "stop", "opens": false, "enemy_defeated": false},
 	]
 	for case: Dictionary in cases:
 		_use_fresh_save()
 		_start_adventure()
 		_view._on_start_combat(_fight())
-		assert_false(_is_riverbank_open(), "%s: shut while the fight runs" % case.name)
 		match case.end:
 			"win":
 				# Takes the enemy's Health, so AdventureCombat ends the fight as in play.
@@ -60,14 +59,12 @@ func test_every_way_a_fight_ends_opens_riverbank_training() -> void:
 				_view.combat.trigger_combat_end.emit(false, 0)
 			"stop":
 				_view.stop_adventure()
-		assert_true(EventManager.has_event_triggered(FIRST_FIGHT_ENDED), "%s: the event fired" % case.name)
-		assert_true(_is_riverbank_open(), "%s: Riverbank Training is open" % case.name)
+		assert_eq(_is_riverbank_open(), case.opens, "%s: Riverbank Training is open" % case.name)
 		assert_eq(EventManager.has_event_triggered(ENEMY_DEFEATED), case.enemy_defeated, "%s: only a win counts as the enemy defeated" % case.name)
 
 func test_a_run_with_no_fight_keeps_riverbank_training_shut() -> void:
 	_start_adventure()
 	_view.stop_adventure()
-	assert_false(EventManager.has_event_triggered(FIRST_FIGHT_ENDED), "no fight, no event")
 	assert_false(_is_riverbank_open(), "Riverbank Training stays shut")
 
 #-----------------------------------------------------------------------------

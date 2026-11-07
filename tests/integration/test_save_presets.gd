@@ -45,7 +45,7 @@ const PIN_PATH: String = "user://__test_save_presets_pin.cfg"
 const TRIBULATION_ACTION: String = "spirit_valley_tribulation"
 ## Opens once merchant_discovered fires, the last step of beat_3b.
 const MERCHANT_ACTION: String = "spirit_valley_merchant"
-## Opens once the first fight has ended, which beat_2 plays.
+## Opens at NPC 3's talk, which ends First Steps Out in beat_2.
 const RIVERBANK_ACTION: String = "riverbank_training_action"
 
 ## The starting presets the spec names: each id with the beat it starts through ("" for
@@ -246,9 +246,9 @@ func test_copper_keeps_the_levels_it_broke_through_with() -> void:
 	assert_eq(CharacterManager.get_stat_level(Attribute.STRENGTH), foundation_cap, "Strength keeps Foundation's cap")
 	assert_eq(CharacterManager.get_stat_level(Attribute.SPIRIT), foundation_cap, "and so does Spirit")
 
-## Riverbank Training opens as the first fight ends: adventure_open stops before that
-## fight, and every later preset is past it.
-func test_riverbank_training_opens_after_the_first_fight() -> void:
+## Riverbank Training opens as First Steps Out ends, at NPC 3's talk: adventure_open
+## stops before it, and every later preset is past it.
+func test_riverbank_training_opens_with_first_steps_out_s_end() -> void:
 	var cases: Dictionary = {
 		"adventure_open": false,
 		"path_open": true,
