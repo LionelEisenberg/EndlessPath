@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://c1urxnbhmkqws" path="res://scripts/resource_definitions/quests/quest_list.gd" id="1_ql"]
 [ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="2_qd"]
 [ext_resource type="Resource" uid="uid://d1l5innqmliwu" path="res://resources/quests/q_fill_core.tres" id="3_qfc01"]
-[ext_resource type="Resource" uid="uid://bqfirststeps01" path="res://resources/quests/q_first_steps.tres" id="4_qfst"]
+[ext_resource type="Resource" uid="uid://d1mcp5rsmbbwu" path="res://resources/quests/q_first_steps.tres" id="4_qfst"]
 [ext_resource type="Resource" uid="uid://bqreachcdq001" path="res://resources/quests/q_reach_core_density_10.tres" id="5_qrcdq"]
 
 [resource]

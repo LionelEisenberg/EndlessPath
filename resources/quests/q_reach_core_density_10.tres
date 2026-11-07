@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://dg16ukxsxuhbr" path="res://scripts/resource_definitions/quests/quest_step_data.gd" id="2_qrcdq"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qrcdq"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="4_qrcdq"]
-[ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="5_qrcdq"]
+[ext_resource type="Resource" uid="uid://bqreachcd10001" path="res://resources/unlocks/q_reach_cd_10.tres" id="5_qrcdq"]
 [ext_resource type="Script" uid="uid://dbbopeowutwja" path="res://scripts/resource_definitions/effects/award_item_effect_data.gd" id="6_awi"]
 [ext_resource type="Resource" path="res://resources/items/quest_items/refugee_camp_map.tres" id="7_map"]
 
