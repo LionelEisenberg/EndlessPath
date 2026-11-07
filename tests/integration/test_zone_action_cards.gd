@@ -2,11 +2,11 @@ extends GutTest
 
 ## Integration tests for the lacquer activity cards (ZoneActionButton and its
 ## presenters): the running tag, clicks, the NEW seal and when it clears, what
-## each presenter's detail line and right column show, the adventure's pools,
-## their blink and how gear moves their maxima, and long text: no card cuts its text, a long
-## title, detail, figure or list of finds wraps and the card grows by its lines.
-## Cards are built with setup_action on a fresh save, as the zone panel builds
-## them.
+## each presenter's detail line, right column and icon column show, the
+## adventure's pools, their blink and how gear moves their maxima, and long text:
+## no card cuts its text, a long title, detail, figure or list of finds wraps and
+## the card grows by its lines. Cards are built with setup_action on a fresh save,
+## as the zone panel builds them.
 
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
 
@@ -16,14 +16,13 @@ const FORAGING_ID: String = "sprint_forest_foraging_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
 const BODY_REFINING_ID: String = "riverbank_training_action"
-const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
+const MADRA_POOL: Texture2D = preload("res://assets/ui/lacquer/lacquer_pool_madra_ai.png")
+const HEALTH_POOL: Texture2D = preload("res://assets/ui/lacquer/lacquer_pool_health_ai.png")
 const DIALOGUE_ID: String = "celestial_intervener_dialogue_1"
 ## "Return to the [INTERVENER]": not yet available on a fresh save, so unseen.
 const RETURN_ID: String = "celestial_intervener_dialogue_2"
 
 const FORAGING_EVENT: String = "q_fill_core_completed"
-const SMOOTH_ID: String = "smooth_flow"
-const TORRENTIAL_ID: String = "torrential_flow"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 
 ## A card is 72 px for one title line and one detail line; each detail line after
@@ -185,47 +184,46 @@ func _story_fixture(action_name: String, description: String) -> ZoneActionData:
 	return action
 
 #-----------------------------------------------------------------------------
-# THE CYCLING CARD
+# THE CYCLING AND RIVERBANK TRAINING CARDS
 #-----------------------------------------------------------------------------
 
-## The cycling card's reward row as it reads, in order: the Madra's word, then
-## each shown stat's.
-func _reward_words(card: ZoneActionButton) -> Array[String]:
-	var row: Node = card.get_detail_slot().find_child("RewardRow", true, false)
-	var words: Array[String] = [(row.find_child("MadraLabel", true, false) as Label).text]
-	for stat_name: String in ["Spirit", "Mind", "Control"]:
-		if (row.find_child(stat_name + "Entry", true, false) as Control).visible:
-			words.append((row.find_child(stat_name + "Name", true, false) as Label).text)
-	return words
+## The icons shown in the card's icon column, in order.
+func _column_icons(card: ZoneActionButton) -> Array[Texture2D]:
+	var icons: Array[Texture2D] = []
+	for node: Node in card.get_icon_column().find_children("*", "TextureRect", true, false):
+		var rect := node as TextureRect
+		if rect.is_visible_in_tree():
+			icons.append(rect.texture)
+	return icons
 
-## The cycling card names what cycling trains with the techniques the player
-## knows: Madra and Spirit, then each known technique's other stat, each stat
-## with its icon.
-func test_the_cycling_card_lists_what_the_known_techniques_train() -> void:
+## Each card shows two icons and no words: the pool its action refills, then the
+## icon of the side it trains (StatDisplay.side_icon()).
+func test_the_training_cards_show_their_pool_and_side_icons() -> void:
 	var cases: Array[Dictionary] = [
-		{"name": "a new save", "unlock": [], "words": ["Madra and", "Spirit XP"]},
-		{"name": "with Smooth Flow", "unlock": [SMOOTH_ID], "words": ["Madra,", "Spirit and", "Control XP"]},
-		{"name": "with all three", "unlock": [SMOOTH_ID, TORRENTIAL_ID], "words": ["Madra,", "Spirit,", "Mind and", "Control XP"]},
+		{"name": "Wilderness Cycling", "id": CYCLING_ID, "pool": MADRA_POOL, "side": StatDisplay.StatSide.SPIRITUAL},
+		{"name": "Riverbank Training", "id": BODY_REFINING_ID, "pool": HEALTH_POOL, "side": StatDisplay.StatSide.PHYSICAL},
 	]
 	for case: Dictionary in cases:
+		var card: ZoneActionButton = _card(case.id)
+		assert_eq(_column_icons(card), [case.pool, StatDisplay.side_icon(case.side)] as Array[Texture2D], "%s: the pool, then the side" % case.name)
+		assert_eq(_texts(card.get_detail_slot()), [] as Array[String], "%s: no words on the detail line" % case.name)
+		assert_eq(card.get_detail_right_text(), "", "%s: nor in the right column" % case.name)
+
+## Learning techniques and drills changes neither card (the user's playtest note on
+## #145: a card that grew a stat with each technique was "really weird"): the card
+## keeps its icons and its height, and a card built afterwards shows the same.
+func test_the_training_cards_stay_the_same_as_techniques_and_drills_are_learned() -> void:
+	for id: String in [CYCLING_ID, BODY_REFINING_ID]:
 		PersistenceManager.save_game_data = SaveGameData.new()
 		PersistenceManager.save_data_reset.emit()
-		for technique_id: String in case.unlock:
-			CyclingManager.unlock_technique(technique_id)
-		var card: ZoneActionButton = _card(CYCLING_ID)
-		assert_eq(_reward_words(card), Array(case.words, TYPE_STRING, "", null), case.name)
-		var row: Node = card.get_detail_slot().find_child("RewardRow", true, false)
-		for stat: CharacterAttributesData.AttributeType in StatDisplay.SPIRITUAL:
-			var stat_name: String = StatDisplay.name_of(stat)
-			var icon: TextureRect = row.find_child(stat_name + "Icon", true, false) as TextureRect
-			if icon.is_visible_in_tree():
-				assert_eq(icon.texture, StatDisplay.icon_of(stat), "%s: %s's icon" % [case.name, stat_name])
-
-func test_the_cycling_card_follows_a_technique_unlock() -> void:
-	var card: ZoneActionButton = _card(CYCLING_ID)
-	assert_eq(_reward_words(card), ["Madra and", "Spirit XP"] as Array[String], "precondition: a new save")
-	CyclingManager.unlock_technique(TORRENTIAL_ID)
-	assert_eq(_reward_words(card), ["Madra,", "Spirit and", "Mind XP"] as Array[String], "the unlock adds Mind")
+		var card: ZoneActionButton = _card(id)
+		var icons: Array[Texture2D] = _column_icons(card)
+		var height: float = card.size.y
+		assert_eq(DevCommands.unlock_all_techniques(), "", "precondition: every technique learned")
+		assert_eq(DevCommands.unlock_all_drills(), "", "precondition: every drill learned")
+		assert_eq(_column_icons(card), icons, "%s: the card keeps its icons" % id)
+		assert_eq(card.size.y, height, "%s: and its height" % id)
+		assert_eq(_column_icons(_card(id)), icons, "%s: a card built afterwards shows the same" % id)
 
 #-----------------------------------------------------------------------------
 # THE RUNNING TAG
@@ -404,18 +402,6 @@ func test_merchant_detail() -> void:
 	var card: ZoneActionButton = _card(MERCHANT_ID)
 	assert_eq(_texts(card.get_detail_slot()), ["7 wares"] as Array[String])
 
-## Body refining's card names what every drill gives, each with its icon, as the
-## forage card lists its finds: the Health heart with Health, and Strength's mini
-## with Strength XP. Never the drill, which is the board's to name.
-func test_body_refining_detail_shows_health_and_strength_xp() -> void:
-	var card: ZoneActionButton = _card(BODY_REFINING_ID)
-	assert_eq(_texts(card.get_detail_slot()), ["Health", "Strength XP"] as Array[String])
-	var icons: Array[Texture2D] = []
-	for rect: Node in card.get_detail_slot().find_children("Icon", "TextureRect", true, false):
-		icons.append((rect as TextureRect).texture)
-	assert_eq(icons, [HEALTH_MINI, StatDisplay.mini_icon_of(CharacterAttributesData.AttributeType.STRENGTH)] as Array[Texture2D], "the Health heart, then Strength's mini")
-	assert_eq(card.size.y, _height_for(card, 1), "one detail line")
-
 func test_story_detail_is_the_description() -> void:
 	var card: ZoneActionButton = _card_for(_story_fixture("The Intervener", "Your next story step"))
 	assert_true(_has_text_containing(card, "Your next story step"))
@@ -502,6 +488,21 @@ func test_a_card_grows_by_its_lines() -> void:
 		var height: float = MIN_HEIGHT + DETAIL_LINE * (case.detail_lines - 1) + TITLE_LINE * (case.title_lines - 1)
 		assert_eq(card.custom_minimum_size.y, height, "%s: the card's height" % case.name)
 		assert_eq(card.size.y, height, "%s: and its size" % case.name)
+
+## A title too long for its line beside the icon column wraps, every line shows,
+## and the card grows past the icons' height to hold it: nothing cuts it off.
+func test_a_long_title_beside_the_icons_wraps_and_the_card_grows() -> void:
+	var action := ZoneActionData.new()
+	action.action_id = "test_zone_action_cards_long_cycling"
+	action.action_name = "The Long Wilderness Cycling Retreat Beside the Waterfall Under the Clouds"
+	action.action_type = ZoneActionData.ActionType.CYCLING
+	ZoneManager.mark_action_seen(action.action_id)
+	var card: ZoneActionButton = _card_for(action)
+	var title := card.get_node("%Title") as Label
+	assert_gte(title.get_line_count(), 3, "the title wraps")
+	assert_eq(title.get_visible_line_count(), title.get_line_count(), "every line shows")
+	assert_gt(card.size.y, _card(CYCLING_ID).size.y, "the card grows past a one-line icon card")
+	assert_between(title.position.y, 0.0, card.size.y - title.size.y, "the title stays on the card")
 
 ## The first card of a new game: its description takes three lines, all shown.
 func test_the_first_talk_shows_its_whole_description() -> void:

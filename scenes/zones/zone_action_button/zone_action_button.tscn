@@ -149,6 +149,16 @@ scroll_active = false
 autowrap_mode = 0
 horizontal_alignment = 2
 
+[node name="IconColumn" type="HBoxContainer" parent="Drawer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 380.0
+offset_top = 40.0
+offset_right = 380.0
+offset_bottom = 40.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
 [node name="ReadyFrame" parent="Drawer" unique_id=1730955812 instance=ExtResource("6_frame")]
 unique_name_in_owner = true
 layout_mode = 1

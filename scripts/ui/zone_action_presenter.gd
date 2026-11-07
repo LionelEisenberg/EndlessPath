@@ -9,10 +9,12 @@ extends Node
 ## A presenter is a utility Node: its scene root has no layout. On setup() it
 ## reparents its own children into the button's detail slot (get_detail_slot(),
 ## a VBoxContainer of rows at the detail line, x+64, 4 px under the title's last
-## line), each row as wide as the button's get_detail_room(). Nothing on a card
-## is cut off: text wraps at that width (fit_detail_label, set_detail_rich_text)
-## and the card grows by the rows' lines. A presenter that changes what its rows
-## show afterwards calls the button's relayout().
+## line), each row as wide as the button's get_detail_room(); or, when it shows
+## what its action gives as icons alone, into the button's icon column
+## (get_icon_column(), under the tag), leaving the detail slot empty. Nothing on
+## a card is cut off: text wraps at that width (fit_detail_label,
+## set_detail_rich_text) and the card grows by the rows' lines. A presenter that
+## changes what its rows show afterwards calls the button's relayout().
 
 var action_data: ZoneActionData
 var button: ZoneActionButton
