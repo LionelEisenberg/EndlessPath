@@ -120,12 +120,26 @@ func test_no_quest_gives_empty() -> void:
 	assert_eq(QuestManager.get_quest_id_for_item(_item), "")
 	assert_eq(QuestManager.get_quest_id_for_item(null), "")
 
-func test_refugee_camp_map_belongs_to_harden_your_core() -> void:
-	# A fresh index, so rebuilding it leaves the saved one as it was.
-	var index: Dictionary[String, QuestData] = {}
-	QuestManager._quests_by_id = index
-	QuestManager._quest_catalog = load(QUEST_CATALOG_PATH) as QuestList
-	QuestManager._build_catalog_index()
-	_complete("q_reach_core_density_10")
+## The real map, in the real catalog: Find the Camp needs it while you search for
+## the camp and once it is found; a save past NPC 4 that never started Find the
+## Camp files it under Harden Your Core, which gave it.
+func test_refugee_camp_map_belongs_to_the_quest_that_uses_it() -> void:
 	var map: ItemDefinitionData = load(MAP_PATH) as ItemDefinitionData
-	assert_eq(QuestManager.get_quest_id_for_item(map), "q_reach_core_density_10")
+	var cases: Array[Dictionary] = [
+		{"completed": ["q_reach_core_density_10"], "active": [], "quest": "q_reach_core_density_10"},
+		{"completed": ["q_reach_core_density_10"], "active": ["q_find_the_camp"], "quest": "q_find_the_camp"},
+		{"completed": ["q_reach_core_density_10", "q_find_the_camp"], "active": [], "quest": "q_find_the_camp"},
+	]
+	for case: Dictionary in cases:
+		# A fresh index, so rebuilding it leaves the saved one as it was.
+		var index: Dictionary[String, QuestData] = {}
+		QuestManager._quests_by_id = index
+		QuestManager._quest_catalog = load(QUEST_CATALOG_PATH) as QuestList
+		QuestManager._build_catalog_index()
+		_save = SaveGameData.new()
+		QuestManager._live_save_data = _save
+		for quest_id: String in case.completed:
+			_complete(quest_id)
+		for quest_id: String in case.active:
+			_start(quest_id)
+		assert_eq(QuestManager.get_quest_id_for_item(map), case.quest, "done %s, running %s" % [case.completed, case.active])
