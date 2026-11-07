@@ -57,6 +57,13 @@ func _connect_unlock_signals() -> void:
 	else:
 		Log.critical("UnlockManager: ResourceManager is missing!")
 
+	# Connect to CharacterManager signals: every level-up and every gear or bonus
+	# change, so a condition on a stat latches when the stat gets there
+	if CharacterManager:
+		CharacterManager.stats_changed.connect(_evaluate_all_conditions)
+	else:
+		Log.critical("UnlockManager: CharacterManager is missing!")
+
 #-----------------------------------------------------------------------------
 # PUBLIC UNLOCK MANAGEMENT FUNCTIONS
 #-----------------------------------------------------------------------------

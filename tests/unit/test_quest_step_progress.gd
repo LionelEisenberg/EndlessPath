@@ -33,6 +33,15 @@ func _madra_condition(target: float) -> UnlockConditionData:
 	condition.optional_params = {"resource_type": "madra"}
 	return condition
 
+## A condition of the test's own on the stat with this key trained to `level`.
+func _stat_condition(stat_key: String, level: int) -> UnlockConditionData:
+	var condition: UnlockConditionData = UnlockConditionData.new()
+	condition.condition_id = "test_step_stat"
+	condition.condition_type = UnlockConditionData.ConditionType.STAT_LEVEL
+	condition.target_value = level
+	condition.optional_params = {"stat": stat_key}
+	return condition
+
 ## A condition of the test's own on owning an item, which has no figure.
 func _item_condition() -> UnlockConditionData:
 	var condition: UnlockConditionData = UnlockConditionData.new()
@@ -73,6 +82,13 @@ func test_steps_without_a_figure() -> void:
 		assert_null(step.get_measured_condition(), "%s measures nothing" % case.name)
 		assert_eq(step.get_progress_text(), "", "%s reads no figure" % case.name)
 		assert_eq(step.get_progress_text(true), "", "%s: finishing it invents no figure" % case.name)
+
+## A step on a stat's level reads as a level, so the figure says what it counts.
+func test_a_stat_step_reads_its_level() -> void:
+	var step: QuestStepData = _step([_stat_condition("strength", 2)] as Array[UnlockConditionData])
+	assert_eq(step.get_measured_condition(), step.completion_conditions[0])
+	assert_eq(step.get_progress_text(), "Lv 1 / 2", "a fresh save's Strength is Lv 1")
+	assert_eq(step.get_progress_text(true), "Lv 2 / 2", "finished, it reads its target")
 
 func test_madra_step_reads_like_the_goals_board() -> void:
 	var step: QuestStepData = _step([_madra_condition(100.0)] as Array[UnlockConditionData])

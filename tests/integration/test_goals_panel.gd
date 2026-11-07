@@ -210,6 +210,22 @@ func test_gold_step_figure_follows_gold() -> void:
 	ResourceManager.add_gold(20.0)
 	assert_eq(_text("QuestFigureLabel"), "20 / 50")
 
+## A step on a stat's level reads it as "Lv n / target" and follows the stat. The
+## test's own condition is never registered, so the step stays put at Lv 2.
+func test_a_stat_step_figure_follows_the_stat() -> void:
+	var condition := UnlockConditionData.new()
+	condition.condition_id = "test_goals_strength_3"
+	condition.condition_type = UnlockConditionData.ConditionType.STAT_LEVEL
+	condition.target_value = 3
+	condition.optional_params = {"stat": "strength"}
+	var conditions: Array[UnlockConditionData] = [condition]
+	var quest_id: String = _use_single_quest("Temper", "Train Strength", conditions)
+	_add_goals()
+	QuestManager.start_quest(quest_id)
+	assert_eq(_text("QuestFigureLabel"), "Lv 1 / 3", "precondition: a fresh save's Strength is Lv 1")
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 2)
+	assert_eq(_text("QuestFigureLabel"), "Lv 2 / 3")
+
 ## A step measured on Core Density shows the core's stars up to its target in
 ## place of its figure: Harden Your Core's level 10 is the first star, filling
 ## level by level. Other measured steps keep their figure.
