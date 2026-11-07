@@ -645,9 +645,9 @@ func test_switching_to_a_locked_technique_turns_auto_off() -> void:
 
 func test_unlock_hint_names_each_technique_s_perfect_cycle() -> void:
 	var cases: Array[Dictionary] = [
-		{"path": FOUNDATION_PATH, "hint": "Play a perfect cycle: follow the ball the whole cycle."},
-		{"path": SMOOTH_PATH, "hint": "Play a perfect cycle: follow the ball the whole cycle and press every zone PERFECT."},
-		{"path": TORRENTIAL_PATH, "hint": "Play a perfect cycle: follow the ball the whole cycle and open every seal."},
+		{"path": FOUNDATION_PATH, "hint": "Play a perfect cycle: follow the ball for 95% of the cycle."},
+		{"path": SMOOTH_PATH, "hint": "Play a perfect cycle: follow the ball for 95% of the cycle and press every zone PERFECT."},
+		{"path": TORRENTIAL_PATH, "hint": "Play a perfect cycle: follow the ball for 95% of the cycle and open every seal."},
 	]
 	for case: Dictionary in cases:
 		assert_eq(CyclingView.unlock_hint(load(case.path)), case.hint, case.path)
@@ -678,7 +678,7 @@ func test_hovering_an_unlocked_toggle_shows_its_frame() -> void:
 func test_a_perfect_cycle_unlocks_auto_for_its_technique() -> void:
 	watch_signals(LogManager)
 	var result: CycleResult = _play_cycle("PPPP")
-	assert_true(result.is_perfect(), "precondition: four PERFECTs, followed throughout")
+	assert_true(result.is_perfect(), "precondition: four PERFECTs, followed the whole way")
 	assert_true(CyclingManager.is_auto_unlocked(SMOOTH_ID))
 	assert_false(CyclingManager.is_auto_unlocked(FOUNDATION_ID), "only the technique it was played with")
 	assert_false(_view.is_auto_locked())
@@ -694,7 +694,7 @@ func test_a_perfect_cycle_unlocks_auto_for_its_technique() -> void:
 func test_a_near_miss_leaves_auto_locked() -> void:
 	watch_signals(CyclingManager)
 	var result: CycleResult = _play_cycle("PPGP")
-	assert_true(result.followed_throughout, "precondition: followed the whole way")
+	assert_true(CyclingRules.followed_enough(result.followed_ratio), "precondition: followed enough")
 	assert_false(result.is_perfect())
 	assert_true(_view.is_auto_locked())
 	assert_signal_not_emitted(CyclingManager, "auto_unlocked")

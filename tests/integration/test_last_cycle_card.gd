@@ -98,6 +98,27 @@ func test_the_foundational_card_has_no_score() -> void:
 	_card.show_result(_result(30.0, {SPIRIT: 12.0}))
 	assert_eq(_stud_frames(), [] as Array[int], "no zones or seals, no studs: the last result's are gone")
 
+## A cycle with no zones or seals shows how much of it was followed in the
+## score's place: floored, so only all of it reads "Followed all".
+func test_a_cycle_with_no_zones_or_seals_shows_how_much_was_followed() -> void:
+	var followed := _card.get_node("%Followed") as Label
+	var cases: Array[Dictionary] = [
+		{"name": "all of it", "ratio": 1.0, "text": "Followed all"},
+		{"name": "93.6%", "ratio": 0.936, "text": "Followed 93%"},
+		{"name": "just short of all", "ratio": 0.998, "text": "Followed 99%"},
+		{"name": "none", "ratio": 0.0, "text": "Followed 0%"},
+	]
+	for case: Dictionary in cases:
+		var result: CycleResult = _result(30.0, {SPIRIT: 12.0})
+		result.followed_ratio = case.ratio
+		_card.show_result(result)
+		assert_true(followed.visible, "%s: shows" % case.name)
+		assert_eq(followed.text, case.text, case.name)
+	_card.show_result(_result(80.0, {}, [CyclingZone.State.PERFECT] as Array[int]))
+	assert_false(followed.visible, "zones show their studs instead")
+	_card.show_result(_result(50.0, {}, [], [SealNode.State.OPEN] as Array[int]))
+	assert_false(followed.visible, "and seals theirs")
+
 #-----------------------------------------------------------------------------
 # LONG TEXT
 #-----------------------------------------------------------------------------

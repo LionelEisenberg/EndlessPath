@@ -2,8 +2,9 @@ extends GutTest
 
 ## Unit tests for CyclingRules and CycleResult, the cycling mini-game's pure
 ## rules: a hit's tier from the ball's distance to the zone's centre, each
-## tier's XP and pellet count, the seals' keys, and what a cycle paid and the log
-## line that sums it up.
+## tier's XP and pellet count, following and its grace, the ball's ease, the
+## seals' keys, and what a cycle paid, whether it was perfect and the log line
+## that sums it up.
 
 const SPIRIT: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.SPIRIT
 const MIND: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.MIND
@@ -81,6 +82,49 @@ func test_is_following() -> void:
 	]
 	for case: Dictionary in cases:
 		assert_eq(CyclingRules.is_following(case.on, case.was, case.moved), case.follows, case.name)
+
+## A slip out of the circle keeps following for up to FOLLOW_GRACE (0.1 s).
+func test_grace_holds() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a frame", "slip": 1.0 / 60.0, "holds": true},
+		{"name": "the whole grace", "slip": 0.1, "holds": true},
+		{"name": "six frames at 60 FPS", "slip": 6.0 / 60.0, "holds": true},
+		{"name": "seven frames at 60 FPS", "slip": 7.0 / 60.0, "holds": false},
+		{"name": "a second", "slip": 1.0, "holds": false},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CyclingRules.grace_holds(case.slip), case.holds, case.name)
+
+#-----------------------------------------------------------------------------
+# THE BALL'S EASE
+#-----------------------------------------------------------------------------
+
+## A 10 s cycle: the ball speeds up over its first second, runs evenly at 1/9 of
+## the path a second, and slows over its last. Each ramp covers half what the
+## even speed would, 1/18 of the path.
+func test_eased_ratio() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "the start", "seconds": 0.0, "ratio": 0.0},
+		{"name": "half the first ramp", "seconds": 0.5, "ratio": (0.25 - 1.0 / TAU) / 9.0},
+		{"name": "the first ramp's end", "seconds": 1.0, "ratio": 1.0 / 18.0},
+		{"name": "half way", "seconds": 5.0, "ratio": 0.5},
+		{"name": "the last ramp's start", "seconds": 9.0, "ratio": 17.0 / 18.0},
+		{"name": "the end", "seconds": 10.0, "ratio": 1.0},
+		{"name": "past the end", "seconds": 12.0, "ratio": 1.0},
+	]
+	for case: Dictionary in cases:
+		assert_almost_eq(CyclingRules.eased_ratio(case.seconds, 10.0), case.ratio, 0.000001, case.name)
+
+## The ball never runs backwards, and a cycle too short for two whole ramps ramps
+## over half of it each way.
+func test_eased_ratio_always_moves_on() -> void:
+	for duration: float in [1.0, 8.0, 15.0]:
+		var last: float = 0.0
+		for step: int in 101:
+			var ratio: float = CyclingRules.eased_ratio(duration * step / 100.0, duration)
+			assert_true(ratio >= last - 0.000001, "a %s s cycle at step %d" % [duration, step])
+			last = ratio
+		assert_almost_eq(CyclingRules.eased_ratio(duration / 2.0, duration), 0.5, 0.000001, "half way at half the time, a %s s cycle" % duration)
 
 #-----------------------------------------------------------------------------
 # SEALS
@@ -163,13 +207,27 @@ func test_paid_stats() -> void:
 # A PERFECT CYCLE
 #-----------------------------------------------------------------------------
 
-## A result followed throughout or not, with these zone and seal states.
-func _played(followed: bool, zones: Array[int], seals: Array[int]) -> CycleResult:
+## A result followed for `followed` of the cycle, with these zone and seal
+## states.
+func _played(followed: float, zones: Array[int], seals: Array[int]) -> CycleResult:
 	var result: CycleResult = CycleResult.new()
-	result.followed_throughout = followed
+	result.followed_ratio = followed
 	result.zone_states = zones
 	result.seal_states = seals
 	return result
+
+## A perfect cycle follows 95% of the cycle; the misses so far may reach 5% of
+## it.
+func test_followed_enough_and_misses_allowed() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "all of it", "ratio": 1.0, "enough": true},
+		{"name": "95%", "ratio": 0.95, "enough": true},
+		{"name": "94.9%", "ratio": 0.949, "enough": false},
+		{"name": "none", "ratio": 0.0, "enough": false},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CyclingRules.followed_enough(case.ratio), case.enough, case.name)
+		assert_eq(CyclingRules.misses_allowed((1.0 - case.ratio) * 10.0, 10.0), case.enough, "%s missed of a 10 s cycle" % case.name)
 
 func test_is_perfect() -> void:
 	var p := CyclingZone.State.PERFECT
@@ -178,17 +236,18 @@ func test_is_perfect() -> void:
 	var open := SealNode.State.OPEN
 	var missed := SealNode.State.SPENT
 	var no_states: Array[int] = []
-	var full_capped: CycleResult = _played(true, no_states, no_states)
+	var full_capped: CycleResult = _played(1.0, no_states, no_states)
 	full_capped.record_stat_xp(SPIRIT, 0.0, true)
 	var cases: Array[Dictionary] = [
-		{"name": "zoneless, followed throughout", "result": _played(true, no_states, no_states), "perfect": true},
-		{"name": "zoneless, a break", "result": _played(false, no_states, no_states), "perfect": false},
-		{"name": "every zone PERFECT", "result": _played(true, [p, p, p, p] as Array[int], no_states), "perfect": true},
-		{"name": "one zone GOOD", "result": _played(true, [p, p, g, p] as Array[int], no_states), "perfect": false},
-		{"name": "one zone missed", "result": _played(true, [p, spent, p, p] as Array[int], no_states), "perfect": false},
-		{"name": "every zone PERFECT but a break", "result": _played(false, [p, p, p, p] as Array[int], no_states), "perfect": false},
-		{"name": "every seal opened", "result": _played(true, no_states, [open, open, open] as Array[int]), "perfect": true},
-		{"name": "one seal missed", "result": _played(true, no_states, [open, missed, open] as Array[int]), "perfect": false},
+		{"name": "zoneless, followed throughout", "result": _played(1.0, no_states, no_states), "perfect": true},
+		{"name": "zoneless, 96% followed", "result": _played(0.96, no_states, no_states), "perfect": true},
+		{"name": "zoneless, 94% followed", "result": _played(0.94, no_states, no_states), "perfect": false},
+		{"name": "every zone PERFECT", "result": _played(1.0, [p, p, p, p] as Array[int], no_states), "perfect": true},
+		{"name": "one zone GOOD", "result": _played(1.0, [p, p, g, p] as Array[int], no_states), "perfect": false},
+		{"name": "one zone missed", "result": _played(1.0, [p, spent, p, p] as Array[int], no_states), "perfect": false},
+		{"name": "every zone PERFECT but 94% followed", "result": _played(0.94, [p, p, p, p] as Array[int], no_states), "perfect": false},
+		{"name": "every seal opened", "result": _played(1.0, no_states, [open, open, open] as Array[int]), "perfect": true},
+		{"name": "one seal missed", "result": _played(1.0, no_states, [open, missed, open] as Array[int]), "perfect": false},
 		{"name": "a capped stat still counts", "result": full_capped, "perfect": true},
 	]
 	for case: Dictionary in cases:
