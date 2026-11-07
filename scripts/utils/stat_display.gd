@@ -3,8 +3,12 @@ extends RefCounted
 
 ## StatDisplay
 ## How the screens show the six stats: the two sides they sit on, Physical and
-## Spiritual, and each stat's name, icon and side. The one map the Character
-## book and the Abilities book read. Statics only.
+## Spiritual, each stat's name, icon and side, and the icon that stands for each
+## side. The one map the Character book, the Abilities book and the zone cards
+## read. Statics only.
+
+## The two sides the stats sit on.
+enum StatSide { PHYSICAL, SPIRITUAL }
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -68,3 +72,10 @@ static func mini_icon_of(stat: CharacterAttributesData.AttributeType) -> Texture
 ## "Spiritual" for the rest.
 static func side_name(stat: CharacterAttributesData.AttributeType) -> String:
 	return "Physical" if PHYSICAL.has(stat) else "Spiritual"
+
+## The icon that stands for a whole side, where a screen names the side by an
+## icon (the Cycling and Riverbank Training cards): its first stat's, Strength's
+## for the Physical side and Spirit's for the Spiritual side, until the sides have
+## icons of their own (the user's call on #145).
+static func side_icon(side: StatSide) -> Texture2D:
+	return icon_of(PHYSICAL[0] if side == StatSide.PHYSICAL else SPIRITUAL[0])

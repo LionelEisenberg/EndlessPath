@@ -40,6 +40,18 @@ func test_every_stat_has_a_name_an_icon_and_a_side() -> void:
 		assert_eq(StatDisplay.side_name(case.stat), case.side, "%s is %s" % [case.name, case.side])
 		assert_not_null(StatDisplay.icon_of(case.stat), "%s has an icon" % case.name)
 
+## A screen that names a whole side by an icon (the Cycling and Riverbank
+## Training cards) shows the side's first stat's icon: Strength's for the Physical
+## side and Spirit's for the Spiritual side, the user's call on #145 until the
+## sides have icons of their own.
+func test_each_side_shows_its_first_stats_icon() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Physical", "side": StatDisplay.StatSide.PHYSICAL, "stat": Attribute.STRENGTH},
+		{"name": "Spiritual", "side": StatDisplay.StatSide.SPIRITUAL, "stat": Attribute.SPIRIT},
+	]
+	for case: Dictionary in cases:
+		assert_eq(StatDisplay.side_icon(case.side), StatDisplay.icon_of(case.stat), "%s: %s's icon" % [case.name, StatDisplay.name_of(case.stat)])
+
 ## Each Physical stat, the ones the drills train, has a 16 px mini of its icon for
 ## the lines that name it beside a figure: the body refining board, its card, its
 ## floaters and its drill drawers. Each is its own, and none is the Health heart.
