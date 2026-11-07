@@ -9,8 +9,9 @@ extends RefCounted
 ## Health"): the log board shows one line a message and prints plain text, so
 ## the line keeps to words. A stat the cap took XP from reads "Strength capped" in
 ## place of its XP, and a set whose scored reps restored no Health, the pool
-## being full, reads "Health full" in place of the Health. The board writes its
-## own line with icons from the same totals.
+## being full, reads "Health full" in place of the Health. A set Auto played
+## (is_auto()) opens "Set · Auto" and leaves the other stat out: Auto never pays
+## it. The board writes its own line with icons from the same totals.
 
 const Tier = DrillRules.Tier
 const AttributeType = CharacterAttributesData.AttributeType
@@ -18,6 +19,7 @@ const AttributeType = CharacterAttributesData.AttributeType
 ## Joins the parts of the log's line: a space, a middle dot (U+00B7) and a space.
 const SEPARATOR: String = " · "
 const LOG_WORD: String = "Set"
+const AUTO_WORD: String = "Auto"
 ## A stat's part of the line: its XP, rounded to a whole XP, or that the cap took it.
 const STAT_XP_FORMAT: String = "+%d %s XP"
 const STAT_CAPPED_FORMAT: String = "%s capped"
@@ -89,11 +91,20 @@ func is_complete() -> bool:
 func is_perfect() -> bool:
 	return is_complete() and count_of(Tier.PERFECT) == get_rep_count()
 
-## Returns the log's line: "Set · ", Strength's part, the drill's other stat's
-## part when it has one, then the Health part.
+## True when Auto played the set: it holds an AUTO rep. A set is played by hand or
+## by Auto from its first rep to its last, never both.
+func is_auto() -> bool:
+	return count_of(Tier.AUTO) > 0
+
+## Returns the log's line: "Set · ", "Auto · " for a set Auto played, Strength's
+## part, the drill's other stat's part when it has one and the set was played by
+## hand, then the Health part.
 func log_line() -> String:
-	var parts: PackedStringArray = [LOG_WORD, _stat_part(AttributeType.STRENGTH)]
-	if drill != null and drill.has_minor_stat():
+	var parts: PackedStringArray = [LOG_WORD]
+	if is_auto():
+		parts.append(AUTO_WORD)
+	parts.append(_stat_part(AttributeType.STRENGTH))
+	if drill != null and drill.has_minor_stat() and not is_auto():
 		parts.append(_stat_part(drill.minor_stat as AttributeType))
 	parts.append(HEALTH_FULL_TEXT if is_health_full() else HEALTH_FORMAT % roundi(_health_restored))
 	return SEPARATOR.join(parts)

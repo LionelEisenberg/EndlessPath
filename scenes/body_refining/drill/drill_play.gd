@@ -30,6 +30,12 @@ extends Control
 ## go: the window's, which every build sends (the Web build sends no other), or the
 ## application's. stop_set() drops a set in progress, counting nothing, and so do
 ## hiding the stage and readying a drill.
+##
+## Auto (#110): with set_auto_play() on and the drill's Auto unlocked
+## (is_auto_running()), the play starts a set by itself whenever none runs, and the
+## run plays it (DrillRun.play_auto()). Each rep it judges is paid as an AUTO rep:
+## "Auto" pops in tan, and its bead lights Perfect's frame dimmed. A press while
+## Auto runs plays nothing. Turning Auto on or off drops a set in progress.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -59,7 +65,7 @@ const LINE_DROP: float = 30.0
 
 ## Each tier's word and colour (a hit's as cycling's; a Miss in the warning
 ## colour, as the Tribulation's), and a Miss's reasons.
-const TIER_WORDS: Dictionary = {Tier.PERFECT: "Perfect", Tier.GOOD: "Good", Tier.OK: "OK", Tier.MISS: "Miss"}
+const TIER_WORDS: Dictionary = {Tier.PERFECT: "Perfect", Tier.GOOD: "Good", Tier.OK: "OK", Tier.MISS: "Miss", Tier.AUTO: "Auto"}
 const MISS_REASONS: Dictionary = {
 	Miss.TOO_LOW: "Too low",
 	Miss.DROPPED: "Dropped",
@@ -80,7 +86,9 @@ const HEALTH_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_hea
 
 ## The bead strip's frame for each tier; frame 0 is the empty socket.
 const EMPTY_BEAD: int = 0
-const BEAD_FRAMES: Dictionary = {Tier.PERFECT: 1, Tier.GOOD: 2, Tier.OK: 3, Tier.MISS: 4}
+## An Auto rep lights Perfect's frame, dimmed by AUTO_BEAD_TINT.
+const BEAD_FRAMES: Dictionary = {Tier.PERFECT: 1, Tier.GOOD: 2, Tier.OK: 3, Tier.MISS: 4, Tier.AUTO: 1}
+const AUTO_BEAD_TINT: Color = Color(0.62, 0.62, 0.62, 1.0)
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -116,6 +124,10 @@ var _hold_by_mouse: bool = false
 ## Where the tier word popped, before its rise.
 var _word_at: Vector2 = Vector2.ZERO
 var _beads: Array[LacquerStripRect] = []
+## Whether Auto is on (the board's toggle), and whether Auto plays the set running
+## or last run.
+var _auto_play: bool = false
+var _auto_set: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -135,9 +147,11 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _stage != null:
 		_stage.tick(clock_usec.call())
+	if not _set_running and is_auto_running():
+		_start_set(true)
 	if _set_running:
 		var t: int = _set_time()
-		_apply(_run.advance(t))
+		_apply(_run.play_auto(t) if _auto_set else _run.advance(t))
 		if _set_running:
 			_stage.show_run(_run, t)
 			BodyRefiningManager.update_set_session(_run.rep_at(t) + 1, _run.rep_progress_at(t))
@@ -164,18 +178,18 @@ func setup(drill: DrillData) -> void:
 	_result = null
 	if is_node_ready():
 		_show_stage()
-	for bead: LacquerStripRect in _beads:
-		bead.set_frame(EMPTY_BEAD)
+	_empty_beads()
 
 ## Takes an event of the drill's input and returns true for each one of them,
 ## false for any other event. A press starts a set when none runs, and plays; a
 ## release lets go when it comes from the kind of input that holds; a key repeat
-## does nothing. Each is judged on clock_usec as it arrives.
+## does nothing, and while Auto runs nothing does. Each is judged on clock_usec as
+## it arrives.
 func handle_press_event(event: InputEvent) -> bool:
 	if not event.is_action(PRESS_ACTION):
 		return false
 	var key := event as InputEventKey
-	if key != null and key.echo:
+	if (key != null and key.echo) or is_auto_running():
 		return true
 	if event.is_action_pressed(PRESS_ACTION):
 		_on_press(event)
@@ -200,6 +214,29 @@ func stop_set() -> void:
 ## Returns whether a set is being played.
 func is_set_running() -> bool:
 	return _set_running
+
+## Turns Auto on or off (the board's toggle). A change drops a set in progress,
+## which keeps its paid reps and is neither counted nor reported. On, the play
+## runs Auto only while the drill's Auto is unlocked.
+func set_auto_play(on: bool) -> void:
+	if on == _auto_play:
+		return
+	_auto_play = on
+	stop_set()
+
+## Returns whether Auto is on, whatever the drill's unlock.
+func is_auto_play() -> bool:
+	return _auto_play
+
+## Returns whether Auto plays the drill: it is on and the drill's Auto is
+## unlocked. The play checks the unlock itself, so a locked drill never plays
+## unattended.
+func is_auto_running() -> bool:
+	return _auto_play and _drill != null and BodyRefiningManager.is_auto_unlocked(_drill.id)
+
+## Returns whether Auto plays the set running, or played the last one.
+func is_auto_set() -> bool:
+	return _auto_set
 
 ## Returns the set being played, or the last one played, or null before the first.
 func get_result() -> DrillSetResult:
@@ -264,15 +301,15 @@ func _show_stage() -> void:
 		_stage.setup(_drill)
 		_stage.show_rest()
 
-## Starts a set now: a new run and result, the beads empty and the floaters
-## hidden, and the session running.
-func _start_set() -> void:
+## Starts a set now, played by Auto when `auto`: a new run and result, the beads
+## empty and the floaters hidden, and the session running.
+func _start_set(auto: bool = false) -> void:
 	_start_usec = clock_usec.call()
 	_run = run_for.call(_drill, _start_usec)
 	_result = DrillSetResult.new(_drill)
 	_set_running = true
-	for bead: LacquerStripRect in _beads:
-		bead.set_frame(EMPTY_BEAD)
+	_auto_set = auto
+	_empty_beads()
 	_word_floater.stop()
 	_line_floater.stop()
 	BodyRefiningManager.start_set_session(_drill.reps_per_set)
@@ -282,28 +319,40 @@ func _start_set() -> void:
 func _set_time() -> int:
 	return clock_usec.call() - _start_usec
 
-## Pays and shows each judged rep, in order. A listener of rep_judged can stop the
-## action, and the stop drops the set: nothing more is shown after that.
+## Pays and shows each judged rep, in order: as an AUTO rep in a set Auto plays. A
+## listener of rep_judged can stop the action, and the stop drops the set: nothing
+## more is shown after that.
 func _apply(judgements: Array[DrillRun.Judgement]) -> void:
 	for judgement: DrillRun.Judgement in judgements:
+		if _auto_set:
+			judgement.tier = Tier.AUTO
+			judgement.miss = Miss.NONE
 		var before: Dictionary = _stat_xp_now()
 		var health: float = BodyRefiningManager.pay_rep(_drill, judgement.tier, _result)
 		var stat_xp: Dictionary = {}
 		for stat: AttributeType in before:
 			stat_xp[stat] = _result.get_stat_xp(stat) - before[stat]
 		_beads[judgement.rep].set_frame(BEAD_FRAMES[judgement.tier])
+		_beads[judgement.rep].self_modulate = AUTO_BEAD_TINT if judgement.tier == Tier.AUTO else Color.WHITE
 		_stage.show_judgement(judgement)
 		_pop(judgement, health, stat_xp)
 		rep_judged.emit(judgement, health, stat_xp)
 		if not _set_running:
 			return
 
-## The XP each stat the drill trains has taken this set so far.
+## The XP each stat the drill trains has taken this set so far. An Auto set trains
+## Strength alone: its other stat is not left unpaid, so no "capped" pops for it.
 func _stat_xp_now() -> Dictionary:
 	var xp: Dictionary = {AttributeType.STRENGTH: _result.get_stat_xp(AttributeType.STRENGTH)}
-	if _drill.has_minor_stat():
+	if _drill.has_minor_stat() and not _auto_set:
 		xp[_drill.minor_stat as AttributeType] = _result.get_stat_xp(_drill.minor_stat as AttributeType)
 	return xp
+
+## Empties every bead.
+func _empty_beads() -> void:
+	for bead: LacquerStripRect in _beads:
+		bead.set_frame(EMPTY_BEAD)
+		bead.self_modulate = Color.WHITE
 
 ## The run is over: the set is counted and reported.
 func _finish() -> void:
@@ -369,7 +418,7 @@ static func _tier_color(tier: Tier) -> Color:
 			return ThemeConstants.LACQUER_BRASS
 		Tier.GOOD:
 			return ThemeConstants.LACQUER_CREAM
-		Tier.OK:
+		Tier.OK, Tier.AUTO:
 			return ThemeConstants.LACQUER_TAN
 	return ThemeConstants.LACQUER_HEALTH
 

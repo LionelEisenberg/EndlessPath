@@ -104,6 +104,14 @@ func release(t_usec: int) -> Array[Judgement]:
 func advance(_t_usec: int) -> Array[Judgement]:
 	return []
 
+## Plays the set as Auto (#110) up to `t`: feeds the run, at their exact times, the
+## inputs a good player would give before `t`, then judges what the passing of time
+## decided. Returns every rep judged, in order. The tiers are the run's own; the
+## board pays them as Auto reps. A run with no input of its own only advances.
+## Ask it for times no earlier than the last call's.
+func play_auto(t_usec: int) -> Array[Judgement]:
+	return advance(t_usec)
+
 ## Whether the press that starts a set is also the first rep's input (a hold),
 ## or only starts it.
 func judges_starting_press() -> bool:

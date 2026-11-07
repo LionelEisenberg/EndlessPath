@@ -127,6 +127,36 @@ func test_equip_drill_refuses_an_unknown_and_a_locked_drill() -> void:
 	assert_eq(_save_data.equipped_drill_id, "stone_lifting", "the equipped drill stays")
 
 #-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+func test_auto_is_locked_on_a_new_save() -> void:
+	assert_false(BodyRefiningManager.is_auto_unlocked("stone_lifting"))
+	assert_eq(_save_data.auto_drill_ids, [] as Array[String])
+
+func test_auto_unlock_is_saved_per_drill() -> void:
+	BodyRefiningManager.unlock_auto("body_drill")
+	assert_true(BodyRefiningManager.is_auto_unlocked("body_drill"))
+	assert_false(BodyRefiningManager.is_auto_unlocked("stone_lifting"), "a perfect set unlocks only its own drill")
+	assert_eq(_save_data.auto_drill_ids, ["body_drill"] as Array[String])
+
+func test_unlock_auto_announces_the_drill_once() -> void:
+	watch_signals(BodyRefiningManager)
+	BodyRefiningManager.unlock_auto("body_drill")
+	BodyRefiningManager.unlock_auto("body_drill")
+	assert_signal_emit_count(BodyRefiningManager, "auto_unlocked", 1)
+	assert_signal_emitted_with_parameters(BodyRefiningManager, "auto_unlocked", [_body_drill])
+	assert_eq(_save_data.auto_drill_ids.count("body_drill"), 1, "unlocking twice changes nothing")
+
+func test_unlock_auto_refuses_an_unknown_id() -> void:
+	watch_signals(BodyRefiningManager)
+	BodyRefiningManager.unlock_auto("not_a_drill")
+	assert_push_error("unknown drill_id")
+	assert_false(BodyRefiningManager.is_auto_unlocked("not_a_drill"))
+	assert_signal_not_emitted(BodyRefiningManager, "auto_unlocked")
+	assert_true(_save_data.auto_drill_ids.is_empty())
+
+#-----------------------------------------------------------------------------
 # SEEN DRILLS
 #-----------------------------------------------------------------------------
 
@@ -171,6 +201,15 @@ func test_a_rep_pays_strength_the_minor_and_health() -> void:
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.AGILITY), 0.0, "and no other stat's")
 	assert_eq(ResourceManager.get_health(), 54.0, "Health at Strength Lv 1 is the drill's own amount")
 	assert_eq(restored, 4.0, "it returns what it restored")
+
+## An Auto rep pays 0.4 of a PERFECT rep's Strength XP and Health, and none of
+## the drill's other stat (#110).
+func test_an_auto_rep_pays_strength_and_health_at_the_auto_rate() -> void:
+	ResourceManager.set_health(50.0)
+	var restored: float = BodyRefiningManager.pay_rep(_body_drill, Tier.AUTO)
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 3.2, 0.0001, "0.4 of 8 Strength XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 0.0, "no Body XP")
+	assert_almost_eq(restored, 1.6, 0.0001, "0.4 of 4 Health")
 
 ## Each stat gets one add_stat_xp() call a rep, so XP lands once and levels are
 ## announced once.

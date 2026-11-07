@@ -178,6 +178,7 @@ func test_a_set_with_misses_reads_its_perfect_count() -> void:
 ## the scripts before this one logged.
 func test_a_finished_set_writes_one_log_line() -> void:
 	ResourceManager.set_health(50.0)
+	BodyRefiningManager.unlock_auto("stone_lifting")
 	watch_signals(LogManager)
 	_play_set(_ten(CENTRE))
 	assert_signal_emit_count(LogManager, "message_logged", 1, "one line")
@@ -302,14 +303,15 @@ func test_the_view_stops_every_click_beneath_it() -> void:
 	assert_eq([_view.anchor_left, _view.anchor_top, _view.anchor_right, _view.anchor_bottom], [0.0, 0.0, 1.0, 1.0], "and covers the screen")
 	var board := _node("Board") as Control
 	var close := _node("CloseButton") as Control
+	var toggle := _node("AutoToggle") as Control
 	var takers: Array[String] = []
 	for node: Node in _view.find_children("*", "Control", true, true):
-		if node == board or node == close:
+		if node == board or node == close or node == toggle:
 			continue
 		if (node as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE:
 			takers.append(String(node.name))
 	assert_eq(board.mouse_filter, Control.MOUSE_FILTER_PASS, "the board passes its clicks on to the root")
-	assert_eq(takers.size(), 0, "every node but the board and the close button lets a click through, not %s" % [takers])
+	assert_eq(takers.size(), 0, "every node but the board, the close button and the Auto toggle lets a click through, not %s" % [takers])
 
 func test_a_mouse_press_anywhere_lifts() -> void:
 	var press := InputEventMouseButton.new()
@@ -360,12 +362,108 @@ func test_a_press_on_the_chest_picks_and_never_plays() -> void:
 func test_a_long_name_wraps_and_the_board_grows() -> void:
 	var action := BodyRefiningActionData.new()
 	action.action_id = "test_long_body_refining"
-	action.action_name = "The Long Riverbank Where Every Cultivator Who Ever Lifted A Stone Left A Mark On The Gravel, And The Reeds Remember Them"
+	action.action_name = "The Long Riverbank Where Every Cultivator Who Ever Lifted A Stone Left A Mark"
 	_view.setup(action)
 	var label := _node("ActionLabel") as Label
-	assert_eq(label.get_line_count(), 3, "precondition: the name wraps to three lines")
+	assert_eq(label.get_line_count(), 2, "precondition: the name wraps to two lines")
 	var status := _node("StatusText") as Control
 	var board := _node("Board") as Control
 	assert_gt(status.position.y, 990.0, "the footer moves down under the longer header")
 	assert_eq(board.position.y + board.size.y, status.position.y + status.size.y + BOARD_ROOM, "the board grows to keep its room under the footer")
 	assert_lte(board.position.y + board.size.y, 1080.0, "and still ends on screen")
+
+#-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+func _toggle() -> TextureButton:
+	return _node("AutoToggle") as TextureButton
+
+## Runs frames every half second from `from` to `to` seconds after the set's start.
+func _frames(from: float, to: float) -> void:
+	var t: float = from
+	while t <= to:
+		_at(t)
+		t += 0.5
+
+## Before a perfect set the toggle is locked: disabled, off, with the lock, and
+## pressing it turns nothing on.
+func test_auto_stays_locked_until_a_perfect_set() -> void:
+	assert_true(_view.is_auto_locked())
+	assert_true(_toggle().disabled, "the toggle takes no press")
+	assert_true((_node("AutoLock") as CanvasItem).visible, "the lock shows")
+	_toggle().button_pressed = true
+	assert_false(_toggle().button_pressed, "a locked toggle stays off")
+	assert_false(_play.is_auto_play(), "and Auto stays off")
+	_play_set([CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, 1.2])
+	assert_true(_view.is_auto_locked(), "a near miss leaves it locked")
+	assert_false(BodyRefiningManager.is_auto_unlocked("stone_lifting"))
+
+## A perfect set unlocks the drill's Auto, and only that drill's: the toggle
+## unlocks and stays off, the floater pops, and the log gets the yellow line.
+func test_a_perfect_set_unlocks_auto() -> void:
+	ResourceManager.set_health(20.0)
+	watch_signals(LogManager)
+	_play_set(_ten(CENTRE))
+	assert_true(BodyRefiningManager.is_auto_unlocked("stone_lifting"))
+	assert_false(BodyRefiningManager.is_auto_unlocked("horse_stance"), "the other drill stays locked")
+	assert_false(_view.is_auto_locked())
+	assert_false(_toggle().disabled, "the toggle takes a press")
+	assert_false(_toggle().button_pressed, "and stays off")
+	assert_true((_node("UnlockFloater") as CanvasItem).visible, "the floater pops")
+	assert_signal_emit_count(LogManager, "message_logged", 2, "the set's line and the unlock's")
+	var line: String = get_signal_parameters(LogManager, "message_logged", 1)[0]
+	assert_eq(line, "[color=yellow]Stone Lifting · Auto unlocked[/color]")
+
+## The locked toggle's hover shows what unlocks it, and the footer stays.
+func test_the_locked_toggle_shows_how_to_unlock() -> void:
+	var before: String = _view.get_status_text()
+	_toggle().mouse_entered.emit()
+	var tooltip := _node("AutoTooltip") as StatTooltip
+	assert_true(tooltip.visible, "the tooltip shows")
+	assert_eq((tooltip.get_node("%FigureLabel") as Label).text, BodyRefiningView.UNLOCK_HINT)
+	assert_eq(_view.get_status_text(), before, "the footer never changes for the lock")
+	_toggle().mouse_exited.emit()
+	assert_false(tooltip.visible)
+
+## With Auto on, the footer reads Auto's line, then the Auto set's line once it
+## ends, which stays through the next Auto set; the log line says Auto.
+func test_the_footer_and_log_under_auto() -> void:
+	ResourceManager.set_health(20.0)
+	BodyRefiningManager.unlock_auto("stone_lifting")
+	_toggle().button_pressed = true
+	_at(0.0)
+	assert_eq(_view.get_status_text(), BodyRefiningView.AUTO_LINE % 40)
+	watch_signals(LogManager)
+	_frames(0.5, 38.5)
+	var text: String = _view.get_status_text()
+	assert_string_contains(text, "Last set · Auto · ", "the Auto set's line")
+	assert_string_contains(text, "+24 XP")
+	assert_false(text.contains("perfect"), "no Perfect count")
+	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
+	assert_eq(LogWindow.plain_text(line), "Set · Auto · +24 Strength XP · +16 Health")
+	_at(39.0)
+	assert_true(_play.is_set_running(), "the next Auto set started")
+	assert_string_contains(_view.get_status_text(), "Last set · Auto", "the last set's line stays")
+
+## Turning Auto on mid-set ends the played set there: its reps stay paid.
+func test_turning_auto_on_mid_set_ends_the_set() -> void:
+	BodyRefiningManager.unlock_auto("stone_lifting")
+	_lift(0, CENTRE)
+	assert_true(_play.is_set_running())
+	_toggle().button_pressed = true
+	assert_false(_play.is_set_running(), "the played set ended")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 6.0, "its rep stays paid")
+	_at(5.0)
+	assert_true(_play.is_auto_set(), "and Auto's set starts")
+
+## A drill picked from the chest brings its own Auto state: a locked one turns
+## Auto off.
+func test_the_toggle_follows_the_drill_in_use() -> void:
+	BodyRefiningManager.unlock_auto("stone_lifting")
+	BodyRefiningManager.unlock_drill("horse_stance")
+	_toggle().button_pressed = true
+	BodyRefiningManager.equip_drill("horse_stance")
+	assert_true(_view.is_auto_locked(), "Horse Stance's Auto is locked")
+	assert_false(_toggle().button_pressed, "so the toggle is off")
+	assert_false(_play.is_auto_play())

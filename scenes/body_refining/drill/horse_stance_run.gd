@@ -43,6 +43,11 @@ const TURN_MAX_USEC: int = 1_600_000
 const SPEED_MIN: float = 0.1
 const SPEED_MAX: float = 0.275
 
+## How often Auto looks at the needle and the arc: it sinks while the needle is
+## shallower than the arc's centre and rises while deeper, deciding only on this
+## grid, so its play never depends on when frames fall.
+const AUTO_STEP_USEC: int = 50_000
+
 ## Later than any time a set reaches.
 const _NEVER: int = 9_223_372_036_854_775_807
 
@@ -64,6 +69,8 @@ var _inside_usec: float = 0.0
 var _deep_usec: float = 0.0
 var _shallow_usec: float = 0.0
 var _end_usec: int = -1
+## The last step of the Auto grid Auto decided at.
+var _auto_usec: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -131,6 +138,22 @@ func release(t_usec: int) -> Array[Judgement]:
 ## Judges every rep whose slot ended by `t`. Returns them, in order.
 func advance(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
+
+## Plays the set as Auto up to `t`: at each step of the AUTO_STEP_USEC grid, sinks
+## the needle while it is shallower than the arc's centre and lets it rise while
+## deeper. Returns every rep judged, in order.
+func play_auto(t_usec: int) -> Array[Judgement]:
+	var judged: Array[Judgement] = []
+	while _auto_usec + AUTO_STEP_USEC <= t_usec and _judgements.size() < _reps:
+		_auto_usec += AUTO_STEP_USEC
+		judged.append_array(_settle(_auto_usec))
+		var shallow: bool = marker_at(_auto_usec) < band_centre_at(_auto_usec)
+		if shallow and not _held:
+			judged.append_array(press(_auto_usec))
+		elif not shallow and _held:
+			judged.append_array(release(_auto_usec))
+	judged.append_array(advance(t_usec))
+	return judged
 
 #-----------------------------------------------------------------------------
 # QUERIES

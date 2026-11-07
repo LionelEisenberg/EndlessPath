@@ -84,6 +84,42 @@ func test_only_the_hold_drills_judge_the_starting_press() -> void:
 		assert_eq(DrillRun.for_drill(_drill(case["kind"], 3.0)).judges_starting_press(), case["judged"], InputKind.keys()[case["kind"]])
 
 #-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+## Auto plays every drill's input as a good player would (#110): played on frames
+## of uneven length, every rep of the set is judged Perfect, on its own clock, and
+## the set ends. The seed varies Horse Stance's arc and Falling Leaf's leaves.
+func test_auto_plays_every_rep_of_each_input_perfect() -> void:
+	var cases: Array[Dictionary] = [
+		{"kind": InputKind.HOLD_RELEASE, "rep": 4.0},
+		{"kind": InputKind.HOLD_STEADY, "rep": 4.0},
+		{"kind": InputKind.CATCH, "rep": 2.0},
+		{"kind": InputKind.BEAT, "rep": 3.0},
+	]
+	for case: Dictionary in cases:
+		for rng_seed: int in [1, 7, 42]:
+			var what: String = "%s, seed %d" % [InputKind.keys()[case["kind"]], rng_seed]
+			var run: DrillRun = DrillRun.for_drill(_drill(case["kind"], case["rep"]), rng_seed)
+			var judged: Array[DrillRun.Judgement] = []
+			var t: int = 0
+			var frame: int = 0
+			while run.get_end_usec() < 0 and t < 60 * S:
+				frame += 1
+				t += [16_000, 17_000, 33_000][frame % 3]
+				judged.append_array(run.play_auto(t))
+			assert_eq(judged.size(), 10, "%s: ten reps judged" % what)
+			var tiers: Array = judged.map(func(judgement: DrillRun.Judgement) -> DrillRules.Tier: return judgement.tier)
+			assert_eq(tiers.count(DrillRules.Tier.PERFECT), 10, "%s: each Perfect (%s)" % [what, str(tiers)])
+			assert_gte(run.get_end_usec(), 0, "%s: the set ends" % what)
+
+## Auto's play doesn't hang on the frames: one call far into the set judges every
+## rep up to it, as many short calls would.
+func test_auto_catches_up_in_one_call() -> void:
+	var run: DrillRun = DrillRun.for_drill(_drill(InputKind.BEAT, 3.0))
+	assert_eq(run.play_auto(10 * S).size(), 3, "three surges landed by 10 s")
+
+#-----------------------------------------------------------------------------
 # THE SLOTS
 #-----------------------------------------------------------------------------
 
