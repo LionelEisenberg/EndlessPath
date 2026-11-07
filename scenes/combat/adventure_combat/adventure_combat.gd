@@ -3,7 +3,14 @@ extends Node2D
 
 ## AdventureCombat
 ## Handles combat encounters during adventure mode
-## This scene manages the combat UI, enemy spawning, and combat resolution
+## This scene manages the combat UI, enemy spawning, and combat resolution.
+## A fight is live only between its start and the hit that decides it (#138):
+## start() makes both fighters held (CombatantNode.set_held()), waiting off their
+## spots with the enemy's name hidden, while AdventureView plays the way in;
+## begin() lets both act in one frame, so their openings start together. The hit
+## that takes a side to 0 Health decides the fight: both fighters are held again,
+## so nothing in it acts while its close plays, and trigger_combat_end reports the
+## end once. Only a live fight hears the player's presses.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -28,6 +35,11 @@ var current_adventure_action: AdventureActionData = null
 var player_combatant: CombatantNode
 var enemy_combatant: CombatantNode
 var _atmosphere: Node
+
+## Whether the fight has begun and its deciding hit has not landed.
+var _live: bool = false
+## Whether the deciding hit has landed.
+var _decided: bool = false
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -72,19 +84,56 @@ func initialize_combat(
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-## Starts the combat encounter.
+## Sets the fight up held: both fighters made, waiting off their spots
+## (CombatantVisual.place_for_entrance()) with nothing of theirs running, and the
+## enemy's name hidden. begin() starts it.
 func start() -> void:
 	Log.info("AdventureCombat: Starting combat")
-	
+
 	if not current_combat_choice:
 		Log.error("AdventureCombat: No combat choice set!")
 		return
-		
+
 	if not PlayerManager.vitals_manager:
 		Log.error("AdventureCombat: No player resource manager set!")
 		return
 
+	_live = false
+	_decided = false
 	_create_combatants()
+	for fighter: CombatantNode in _fighters():
+		fighter.set_held(true)
+	enemy_nameplate.visible = false
+
+## Slides both fighters in from their sides to their spots
+## (CombatantVisual.play_enter()).
+func play_enter() -> void:
+	for fighter: CombatantNode in _fighters():
+		fighter.visual.play_enter()
+
+## Starts the fight: both fighters act from this frame, so the player's techniques
+## and the enemy's AI start their openings together, and the enemy's name shows.
+## Does nothing once the fight has begun or been decided.
+func begin() -> void:
+	if _live or _decided:
+		return
+	_live = true
+	for fighter: CombatantNode in _fighters():
+		fighter.set_held(false)
+	enemy_nameplate.visible = true
+
+## Whether the fight has begun and its deciding hit has not landed.
+func is_live() -> bool:
+	return _live
+
+## The loser's fall (CombatantVisual.play_defeat()): the enemy on a win, the
+## player on a loss. The enemy's name goes as its fall starts.
+func play_defeat(won: bool) -> void:
+	var loser: CombatantNode = enemy_combatant if won else player_combatant
+	if won:
+		enemy_nameplate.visible = false
+	if is_instance_valid(loser):
+		loser.visual.play_defeat()
 
 ## Returns the gold a win over the choice's enemy pays: the enemy's base gold
 ## drop (enemy_pool[0], the one the fight is against) x the choice's gold
@@ -102,6 +151,9 @@ static func gold_reward_for(choice: CombatChoice, adventure_action: AdventureAct
 ## Health, so Health reaching 0 once it is over reports no fight.
 func stop() -> void:
 	enemy_nameplate.reset()
+	enemy_nameplate.visible = false
+	_live = false
+	_decided = false
 	_let_go_of_player_health()
 
 	# Clear all buffs before freeing combatants
@@ -123,6 +175,23 @@ func _create_combatants() -> void:
 	_create_player_combatant()
 	_create_enemy_combatant()
 
+## The fight's fighters that are there.
+func _fighters() -> Array[CombatantNode]:
+	var fighters: Array[CombatantNode] = []
+	for fighter: CombatantNode in [player_combatant, enemy_combatant]:
+		if is_instance_valid(fighter):
+			fighters.append(fighter)
+	return fighters
+
+## The hit that took a side to 0 Health decides the fight: from it nothing in the
+## fight acts (both fighters are held), and the end is reported once.
+func _decide(won: bool, gold: int) -> void:
+	_live = false
+	_decided = true
+	for fighter: CombatantNode in _fighters():
+		fighter.set_held(true)
+	trigger_combat_end.emit(won, gold)
+
 ## Disconnects the player's Health handler initialize_combat() connected. The
 ## player's vitals manager may have been replaced (PlayerManager.reset_vitals()).
 func _let_go_of_player_health() -> void:
@@ -143,7 +212,7 @@ func _create_player_combatant() -> void:
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 
 	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
-	player_combatant.visual.play_enter()
+	player_combatant.visual.place_for_entrance()
 
 func _create_enemy_combatant() -> void:
 	if current_combat_choice.enemy_pool.is_empty():
@@ -161,7 +230,7 @@ func _create_enemy_combatant() -> void:
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
 
-	enemy_combatant.visual.play_enter()
+	enemy_combatant.visual.place_for_entrance()
 
 	enemy_nameplate.setup(enemy_combatant)
 	_place_nameplate.call_deferred()
@@ -191,21 +260,22 @@ func _place_nameplate() -> void:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
+## Health at 0 decides a live fight. Before it begins (only the dev panel writes
+## Health then) and once it is decided, Health decides nothing.
 func _on_player_health_changed(health: float) -> void:
-	if health <= 0.0:
+	if health <= 0.0 and _live:
 		Log.info("AdventureCombat: Player died")
-		trigger_combat_end.emit(false, 0) # No gold on defeat
+		_decide(false, 0) # No gold on defeat
 
 func _on_enemy_health_changed(health: float) -> void:
-	if health <= 0.0:
+	if health <= 0.0 and _live:
 		Log.info("AdventureCombat: Enemy died")
 		var gold = _calculate_gold_reward()
-		# Fire the q_first_steps_enemy_defeated event so Foundation Beat 2's
-		# quest step advances. EventManager deduplicates — subsequent victories
-		# are no-ops on this event.
+		# Fire the q_first_steps_enemy_defeated event before the win is reported.
+		# EventManager deduplicates — subsequent victories are no-ops on this event.
 		if EventManager:
 			EventManager.trigger_event("q_first_steps_enemy_defeated")
-		trigger_combat_end.emit(true, gold)
+		_decide(true, gold)
 
 ## Calculate gold reward using multi-factor formula
 func _calculate_gold_reward() -> int:
@@ -240,16 +310,21 @@ static func _adventure_gold_multiplier(adventure_action: AdventureActionData) ->
 # UI HANDLERS
 #-----------------------------------------------------------------------------
 
+## Uses a technique the player pressed on the technique dock on the enemy. Does
+## nothing unless the fight is live.
 func on_player_ability_selected(instance: CombatAbilityInstance) -> void:
-	# Player used an ability from their UI panel
+	if not _live:
+		return
 	if enemy_combatant:
 		player_combatant.ability_manager.use_ability_instance(instance, enemy_combatant)
 	else:
 		Log.warn("AdventureCombat: No enemy to target!")
 
 ## Uses a hotbar consumable the player pressed on the technique dock. A
-## consumable needs no target.
+## consumable needs no target. Does nothing unless the fight is live.
 func on_player_consumable_selected(instance: CombatConsumableInstance) -> void:
+	if not _live:
+		return
 	if player_combatant:
 		player_combatant.consumable_manager.use_consumable_instance(instance)
 	else:

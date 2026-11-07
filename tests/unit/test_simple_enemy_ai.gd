@@ -46,13 +46,15 @@ func after_each() -> void:
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## Starts a fight against one enemy, as AdventureView._on_start_combat() does.
+## Starts a fight against one enemy and begins it, as AdventureView does once both
+## fighters have arrived: the openings start then.
 func _start_fight(enemy: CombatantData) -> void:
 	var choice := CombatChoice.new()
 	var pool: Array[CombatantData] = [enemy]
 	choice.enemy_pool = pool
 	_combat.initialize_combat(choice, null)
 	_combat.start()
+	_combat.begin()
 
 func _ai() -> SimpleEnemyAI:
 	return _combat.enemy_combatant.get_node("EnemyAI") as SimpleEnemyAI

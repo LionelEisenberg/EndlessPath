@@ -24,7 +24,8 @@ var _opening_left: float = 0.0
 
 ## Initializes the AI with a combatant and a target, and starts the fight's
 ## opening. AdventureCombat sets it up in the frame the player's techniques start
-## their opening cooldown, so both openings end in the same frame.
+## their opening cooldown and holds both fighters until the fight begins, so both
+## openings count from the same frame and end in the same frame.
 func setup(p_combatant: CombatantNode, p_target: CombatantNode) -> void:
 	combatant = p_combatant
 	target = p_target

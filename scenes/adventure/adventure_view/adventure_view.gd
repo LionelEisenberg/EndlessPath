@@ -292,6 +292,8 @@ func _on_start_combat(choice: CombatChoice) -> void:
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
+		combat.play_enter()
+		combat.begin()
 		# The dock takes the player's techniques and consumables, and the cabinet
 		# their buffs
 		if combat.player_combatant:

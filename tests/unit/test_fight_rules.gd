@@ -71,15 +71,16 @@ func _action(gold_multiplier: float) -> AdventureActionData:
 	action.gold_multiplier = gold_multiplier
 	return action
 
-## Starts a real fight over `choice`, as AdventureView._on_start_combat() does,
-## and ends it in the same frame by dropping the enemy's real vitals to 0 HP,
-## before the enemy AI's first _process() can act.
+## Starts a real fight over `choice` and begins it, as AdventureView does once both
+## fighters have arrived, and ends it in the same frame by dropping the enemy's
+## real vitals to 0 HP, before the enemy AI's first _process() can act.
 func _win_fight_over(choice: CombatChoice, adventure_action: AdventureActionData) -> void:
 	_combat = AdventureCombatScene.instantiate()
 	add_child_autofree(_combat)
 	_combat.trigger_combat_end.connect(_on_combat_end)
 	_combat.initialize_combat(choice, adventure_action)
 	_combat.start()
+	_combat.begin()
 	_combat.enemy_combatant.vitals_manager.apply_vitals_change(LETHAL_DAMAGE)
 
 func _on_combat_end(is_successful: bool, gold_earned: int) -> void:

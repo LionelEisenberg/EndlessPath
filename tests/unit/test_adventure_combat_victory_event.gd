@@ -51,15 +51,16 @@ func after_each() -> void:
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## Starts a fight against one Amorphous Spirit, as AdventureView._on_start_combat()
-## does. Each test ends the fight in the same frame, before the enemy AI's first
-## _process() can act.
+## Starts a fight against one Amorphous Spirit and begins it, as AdventureView
+## does once both fighters have arrived. Each test ends the fight in the same
+## frame, before the enemy AI's first _process() can act.
 func _start_fight() -> void:
 	var choice := CombatChoice.new()
 	var pool: Array[CombatantData] = [AMORPHOUS_SPIRIT]
 	choice.enemy_pool = pool
 	_combat.initialize_combat(choice, null)
 	_combat.start()
+	_combat.begin()
 
 func _on_combat_end(is_successful: bool, _gold_earned: int) -> void:
 	_combat_ends.append([is_successful, EventManager.has_event_triggered(ENEMY_DEFEATED_EVENT)])
