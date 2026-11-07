@@ -36,8 +36,9 @@ class Judgement:
 	var height: float = 0.0
 	## When the rep was judged, on the set's clock.
 	var at_usec: int = 0
-	## Where the rep's piece was, in the stage's px, for the inputs whose piece
-	## moves about the stage (a leaf); Vector2.ZERO for the others.
+	## Where the rep was decided, in the stage's px, for the inputs played about the
+	## stage (a leaf's catch where the click came, its landing where it landed);
+	## Vector2.ZERO for the others.
 	var point: Vector2 = Vector2.ZERO
 
 	func _init(p_rep: int, p_tier: DrillRules.Tier, p_miss: Miss, p_height: float, p_at_usec: int, p_point: Vector2 = Vector2.ZERO) -> void:

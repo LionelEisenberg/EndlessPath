@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/body_refining/drill/stages/falling_leaf_stage.gd" id="1_stage"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_leaf_backdrop_ai.png" id="2_backdrop"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/falling_leaf.tscn" id="3_leaf"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_catch_ai.png" id="4_catch"]
+
+[node name="FallingLeafStage" type="Control" unique_id=1827642435]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+script = ExtResource("1_stage")
+input_kind = 2
+
+[node name="Backdrop" type="TextureRect" parent="." unique_id=237150490]
+layout_mode = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+texture = ExtResource("2_backdrop")
+
+[node name="Leaves" type="Control" parent="." unique_id=503099880]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Leaf1" parent="Leaves" unique_id=1626181688 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf2" parent="Leaves" unique_id=1129153441 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf3" parent="Leaves" unique_id=135999727 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf4" parent="Leaves" unique_id=1292704312 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf5" parent="Leaves" unique_id=1231467785 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf6" parent="Leaves" unique_id=1863091540 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf7" parent="Leaves" unique_id=1122422266 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf8" parent="Leaves" unique_id=221730009 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf9" parent="Leaves" unique_id=1831575255 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="Leaf10" parent="Leaves" unique_id=656633746 instance=ExtResource("3_leaf")]
+layout_mode = 0
+
+[node name="CatchRing" type="TextureRect" parent="." unique_id=1838849454]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 44.0
+offset_bottom = 44.0
+mouse_filter = 2
+texture = ExtResource("4_catch")

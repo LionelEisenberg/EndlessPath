@@ -14,7 +14,8 @@ extends DrillRun
 ##
 ## Each leaf is a rep, and a leaf can be caught before an earlier one lands, so the
 ## judgements come out in the order of their times, each carrying its leaf as its
-## rep and where the leaf was as its point. The set ends once every leaf is judged,
+## rep and, as its point, where the click came (the catch's ring stands there) or
+## where the leaf landed. The set ends once every leaf is judged,
 ## and not before the last rep's slot is over. Points are in the stage's px. The
 ## press that starts a set shakes the branch: it is not judged.
 
@@ -109,8 +110,8 @@ func press(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
 
 ## Judges what the time up to `t` decided, then the click at `point`: the nearest
-## airborne leaf within REACH_PX, by its distance. Returns every rep judged, in the
-## order of their times.
+## airborne leaf within REACH_PX, by its distance, the click being the judgement's
+## point. Returns every rep judged, in the order of their times.
 func press_at(t_usec: int, point: Vector2) -> Array[Judgement]:
 	var judged: Array[Judgement] = _settle(t_usec)
 	var nearest: int = -1
@@ -125,7 +126,7 @@ func press_at(t_usec: int, point: Vector2) -> Array[Judgement]:
 		var tier: DrillRules.Tier = DrillRules.judge(DrillRun.share_through(nearest_distance, PALM_PX, FINGERS_PX, BRUSH_PX, REACH_PX))
 		var miss: Miss = Miss.TOO_FAR if tier == DrillRules.Tier.MISS else Miss.NONE
 		_judged[nearest] = true
-		judged.append(_record_rep(nearest, tier, miss, 0.0, t_usec, leaf_position(nearest, t_usec)))
+		judged.append(_record_rep(nearest, tier, miss, 0.0, t_usec, point))
 	return judged
 
 ## Judges every leaf that landed by `t`. Returns them, in order.
@@ -161,6 +162,10 @@ func leaf_position(index: int, t_usec: int) -> Vector2:
 func is_airborne(index: int, t_usec: int) -> bool:
 	var leaf: Leaf = _leaves[index]
 	return t_usec >= leaf.drop_usec and t_usec < leaf.drop_usec + FALL_USEC
+
+## Whether leaf `index` has reached the ground by `t`.
+func is_on_ground(index: int, t_usec: int) -> bool:
+	return t_usec >= _leaves[index].drop_usec + FALL_USEC
 
 ## Whether leaf `index` has been judged, caught or landed.
 func is_judged(index: int) -> bool:

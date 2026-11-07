@@ -22,6 +22,10 @@ const Tier = DrillRules.Tier
 const START_USEC: int = 1_000_000
 ## A release this long after a lift stops the stone at the band's centre.
 const CENTRE: float = 1.37
+## Falling Leaf's test leaves (_ready_leaves()): each drops at its rep's start from
+## LEAF_START, without sway, and is half way down, at LEAF_HALF, 1.8 s later.
+const LEAF_START: Vector2 = Vector2(200, 64)
+const LEAF_HALF: Vector2 = Vector2(200, 460)
 
 var _play: DrillPlay = null
 var _now_usec: int = START_USEC
@@ -82,6 +86,12 @@ func _mouse(down: bool) -> InputEventMouseButton:
 	event.pressed = down
 	return event
 
+## The left mouse button going down or up at `point`, in the stage's px.
+func _click(down: bool, point: Vector2) -> InputEventMouseButton:
+	var event := _mouse(down)
+	event.global_position = _play.get_stage().get_global_transform() * point
+	return event
+
 ## Lifts at the start of rep `rep`'s slot and lets go `held` seconds later.
 func _lift(rep: int, held: float) -> void:
 	_clock_to(rep * 4.0)
@@ -108,6 +118,19 @@ func _ready_stance(band_centre: float) -> void:
 		return HorseStanceRun.new(drill, PackedInt64Array([0, 40_000_000]), PackedFloat64Array([band_centre, band_centre]))
 	_play.setup(BodyRefiningManager.get_drill("horse_stance"))
 
+## Readies Falling Leaf, its sets' leaves the test's: one a rep from LEAF_START.
+func _ready_leaves() -> void:
+	_play.run_for = func(drill: DrillData, _seed: int) -> DrillRun:
+		var leaves: Array[FallingLeafRun.Leaf] = []
+		for rep: int in drill.reps_per_set:
+			leaves.append(FallingLeafRun.Leaf.new(rep * 2_000_000, LEAF_START.x, LEAF_START.y, 0.0, 1_600_000, 0.0))
+		return FallingLeafRun.new(drill, leaves)
+	_play.setup(BodyRefiningManager.get_drill("falling_leaf"))
+
+## The stage's leaf `index`.
+func _leaf_node(index: int) -> CanvasItem:
+	return _play.get_stage().get_node("%Leaves").get_child(index) as CanvasItem
+
 ## The `progress` a stage's piece's shader shows.
 func _progress(unique_name: String) -> float:
 	return ((_play.get_stage().get_node("%" + unique_name) as CanvasItem).material as ShaderMaterial).get_shader_parameter(&"progress")
@@ -121,6 +144,7 @@ func test_each_drill_shows_its_own_stage() -> void:
 	var cases: Array[Dictionary] = [
 		{"drill": "stone_lifting", "stage": "StoneLiftingStage"},
 		{"drill": "horse_stance", "stage": "HorseStanceStage"},
+		{"drill": "falling_leaf", "stage": "FallingLeafStage"},
 	]
 	for case: Dictionary in cases:
 		_play.setup(BodyRefiningManager.get_drill(case["drill"]))
@@ -183,6 +207,76 @@ func test_the_incense_burns_down_with_the_set() -> void:
 		assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % case[1], "%.1f s into the set" % case[0])
 	_play.stop_set()
 	assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % 40, "whole again once it stops")
+
+#-----------------------------------------------------------------------------
+# FALLING LEAF
+#-----------------------------------------------------------------------------
+
+## A click on a leaf's middle half way down: Perfect, which trains Agility beside
+## Strength. The leaf turns into its pellets and the ring snaps where the click came.
+func test_a_falling_leaf_catch_pays_agility() -> void:
+	ResourceManager.set_health(50.0)
+	_ready_leaves()
+	_clock_to(0.0)
+	_play.handle_press_event(_click(true, LEAF_START))
+	_play.handle_press_event(_click(false, LEAF_START))
+	_clock_to(1.8)
+	_play.handle_press_event(_click(true, LEAF_HALF))
+	_at(1.8)
+	assert_eq(_bead_frames()[0], 1, "a Perfect catch")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 4.0, "Falling Leaf's Strength XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.AGILITY), 2.0, "and its Agility XP")
+	assert_eq(ResourceManager.get_health(), 52.0, "and its Health")
+	var ring: Control = _play.get_stage().get_node("%CatchRing") as Control
+	assert_true(ring.visible, "the ring shows")
+	assert_eq(ring.position + ring.size / 2.0, LEAF_HALF, "where the click came")
+	assert_false(_leaf_node(0).visible, "the leaf is gone")
+	_at(2.4)
+	assert_false(ring.visible, "the ring goes")
+
+## A leaf nobody catches is a Miss as it lands, and lies there until the set ends.
+func test_a_landed_leaf_stays_on_the_ground() -> void:
+	_ready_leaves()
+	_clock_to(0.0)
+	_play.handle_press_event(_click(true, LEAF_START))
+	_at(3.6)
+	assert_eq(_bead_frames()[0], 4, "a Miss")
+	assert_eq(_floater("LineFloater").get_text(), DrillPlay.MISS_REASONS[DrillRun.Miss.LANDED])
+	for seconds: float in [3.6, 10.0, 20.0]:
+		_at(seconds)
+		assert_true(_leaf_node(0).visible, "%.1f s: the leaf lies on the ground" % seconds)
+	_at(21.6)
+	assert_false(_play.is_set_running(), "precondition: the last leaf landed and the set ended")
+	assert_false(_leaf_node(0).visible, "the ground is cleared for the next set")
+
+## Review Focus 5: on Falling Leaf the press that starts a set shakes the branch
+## and on Waterfall Tempering it opens the falls: it judges no rep, even aimed at
+## the first leaf. The next press is judged.
+func test_the_starting_press_starts_without_a_rep_on_the_press_drills() -> void:
+	var cases: Array[Dictionary] = [
+		{"drill": "falling_leaf", "start_aim": LEAF_START, "next_at": 1.8, "next_aim": LEAF_HALF},
+	]
+	for case: Dictionary in cases:
+		if case["drill"] == "falling_leaf":
+			_ready_leaves()
+		else:
+			_play.run_for = DrillRun.for_drill
+			_play.setup(BodyRefiningManager.get_drill(case["drill"]))
+		var judged: Array[DrillRun.Judgement] = []
+		var note := func(judgement: DrillRun.Judgement, _health: float, _stat_xp: Dictionary) -> void:
+			judged.append(judgement)
+		_play.rep_judged.connect(note)
+		_clock_to(0.0)
+		_play.handle_press_event(_click(true, case["start_aim"]))
+		_play.handle_press_event(_click(false, case["start_aim"]))
+		assert_true(_play.is_set_running(), "%s: the press starts a set" % case["drill"])
+		assert_eq(judged.size(), 0, "%s: and judges no rep" % case["drill"])
+		_clock_to(case["next_at"])
+		_play.handle_press_event(_click(true, case["next_aim"]))
+		assert_eq(judged.size(), 1, "%s: the next press is judged" % case["drill"])
+		if judged.size() == 1:
+			assert_eq(judged[0].tier, Tier.PERFECT, "%s: Perfect" % case["drill"])
+		_play.rep_judged.disconnect(note)
 
 #-----------------------------------------------------------------------------
 # A SET

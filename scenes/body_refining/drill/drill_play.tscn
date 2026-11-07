@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="8_floater"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/stone_lifting_stage.tscn" id="9_stone_stage"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/horse_stance_stage.tscn" id="10_stance_stage"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/falling_leaf_stage.tscn" id="11_leaf_stage"]
 
 [node name="DrillPlay" type="Control" unique_id=412822345]
 layout_mode = 3
@@ -29,6 +30,9 @@ mouse_filter = 2
 layout_mode = 0
 
 [node name="HorseStanceStage" parent="Stages" unique_id=1655237081 instance=ExtResource("10_stance_stage")]
+layout_mode = 0
+
+[node name="FallingLeafStage" parent="Stages" unique_id=1161064943 instance=ExtResource("11_leaf_stage")]
 layout_mode = 0
 
 [node name="Beads" type="HBoxContainer" parent="." unique_id=944033335]

@@ -82,7 +82,7 @@ func test_a_catch_is_judged_by_how_close_to_the_leaf() -> void:
 		assert_eq(judged[0].tier, case["tier"], "%.1f px off: the tier" % case["off"])
 		assert_eq(judged[0].miss, case["miss"], "%.1f px off: the reason" % case["off"])
 		assert_eq(judged[0].at_usec, HALF, "judged at the click")
-		assert_eq(judged[0].point, Vector2(200.0, HALF_Y), "where the leaf was")
+		assert_eq(judged[0].point, Vector2(200.0 + case["off"], HALF_Y), "where the click came")
 
 func test_a_click_far_from_every_leaf_does_nothing() -> void:
 	var run: FallingLeafRun = _run([_leaf(0, 200.0)])
