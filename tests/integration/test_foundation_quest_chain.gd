@@ -40,6 +40,12 @@ const FIRST_STEPS_OUT: String = "q_first_steps"
 const TEMPER_YOUR_BODY: String = "q_temper_body"
 ## "Harden Your Core", which NPC 5 starts and NPC 4's talk completes.
 const HARDEN_YOUR_CORE: String = "q_reach_core_density_10"
+## "Find the Camp", which NPC 4 starts and approaching the refugee camp completes.
+const FIND_THE_CAMP: String = "q_find_the_camp"
+## Fired by the camp's "Approach the camp": the Traveling Merchant comes home.
+const MERCHANT_DISCOVERED_EVENT: String = "merchant_discovered"
+## Find the Camp's reward (#146: a starting value, #111 is paused).
+const FIND_THE_CAMP_GOLD: float = 50.0
 ## Harden Your Core's goal, two stars: its id is older than its target.
 const TWO_STARS_CONDITION: String = "q_reach_cd_10"
 const RETURN_TO_NPC_STEP: int = 1
@@ -199,7 +205,7 @@ func test_each_npc_completes_one_quest_and_starts_the_next() -> void:
 		{"npc": 2, "completes": AWAKEN_YOUR_SPIRIT, "starts": FIRST_STEPS_OUT, "path_points": 0},
 		{"npc": 3, "completes": FIRST_STEPS_OUT, "starts": TEMPER_YOUR_BODY, "path_points": 1},
 		{"npc": 5, "completes": TEMPER_YOUR_BODY, "starts": HARDEN_YOUR_CORE, "path_points": 0},
-		{"npc": 4, "completes": HARDEN_YOUR_CORE, "starts": "", "path_points": 0},
+		{"npc": 4, "completes": HARDEN_YOUR_CORE, "starts": FIND_THE_CAMP, "path_points": 0},
 	]
 	for case: Dictionary in cases:
 		var npc: int = case.npc
@@ -221,6 +227,20 @@ func test_each_npc_completes_one_quest_and_starts_the_next() -> void:
 			assert_true(BodyRefiningManager.is_drill_unlocked(HORSE_STANCE), "Temper Your Body teaches Horse Stance")
 		if npc == 4:
 			assert_true(InventoryManager.has_item(MAP_ITEM_ID), "Harden Your Core gives the map")
+
+## Find the Camp opens on its one step, the map in hand, and approaching the camp
+## completes it: 50 gold, and no Madra or Health.
+func test_approaching_the_camp_completes_find_the_camp() -> void:
+	_play_through(4)
+	assert_eq(QuestManager.get_current_step_index(FIND_THE_CAMP), 0, "Find the Camp waits on the camp")
+	var gold: float = ResourceManager.get_gold()
+	var madra: float = ResourceManager.get_madra()
+	var health: float = ResourceManager.get_health()
+	EventManager.trigger_event(MERCHANT_DISCOVERED_EVENT)
+	assert_true(QuestManager.has_completed_quest(FIND_THE_CAMP), "the camp completes it")
+	assert_eq(ResourceManager.get_gold() - gold, FIND_THE_CAMP_GOLD, "it pays its gold")
+	assert_eq(ResourceManager.get_madra(), madra, "it refills no Madra")
+	assert_eq(ResourceManager.get_health(), health, "it refills no Health")
 
 ## A Ravenous Dreadbeast can drop Horse Stance's manual before NPC 5 pays it: the
 ## talk still completes the quest, and the manual says the drill is known.

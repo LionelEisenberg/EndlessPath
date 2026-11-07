@@ -42,8 +42,8 @@ var _original_save: SaveGameData
 var _saved_vitals: Dictionary[StringName, float] = {}
 
 func before_each() -> void:
-	# A fight's end pays gold and resolves a tile, and a run's end resumes the zone's
-	# idle action, all into the save. Run on a fresh one, never the developer's save
+	# A fight's end pays gold and resolves a tile, and a run's end runs its
+	# effects, all into the save. Run on a fresh one, never the developer's save
 	# in memory.
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -61,7 +61,7 @@ func before_each() -> void:
 	_view.adventure_completed.connect(func(result: AdventureResultData) -> void: _results.append(result))
 
 func after_each() -> void:
-	# Ends the run (and the idle action its end resumes) on the fresh save.
+	# Ends the run on the fresh save.
 	_stop_actions()
 	# AdventureTilemap creates its AdventureMapGenerator node with .new() and
 	# never frees it; free it here so these tests don't leave orphans.

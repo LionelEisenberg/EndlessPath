@@ -123,11 +123,18 @@ title = "Aura Well"
 steps = Array[ExtResource("3_step")]([SubResource("beat_3a_aura_well")])
 reached_when = "aura_well_discovered"
 
+[sub_resource type="Resource" id="beat_3b_map"]
+script = ExtResource("2_beat")
+beat_id = "beat_3b_map"
+title = "The map"
+steps = Array[ExtResource("3_step")]([SubResource("beat_3b_core_density_20"), SubResource("beat_3b_talk_4")])
+reached_when = "celestial_intervener_dialogue_4"
+
 [sub_resource type="Resource" id="beat_3b"]
 script = ExtResource("2_beat")
 beat_id = "beat_3b"
 title = "Merchant unlocked"
-steps = Array[ExtResource("3_step")]([SubResource("beat_3b_core_density_20"), SubResource("beat_3b_talk_4"), SubResource("beat_3b_merchant")])
+steps = Array[ExtResource("3_step")]([SubResource("beat_3b_merchant")])
 reached_when = "merchant_discovered"
 
 [sub_resource type="Resource" id="beat_9_ready"]
@@ -145,4 +152,4 @@ steps = Array[ExtResource("3_step")]([SubResource("beat_9_advance")])
 
 [resource]
 script = ExtResource("1_route")
-beats = Array[ExtResource("2_beat")]([SubResource("beat_1"), SubResource("beat_2"), SubResource("beat_2b"), SubResource("beat_3a"), SubResource("beat_3b"), SubResource("beat_9_ready"), SubResource("beat_9")])
+beats = Array[ExtResource("2_beat")]([SubResource("beat_1"), SubResource("beat_2"), SubResource("beat_2b"), SubResource("beat_3a"), SubResource("beat_3b_map"), SubResource("beat_3b"), SubResource("beat_9_ready"), SubResource("beat_9")])

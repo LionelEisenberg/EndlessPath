@@ -5,11 +5,11 @@
 
 [resource]
 script = ExtResource("1_qitm")
-from_source = "Old Vesh, in the broken shrine"
+from_source = "the [INTERVENER], in Spirit Valley"
 zone_id = "SpiritValley"
 item_id = "refugee_camp_map"
 item_name = "Refugee Camp Map"
-description = "A hand-drawn map leading to a camp of survivors hidden in the valley."
+description = "A hand-drawn map to a camp of refugees hidden in the Shallow Woods."
 icon = ExtResource("2_icon")
 stack_size = 1
 base_value = 0.0

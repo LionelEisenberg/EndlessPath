@@ -2,7 +2,9 @@ class_name SimpleEnemyAI
 extends Node
 
 ## SimpleEnemyAI
-## Casts the longest-cooldown ability that is ready and affordable.
+## Casts the longest-cooldown ability that is ready and affordable, once the
+## fight's opening is over: the enemy's first cast waits out the player's opening
+## cooldown (CombatAbilityInstance.INITIAL_COOLDOWN), so both sides start together.
 ## Here are a list of additional rules for the enemy AI to pick an ability:
 
 #-----------------------------------------------------------------------------
@@ -13,26 +15,41 @@ var combatant: CombatantNode
 var target: CombatantNode
 var active: bool = false
 
+## Seconds of the fight's opening still to run. The AI casts nothing until it ends.
+var _opening_left: float = 0.0
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-## Initializes the AI with a combatant and a target.
+## Initializes the AI with a combatant and a target, and starts the fight's
+## opening. AdventureCombat sets it up in the frame the player's techniques start
+## their opening cooldown, so both openings end in the same frame.
 func setup(p_combatant: CombatantNode, p_target: CombatantNode) -> void:
 	combatant = p_combatant
 	target = p_target
 	active = true
+	_opening_left = CombatAbilityInstance.INITIAL_COOLDOWN
 	
 	Log.info("SimpleEnemyAI: Initialized for %s targeting %s" % [combatant.name, target.name])
+
+## Whether the fight's opening is still running, so the enemy casts nothing yet.
+func is_in_opening() -> bool:
+	return _opening_left > 0.0
 
 #-----------------------------------------------------------------------------
 # PROCESS
 #-----------------------------------------------------------------------------
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not active or not combatant or not target:
 		return
-	
+
+	if is_in_opening():
+		_opening_left -= delta
+		if is_in_opening():
+			return
+
 	if combatant.ability_manager.is_casting():
 		return
 		

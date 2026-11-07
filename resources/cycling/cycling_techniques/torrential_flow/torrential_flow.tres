@@ -2,12 +2,12 @@
 
 [ext_resource type="Curve2D" uid="uid://c565mswer420e" path="res://resources/cycling/cycling_techniques/torrential_flow/torrential_curve.tres" id="2_7hh5c"]
 [ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd" id="2_nkwtb"]
-[ext_resource type="Texture2D" uid="uid://busa8p00jfqxf" path="res://assets/ui/lacquer/icons/lacquer_ic_tech_torrent_ai.png" id="3_x6wbn"]
+[ext_resource type="Texture2D" uid="uid://b1ivyvbi2q8vl" path="res://assets/ui/lacquer/icons/lacquer_ic_tech_seal_ai.png" id="3_x6wbn"]
 
 [resource]
 script = ExtResource("2_nkwtb")
 id = "torrential_flow"
-technique_name = "Torrential Flow"
+technique_name = "Seal Flow Technique"
 icon = ExtResource("3_x6wbn")
 path_curve = ExtResource("2_7hh5c")
 cycle_duration = 8.0

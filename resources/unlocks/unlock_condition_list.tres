@@ -16,10 +16,11 @@
 [ext_resource type="Resource" path="res://resources/unlocks/celestial_intervener_dialogue_3.tres" id="13_cid3"]
 [ext_resource type="Resource" path="res://resources/unlocks/celestial_intervener_dialogue_5.tres" id="14_cid5"]
 [ext_resource type="Resource" path="res://resources/unlocks/q_temper_body_strength.tres" id="15_qtbs"]
-[ext_resource type="Resource" path="res://resources/unlocks/riverbank_training_opened.tres" id="16_rto"]
-[ext_resource type="Resource" path="res://resources/unlocks/q_first_steps_adventure_ended.tres" id="17_qfsae"]
+[ext_resource type="Resource" path="res://resources/unlocks/refugee_camp_map_owned.tres" id="16_rcmo"]
+[ext_resource type="Resource" path="res://resources/unlocks/riverbank_training_opened.tres" id="17_rto"]
+[ext_resource type="Resource" path="res://resources/unlocks/q_first_steps_adventure_ended.tres" id="18_qfsae"]
 
 [resource]
 script = ExtResource("2_2uato")
-list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf"), ExtResource("4_qfcm1"), ExtResource("5_qfc01"), ExtResource("6_qfsed"), ExtResource("7_qrcd"), ExtResource("8_awd"), ExtResource("9_mrch"), ExtResource("10_cdfull"), ExtResource("11_cid4"), ExtResource("12_cid2"), ExtResource("13_cid3"), ExtResource("14_cid5"), ExtResource("15_qtbs"), ExtResource("16_rto"), ExtResource("17_qfsae")])
+list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf"), ExtResource("4_qfcm1"), ExtResource("5_qfc01"), ExtResource("6_qfsed"), ExtResource("7_qrcd"), ExtResource("8_awd"), ExtResource("9_mrch"), ExtResource("10_cdfull"), ExtResource("11_cid4"), ExtResource("12_cid2"), ExtResource("13_cid3"), ExtResource("14_cid5"), ExtResource("15_qtbs"), ExtResource("16_rcmo"), ExtResource("17_rto"), ExtResource("18_qfsae")])
 metadata/_custom_type_script = "uid://dskgt7ri3i7p3"

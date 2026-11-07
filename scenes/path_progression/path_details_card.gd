@@ -75,8 +75,8 @@ static func node_type_name(node_type: PathNodeData.NodeType) -> String:
 	return ""
 
 ## One effect as a line of text, for example "▲ +10% Madra Generation". A
-## cycling technique's unlock names the technique ("▲ Unlocks: Torrential
-## Flow"), or keeps its id for a technique the catalog does not know.
+## cycling technique's unlock names the technique ("▲ Unlocks: Seal Flow
+## Technique"), or keeps its id for a technique the catalog does not know.
 static func format_effect(effect: PathNodeEffectData) -> String:
 	var prefix: String = "▲ "  # Up triangle
 	match effect.effect_type:
