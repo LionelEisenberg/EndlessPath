@@ -57,7 +57,8 @@ const RING_LAST_FRAME: int = 12
 const RING_FRAME_COUNT: int = 13
 ## The tray flashes once when its running card is clicked.
 const FLASH_TIMES: int = 1
-## The empty tray's line: the idle action that resumes, or none.
+## The empty tray's line: the idle action that resumes, or none (also after a
+## run, when none resumes until the player picks).
 const PAUSED_FORMAT: String = "%s · paused"
 const NOTHING_RUNNING: String = "Nothing running"
 ## The cycle's figure: the seconds into the cycle and its length while a cycle
@@ -212,10 +213,13 @@ func _show_empty() -> void:
 	_update_empty_line()
 
 ## "<idle action> · paused" for the idle action the current zone resumes
-## when the session action ends, or "Nothing running" when it has none.
+## when the session action ends, or "Nothing running" when it has none, or
+## after a run, when nothing resumes until the player picks.
 func _update_empty_line() -> void:
 	var zone: ZoneData = ZoneManager.get_current_zone()
-	var idle: ZoneActionData = ActionManager.resolve_idle_action(zone.zone_id) if zone != null else null
+	var idle: ZoneActionData = null
+	if zone != null and not ActionManager.is_idle_held():
+		idle = ActionManager.resolve_idle_action(zone.zone_id)
 	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
 	_fit()
 

@@ -596,6 +596,25 @@ func test_tray_reads_paused_when_an_idle_action_unlocks_mid_session() -> void:
 	assert_eq(_current_id(), MERCHANT_ID, "precondition: the shop is still open")
 	_assert_empty_tray("Aura Well · paused")
 
+## After a run nothing resumes on its own, so the tray names no idle action as
+## paused, whichever ran before the run, and keeps saying so when an idle
+## action unlocks. A pick runs it again.
+func test_tray_reads_nothing_running_after_a_run() -> void:
+	await _add_panel()
+	_unlock_everything()
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	ActionManager.select_action(ZoneManager.get_action_by_id(ADVENTURE_ID))
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	assert_null(ActionManager.get_current_action(), "precondition: nothing runs")
+	_assert_empty_tray("Nothing running")
+	UnlockManager.condition_unlocked.emit(FULL_CORE_CONDITION)
+	await wait_process_frames(2)
+	_assert_empty_tray("Nothing running")
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "Spring Forest Foraging", "the pick shows in the tray")
+
 func test_strip_press_flashes_the_running_card() -> void:
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
