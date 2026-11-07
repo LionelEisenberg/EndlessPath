@@ -143,11 +143,6 @@ func _reload_as_old_save(edit: Callable) -> void:
 	_use_fresh_save()
 	PersistenceManager.open_save_file(OLD_SAVE_PATH)
 
-## The log lines written since the history held `from` lines.
-func _log_lines_since(from: int) -> Array[String]:
-	var history: Array[String] = LogManager.get_history()
-	return history.slice(from)
-
 #-----------------------------------------------------------------------------
 # ORDER
 #-----------------------------------------------------------------------------
@@ -233,11 +228,16 @@ func test_a_known_horse_stance_still_completes_temper_your_body() -> void:
 	_play_through(3)
 	assert_eq(DevCommands.unlock_drill(HORSE_STANCE), "", "precondition: Horse Stance is learned")
 	_meet_own_gate(5)
-	var log_start: int = LogManager.get_history().size()
+	# The lines the talk logs, heard as they go out: the log's history is capped,
+	# so once it is full its size no longer counts new lines.
+	var logged: Array[String] = []
+	var hear := func(line: String) -> void: logged.append(line)
+	LogManager.message_logged.connect(hear)
 	_talk_to(5)
+	LogManager.message_logged.disconnect(hear)
 	assert_true(QuestManager.has_completed_quest(TEMPER_YOUR_BODY))
-	var known_line: bool = _log_lines_since(log_start).any(func(line: String) -> bool: return line.contains("You know Horse Stance already"))
-	assert_true(known_line, "the manual says the drill is known: %s" % [_log_lines_since(log_start)])
+	var known_line: bool = logged.any(func(line: String) -> bool: return line.contains("You know Horse Stance already"))
+	assert_true(known_line, "the manual says the drill is known: %s" % [logged])
 
 ## Every condition a quest step or a Spirit Valley action waits on is registered,
 ## so it latches and re-checks the step or shows the action.
