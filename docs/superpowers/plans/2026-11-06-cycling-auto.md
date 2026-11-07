@@ -47,4 +47,18 @@ Canvas: [Auto cycling](https://claude.ai/artifact/LuUQ78a7ysxSetP3Hv44nR), round
 
 ## Built differently
 
-(Filled in as the build goes.)
+- The unlock's log line is `[color=yellow]`, as the canvas drew it. The canvas called that "the level-up yellow", but the game's level-up lines (`CharacterManager`) are uncoloured; only the unlock line is yellow.
+- The tooltip's figure line is 236 px wide in `cycling_view.tscn` (an editable-children override), so the Smooth Flow hint wraps to three lines as drawn; `StatTooltip`'s own 172 px would make it four.
+- `CyclingTechnique.is_auto_running()` checks the unlock itself, so the gate holds even if a caller sets `auto_cycle` on a locked technique; the view also keeps the toggle off and disabled while locked.
+- A cycle Auto starts by itself starts unfollowed (`start_cycle(false)`); it can still be perfect only if followed from its first frame, as answer 2 says.
+
+## Done when, played
+
+On the chunk's own save (`-- --preset=path_open --save=user://dev/runs/cycling-auto.tres`, then `-- --save=user://dev/runs/cycling-auto.tres`), driven by a scratch script through the real board:
+
+- Locked Smooth Flow: the toggle is disabled and stays off when set; with the mouse off the ball for 5 s, +0 Madra and +0 Spirit XP. The hover tooltip shows; the status line stays "Click the Madra ball to begin a cycle.".
+- A stopped cycle, a near miss (one GOOD) and a cycle with one frame off the ball leave Auto locked. Four PERFECTs followed throughout unlock it: the floater, the flash, "Smooth Flow Technique · Auto unlocked" in the log, the toggle at "Auto · off".
+- Relaunched on the file: Smooth Flow's Auto is still unlocked; after unlocking every technique, Torrential Flow's is locked.
+- Auto on, mouse off: a cycle starts by itself, the cabinet and Now tray read +2.1 / s, and 3 s pay 6.4 Madra and 2 Spirit XP. Following reads the full rate.
+- Closing the board while Auto runs ends the cycle; 4 s later nothing more is paid, and foraging resumes.
+- A copy of a version 4 save loads at version 6 with every Auto locked, and a followed cycle draws Madra.

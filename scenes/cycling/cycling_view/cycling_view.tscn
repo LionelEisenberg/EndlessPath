@@ -178,3 +178,8 @@ visible = false
 [node name="AutoTooltip" parent="." unique_id=902615738 instance=ExtResource("13_tooltip")]
 unique_name_in_owner = true
 z_index = 10
+
+[node name="FigureLabel" parent="AutoTooltip/Content" index="1"]
+custom_minimum_size = Vector2(236, 0)
+
+[editable path="AutoTooltip"]
