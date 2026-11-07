@@ -6,7 +6,10 @@
 [ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_track9_ai.png" id="4_track"]
 [ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_rail_ai.png" id="5_rail"]
 [ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_jade_ai.png" id="6_jade"]
-[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_stone_ai.png" id="7_stone"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_stone_sill_ai.png" id="7_stone"]
+[ext_resource type="Script" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="8_strip"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_band_ai.png" id="9_band"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_stop_mark_ai.png" id="10_mark"]
 
 [node name="StoneLiftingStage" type="Control" unique_id=1840297311]
 layout_mode = 3
@@ -62,6 +65,18 @@ offset_bottom = 344.0
 mouse_filter = 2
 texture = ExtResource("5_rail")
 
+[node name="Band" type="TextureRect" parent="." unique_id=1938471025]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 226.0
+offset_top = 205.0
+offset_right = 298.0
+offset_bottom = 234.0
+mouse_filter = 2
+script = ExtResource("8_strip")
+strip = ExtResource("9_band")
+frame_size = Vector2i(72, 29)
+
 [node name="Fill" type="NinePatchRect" parent="." unique_id=475267398]
 unique_name_in_owner = true
 layout_mode = 0
@@ -73,12 +88,25 @@ mouse_filter = 2
 texture = ExtResource("6_jade")
 axis_stretch_vertical = 1
 
+[node name="StopMark" type="TextureRect" parent="." unique_id=1293847560]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 218.0
+offset_top = 490.0
+offset_right = 306.0
+offset_bottom = 494.0
+mouse_filter = 2
+script = ExtResource("8_strip")
+strip = ExtResource("10_mark")
+frame_size = Vector2i(88, 4)
+
 [node name="Stone" type="TextureRect" parent="." unique_id=1615078126]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 230.0
+offset_left = 218.0
 offset_top = 436.0
-offset_right = 294.0
+offset_right = 306.0
 offset_bottom = 492.0
 mouse_filter = 2
 texture = ExtResource("7_stone")
