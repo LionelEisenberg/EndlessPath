@@ -122,6 +122,23 @@ func test_rod_steps() -> void:
 	rod.set_fraction(0.5)
 	assert_eq(rod.get_step(), 76)
 
+## A rod that rounds down shows only the steps its fraction has earned, so it
+## reads full only at 1.0 (the Character book's XP bars).
+func test_a_rod_can_round_down() -> void:
+	var rod := _make_well_rod()
+	rod.round_down = true
+	var cases: Array[Array] = [
+		# fraction, step of 152
+		[0.0, 0],
+		[1.9 / 152.0, 1],
+		[0.5, 76],
+		[151.9 / 152.0, 151],
+		[1.0, 152],
+	]
+	for case: Array in cases:
+		rod.set_fraction(case[0])
+		assert_eq(rod.get_step(), case[1], "fraction %s" % case[0])
+
 func test_rod_clamps() -> void:
 	var rod := _make_well_rod()
 	rod.set_fraction(-0.5)

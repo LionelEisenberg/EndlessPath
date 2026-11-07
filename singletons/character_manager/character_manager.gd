@@ -130,6 +130,19 @@ func get_total_attributes_data() -> CharacterAttributesData:
 	totals.ward = get_stat(Stat.WARD)
 	return totals
 
+## Returns the stat's total as it would be with its trained level at `level`,
+## every other bonus as it is now. The worn gear is counted again on that
+## level's trained value, so a floored percent that steps up with the level
+## counts: the Character book's next-level figures read it. At the stat's own
+## level it is get_stat().
+func get_stat_at_level(stat: AttributeType, level: int) -> float:
+	var trained_value: float = stat_progression.get_value_for_level(level)
+	var gear_change: float = -get_gear_bonus(stat)
+	for equipment: EquipmentDefinitionData in _equipped_gear():
+		gear_change += equipment.get_stat_bonus(stat, trained_value)
+	# The gear source still gives today's bonus, so the base carries the change.
+	return _modifiers.apply(StatModifierData.for_attribute(stat), trained_value + gear_change)
+
 ## The flat points the worn gear adds to the stat: each equipped item's and
 ## accessory's get_stat_bonus() on the stat's trained value, summed. It is gear's
 ## FLAT amount before any PERCENT modifier, which StatModifierStack applies after

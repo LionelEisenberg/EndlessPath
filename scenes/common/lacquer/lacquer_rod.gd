@@ -36,6 +36,15 @@ extends Control
 		steps = maxi(1, value)
 		_apply_step()
 
+## Rounds the fraction down to a whole step instead of to the nearest, so the
+## rod shows only the steps its fraction has earned and reads full only at 1.0.
+## The Character book's XP bars set it, so a stat just short of a level never
+## reads as reached.
+@export var round_down: bool = false:
+	set(value):
+		round_down = value
+		_apply_step()
+
 @onready var _empty: TextureRect = %Empty
 @onready var _full_clip: Control = %FullClip
 @onready var _full: TextureRect = %Full
@@ -59,7 +68,8 @@ func _get_minimum_size() -> Vector2:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Fills the rod to fraction (clamped to 0-1), rounded to a whole step.
+## Fills the rod to fraction (clamped to 0-1), rounded to a whole step: the
+## nearest, or the one below with round_down.
 func set_fraction(fraction: float) -> void:
 	_fraction = clampf(fraction, 0.0, 1.0)
 	_apply_step()
@@ -81,7 +91,11 @@ func _apply_textures() -> void:
 	_apply_step()
 
 func _apply_step() -> void:
-	_step = roundi(_fraction * steps)
+	if round_down:
+		# The 1e-6 lifts a product a hair under its whole number back onto it.
+		_step = floori(_fraction * steps + 1e-6)
+	else:
+		_step = roundi(_fraction * steps)
 	if not is_node_ready():
 		return
 	var height: float = full_texture.get_height() if full_texture != null else 0.0

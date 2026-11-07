@@ -502,6 +502,26 @@ func test_get_stat_reads_base_plus_gear() -> void:
 	assert_eq(CharacterManager.get_stat(Stat.BODY), 14.0)
 	assert_eq(CharacterManager.get_stat(Stat.MAX_HEALTH), 140.0, "the formula runs on the total Body")
 
+## A stat's total at another level recounts the worn gear on that level's
+## trained value, so a floored percent that steps up with the level counts.
+func test_a_stats_total_at_a_level_recounts_its_gear() -> void:
+	_inventory().equipped_gear[EquipmentSlot.HEAD] = _make_gear(EquipmentSlot.HEAD, {&"spirit": 0.15})
+	_gear_changed()
+	var cases: Array[Array] = [
+		# level, expected total: the trained value plus 15% of it, floored, at least 1
+		[1, 11.0],
+		[4, 14.0],
+		[5, 16.0],
+		[6, 17.0],
+	]
+	for case: Array in cases:
+		assert_eq(CharacterManager.get_stat_at_level(AttributeType.SPIRIT, case[0]), case[1], "Spirit at Lv %d" % case[0])
+	assert_eq(CharacterManager.get_stat_at_level(AttributeType.SPIRIT, CharacterManager.get_stat_level(AttributeType.SPIRIT)),
+		CharacterManager.get_stat(Stat.SPIRIT), "at its own level the total is get_stat()")
+	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.SPIRIT, Kind.PERCENT, 0.1)]))
+	assert_almost_eq(CharacterManager.get_stat_at_level(AttributeType.SPIRIT, 5), 17.6, 0.0001,
+		"every source counts, a percent after the flat bonuses: (14 + 2) x 1.1")
+
 func test_a_source_raises_the_total_attributes() -> void:
 	CharacterManager.set_modifier_source(TEST_SOURCE, _source([StatModifierData.new(Stat.BODY, Kind.FLAT, 3.0)]))
 	assert_eq(_total(AttributeType.BODY), 13.0)
