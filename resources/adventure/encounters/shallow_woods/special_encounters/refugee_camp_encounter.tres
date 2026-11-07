@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_effect"]
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="4_trigger"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_cond"]
+[ext_resource type="Resource" path="res://resources/unlocks/refugee_camp_map_owned.tres" id="6_map_owned"]
 
 [sub_resource type="Resource" id="Resource_trigger_merchant"]
 script = ExtResource("4_trigger")
@@ -15,13 +16,6 @@ script = ExtResource("2_choice")
 label = "Approach the camp"
 tooltip = "Show them the map and see what they trade."
 success_effects = Array[ExtResource("3_effect")]([SubResource("Resource_trigger_merchant")])
-
-[sub_resource type="Resource" id="Resource_cond_map_owned"]
-script = ExtResource("5_cond")
-condition_id = "refugee_camp_map_owned"
-condition_type = 5
-target_value = "refugee_camp_map"
-comparison_op = "=="
 
 [sub_resource type="Resource" id="Resource_cond_merchant_discovered"]
 script = ExtResource("5_cond")
@@ -39,7 +33,7 @@ text_description_completed = "The camp is empty now — they must have moved on,
 choices = Array[ExtResource("2_choice")]([SubResource("Resource_approach_choice")])
 encounter_type = 4
 unlock_conditions = Dictionary[ExtResource("5_cond"), bool]({
-SubResource("Resource_cond_map_owned"): true,
+ExtResource("6_map_owned"): true,
 SubResource("Resource_cond_merchant_discovered"): false
 })
 placement = 0

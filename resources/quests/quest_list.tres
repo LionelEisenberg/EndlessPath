@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="QuestList" load_steps=7 format=3 uid="uid://bquest1list00"]
+[gd_resource type="Resource" script_class="QuestList" load_steps=8 format=3 uid="uid://bquest1list00"]
 
 [ext_resource type="Script" uid="uid://c1urxnbhmkqws" path="res://scripts/resource_definitions/quests/quest_list.gd" id="1_ql"]
 [ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="2_qd"]
@@ -6,8 +6,9 @@
 [ext_resource type="Resource" uid="uid://d1mcp5rsmbbwu" path="res://resources/quests/q_first_steps.tres" id="4_qfst"]
 [ext_resource type="Resource" uid="uid://bqreachcdq001" path="res://resources/quests/q_reach_core_density_10.tres" id="5_qrcdq"]
 [ext_resource type="Resource" path="res://resources/quests/q_temper_body.tres" id="6_qtb"]
+[ext_resource type="Resource" path="res://resources/quests/q_find_the_camp.tres" id="7_qftc"]
 
 [resource]
 script = ExtResource("1_ql")
-quests = Array[ExtResource("2_qd")]([ExtResource("3_qfc01"), ExtResource("4_qfst"), ExtResource("6_qtb"), ExtResource("5_qrcdq")])
+quests = Array[ExtResource("2_qd")]([ExtResource("3_qfc01"), ExtResource("4_qfst"), ExtResource("6_qtb"), ExtResource("5_qrcdq"), ExtResource("7_qftc")])
 metadata/_custom_type_script = "uid://c1urxnbhmkqws"

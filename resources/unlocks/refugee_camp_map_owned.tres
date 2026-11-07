@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+condition_id = "refugee_camp_map_owned"
+condition_type = 5
+target_value = "refugee_camp_map"
+comparison_op = "=="
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"
