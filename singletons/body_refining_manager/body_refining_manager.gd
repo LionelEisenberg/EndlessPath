@@ -8,10 +8,12 @@ extends Node
 ## capped Strength still refills, recording in the set's result what each stat
 ## took. It also holds a snapshot of the set being played, for the Now strip,
 ## and counts each set played to its last rep in the play stats (finish_set()).
+## It keeps which drills' Auto a perfect set has unlocked (unlock_auto()).
 ## Modelled on CyclingManager.
 
 signal drill_unlocked(drill: DrillData)
 signal equipped_drill_changed(drill: DrillData)
+signal auto_unlocked(drill: DrillData)
 
 const AttributeType = CharacterAttributesData.AttributeType
 const Tier = DrillRules.Tier
@@ -103,6 +105,32 @@ func is_drill_unlocked(drill_id: String) -> bool:
 	if not _live_save_data:
 		return false
 	return drill_id in _live_save_data.unlocked_drill_ids
+
+# ----- Auto -----
+# A drill's Auto unlocks once a set of it ends perfect (the board decides that,
+# DrillSetResult.is_perfect()) and stays unlocked: the save keeps the drill ids.
+# Until then the board's Auto toggle is locked.
+
+## Unlocks Auto for the drill with this ID and announces it. Idempotent: a drill
+## whose Auto is already unlocked changes nothing and is not announced again. An
+## ID outside the catalog is refused.
+func unlock_auto(drill_id: String) -> void:
+	if not _live_save_data:
+		return
+	if drill_id in _live_save_data.auto_drill_ids:
+		return
+	if not _drills_by_id.has(drill_id):
+		push_error("BodyRefiningManager: unknown drill_id '%s'" % drill_id)
+		return
+	_live_save_data.auto_drill_ids.append(drill_id)
+	Log.info("BodyRefiningManager: Unlocked Auto for '%s'" % drill_id)
+	auto_unlocked.emit(_drills_by_id[drill_id])
+
+## Returns true once the drill's Auto is unlocked.
+func is_auto_unlocked(drill_id: String) -> bool:
+	if not _live_save_data:
+		return false
+	return drill_id in _live_save_data.auto_drill_ids
 
 # ----- Seen drills -----
 

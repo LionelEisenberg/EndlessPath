@@ -7,7 +7,7 @@ extends Resource
 
 ## The save format this build writes. migrate() brings an older save up to it,
 ## and a save with a higher number was written by a newer build.
-const CURRENT_VERSION: int = 6
+const CURRENT_VERSION: int = 7
 
 ## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
 @export var save_version: int = 0
@@ -159,6 +159,9 @@ func _verify_current_selected_zone_id() -> bool:
 ## Set once BodyRefiningManager has marked every drill unlocked at the time as
 ## seen, so a save from before drills doesn't light the mark on its starting drill.
 @export var seen_drills_initialized: bool = false
+## drill ids whose Auto the player has unlocked with a perfect set. Empty for a
+## new save, and for a save from before drill Auto.
+@export var auto_drill_ids: Array[String] = []
 
 #-----------------------------------------------------------------------------
 # ABILITY MANAGER
@@ -348,6 +351,10 @@ func _run_version_steps() -> bool:
 	# suits an old save (every Auto locked), so the step moves nothing.
 	if save_version < 6:
 		save_version = 6
+	# Version 7 added the drills whose Auto is unlocked. Its empty default suits
+	# an old save (every drill's Auto locked), so the step moves nothing.
+	if save_version < 7:
+		save_version = 7
 	return true
 
 ## True when CultivationManager, which the version 2 step reads the stat caps

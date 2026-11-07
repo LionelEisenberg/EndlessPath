@@ -127,6 +127,36 @@ func test_equip_drill_refuses_an_unknown_and_a_locked_drill() -> void:
 	assert_eq(_save_data.equipped_drill_id, "stone_lifting", "the equipped drill stays")
 
 #-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+func test_auto_is_locked_on_a_new_save() -> void:
+	assert_false(BodyRefiningManager.is_auto_unlocked("stone_lifting"))
+	assert_eq(_save_data.auto_drill_ids, [] as Array[String])
+
+func test_auto_unlock_is_saved_per_drill() -> void:
+	BodyRefiningManager.unlock_auto("body_drill")
+	assert_true(BodyRefiningManager.is_auto_unlocked("body_drill"))
+	assert_false(BodyRefiningManager.is_auto_unlocked("stone_lifting"), "a perfect set unlocks only its own drill")
+	assert_eq(_save_data.auto_drill_ids, ["body_drill"] as Array[String])
+
+func test_unlock_auto_announces_the_drill_once() -> void:
+	watch_signals(BodyRefiningManager)
+	BodyRefiningManager.unlock_auto("body_drill")
+	BodyRefiningManager.unlock_auto("body_drill")
+	assert_signal_emit_count(BodyRefiningManager, "auto_unlocked", 1)
+	assert_signal_emitted_with_parameters(BodyRefiningManager, "auto_unlocked", [_body_drill])
+	assert_eq(_save_data.auto_drill_ids.count("body_drill"), 1, "unlocking twice changes nothing")
+
+func test_unlock_auto_refuses_an_unknown_id() -> void:
+	watch_signals(BodyRefiningManager)
+	BodyRefiningManager.unlock_auto("not_a_drill")
+	assert_push_error("unknown drill_id")
+	assert_false(BodyRefiningManager.is_auto_unlocked("not_a_drill"))
+	assert_signal_not_emitted(BodyRefiningManager, "auto_unlocked")
+	assert_true(_save_data.auto_drill_ids.is_empty())
+
+#-----------------------------------------------------------------------------
 # SEEN DRILLS
 #-----------------------------------------------------------------------------
 

@@ -330,8 +330,23 @@ func test_v6_gives_an_old_save_every_auto_locked() -> void:
 	data.save_version = 5
 	data.migrate()
 	assert_true(data.auto_cycling_technique_ids.is_empty())
-	assert_eq(data.save_version, 6, "version 6 is the Auto list's")
 	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
+## A save from before drill Auto comes out with every drill's Auto locked, and
+## the current version: the step moves nothing.
+func test_v7_gives_an_old_save_every_drill_auto_locked() -> void:
+	var data := SaveGameData.new()
+	data.save_version = 6
+	data.migrate()
+	assert_true(data.auto_drill_ids.is_empty())
+	assert_eq(data.save_version, 7, "version 7 is the drill Auto list's")
+	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
+func test_v7_skips_a_current_save() -> void:
+	var data := SaveGameData.new_current()
+	data.auto_drill_ids.append("horse_stance")
+	data.migrate()
+	assert_eq(data.auto_drill_ids, ["horse_stance"] as Array[String], "a current save's unlocks are its own")
 
 ## A save from before drills comes out with the starting drill unlocked and
 ## equipped, nothing seen yet, and the current version.
