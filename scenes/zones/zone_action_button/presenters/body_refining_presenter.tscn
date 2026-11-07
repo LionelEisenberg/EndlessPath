@@ -1,22 +1,29 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/body_refining_presenter.gd" id="1_refine"]
-[ext_resource type="PackedScene" path="res://scenes/zones/zone_action_button/presenters/forage_yield.tscn" id="2_reward"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_pool_health_ai.png" id="2_pool"]
 
 [node name="BodyRefiningPresenter" type="Node" unique_id=1590472863]
 script = ExtResource("1_refine")
 
-[node name="Rewards" type="HFlowContainer" parent="." unique_id=1093825147]
+[node name="Icons" type="HBoxContainer" parent="."]
 unique_name_in_owner = true
-size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 0
+theme_override_constants/separation = 12
 
-[node name="HealthReward" parent="Rewards" unique_id=718263950 instance=ExtResource("2_reward")]
+[node name="PoolIcon" type="TextureRect" parent="Icons"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_pool")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="StrengthReward" parent="Rewards" unique_id=1426390581 instance=ExtResource("2_reward")]
+[node name="SideIcon" type="TextureRect" parent="Icons"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5

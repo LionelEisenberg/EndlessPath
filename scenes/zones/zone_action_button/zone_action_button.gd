@@ -13,6 +13,10 @@ extends Control
 ## column, right-aligned under the tag ("+1 Spirit / level"). A card names what
 ## you get, never a sentence joined with " · ": the timings, ranges and levels of
 ## a running action are the Now strip's (the user's review, 2026-10-24).
+## A card that shows what it gives as icons alone (the Cycling and Riverbank
+## Training cards: the pool, then the side it trains) puts them in the icon
+## column, right-aligned under the tag, and leaves the detail line empty. Its
+## title, with the NEW seal beside it, is centred on the card's height (#145).
 ##
 ## The card owns the drawer, the tag, the running state (an idle action that
 ## runs is pulled out to (-2, -2) on the running face and tagged RUNNING, and so
@@ -61,6 +65,10 @@ const ROOM_UNDER_DETAIL: float = 16.0
 ## The right column takes at most half the line: a longer figure wraps at that
 ## width, right-aligned, and the left part keeps the rest.
 const DETAIL_RIGHT_MAX_WIDTH: float = DETAIL_WIDTH / 2.0
+## The icon column's top, under the tag, and how much of the drawer shows under
+## its icons: 32 px icons make an 86 px card.
+const ICON_COLUMN_TOP: float = 40.0
+const ROOM_UNDER_ICONS: float = 14.0
 
 const FLASH_TIMES: int = 2
 const RUNNING_TAG_TEXT: String = "RUNNING"
@@ -107,6 +115,7 @@ const PRESENTER_SCENES: Dictionary = {
 @onready var _detail_row: HBoxContainer = %DetailRow
 @onready var _detail_slot: VBoxContainer = %DetailSlot
 @onready var _detail_right: RichTextLabel = %DetailRight
+@onready var _icon_column: HBoxContainer = %IconColumn
 @onready var _ready_frame: LacquerFrameOverlay = %ReadyFrame
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
 @onready var _flash_frame: LacquerFrameOverlay = %FlashFrame
@@ -134,6 +143,7 @@ func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
 	# A row a presenter changes without telling the card still re-measures it.
 	_detail_row.minimum_size_changed.connect(relayout)
+	_icon_column.minimum_size_changed.connect(relayout)
 	relayout()
 	if action_data:
 		_apply_action()
@@ -189,6 +199,13 @@ func set_detail_right(text: String, color: Color = ThemeConstants.LACQUER_TAN) -
 		_set_width(_detail_right, _detail_right_width)
 	relayout()
 
+## The HBoxContainer under the tag, right-aligned at its right edge (x+380): a
+## presenter that shows what its action gives as icons alone reparents them here
+## and leaves the detail slot empty. The card grows to hold them and centres its
+## title on its height.
+func get_icon_column() -> HBoxContainer:
+	return _icon_column
+
 ## The right column's text, "" while it is hidden.
 func get_detail_right_text() -> String:
 	return _detail_right.get_parsed_text() if _detail_right.visible else ""
@@ -218,8 +235,10 @@ func set_detail_rich_text(rich: RichTextLabel, text: String, width: float = -1.0
 
 ## Lays the card out from its text: the title row, the detail row 4 px under the
 ## title's last line, and the card 16 px under the detail row's last line (72 at
-## least, an even height), with the drawer, its face and its frames. Presenters
-## call it after they change what their rows show.
+## least, an even height), with the drawer, its face and its frames. Icons in the
+## icon column stand under the tag with 14 px of drawer under them, and a card with
+## icons there and nothing on its detail line centres its title row on its
+## height. Presenters call it after they change what their rows show.
 func relayout() -> void:
 	if not is_node_ready():
 		return
@@ -227,7 +246,16 @@ func relayout() -> void:
 	_detail_row.position = Vector2(TITLE_X, _title.position.y + _title.size.y + DETAIL_GAP)
 	var row_height: float = _detail_row.get_combined_minimum_size().y
 	_detail_row.size = Vector2(DETAIL_WIDTH, row_height)
-	var height: float = maxf(MIN_HEIGHT, 2.0 * ceilf((_detail_row.position.y + row_height + ROOM_UNDER_DETAIL) / 2.0))
+	var bottom: float = _detail_row.position.y + row_height + ROOM_UNDER_DETAIL
+	var has_icons: bool = _icon_column.get_child_count() > 0
+	if has_icons:
+		var icons_size: Vector2 = _icon_column.get_combined_minimum_size()
+		_icon_column.position = Vector2(TITLE_X + DETAIL_WIDTH - icons_size.x, ICON_COLUMN_TOP)
+		_icon_column.size = icons_size
+		bottom = maxf(bottom, ICON_COLUMN_TOP + icons_size.y + ROOM_UNDER_ICONS)
+	var height: float = maxf(MIN_HEIGHT, 2.0 * ceilf(bottom / 2.0))
+	if has_icons and row_height == 0.0:
+		_centre_title_row(height)
 	var card_size := Vector2(CARD_WIDTH, height)
 	custom_minimum_size = card_size
 	size = card_size
@@ -313,9 +341,10 @@ func _spawn_presenter() -> void:
 		remove_child(_presenter)
 		_presenter.queue_free()
 		_presenter = null
-	for child: Node in _detail_slot.get_children():
-		_detail_slot.remove_child(child)
-		child.queue_free()
+	for slot: Control in [_detail_slot, _icon_column]:
+		for child: Node in slot.get_children():
+			slot.remove_child(child)
+			child.queue_free()
 	set_detail_right("")
 
 	var scene: PackedScene = PRESENTER_SCENES.get(action_data.action_type, DEFAULT_PRESENTER_SCENE) as PackedScene
@@ -325,6 +354,13 @@ func _spawn_presenter() -> void:
 		return
 	add_child(_presenter)
 	_presenter.setup(action_data, self)
+
+## Moves the title and the NEW seal beside its first line down together, so the
+## title stands centred on the card's height, on an even y.
+func _centre_title_row(height: float) -> void:
+	var shift: float = 2.0 * floorf((height - _title.size.y) / 4.0) - _title.position.y
+	_title.position.y += shift
+	_new_seal.position.y += shift
 
 ## Gives a wrapping label its width as its minimum and as its size, then drops
 ## the minimum size cached at its old width, so the boxes above it measure its
