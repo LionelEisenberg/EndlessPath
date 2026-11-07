@@ -73,4 +73,7 @@ Lionel approved the "Merchant goal" canvas on 2026-11-07 ("yes new quest is good
 
 ## What was built differently
 
-(Filled in after the build.)
+- **The folded board is 200 px, not 202.** The canvas guessed one detail line (18 px); the text column's 2 px gap above the hidden list goes with it. At home the board ends at y 816, 36 px above the log. The canvas's two numbers were corrected; its captures were already the real board.
+- **NPC 4's board test** (`test_npc_4_hands_the_board_to_the_breakthrough`) became `test_npc_4_hands_the_board_to_find_the_camp_and_the_breakthrough`: it runs the talk's real effects instead of firing its event, so it sees the quest it starts.
+- **The camp encounter** references the new registered `refugee_camp_map_owned.tres` instead of its inline copy (rule 5); its inline `merchant_discovered` copy is left as it was.
+- **The "Done when" checks** ran in a scratch driver (`mockups/merchant_checks/driver.gd`, gitignored) on `-- --save=user://dev/runs/merchant-map-goal.tres`. The two old saves were written by the `origin/main` build (7d586171) from a scratch checkout: one between NPC 5 and NPC 4, one past NPC 4 with the camp unfound.
