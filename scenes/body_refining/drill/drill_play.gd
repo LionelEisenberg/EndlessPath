@@ -98,6 +98,9 @@ const BEAD_FRAMES: Dictionary = {Tier.PERFECT: 1, Tier.GOOD: 2, Tier.OK: 3, Tier
 
 ## The clock every judgement and timed effect reads, in microseconds. Tests replace it.
 var clock_usec: Callable = Time.get_ticks_usec
+## Makes a set's run of the drill, seeded with the clock at its first press. Tests
+## replace it.
+var run_for: Callable = DrillRun.for_drill
 
 var _drill: DrillData = null
 var _run: DrillRun = null
@@ -267,7 +270,7 @@ func _show_stage() -> void:
 ## hidden, and the session running.
 func _start_set() -> void:
 	_start_usec = clock_usec.call()
-	_run = DrillRun.for_drill(_drill, _start_usec) if _stages.has(_drill.input_kind) else StoneLiftingRun.new(_drill)
+	_run = run_for.call(_drill, _start_usec) if _stages.has(_drill.input_kind) else StoneLiftingRun.new(_drill)
 	_result = DrillSetResult.new(_drill)
 	_set_running = true
 	for bead: LacquerStripRect in _beads:

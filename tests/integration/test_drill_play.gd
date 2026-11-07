@@ -102,6 +102,16 @@ func _floater(unique_name: String) -> LacquerFloater:
 func _stone_run() -> StoneLiftingRun:
 	return _play.get_run() as StoneLiftingRun
 
+## Readies Horse Stance, its sets' arc held at `band_centre` all set long.
+func _ready_stance(band_centre: float) -> void:
+	_play.run_for = func(drill: DrillData, _seed: int) -> DrillRun:
+		return HorseStanceRun.new(drill, PackedInt64Array([0, 40_000_000]), PackedFloat64Array([band_centre, band_centre]))
+	_play.setup(BodyRefiningManager.get_drill("horse_stance"))
+
+## The `progress` a stage's piece's shader shows.
+func _progress(unique_name: String) -> float:
+	return ((_play.get_stage().get_node("%" + unique_name) as CanvasItem).material as ShaderMaterial).get_shader_parameter(&"progress")
+
 #-----------------------------------------------------------------------------
 # THE STAGE
 #-----------------------------------------------------------------------------
@@ -110,6 +120,7 @@ func _stone_run() -> StoneLiftingRun:
 func test_each_drill_shows_its_own_stage() -> void:
 	var cases: Array[Dictionary] = [
 		{"drill": "stone_lifting", "stage": "StoneLiftingStage"},
+		{"drill": "horse_stance", "stage": "HorseStanceStage"},
 	]
 	for case: Dictionary in cases:
 		_play.setup(BodyRefiningManager.get_drill(case["drill"]))
@@ -120,6 +131,58 @@ func test_each_drill_shows_its_own_stage() -> void:
 		assert_eq(stage.name, case["stage"], "%s's stage" % case["drill"])
 		for other: Node in _play.get_node("%Stages").get_children():
 			assert_eq((other as Control).visible, other == stage, "%s: %s shows only when it is the drill's" % [case["drill"], other.name])
+
+#-----------------------------------------------------------------------------
+# HORSE STANCE
+#-----------------------------------------------------------------------------
+
+## A sink into an arc at the top of the gauge, and a rise to stand in it for the
+## rest of the rep: Perfect, which trains Body beside Strength.
+func test_a_horse_stance_rep_pays_strength_body_and_health() -> void:
+	ResourceManager.set_health(50.0)
+	_ready_stance(0.1)
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_clock_to(0.2)
+	_play.handle_press_event(_press(false))
+	_at(4.0)
+	assert_eq(_bead_frames()[0], 1, "a Perfect rep")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 8.0, "Horse Stance's Strength XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 4.0, "and its Body XP")
+	assert_eq(ResourceManager.get_health(), 54.0, "and its Health")
+
+## The needle and the arc stand where the run has them, and the brass gauge shows
+## exactly while the needle is in the arc.
+func test_the_gauge_follows_the_run() -> void:
+	_ready_stance(0.5)
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	var gauge_lit: CanvasItem = _play.get_stage().get_node("%GaugeLit") as CanvasItem
+	var gauge_dim: CanvasItem = _play.get_stage().get_node("%GaugeDim") as CanvasItem
+	var cases: Array[Dictionary] = [
+		{"at": 0.5, "depth": 0.25, "inside": false},
+		{"at": 1.0, "depth": 0.5, "inside": true},
+		{"at": 1.5, "depth": 0.75, "inside": false},
+	]
+	for case: Dictionary in cases:
+		_at(case["at"])
+		assert_almost_eq(_progress("Needle"), case["depth"], 0.0001, "%.1f s: the needle" % case["at"])
+		assert_almost_eq(_progress("GaugeLit"), 0.5, 0.0001, "%.1f s: the arc" % case["at"])
+		assert_eq(gauge_lit.visible, case["inside"], "%.1f s: the brass gauge" % case["at"])
+		assert_eq(gauge_dim.visible, not case["inside"], "%.1f s: the tan gauge" % case["at"])
+
+## The incense counts the set's seconds down, and is whole again for the next set.
+func test_the_incense_burns_down_with_the_set() -> void:
+	_ready_stance(0.5)
+	var seconds: Label = _play.get_stage().get_node("%Seconds") as Label
+	assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % 40, "a whole set before it starts")
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	for case: Array in [[0.0, 40], [10.0, 30], [39.5, 1]]:
+		_at(case[0])
+		assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % case[1], "%.1f s into the set" % case[0])
+	_play.stop_set()
+	assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % 40, "whole again once it stops")
 
 #-----------------------------------------------------------------------------
 # A SET
