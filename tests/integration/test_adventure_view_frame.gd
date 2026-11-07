@@ -71,8 +71,8 @@ var _saved_vitals: Dictionary[StringName, float] = {}
 var _pointer_moved: bool = false
 
 func before_each() -> void:
-	# A run's end resumes the zone's idle action and a won fight pays gold, both
-	# into the save. Run on a fresh one, never the developer's save in memory.
+	# A run's end runs its effects and a won fight pays gold, both into the
+	# save. Run on a fresh one, never the developer's save in memory.
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
@@ -93,7 +93,7 @@ func before_each() -> void:
 func after_each() -> void:
 	# The boss reveal slows time for a moment; the next test starts at full speed.
 	Engine.time_scale = 1.0
-	# Ends the run (and the idle action its end resumes) on the fresh save.
+	# Ends the run on the fresh save.
 	_stop_every_action()
 	# AdventureTilemap creates its AdventureMapGenerator node with .new() and
 	# never frees it; free it here so these tests don't leave orphans.

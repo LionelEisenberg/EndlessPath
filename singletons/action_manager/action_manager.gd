@@ -67,6 +67,11 @@ var _last_resolved_zone_id: String = ""
 ## max turned away.
 var _last_tick_madra_gain: float = 0.0
 
+## True from a run's end until the player starts an action: the zone's idle
+## action waits for the player's pick instead of resuming. Not saved: arriving
+## in a zone (the load) starts its idle action as before.
+var _idle_held: bool = false
+
 @onready var action_timer: Timer = Timer.new()
 
 func _ready() -> void:
@@ -94,6 +99,7 @@ func _on_zone_changed(zone_data: ZoneData) -> void:
 	if zone_id == previous_zone_id and _is_current_action_in_live_save() and _is_resolved_idle_running(zone_id):
 		return
 
+	_idle_held = false
 	_stop_executing_current_action()
 	clear_current_action()
 	var idle_action: ZoneActionData = resolve_idle_action(zone_id)
@@ -110,9 +116,9 @@ func _on_zone_changed(zone_data: ZoneData) -> void:
 
 ## When a condition unlocks while nothing runs, the zone's idle action (the
 ## first one to unlock) starts on its own. The save reset's empty ping is not
-## an unlock.
+## an unlock, and after a run nothing starts until the player picks.
 func _on_condition_unlocked(condition_id: String) -> void:
-	if condition_id == "" or current_action != null:
+	if condition_id == "" or current_action != null or _idle_held:
 		return
 	var idle_action: ZoneActionData = resolve_idle_action(_get_current_zone_id())
 	if idle_action == null:
@@ -142,6 +148,7 @@ func select_action(action_data: ZoneActionData) -> void:
 		return
 
 	_stop_executing_current_action()
+	_idle_held = false
 	_set_current_action(action_data)
 	if is_idle_action(action_data):
 		var zone_id: String = _get_current_zone_id()
@@ -149,15 +156,25 @@ func select_action(action_data: ZoneActionData) -> void:
 			ZoneManager.set_last_idle_action_id(zone_id, action_data.action_id)
 	_execute_action(action_data)
 
-## Stop the current action. When a session action (cycling, body refining, an
-## adventure, dialogue, the merchant, the Tribulation, a zone event) stops, the
-## zone's idle action resumes. Stopping an idle action resumes nothing.
+## Stop the current action. When a session action (cycling, body refining,
+## dialogue, the merchant, the Tribulation, a zone event) stops, the zone's idle
+## action resumes. When an adventure stops, nothing starts: the zone waits for
+## the player's pick (is_idle_held()). Stopping an idle action resumes nothing.
 func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
+	var run_ended: bool = stopped_action != null and stopped_action.action_type == ZoneActionData.ActionType.ADVENTURE
+	if run_ended:
+		# Held before the tray hears the action clear, so it reads the pause.
+		_idle_held = true
 	_stop_executing_current_action(successful)
 	clear_current_action()
-	if stopped_action != null and not is_idle_action(stopped_action):
+	if stopped_action != null and not run_ended and not is_idle_action(stopped_action):
 		_resume_idle_action()
+
+## True from a run's end until the player starts an action (or arrives in a
+## zone): no idle action resumes or starts on its own meanwhile.
+func is_idle_held() -> bool:
+	return _idle_held
 
 ## Counts one completion of the action in zone_id, then runs its success
 ## effects, in that order, as a played stop does. Nothing starts or stops: an
