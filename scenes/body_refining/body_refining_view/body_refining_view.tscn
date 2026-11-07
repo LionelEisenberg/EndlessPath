@@ -6,6 +6,13 @@
 [ext_resource type="Texture2D" uid="uid://l358sphy02ff" path="res://assets/ui/lacquer/lacquer_close_ai.png" id="4_close"]
 [ext_resource type="Texture2D" uid="uid://cwx6nj0fy42qx" path="res://assets/ui/lacquer/lacquer_close_hover_ai.png" id="5_close_hover"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/drill_play.tscn" id="8_play"]
+[ext_resource type="Texture2D" uid="uid://dvl5pejsd5xxr" path="res://assets/ui/lacquer/cycling/lacquer_cyc_auto_ai.png" id="9_auto"]
+[ext_resource type="Texture2D" uid="uid://bd3hcxpotahpw" path="res://assets/ui/lacquer/cycling/lacquer_cyc_auto_on_ai.png" id="10_auto_on"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="11_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="12_frame_hover"]
+[ext_resource type="Texture2D" uid="uid://ytueiattwprh" path="res://assets/ui/lacquer/lacquer_mini_lock_ai.png" id="13_lock"]
+[ext_resource type="PackedScene" path="res://scenes/zones/cultivator_plate/stat_tooltip/stat_tooltip.tscn" id="14_tooltip"]
+[ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="15_floater"]
 
 [node name="BodyRefiningView" type="Control" unique_id=1032903005]
 visible = false
@@ -110,7 +117,7 @@ unique_name_in_owner = true
 layout_mode = 0
 offset_left = 710.0
 offset_top = 990.0
-offset_right = 1210.0
+offset_right = 1078.0
 offset_bottom = 1010.0
 mouse_filter = 2
 theme_type_variation = &"RichTextLacquerName"
@@ -118,6 +125,50 @@ bbcode_enabled = true
 fit_content = true
 scroll_active = false
 autowrap_mode = 3
+
+[node name="AutoToggle" type="TextureButton" parent="." unique_id=1468203517]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1090.0
+offset_top = 982.0
+offset_right = 1210.0
+offset_bottom = 1018.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+toggle_mode = true
+texture_normal = ExtResource("9_auto")
+texture_pressed = ExtResource("10_auto_on")
+ignore_texture_size = true
+
+[node name="AutoLabel" type="Label" parent="AutoToggle" unique_id=903174526]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 120.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Auto · off"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AutoLock" type="TextureRect" parent="AutoToggle" unique_id=1739052841]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 30.0
+offset_top = 10.0
+offset_right = 46.0
+offset_bottom = 26.0
+mouse_filter = 2
+texture = ExtResource("13_lock")
+
+[node name="AutoHover" parent="AutoToggle" unique_id=420816397 instance=ExtResource("11_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("12_frame_hover")
+
+[node name="AutoFlash" parent="AutoToggle" unique_id=1186402953 instance=ExtResource("11_frame")]
+unique_name_in_owner = true
+layout_mode = 1
 
 [node name="EffectsLayer" type="Control" parent="." unique_id=1212639711]
 unique_name_in_owner = true
@@ -128,3 +179,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="UnlockFloater" parent="." unique_id=1592847310 instance=ExtResource("15_floater")]
+unique_name_in_owner = true
+visible = false
+
+[node name="AutoTooltip" parent="." unique_id=275930164 instance=ExtResource("14_tooltip")]
+unique_name_in_owner = true
+z_index = 10
+
+[node name="FigureLabel" parent="AutoTooltip/Content" index="1"]
+custom_minimum_size = Vector2(236, 0)
+
+[editable path="AutoTooltip"]

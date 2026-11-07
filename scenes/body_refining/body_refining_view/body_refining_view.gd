@@ -34,6 +34,15 @@ extends Control
 ## halt() stops a set in progress and frees the pellets in flight, which show
 ## what they carried at once, leaving the board drawn for a transition to shrink
 ## it away; close() also hides it. get_board_rect() says where the board stands.
+##
+## Auto (#110): the footer's line sits beside an Auto toggle, cycling's. It is
+## locked until the drill in use has played a perfect set: a lock beside a faded
+## "Auto" on darkened art that takes no press, and on hover a tooltip says what
+## unlocks it. A perfect set unlocks it: a brass floater over the stage, two flashes
+## on the toggle (which stays off), and a yellow log line. With it on, DrillPlay
+## plays sets by itself, the footer reading AUTO_LINE until an Auto set ends, then
+## that set's line ("Last set · Auto · …"). Toggling it ends a set in progress. The
+## toggle's state is not saved.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -50,6 +59,23 @@ const XP_FORMAT: String = " %s XP"
 const CAPPED_TEXT: String = " capped"
 const FULL_TEXT: String = " full"
 const PERFECT_COUNT_FORMAT: String = "%d / %d perfect"
+const AUTO_WORD: String = "Auto"
+## The footer while Auto plays, with Auto's rate.
+const AUTO_LINE: String = "Auto drills on at %d%%. Turn Auto off to play for the full rate."
+## The Auto toggle's text: on, off, and beside the lock while it is locked.
+const AUTO_ON_TEXT: String = "Auto · on"
+const AUTO_OFF_TEXT: String = "Auto · off"
+const AUTO_LOCKED_TEXT: String = "Auto"
+## The locked toggle's tooltip.
+const UNLOCK_TITLE: String = "Unlock Auto"
+const UNLOCK_HINT: String = "Play a perfect set: all ten reps Perfect."
+## The unlock's floater and log line.
+const UNLOCK_FLOATER_TEXT: String = "PERFECT SET · Auto unlocked"
+const UNLOCK_LOG_FORMAT: String = "[color=yellow]%s · Auto unlocked[/color]"
+## Px between the top of the Auto toggle and the bottom of its tooltip.
+const TOOLTIP_GAP: float = 6.0
+## How far under the figure box's top the unlock floater pops, centred on the board.
+const UNLOCK_FLOATER_DROP: float = 286.0
 ## Joins the parts of a line: a space, a middle dot (U+00B7) and a space.
 const SEPARATOR: String = " · "
 ## The colours the pay line sets apart from its tan: a figure in cream, capped in brass.
@@ -63,7 +89,7 @@ const HEALTH_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_hea
 ## pops up to BURST_REACH px, then homes in, the first landing PELLET_FLIGHT s
 ## after the rep and each next one PELLET_FLIGHT_STEP s after (as cycling's stat
 ## puffs).
-const PELLETS_BY_TIER: Dictionary = {Tier.PERFECT: 4, Tier.GOOD: 3, Tier.OK: 2}
+const PELLETS_BY_TIER: Dictionary = {Tier.PERFECT: 4, Tier.GOOD: 3, Tier.OK: 2, Tier.AUTO: 2}
 const PELLET_FLIGHT: float = 0.6
 const PELLET_FLIGHT_STEP: float = 0.05
 const BURST_REACH: float = 28.0
@@ -73,13 +99,21 @@ const _PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_
 ## The board's rows from the screen's top. The figure box stands at FIGURE_TOP, or
 ## lower to stand under the pay line's last line (the figure's art leaves its top
 ## empty, so the box may reach FIGURE_OVERLAP px up under it), and the footer
-## FOOTER_GAP under the figure. The board keeps its art's height until the footer
+## FOOTER_GAP under the figure, so a footer line of two lines beside the Auto
+## toggle still fits the art. The board keeps its art's height until the footer
 ## comes within BOARD_ROOM of its bottom (the bottom frame, the corner brackets
 ## and the shadow), then grows to keep that room.
 const FIGURE_TOP: float = 104.0
 const FIGURE_OVERLAP: float = 6.0
-const FOOTER_GAP: float = 14.0
+const FOOTER_GAP: float = 12.0
 const BOARD_ROOM: float = 30.0
+
+## The locked toggle: its art darkened, its label faded and moved right of the lock;
+## pressed in, the label sits this many px lower. Cycling's.
+const _AUTO_LOCKED_ART: Color = Color(0.42, 0.42, 0.42, 1.0)
+const _AUTO_LOCKED_LABEL_ALPHA: float = 0.6
+const _AUTO_LOCKED_LABEL_SHIFT: float = 10.0
+const _AUTO_PRESS_DROP: float = 2.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -94,6 +128,13 @@ const BOARD_ROOM: float = 30.0
 @onready var _drill_play: DrillPlay = %DrillPlay
 @onready var _status_text: RichTextLabel = %StatusText
 @onready var _effects_layer: Control = %EffectsLayer
+@onready var _auto_toggle: TextureButton = %AutoToggle
+@onready var _auto_label: Label = %AutoLabel
+@onready var _auto_lock: TextureRect = %AutoLock
+@onready var _auto_hover: LacquerFrameOverlay = %AutoHover
+@onready var _auto_flash: LacquerFrameOverlay = %AutoFlash
+@onready var _auto_tooltip: StatTooltip = %AutoTooltip
+@onready var _unlock_floater: LacquerFloater = %UnlockFloater
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -108,6 +149,9 @@ var chest: Control = null
 
 ## The drill the board plays: the equipped one.
 var _drill: DrillData = null
+## Whether the footer shows an Auto set's line, which stays through the next Auto
+## set until that one ends.
+var _auto_result_shown: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -120,8 +164,18 @@ func _ready() -> void:
 	_drill_play.set_completed.connect(_on_set_completed)
 	CharacterManager.stats_changed.connect(_refresh_pay_line)
 	BodyRefiningManager.equipped_drill_changed.connect(_on_equipped_drill_changed)
+	BodyRefiningManager.auto_unlocked.connect(_on_auto_unlocked)
+	_auto_toggle.toggled.connect(_on_auto_toggled)
+	_auto_toggle.mouse_entered.connect(_on_auto_hovered)
+	_auto_toggle.mouse_exited.connect(_on_auto_unhovered)
 	visibility_changed.connect(_on_visibility_changed)
+	_refresh_auto()
 	_show_ready_line()
+
+## Keeps the unlock floater on its spot as it rises.
+func _process(_delta: float) -> void:
+	if _unlock_floater.visible:
+		_place_unlock_floater()
 
 ## Every mouse event that reaches the root, on the board or anywhere around it, is
 ## the board's: a press of the drill's button plays, and nothing passes beneath.
@@ -146,6 +200,7 @@ func _has_point(point: Vector2) -> bool:
 func setup(action: ZoneActionData) -> void:
 	_action_label.text = action.action_name if action != null else ""
 	_load_equipped_drill()
+	_auto_result_shown = false
 	_show_ready_line()
 
 ## Stops a set in progress (its reps stay paid) and frees the pellets in flight,
@@ -153,6 +208,8 @@ func setup(action: ZoneActionData) -> void:
 func halt() -> void:
 	_drill_play.stop_set()
 	_free_pellets()
+	_unlock_floater.stop()
+	_auto_tooltip.hide()
 
 ## Hides the board: halt(), then hide().
 func close() -> void:
@@ -173,6 +230,11 @@ func get_board_rect() -> Rect2:
 func get_status_text() -> String:
 	return _status_text.get_parsed_text()
 
+## Returns whether the Auto toggle is locked: the drill in use has not played a
+## perfect set yet.
+func is_auto_locked() -> bool:
+	return _drill == null or not BodyRefiningManager.is_auto_unlocked(_drill.id)
+
 ## Returns the pay line for a PERFECT rep of `drill`, as BBCode: "Perfect rep · ",
 ## Strength's icon and its XP, the drill's other stat's part when it has one, then
 ## the Health heart and `perfect_health`. A stat in `capped_stats` reads "capped"
@@ -189,17 +251,21 @@ static func pay_line(drill: DrillData, capped_stats: Array, perfect_health: floa
 ## Returns the footer's line for a finished set, as BBCode: "Last set · ",
 ## "Perfect set · " for ten Perfect reps, then each trained stat's icon and the XP
 ## it took (or "capped"), the Health heart and what the set restored (or "full"),
-## and, short of a perfect set, how many reps were Perfect.
+## and, short of a perfect set, how many reps were Perfect. A set Auto played reads
+## "Last set · Auto · ", then Strength and Health only: Auto never pays the other
+## stat, and has no Perfect reps to count.
 static func result_line(result: DrillSetResult) -> String:
 	var parts: PackedStringArray = [RESULT_LEAD]
 	if result.is_perfect():
 		parts.append(PERFECT_SET_TEXT)
+	elif result.is_auto():
+		parts.append(AUTO_WORD)
 	parts.append(_result_stat_part(result, AttributeType.STRENGTH))
-	if result.drill != null and result.drill.has_minor_stat():
+	if result.drill != null and result.drill.has_minor_stat() and not result.is_auto():
 		parts.append(_result_stat_part(result, result.drill.minor_stat as AttributeType))
 	var health_text: String = FULL_TEXT if result.is_health_full() else " +%d" % roundi(result.get_health_restored())
 	parts.append(_icon(HEALTH_ICON) + health_text)
-	if not result.is_perfect():
+	if not result.is_perfect() and not result.is_auto():
 		parts.append(PERFECT_COUNT_FORMAT % [result.count_of(Tier.PERFECT), result.get_rep_count()])
 	return SEPARATOR.join(parts)
 
@@ -223,6 +289,8 @@ func _apply_drill(drill: DrillData) -> void:
 	_drill = drill
 	_title_label.text = drill.drill_name if drill != null else ""
 	_drill_play.setup(drill)
+	_auto_result_shown = false
+	_refresh_auto()
 	_refresh_pay_line()
 
 ## The pay line for the drill at the player's Strength now.
@@ -276,7 +344,9 @@ static func _value(text: String, color: String) -> String:
 #-----------------------------------------------------------------------------
 
 ## Stacks the board from its top: the action's name, the drill's name, the pay
-## line, the figure, then the footer. A line too long for its width wraps and
+## line, the figure, then the footer, where the footer's line sits beside the
+## Auto toggle, the shorter centred on the taller. A line too long for its width
+## wraps and
 ## pushes what is under it down, and the board grows by as much from its art's
 ## height (its plain middle stretches).
 func _relayout_board() -> void:
@@ -289,9 +359,12 @@ func _relayout_board() -> void:
 	_fit_rich(_pay_line)
 	var pay_bottom: float = _pay_line.position.y + _pay_line.size.y
 	_figure_box.position.y = maxf(FIGURE_TOP, 2.0 * ceilf((pay_bottom - FIGURE_OVERLAP) / 2.0))
-	_status_text.position.y = _figure_box.position.y + _figure_box.size.y + FOOTER_GAP
+	var footer_top: float = _figure_box.position.y + _figure_box.size.y + FOOTER_GAP
 	_fit_rich(_status_text)
-	var board_bottom: float = _status_text.position.y + _status_text.size.y + BOARD_ROOM
+	var footer_height: float = maxf(_auto_toggle.size.y, _status_text.size.y)
+	_auto_toggle.position.y = footer_top + (footer_height - _auto_toggle.size.y) / 2.0
+	_status_text.position.y = footer_top + (footer_height - _status_text.size.y) / 2.0
+	var board_bottom: float = footer_top + footer_height + BOARD_ROOM
 	_board.size.y = maxf(_board.texture.get_size().y, board_bottom - _board.position.y)
 
 ## Makes a label as tall as its lines at its width.
@@ -327,11 +400,65 @@ func _free_pellets() -> void:
 			child.queue_free()
 
 #-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+## Gates the toggle on the drill's unlock. Locked, it is off and takes no press;
+## then DrillPlay follows the toggle, and the state shows.
+func _refresh_auto() -> void:
+	var locked: bool = is_auto_locked()
+	if locked:
+		_auto_toggle.set_pressed_no_signal(false)
+	_auto_toggle.disabled = locked
+	_auto_toggle.mouse_default_cursor_shape = Control.CURSOR_ARROW if locked else Control.CURSOR_POINTING_HAND
+	_drill_play.set_auto_play(_auto_toggle.button_pressed)
+	if locked:
+		_auto_hover.hide()
+	else:
+		_auto_tooltip.hide()
+	_show_auto_state(locked, _auto_toggle.button_pressed)
+
+## Shows the toggle's state: locked, the lock beside a faded AUTO_LOCKED_TEXT on
+## darkened art; unlocked, its text on its label, cream pressed in (2 px lower)
+## or tan.
+func _show_auto_state(locked: bool, on: bool) -> void:
+	_auto_lock.visible = locked
+	_auto_toggle.self_modulate = _AUTO_LOCKED_ART if locked else Color.WHITE
+	if locked:
+		_auto_label.text = AUTO_LOCKED_TEXT
+		_auto_label.add_theme_color_override(&"font_color", Color(ThemeConstants.LACQUER_DIM, _AUTO_LOCKED_LABEL_ALPHA))
+		_auto_label.position = Vector2(_AUTO_LOCKED_LABEL_SHIFT, 0.0)
+		return
+	_auto_label.text = AUTO_ON_TEXT if on else AUTO_OFF_TEXT
+	_auto_label.add_theme_color_override(&"font_color", ThemeConstants.LACQUER_CREAM if on else ThemeConstants.LACQUER_TAN)
+	_auto_label.position = Vector2(0.0, _AUTO_PRESS_DROP if on else 0.0)
+
+## Shows the locked toggle's tooltip above it, right edges aligned.
+func _show_auto_tooltip() -> void:
+	_auto_tooltip.set_text(UNLOCK_TITLE, UNLOCK_HINT)
+	var toggle: Rect2 = _auto_toggle.get_global_rect()
+	_auto_tooltip.show_at(Vector2(toggle.end.x - _auto_tooltip.size.x, toggle.position.y - TOOLTIP_GAP - _auto_tooltip.size.y))
+
+## Stands the unlock floater UNLOCK_FLOATER_DROP under the figure box's top,
+## centred on the board on the 2 px grid, raised by its rise.
+func _place_unlock_floater() -> void:
+	var board: Rect2 = get_board_rect()
+	var x: float = 2.0 * roundf((board.get_center().x - _unlock_floater.get_token_width() / 2.0) / 2.0)
+	var y: float = _figure_box.get_global_rect().position.y + UNLOCK_FLOATER_DROP
+	_unlock_floater.global_position = Vector2(x, y - _unlock_floater.get_rise())
+
+#-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
+## A set started: the drill's line during a set, or while Auto plays, AUTO_LINE,
+## unless an Auto set's line is showing, which stays until this set ends.
 func _on_set_started() -> void:
-	_show_status(_drill.play_line)
+	if not _drill_play.is_auto_set():
+		_auto_result_shown = false
+		_show_status(_drill.play_line)
+	elif not _auto_result_shown:
+		_show_status(AUTO_LINE % roundi(DrillRules.AUTO_RATE * 100.0))
 
 ## A rep was judged and paid: a burst of its tier's pellets for each stat that took
 ## XP, to the stat's cell, and for the Health it restored, to the Health orb, each
@@ -357,11 +484,46 @@ func _on_rep_judged(judgement: DrillRun.Judgement, health: float, stat_xp: Dicti
 			pellet.delivered.connect(cultivator_plate.release_health.bind(health_share))
 
 ## A set was played to its last rep: the footer shows what it paid, and one line
-## goes to the log.
+## goes to the log. A perfect set unlocks its drill's Auto.
 func _on_set_completed(result: DrillSetResult) -> void:
 	_status_text.text = result_line(result)
+	_auto_result_shown = result.is_auto()
 	_relayout_board()
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
+	if result.is_perfect() and result.drill != null and not BodyRefiningManager.is_auto_unlocked(result.drill.id):
+		BodyRefiningManager.unlock_auto(result.drill.id)
+
+## A drill's Auto unlocked. For the drill on the board: the toggle unlocks and
+## flashes its brass frame twice (it stays off), the floater pops over the stage,
+## and the log gets one line.
+func _on_auto_unlocked(drill: DrillData) -> void:
+	if drill != _drill:
+		return
+	_refresh_auto()
+	_auto_flash.flash(DrillDrawer.FLASH_TIMES)
+	_unlock_floater.pop(UNLOCK_FLOATER_TEXT, ThemeConstants.LACQUER_BRASS)
+	_place_unlock_floater()
+	LogManager.log_message(UNLOCK_LOG_FORMAT % drill.drill_name)
+
+## The toggle turned: DrillPlay follows it, which ends a set in progress, and the
+## footer goes back to the drill's line before a set until a set starts.
+func _on_auto_toggled(_on: bool) -> void:
+	_auto_result_shown = false
+	_refresh_auto()
+	if not _drill_play.is_set_running():
+		_show_ready_line()
+
+## The pointer reached the toggle: the tooltip while it is locked, else the
+## hover frame.
+func _on_auto_hovered() -> void:
+	if is_auto_locked():
+		_show_auto_tooltip()
+	else:
+		_auto_hover.show()
+
+func _on_auto_unhovered() -> void:
+	_auto_hover.hide()
+	_auto_tooltip.hide()
 
 func _on_equipped_drill_changed(drill: DrillData) -> void:
 	_apply_drill(drill)
