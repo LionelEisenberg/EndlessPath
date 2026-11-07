@@ -167,4 +167,22 @@ Copy, exactly (each label keeps `join celestial_intervener center`, its lines, `
 
 ## What was built differently
 
-(Filled in as the build goes.)
+- **The Goals board re-reads its quest row at each stat level** (Task 1). `GoalsPanel._on_stat_level_changed()` used to re-read only the milestone, so a stat step's figure stood still. It now calls `refresh()`. The plan didn't list `goals_panel.gd`.
+- **The sweep test raises a stat through a modifier source**, not gear (Task 1). `CharacterManager.set_modifier_source()` is how gear reaches a total, and it emits the same `stats_changed`.
+- **More tests named today's chain than the plan listed** (Task 4).
+  - `test_journal_page.gd` printed Harden Your Core's finished figure, now "20 / 20".
+  - Two comments in `test_body_refining_content.gd` and `test_material_sources.gd` named "Awaken Your Core".
+- **The Horse Stance test hears its log line through `LogManager.message_logged`.** The log keeps only its last 200 lines, so counting new lines by the history's size failed once the full run had filled it.
+- **The Done-when checks were played by a scratch driver in the real main scene** (`mockups/quests_checks/`, gitignored). It ran on its own `--save`, in memory, and every check passed:
+  - a new game through the chain (40 checks);
+  - two saves from before this change, copied from earlier chunks' runs (a v4 save on Harden Your Core's return step, a v6 save on its first step; 15 checks each);
+  - every preset (7);
+  - the Story tab's Jump to every beat (7).
+- **Main was merged in once** (2ca0f2a7), bringing #110 and save version 7. It touched none of this branch's files.
+- **The final review found one Critical, on old saves.** Builds before this chunk latched `q_reach_cd_10` at Core Density 10, and kept ids stay latched. So a save that reached 10 to 19 before NPC 3 shows NPC 4 as soon as NPC 5 is talked to, with Harden Your Core still on its first step. NPC 4's talk then fires the return event too early, and the quest and the map are lost.
+  - A repair on every load (2429ecc3) dropped such a latch.
+  - It was reverted on Lionel's word: "dont worry about matching old saves, they can stay broken". New games only latch it at two stars.
+- **Minors left for later:**
+  - The `stats_changed` sweep also runs during a save reset, while UnlockManager still holds the save being left: the same window CultivationManager's signals already have. Nothing persists from it today. A guard like `ResourceManager._character_holds_this_save()` would close it.
+  - A STAT_LEVEL condition naming no stat reads 0 without a warning.
+  - Editor-only placeholder text in `goals_panel.tscn` ("Awaken Your Core") and `quest_step_row.tscn` ("Reach Core Density level 10").
