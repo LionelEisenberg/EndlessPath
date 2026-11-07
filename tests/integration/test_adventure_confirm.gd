@@ -111,8 +111,8 @@ func test_the_board_names_each_low_pool() -> void:
 		assert_eq(_advice(), case.advice, "%s: what refills it" % case.name)
 		_board.dismissed.emit()
 
-## A won first fight can send the player home hurt before First Steps Out's end
-## opens Riverbank Training: until then the Health lines don't name it.
+## The first adventure can send the player home hurt before First Steps Out's
+## end opens Riverbank Training: until then the Health lines don't name it.
 func test_the_health_lines_name_the_river_only_once_it_is_open() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "Health", "health": 38.0, "madra": 100.0, "advice": AdventureConfirmBoard.HEALTH_ADVICE_BEFORE_RIVER},

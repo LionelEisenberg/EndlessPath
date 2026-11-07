@@ -16,11 +16,12 @@ const HEALTH_ADVICE: String = "Below half. Riverbank Training heals it."
 const MADRA_ADVICE: String = "Below half. Cycling refills it."
 const BOTH_ADVICE: String = "Below half. Riverbank Training heals Health; cycling refills Madra."
 const NO_HEALTH_ADVICE: String = "The first hit that lands ends the run. Riverbank Training heals it."
-## The Health lines before Riverbank Training opens: a won first fight can send
-## the player home hurt before First Steps Out's end opens it.
+## The Health lines before Riverbank Training opens: the first adventure can
+## send the player home hurt before First Steps Out's end, at NPC 3's talk,
+## opens it.
 const HEALTH_ADVICE_BEFORE_RIVER: String = "Below half. Return to the [INTERVENER] to heal it."
 const BOTH_ADVICE_BEFORE_RIVER: String = "Below half. Return to the [INTERVENER] to heal Health; cycling refills Madra."
-const NO_HEALTH_ADVICE_BEFORE_RIVER: String = "The first hit that lands ends the run."
+const NO_HEALTH_ADVICE_BEFORE_RIVER: String = "The first hit that lands ends the run. Return to the [INTERVENER] to heal it."
 ## The action that heals at home, which the Health lines name once it is open.
 const RIVERBANK_ACTION_ID: String = "riverbank_training_action"
 ## How far a button's word drops while it is held down, with its pressed face.
