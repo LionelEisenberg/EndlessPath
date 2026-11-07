@@ -16,6 +16,14 @@ const HEALTH_ADVICE: String = "Below half. Riverbank Training heals it."
 const MADRA_ADVICE: String = "Below half. Cycling refills it."
 const BOTH_ADVICE: String = "Below half. Riverbank Training heals Health; cycling refills Madra."
 const NO_HEALTH_ADVICE: String = "The first hit that lands ends the run. Riverbank Training heals it."
+## The Health lines before Riverbank Training opens: the first adventure can
+## send the player home hurt before First Steps Out's end, at NPC 3's talk,
+## opens it.
+const HEALTH_ADVICE_BEFORE_RIVER: String = "Below half. Return to the [INTERVENER] to heal it."
+const BOTH_ADVICE_BEFORE_RIVER: String = "Below half. Return to the [INTERVENER] to heal Health; cycling refills Madra."
+const NO_HEALTH_ADVICE_BEFORE_RIVER: String = "The first hit that lands ends the run. Return to the [INTERVENER] to heal it."
+## The action that heals at home, which the Health lines name once it is open.
+const RIVERBANK_ACTION_ID: String = "riverbank_training_action"
 ## How far a button's word drops while it is held down, with its pressed face.
 const PRESSED_TEXT_DROP: float = 2.0
 
@@ -65,19 +73,28 @@ func close() -> void:
 	hide()
 
 ## What refills the low pools: one line for Health, Madra or both, and a
-## warning at 0 Health, whatever Madra holds.
+## warning at 0 Health, whatever Madra holds. The Health lines name Riverbank
+## Training only once it is open.
 static func advice_text() -> String:
+	var river_open: bool = _is_riverbank_open()
 	if ResourceManager.get_health() <= 0.0:
-		return NO_HEALTH_ADVICE
+		return NO_HEALTH_ADVICE if river_open else NO_HEALTH_ADVICE_BEFORE_RIVER
 	var health_low: bool = ResourceManager.is_health_low()
 	var madra_low: bool = ResourceManager.is_madra_low()
 	if health_low and madra_low:
-		return BOTH_ADVICE
-	return HEALTH_ADVICE if health_low else MADRA_ADVICE
+		return BOTH_ADVICE if river_open else BOTH_ADVICE_BEFORE_RIVER
+	if health_low:
+		return HEALTH_ADVICE if river_open else HEALTH_ADVICE_BEFORE_RIVER
+	return MADRA_ADVICE
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## True when Riverbank Training's unlock conditions have latched.
+static func _is_riverbank_open() -> bool:
+	var action: ZoneActionData = ZoneManager.get_action_by_id(RIVERBANK_ACTION_ID)
+	return action != null and UnlockManager.are_unlock_conditions_met(action.unlock_conditions)
 
 ## Shows a low pool's figure in its ink, and hides a pool at half or more.
 func _write_pool(pool: HBoxContainer, figure: String, ink: Color, low: bool) -> void:

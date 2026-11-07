@@ -130,6 +130,15 @@ func height_at(t_usec: int) -> float:
 		return _last.height
 	return _last.height * (1.0 - float(t_usec - _rest_end_usec) / SET_DOWN_USEC)
 
+## The tier a release at `t` would score: the lift's height turned back into time
+## held, judged as a release judges it. MISS when no lift is in progress. Ask it
+## for a time no earlier than the last call's.
+func release_tier_at(t_usec: int) -> DrillRules.Tier:
+	if _lift_start < 0:
+		return DrillRules.Tier.MISS
+	var held: int = roundi(height_at(t_usec) * RISE_USEC)
+	return DrillRules.judge(share_for_offset(held - BAND_CENTRE_USEC))
+
 ## The rep in play's motion: the stone's height while it is lifted, else 0.
 func rep_progress_at(t_usec: int) -> float:
 	return height_at(t_usec) if _lift_start >= 0 else 0.0

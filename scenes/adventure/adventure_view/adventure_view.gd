@@ -44,6 +44,9 @@ const BEAD_BURST_REACH: float = 48.0
 ## One bead carries about this much Core Density XP; a burst has 1 to MAX_BEADS.
 const BEAD_XP: float = 4.0
 const MAX_BEADS: int = 16
+## Fired as each run ends, however it ends: First Steps Out's first step, the
+## first adventure, is done.
+const ADVENTURE_ENDED_EVENT: String = "q_first_steps_adventure_ended"
 const _BEAD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 
 #-----------------------------------------------------------------------------
@@ -195,6 +198,9 @@ func stop_adventure() -> void:
 			stats.count_adventure_timed_out()
 	else:
 		defeat_reason = "You retreated from the adventure"
+
+	if run_is_on:
+		EventManager.trigger_event(ADVENTURE_ENDED_EVENT)
 
 	# Build result before cleanup clears the data
 	var result_data := _build_result_data(is_victory, defeat_reason)

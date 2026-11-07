@@ -14,7 +14,7 @@ extends Control
 ## cabinet's Madra orb, and each payment of a stat's XP bursts into that stat's
 ## cell. Following pays Spirit, a puff of STAT_PELLETS from the ball; a hit pays
 ## the technique's other stat (Smooth Flow's Control) its tier's pellets from the
-## zone, and an opened seal (Torrential Flow's Mind) SEAL_PELLETS from its node.
+## zone, and an opened seal (Seal Flow's Mind) SEAL_PELLETS from its node.
 ## A capped stat takes no XP, and no pellet flies to it. The cabinet holds what
 ## each pellet carries out of its readout until the pellet lands, so its orbs and
 ## cells fill as the pellets arrive. MainView hands the cabinet over in
@@ -68,10 +68,11 @@ const AUTO_ON_TEXT: String = "Auto · on"
 const AUTO_OFF_TEXT: String = "Auto · off"
 const AUTO_LOCKED_TEXT: String = "Auto"
 
-## The locked toggle's tooltip: UNLOCK_TITLE, then UNLOCK_HINT with a part for
-## each game the technique has (ZONES_HINT, SEALS_HINT) and a full stop.
+## The locked toggle's tooltip: UNLOCK_TITLE, then UNLOCK_HINT_FORMAT with the
+## share of the cycle a perfect one follows, a part for each game the technique
+## has (ZONES_HINT, SEALS_HINT) and a full stop.
 const UNLOCK_TITLE: String = "Unlock Auto"
-const UNLOCK_HINT: String = "Play a perfect cycle: follow the ball the whole cycle"
+const UNLOCK_HINT_FORMAT: String = "Play a perfect cycle: follow the ball for %d%% of the cycle"
 const ZONES_HINT: String = " and press every zone PERFECT"
 const SEALS_HINT: String = " and open every seal"
 
@@ -236,10 +237,10 @@ static func status_line(running: bool, technique: CyclingTechniqueData, other_ca
 	return line
 
 ## Returns what the locked Auto toggle's tooltip says unlocks `technique`'s
-## Auto: UNLOCK_HINT, then ZONES_HINT if it has zones and SEALS_HINT if it has
-## seals, and a full stop.
+## Auto: UNLOCK_HINT_FORMAT with CyclingRules.PERFECT_FOLLOWED_SHARE, then
+## ZONES_HINT if it has zones and SEALS_HINT if it has seals, and a full stop.
 static func unlock_hint(technique: CyclingTechniqueData) -> String:
-	var hint: String = UNLOCK_HINT
+	var hint: String = UNLOCK_HINT_FORMAT % roundi(CyclingRules.PERFECT_FOLLOWED_SHARE * 100.0)
 	if technique != null and not technique.cycling_zones.is_empty():
 		hint += ZONES_HINT
 	if technique != null and not technique.seal_seconds.is_empty():

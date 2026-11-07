@@ -288,7 +288,7 @@ func test_details_show_where_it_came_from() -> void:
 	_hold_map()
 	var tab: Control = await _open_tab()
 	assert_eq(_right_title(tab).text, "Refugee Camp Map")
-	assert_eq(_detail_text(tab, "FromLabel"), "From Old Vesh, in the broken shrine")
+	assert_eq(_detail_text(tab, "FromLabel"), "From the [INTERVENER], in Spirit Valley")
 	assert_eq((_detail(tab, "Icon") as TextureRect).texture, MAP.icon)
 	assert_eq(_detail_text(tab, "ZoneLabel"), "SPIRIT VALLEY", "its zone, in capitals")
 	assert_true((_detail(tab, "ZoneLabel") as Control).visible)

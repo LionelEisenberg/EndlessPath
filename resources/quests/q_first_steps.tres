@@ -5,16 +5,23 @@
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qfst"]
 [ext_resource type="Script" uid="uid://cn4n33cbjhihq" path="res://scripts/resource_definitions/effects/award_path_point_effect_data.gd" id="4_qfst"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_3qc5d"]
+[ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="6_qfst"]
 
 [sub_resource type="Resource" id="Resource_award_point"]
 script = ExtResource("4_qfst")
 effect_type = 7
 
+[sub_resource type="Resource" id="Resource_open_riverbank"]
+script = ExtResource("6_qfst")
+event_id = "riverbank_training_opened"
+effect_type = 1
+metadata/_custom_type_script = "uid://cc0ky7w2fsg10"
+
 [sub_resource type="Resource" id="Resource_step1"]
 script = ExtResource("2_qfst")
-step_id = "defeat_enemy"
-description = "Defeat an enemy in combat"
-completion_event_id = "q_first_steps_enemy_defeated"
+step_id = "first_adventure"
+description = "Venture into the Shallow Woods"
+completion_event_id = "q_first_steps_adventure_ended"
 
 [sub_resource type="Resource" id="Resource_step2"]
 script = ExtResource("2_qfst")
@@ -28,4 +35,4 @@ quest_id = "q_first_steps"
 quest_name = "First Steps Out"
 description = "Venture into the wilderness and test your strength."
 steps = Array[ExtResource("2_qfst")]([SubResource("Resource_step1"), SubResource("Resource_step2")])
-completion_effects = Array[ExtResource("3_qfst")]([SubResource("Resource_award_point")])
+completion_effects = Array[ExtResource("3_qfst")]([SubResource("Resource_award_point"), SubResource("Resource_open_riverbank")])

@@ -631,6 +631,77 @@ func test_the_stone_stands_on_the_jade() -> void:
 	assert_eq(fill.position.y, StoneLiftingStage.REST_BASE_Y - 200.0, "the jade reaches the stone's base")
 	assert_eq(fill.size.y, 200.0)
 
+## The band across the track lights exactly while a release would score Perfect.
+func test_the_band_lights_while_the_base_is_in_the_brass() -> void:
+	var band: LacquerStripRect = _play.get_stage().get_node("%Band") as LacquerStripRect
+	assert_eq(band.get_frame().x, StoneLiftingStage.BAND_DIM, "dim before a set")
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	var cases: Array[Dictionary] = [
+		{"at": 1.0, "lit": false},
+		{"at": CENTRE - 0.07, "lit": true},
+		{"at": CENTRE + 0.07, "lit": true},
+		{"at": CENTRE + 0.08, "lit": false},
+	]
+	for case: Dictionary in cases:
+		_at(case["at"])
+		var frame: int = StoneLiftingStage.BAND_LIT if case["lit"] else StoneLiftingStage.BAND_DIM
+		assert_eq(band.get_frame().x, frame, "%.2f s into the lift" % case["at"])
+
+## A judged rep leaves a line in its tier's colour where the stone's base stopped,
+## and the next lift clears it.
+func test_a_rep_leaves_a_mark_where_the_base_stopped() -> void:
+	var mark: LacquerStripRect = _play.get_stage().get_node("%StopMark") as LacquerStripRect
+	assert_false(mark.visible, "no mark before a set")
+	var cases: Array[Dictionary] = [
+		{"held": 1.2, "tier": Tier.GOOD},
+		{"held": CENTRE, "tier": Tier.PERFECT},
+		{"held": 0.9, "tier": Tier.OK},
+		{"held": 0.6, "tier": Tier.MISS},
+	]
+	for rep: int in cases.size():
+		var case: Dictionary = cases[rep]
+		_lift(rep, case["held"])
+		_at(rep * 4.0 + 3.0)
+		assert_true(mark.visible, "held %.2f s: a mark, kept once the stone is down" % case["held"])
+		assert_eq(mark.get_frame().x, StoneLiftingStage.STOP_MARK_FRAMES[case["tier"]], "held %.2f s: the tier's colour" % case["held"])
+		var base: float = StoneLiftingStage.base_y(case["held"] / 2.0)
+		assert_eq(mark.position.y, base - StoneLiftingStage.STOP_MARK_RISE, "held %.2f s: at the base" % case["held"])
+	_clock_to(16.0)
+	_play.handle_press_event(_press())
+	_at(16.1)
+	assert_false(mark.visible, "the next lift clears it")
+
+## A stone that dropped from the top leaves no mark. With no slot to miss (#143),
+## a rep's mark stays while the drill waits for the next lift.
+func test_a_drop_leaves_no_mark_and_a_pause_keeps_the_last() -> void:
+	var mark: LacquerStripRect = _play.get_stage().get_node("%StopMark") as LacquerStripRect
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_at(2.5)
+	assert_false(mark.visible, "dropped at the top")
+	_play.handle_press_event(_press(false))
+	_lift(1, 1.2)
+	_at(8.5)
+	assert_true(mark.visible, "precondition: a Good rep's mark")
+	_at(60.0)
+	assert_true(mark.visible, "a minute later it is still there")
+
+## The stage shows at rest with nothing left of the last rep: once the set stops,
+## and when another drill is picked and Stone Lifting again.
+func test_the_stage_at_rest_has_no_mark() -> void:
+	var mark: LacquerStripRect = _play.get_stage().get_node("%StopMark") as LacquerStripRect
+	_lift(0, 1.2)
+	_play.stop_set()
+	assert_false(mark.visible, "the set stopped")
+	_play.setup(BodyRefiningManager.get_drill(STARTING_DRILL_ID))
+	_lift(0, 1.2)
+	_play.setup(BodyRefiningManager.get_drill("horse_stance"))
+	_play.setup(BodyRefiningManager.get_drill(STARTING_DRILL_ID))
+	var band: LacquerStripRect = _play.get_stage().get_node("%Band") as LacquerStripRect
+	assert_false(mark.visible, "Horse Stance, then Stone Lifting again")
+	assert_eq(band.get_frame().x, StoneLiftingStage.BAND_DIM, "and the band dim")
+
 #-----------------------------------------------------------------------------
 # INPUT
 #-----------------------------------------------------------------------------

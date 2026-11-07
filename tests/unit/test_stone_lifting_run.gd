@@ -199,3 +199,34 @@ func test_a_set_has_no_end_before_its_last_rep() -> void:
 	var run: StoneLiftingRun = _lifted()
 	run.release(CENTRE)
 	assert_eq(run.get_end_usec(), -1)
+
+#-----------------------------------------------------------------------------
+# THE TARGET (#148)
+#-----------------------------------------------------------------------------
+
+## A lift in progress says what a release would score now, matching the release
+## itself at every window's edge.
+func test_the_release_tier_matches_a_release() -> void:
+	var cases: Array[Dictionary] = [
+		{"at": CENTRE, "tier": Tier.PERFECT},
+		{"at": CENTRE - 70_000, "tier": Tier.PERFECT},
+		{"at": CENTRE + 70_000, "tier": Tier.PERFECT},
+		{"at": CENTRE - 80_000, "tier": Tier.GOOD},
+		{"at": CENTRE + 210_000, "tier": Tier.GOOD},
+		{"at": CENTRE - 300_000, "tier": Tier.OK},
+		{"at": 600_000, "tier": Tier.MISS},
+	]
+	for case: Dictionary in cases:
+		var run: StoneLiftingRun = _lifted()
+		assert_eq(run.release_tier_at(case["at"]), case["tier"], "%d us into the lift" % case["at"])
+		var judged: Array[DrillRun.Judgement] = run.release(case["at"])
+		if judged.size() == 1:
+			assert_eq(judged[0].tier, case["tier"], "%d us: the release agrees" % case["at"])
+
+## With no lift in progress, a release would score nothing.
+func test_no_lift_has_no_release_tier() -> void:
+	var run := StoneLiftingRun.new(_drill())
+	assert_eq(run.release_tier_at(0), Tier.MISS, "before the first press")
+	run.press(0)
+	run.release(CENTRE)
+	assert_eq(run.release_tier_at(CENTRE + 100_000), Tier.MISS, "the stone resting after a rep")
