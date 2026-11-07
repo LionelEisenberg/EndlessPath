@@ -350,7 +350,7 @@ func test_v7_skips_a_current_save() -> void:
 
 ## Riverbank Training used to open with Awaken Your Spirit's end: a save from
 ## before version 8 that had finished it keeps the river, and one that had not
-## waits for First Steps Out's end or a lost fight.
+## waits for First Steps Out's end.
 func test_v8_keeps_riverbank_training_for_a_save_that_had_it() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "past Awaken Your Spirit", "unlocked": ["q_fill_core_completed"] as Array[String], "opens": true},
@@ -366,6 +366,20 @@ func test_v8_keeps_riverbank_training_for_a_save_that_had_it() -> void:
 		assert_eq("riverbank_training_opened" in unlocked, case.opens, "%s: the river is open" % case.name)
 		assert_eq(unlocked.count("riverbank_training_opened"), 1 if case.opens else 0, "%s: latched once" % case.name)
 		assert_eq(data.save_version, 8, "%s: version 8 is the river's" % case.name)
+
+## NPC 3's talk used to open with a won fight: a save that had won one keeps the
+## talk, and one that had not waits for its first adventure to end.
+func test_v8_keeps_npc_3_for_a_save_that_had_won_a_fight() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "won a fight", "unlocked": ["q_first_steps_enemy_defeated"] as Array[String], "opens": true},
+		{"name": "won none", "unlocked": ["q_fill_core_completed"] as Array[String], "opens": false},
+	]
+	for case: Dictionary in cases:
+		var data := SaveGameData.new()
+		data.save_version = 7
+		data.unlock_progression.unlocked_condition_ids = (case.unlocked as Array[String]).duplicate()
+		data.migrate()
+		assert_eq("q_first_steps_adventure_ended" in data.unlock_progression.unlocked_condition_ids, case.opens, "%s: NPC 3's gate is met" % case.name)
 
 func test_v8_skips_a_current_save() -> void:
 	var data := SaveGameData.new_current()
