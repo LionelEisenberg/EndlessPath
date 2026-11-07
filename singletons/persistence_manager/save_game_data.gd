@@ -107,6 +107,11 @@ func _verify_stat_training() -> bool:
 ## still accepts it; the move only stops a player being stranded on a hidden hex.
 const ZONE_ID_MIGRATIONS: Dictionary = {"TestZone": "SpiritValley"}
 
+## Harden Your Core's goal: the condition behind its first step and NPC 4's gate.
+## Before #109 it latched at Core Density 10; now at its target_value, two stars.
+const TWO_STARS_CONDITION_PATH: String = "res://resources/unlocks/q_reach_cd_10.tres"
+const HARDEN_YOUR_CORE_ID: String = "q_reach_core_density_10"
+
 
 func get_zone_progression_data(zone_id: String) -> ZoneProgressionData:
 	if zone_id in zone_progression_data:
@@ -313,7 +318,8 @@ func repair() -> PackedStringArray:
 ## Each stamps its own number once it ran, so a step that cannot run (version 2's
 ## when CultivationManager did not load) stops there, and the save stays at the
 ## last step it finished, never stamped current unconverted.
-## The zone id move runs on every load, whatever the save's version.
+## The zone id move and the stale two-stars latch drop run on every load,
+## whatever the save's version.
 ## A schema change bumps CURRENT_VERSION, adds a _migrate_to_vN(), and adds its
 ## step to _run_version_steps().
 func migrate() -> void:
@@ -321,6 +327,7 @@ func migrate() -> void:
 		return
 	var converted: bool = _run_version_steps()
 	_apply_zone_id_migrations()
+	_drop_stale_two_stars_latch()
 	if converted:
 		save_version = CURRENT_VERSION
 
@@ -424,6 +431,26 @@ func _apply_zone_id_migrations() -> void:
 		var new_zone_id: String = ZONE_ID_MIGRATIONS[current_selected_zone_id]
 		Log.info("SaveGameData: Moved the current zone from %s to %s" % [current_selected_zone_id, new_zone_id])
 		current_selected_zone_id = new_zone_id
+
+## Drops Harden Your Core's goal latch where a build before #109 took it short of
+## two stars, in Foundation, while the quest is not past its first step. Kept, it
+## would show NPC 4 beside a quest still on that step, and NPC 4's talk would fire
+## the return event before the quest could hear it, losing the quest and the map.
+## The sweep after binding latches it again at two stars. A save past the first
+## step keeps it, NPC 4's gate met. Not a version step: no field changed, only
+## what the latch means, so it runs on every load.
+func _drop_stale_two_stars_latch() -> void:
+	if unlock_progression == null or quest_progression == null:
+		return
+	var goal: UnlockConditionData = load(TWO_STARS_CONDITION_PATH)
+	if not unlock_progression.unlocked_condition_ids.has(goal.condition_id):
+		return
+	if current_advancement_stage != CultivationManager.AdvancementStage.FOUNDATION or core_density_level >= float(goal.target_value):
+		return
+	if quest_progression.completed_quest_ids.has(HARDEN_YOUR_CORE_ID) or quest_progression.active_quests.get(HARDEN_YOUR_CORE_ID, 0) >= 1:
+		return
+	unlock_progression.unlocked_condition_ids.erase(goal.condition_id)
+	Log.info("SaveGameData: Dropped %s, latched at Core Density %s, short of its target %s" % [goal.condition_id, core_density_level, goal.target_value])
 
 ## Resets every saved field to the default a new SaveGameData declares, in
 ## place, so the managers holding this object keep a valid reference. It copies

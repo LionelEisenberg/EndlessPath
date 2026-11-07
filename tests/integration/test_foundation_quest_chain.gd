@@ -271,6 +271,30 @@ func test_an_old_save_latches_the_talks_it_holds_on_load() -> void:
 		assert_true(UnlockManager.is_condition_unlocked(NPCS[npc]), "NPC %d's condition latches at load" % npc)
 	assert_true(_is_available(4), "NPC 4 shows as soon as the save loads")
 
+## A save from before #109 that filled one star of the core before NPC 3 latched
+## Harden Your Core's goal at Core Density 10, its old target. Kept, it would show
+## NPC 4 beside a quest still on its first step, and NPC 4's talk would fire the
+## return event too early, losing the quest and the map. Loading drops it, so NPC 4
+## waits for two stars.
+func test_an_old_save_at_one_star_before_npc_3_waits_for_two() -> void:
+	_play_through(2)
+	_meet_own_gate(3)
+	var at_one_star := func(save: SaveGameData) -> void:
+		save.core_density_level = 12.0
+		save.unlock_progression.unlocked_condition_ids.append(TWO_STARS_CONDITION)
+	_reload_as_old_save(at_one_star)
+	assert_false(UnlockManager.is_condition_unlocked(TWO_STARS_CONDITION), "the latch from one star is gone")
+	_talk_to(3)
+	_meet_own_gate(5)
+	_talk_to(5)
+	assert_eq(QuestManager.get_current_step_index(HARDEN_YOUR_CORE), 0, "Harden Your Core waits for two stars")
+	assert_false(_is_available(4), "and so does NPC 4")
+	_meet_own_gate(4)
+	assert_eq(QuestManager.get_current_step_index(HARDEN_YOUR_CORE), RETURN_TO_NPC_STEP, "two stars move it to its return step")
+	_talk_to(4)
+	assert_true(QuestManager.has_completed_quest(HARDEN_YOUR_CORE), "NPC 4 completes it")
+	assert_true(InventoryManager.has_item(MAP_ITEM_ID), "and gives the map")
+
 ## A save from before NPC 5 existed, between NPC 3 and NPC 4: NPC 3 started Harden
 ## Your Core, whose goal latched at Core Density 10, and Temper Your Body never
 ## ran. It loads on Harden Your Core's return step. NPC 4 now waits for NPC 5,
