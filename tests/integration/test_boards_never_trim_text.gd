@@ -22,7 +22,7 @@ extends GutTest
 ## row and choice drawers), the technique dock's cast tray and tooltip, the Goals
 ## board, the zone chest's Now strip, its activity cards with the presenters that
 ## fill them (the adventure's holds no Label: its card prints its line) and its
-## technique drawers, the cycling board, the body refining board, the Character
+## technique and drill drawers, the cycling board, the body refining board, the Character
 ## book with its stat tile, and the cultivator cabinet with its stat cells.
 const BOARD_SCENES: Array[String] = [
 	"res://scenes/adventure/adventure_chest/adventure_chest.tscn",
@@ -39,6 +39,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn",
 	"res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn",
 	"res://scenes/cycling/technique_drawer/technique_drawer.tscn",
+	"res://scenes/body_refining/drill_drawer/drill_drawer.tscn",
 	"res://scenes/cycling/cycling_view/cycling_view.tscn",
 	"res://scenes/body_refining/body_refining_view/body_refining_view.tscn",
 	"res://scenes/character/character_view.tscn",
