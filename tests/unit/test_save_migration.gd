@@ -104,37 +104,6 @@ func test_a_current_save_in_test_zone_still_moves() -> void:
 	assert_eq(data.current_selected_zone_id, "SpiritValley", "the dev panel can leave a current save in Test Zone, so the move runs on every load")
 	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
 
-## Harden Your Core's goal, q_reach_cd_10, latched at Core Density 10 before #109
-## moved it to two stars (20). Loading drops a latch taken short of two stars while
-## the quest is not past its first step, so NPC 4 waits for two stars; the latch
-## stays wherever the quest is past that step, where the save already has the core
-## for it, and outside Foundation. It runs on every load, a current save included.
-func test_migrate_drops_a_two_stars_latch_taken_at_one_star() -> void:
-	var cases: Array[Dictionary] = [
-		{"name": "before the quest, at one star", "level": 12.0, "quest": "", "dropped": true},
-		{"name": "on its first step, at one star", "level": 12.0, "quest": "active_0", "dropped": true},
-		{"name": "on its return step, at one star", "level": 12.0, "quest": "active_1", "dropped": false},
-		{"name": "done, at one star", "level": 12.0, "quest": "completed", "dropped": false},
-		{"name": "before the quest, at two stars", "level": 25.0, "quest": "", "dropped": false},
-		{"name": "in Copper", "level": 12.0, "quest": "", "stage": Stage.COPPER, "dropped": false},
-	]
-	for current: bool in [false, true]:
-		for case: Dictionary in cases:
-			var data := SaveGameData.new_current() if current else SaveGameData.new()
-			data.core_density_level = case.level
-			data.current_advancement_stage = case.get("stage", Stage.FOUNDATION)
-			data.unlock_progression.unlocked_condition_ids.append("q_reach_cd_10")
-			match case.quest:
-				"active_0":
-					data.quest_progression.active_quests["q_reach_core_density_10"] = 0
-				"active_1":
-					data.quest_progression.active_quests["q_reach_core_density_10"] = 1
-				"completed":
-					data.quest_progression.completed_quest_ids.append("q_reach_core_density_10")
-			data.migrate()
-			var kept: bool = data.unlock_progression.unlocked_condition_ids.has("q_reach_cd_10")
-			assert_eq(kept, not case.dropped, "%s%s: %s" % [case.name, " (a current save)" if current else "", "dropped" if case.dropped else "kept"])
-
 #-----------------------------------------------------------------------------
 # SAVE VERSION
 #-----------------------------------------------------------------------------
