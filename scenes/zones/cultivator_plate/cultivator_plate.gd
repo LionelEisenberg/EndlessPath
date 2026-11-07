@@ -8,9 +8,9 @@ extends Control
 ## Body, gear and any modifier source move), printed as every Health readout
 ## prints it (VitalsText); the Madra orb with Madra / max (the max is
 ## the max Madra stat, which Mind, gear and any modifier source move) and, while
-## the running action earns Madra, its rate; the Core Density orb with the
-## stage, level and XP beads (all lit, with "Core full" for the XP figure, at the
-## stage's Core Density cap); the six stats in two triangles, Physical on the
+## the running action earns Madra, its rate; the Core Density orb with the stage
+## and the core's stars (LacquerStarRow), each an equal share of the stage's cap,
+## the one being filled rising level by level; the six stats in two triangles, Physical on the
 ## left and Spiritual on the right, each a StatCell showing the stat's trained
 ## level and a ring of its XP toward the next level, full at the stage's cap;
 ## gold, at the right of the bottom row.
@@ -19,15 +19,13 @@ extends Control
 ## Health orb's socket takes too, its material on the crimson ramp as on the
 ## vitals plate; lacquer_core_orb: a turning spiral); this script only hands
 ## them the fill.
-## The beads are rows of their strip. It reads everything once on _ready, then
+## It reads everything once on _ready, then
 ## follows the managers' signals: the stats follow CharacterManager's
 ## stats_changed and stat_xp_changed, and the stage's change too, since a
 ## breakthrough raises their cap.
-## Madra and XP the cycling view's pellets are still carrying to the orbs are
-## held out of the readout (hold_madra, hold_core_xp) until each pellet lands
-## (release_madra, release_core_xp), so the orbs fill as the pellets arrive, not
-## as they leave: the Madra shown is the Madra less what is in flight, and the
-## core is shown as it stood that much XP ago, level by level. Health pellets
+## Madra the cycling view's pellets are still carrying to the orb is held out of
+## the readout (hold_madra) until each pellet lands (release_madra), so the orb
+## fills as the pellets arrive, not as they leave. Health pellets
 ## land on the Health orb (get_health_orb_global_position) and are held the
 ## same way (hold_health, release_health).
 ## Each stat's cell is where that stat's XP pellets land
@@ -52,8 +50,6 @@ const FILL_PARAMETER: StringName = &"progress"
 ## empty socket (with a seed dot the spiral covers) under the fill from level 1.
 const CORE_ORB_DORMANT_COLUMN: int = 0
 const CORE_ORB_SOCKET_COLUMN: int = 1
-## Last row of the XP bead strip: 19 rows, 0 to 18 beads lit.
-const XP_BEADS_LAST_ROW: int = 18
 ## Where the stat figure stands: this far right of the cabinet's left edge (the
 ## board and its shadow), and this far below the hovered cell's top.
 const TOOLTIP_X: float = 444.0
@@ -78,9 +74,7 @@ const HELD_EPSILON: float = 0.0001
 @onready var _core_orb: LacquerStripRect = %CoreOrb
 @onready var _core_fill: ShaderMaterial = _core_orb.material
 @onready var _stage_label: Label = %StageLabel
-@onready var _level_label: Label = %LevelLabel
-@onready var _xp_beads: LacquerStripRect = %XpBeads
-@onready var _xp_label: Label = %XpLabel
+@onready var _core_stars: LacquerStarRow = %CoreStars
 ## The six stat cells, Physical then Spiritual, apex first.
 @onready var _stat_cells: Array[StatCell] = [%StrengthCell, %BodyCell, %AgilityCell, %SpiritCell, %MindCell, %ControlCell]
 @onready var _gold_value_label: Label = %GoldValueLabel
@@ -90,11 +84,9 @@ const HELD_EPSILON: float = 0.0001
 # STATE
 #-----------------------------------------------------------------------------
 
-## Health, Madra and Core Density XP on their way to the orbs, left out of the
-## readout.
+## Health and Madra on their way to the orbs, left out of the readout.
 var _held_health: float = 0.0
 var _held_madra: float = 0.0
-var _held_xp: float = 0.0
 ## Each stat's XP on its way to its cell, AttributeType to float.
 var _held_stat_xp: Dictionary = {}
 ## The level each cell showed when it last settled, AttributeType to int: a
@@ -114,7 +106,6 @@ func _ready() -> void:
 	ResourceManager.health_changed.connect(_on_health_changed)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
 	ResourceManager.gold_changed.connect(_on_gold_changed)
-	CultivationManager.core_density_xp_updated.connect(_on_core_density_xp_updated)
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -150,11 +141,6 @@ func release_health(amount: float) -> void:
 func get_madra_orb_global_position() -> Vector2:
 	return _madra_orb.global_position + _madra_orb.size * 0.5
 
-## Returns the global position of the Core orb's centre, where Core Density XP
-## particles fly to.
-func get_core_orb_global_position() -> Vector2:
-	return _core_orb.global_position + _core_orb.size * 0.5
-
 ## Leaves `amount` of the Madra out of the readout: it is on its way to the orb.
 func hold_madra(amount: float) -> void:
 	_held_madra += amount
@@ -164,17 +150,6 @@ func hold_madra(amount: float) -> void:
 func release_madra(amount: float) -> void:
 	_held_madra = _less_held(_held_madra, amount)
 	_update_madra()
-
-## Leaves `amount` of the Core Density XP out of the readout: it is on its way to
-## the Core orb.
-func hold_core_xp(amount: float) -> void:
-	_held_xp += amount
-	_update_core_density()
-
-## Shows `amount` of held Core Density XP: it has reached the Core orb.
-func release_core_xp(amount: float) -> void:
-	_held_xp = _less_held(_held_xp, amount)
-	_update_core_density()
 
 ## Returns the global position of a stat's ring centre, where that stat's XP
 ## pellets fly to.
@@ -203,7 +178,8 @@ func release_stat_xp(stat: CharacterAttributesData.AttributeType, amount: float)
 ## next level, as Vector2(level, xp): the XP comes off the current level's, then
 ## off each level below it in turn, `cost` giving a level's XP
 ## (CultivationManager.get_xp_for_level). It stops at `lowest` (level 0 for the
-## core, 1 for a stat) with no XP.
+## core, 1 for a stat) with no XP. The cells use it, and so does the run's
+## cabinet for the core while a reward's beads fly.
 static func rewind_core(level: int, xp: float, xp_back: float, cost: Callable, lowest: int = 0) -> Vector2:
 	var left: float = xp - xp_back
 	while left < 0.0 and level > lowest:
@@ -255,32 +231,16 @@ func _update_rate() -> void:
 	if _rate_label.visible:
 		_rate_label.text = LacquerText.decimal_bbcode(LacquerText.rate(rate) + " / s")
 
-## Stage, level, the core orb's spiral at min(level, cap) / cap (0 with no cap;
-## the dormant pebble at level 0) and the XP beads. A bead lights only once its
-## share of the XP is earned, floor(xp × 18 / need), so the beads never run
-## ahead of the "xp / need XP" figure, which floors the XP and rounds the need
-## up: a need with decimals never reads as met before it is. A full core takes
-## no XP: the beads show their whole row and the figure reads "Core full". With
-## XP held, the core shows as it stood that much XP ago (rewind_core), and not
-## full.
+## The stage, the core orb's spiral at min(level, cap) / cap (0 with no cap;
+## the dormant pebble at level 0) and the core's stars at the level.
 func _update_core_density() -> void:
-	var shown: Vector2 = _shown_core()
-	var level: int = int(shown.x)
-	var xp: float = shown.y
+	var level: int = floori(CultivationManager.get_core_density_level())
 	var cap: int = CultivationManager.get_core_density_cap()
 	_stage_label.text = CultivationManager.get_current_advancement_stage_name()
-	_level_label.text = "Level %d" % level
 	var level_fraction: float = float(clampi(level, 0, cap)) / cap if cap > 0 else 0.0
 	_core_orb.set_frame(CORE_ORB_SOCKET_COLUMN if level > 0 else CORE_ORB_DORMANT_COLUMN)
 	_core_fill.set_shader_parameter(FILL_PARAMETER, level_fraction)
-	if CultivationManager.is_core_full() and _held_xp <= 0.0:
-		_xp_beads.set_frame(0, XP_BEADS_LAST_ROW)
-		_xp_label.text = CultivationManager.CORE_FULL_TEXT
-	else:
-		var need: float = CultivationManager.get_xp_for_level(level + 1)
-		var lit_beads: int = floori(xp * XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
-		_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
-		_xp_label.text = "%d / %d XP" % [floori(xp), ceili(need)]
+	_core_stars.set_fills(CultivationManager.get_star_fills_at(level))
 
 ## Every stat cell, with no level-up look (a load, gear or the stage moved
 ## them).
@@ -360,15 +320,6 @@ func _show_tooltip(cell: StatCell) -> void:
 func _update_gold() -> void:
 	_gold_value_label.text = "%d " % floori(ResourceManager.get_gold())
 
-## The core as the readout shows it, Vector2(level, xp): as it is, less the XP
-## still flying to it.
-func _shown_core() -> Vector2:
-	var level: int = floori(CultivationManager.get_core_density_level())
-	var xp: float = CultivationManager.get_core_density_xp()
-	if _held_xp <= 0.0:
-		return Vector2(level, xp)
-	return rewind_core(level, xp, _held_xp, CultivationManager.get_xp_for_level)
-
 ## Returns `held` less `amount`, none once only float dust is left.
 static func _less_held(held: float, amount: float) -> float:
 	var left: float = held - amount
@@ -388,9 +339,6 @@ func _on_madra_changed(_amount: float) -> void:
 
 func _on_gold_changed(_amount: float) -> void:
 	_update_gold()
-
-func _on_core_density_xp_updated(_xp: float, _level: float) -> void:
-	_update_core_density()
 
 func _on_core_density_level_updated(_xp: float, _level: float) -> void:
 	_update_core_density()

@@ -78,8 +78,17 @@ func _beads() -> Array[LacquerPellet]:
 			beads.append(child)
 	return beads
 
-func _core_xp_text() -> String:
-	return (_view.vitals_plate.get_node("%XpLabel") as Label).text
+## The steps the run cabinet's Core stars show, 0 (empty) to 10 (lit).
+func _star_steps() -> Array[int]:
+	var row: LacquerStarRow = _view.vitals_plate.get_node("%CoreStars") as LacquerStarRow
+	var steps: Array[int] = []
+	for index: int in row.get_star_count():
+		steps.append(row.get_star_step(index))
+	return steps
+
+## The first star's step: the core's level, from a fresh save, in tenths.
+func _first_star() -> int:
+	return _star_steps()[0]
 
 #-----------------------------------------------------------------------------
 # TESTS
@@ -118,18 +127,22 @@ func test_the_beads_start_at_the_players_hex() -> void:
 	for bead: LacquerPellet in _beads():
 		assert_almost_eq(bead.global_position, hex, Vector2(2.0, 2.0), "on the hex, to the even-px grid")
 
+## 31 XP buys three levels (10, 10.2 and 10.4 XP) and flies as 7 beads of 4.43:
+## the first star climbs a tenth a level as they land.
 func test_the_core_row_counts_each_bead_in_as_it_lands() -> void:
 	_start_adventure()
 
-	_win(_fight_paying(9.0))
+	_win(_fight_paying(31.0))
 
 	var beads: Array[LacquerPellet] = _beads()
-	assert_eq(beads.size(), 2, "precondition: 9 XP flies as 2 beads")
-	assert_eq(_core_xp_text(), "0 / 10 XP", "the XP is held back while the beads fly")
-	beads[0].free()
-	assert_eq(_core_xp_text(), "4 / 10 XP", "the first bead's 4.5, floored")
-	beads[1].free()
-	assert_eq(_core_xp_text(), "9 / 10 XP", "every bead landed")
+	assert_eq(beads.size(), 7, "precondition: 31 XP flies as 7 beads")
+	assert_eq(_first_star(), 0, "the XP is held back while the beads fly")
+	for index: int in 3:
+		beads[index].free()
+	assert_eq(_first_star(), 1, "three beads, 13.3 XP: level 1")
+	for index: int in range(3, 7):
+		beads[index].free()
+	assert_eq(_first_star(), 3, "every bead landed: level 3")
 
 ## A full core takes no XP, so no bead flies.
 func test_a_kill_at_a_full_core_sends_no_beads() -> void:
@@ -150,11 +163,10 @@ func test_the_kill_that_fills_the_core_sends_what_the_core_took() -> void:
 
 	_win(_fight_paying(to_full + 30.0))
 
-	var level := _view.vitals_plate.get_node("%LevelLabel") as Label
-	assert_eq(level.text, "Level %d" % (cap - 1), "the row shows the core before the kill")
+	assert_eq(_star_steps()[9], 9, "the row shows the core before the kill")
 	for bead: LacquerPellet in _beads():
 		bead.free()
-	assert_eq(_core_xp_text(), CultivationManager.CORE_FULL_TEXT, "and full once every bead landed")
+	assert_eq(_star_steps()[9], 10, "and full once every bead landed")
 
 ## The boss's beads fly though its win ends the run: the cabinet stays in sight
 ## beside the end card.
@@ -177,4 +189,5 @@ func test_a_new_run_lands_the_last_runs_beads() -> void:
 	await get_tree().process_frame
 
 	assert_eq(_beads().size(), 0, "no bead left in flight")
-	assert_eq(_core_xp_text(), "9 / 10 XP", "and the row shows all it carried")
+	assert_eq(_first_star(), 0, "precondition: 9 XP buys no level")
+	assert_eq(CultivationManager.get_core_density_xp(), 9.0, "and the core holds all it carried")

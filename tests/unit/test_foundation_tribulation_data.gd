@@ -130,14 +130,14 @@ func test_a_wide_good_window_stretches_the_early_reach() -> void:
 		assert_almost_eq((case["data"] as TribulationData).get_early_reach(), case["reach"], 0.0001, case["name"])
 
 ## The two lines the trial fills in from templates: the rules line with the
-## cracks that fail it and the levels a failure costs, and the fail line with the
-## Core Density before and after.
+## cracks that fail it and what a failure costs, and the fail line, each saying
+## the trial's five levels in Foundation's stars.
 func test_copy() -> void:
 	var tribulation: TribulationData = _load_tribulation()
 	if tribulation == null:
 		return
-	assert_eq(tribulation.get_rules_line(), "4 cracks end the trial and cost 5 levels of Core Density.")
-	assert_eq(tribulation.get_fail_line(100, 95), "Core Density falls from 100 to 95.")
+	assert_eq(tribulation.get_rules_line(), "4 cracks end the trial and cost half a star of Core Density.")
+	assert_eq(tribulation.get_fail_line(), "Your core loses half a star.")
 
 #-----------------------------------------------------------------------------
 # THE SPIRIT VALLEY ACTION

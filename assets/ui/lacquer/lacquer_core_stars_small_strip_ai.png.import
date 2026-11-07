@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqku0g2ulqgfj"
-path="res://.godot/imported/lacquer_beads_xp_strip_ai.png-fe0922be00f90667e0b56ce2e7fad6a8.ctex"
+uid="uid://c6n5l5nwvgbgc"
+path="res://.godot/imported/lacquer_core_stars_small_strip_ai.png-fe95137fa64471fe0b7a86474cff4d8d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/lacquer/lacquer_beads_xp_strip_ai.png"
-dest_files=["res://.godot/imported/lacquer_beads_xp_strip_ai.png-fe0922be00f90667e0b56ce2e7fad6a8.ctex"]
+source_file="res://assets/ui/lacquer/lacquer_core_stars_small_strip_ai.png"
+dest_files=["res://.godot/imported/lacquer_core_stars_small_strip_ai.png-fe95137fa64471fe0b7a86474cff4d8d.ctex"]
 
 [params]
 

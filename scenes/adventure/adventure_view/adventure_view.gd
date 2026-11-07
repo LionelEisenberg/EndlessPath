@@ -76,6 +76,8 @@ var _combats_fought: int = 0
 var _gold_earned: int = 0
 var _loot_items: Array[Resource] = []
 var _adventure_start_time: float = 0.0
+## The Core Density level when the run started, for the end card's stars.
+var _core_level_at_start: int = 0
 var _pending_victory: bool = false
 ## Set when the run's fight is lost. Only a lost fight marks a lost run: a run may
 ## start at 0 Health, and one that times out or is left early then is no loss.
@@ -131,6 +133,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	_gold_earned = 0
 	_loot_items.clear()
 	_adventure_start_time = Time.get_ticks_msec() / 1000.0
+	_core_level_at_start = floori(CultivationManager.get_core_density_level())
 	_pending_victory = false
 	_fight_lost = false
 
@@ -440,6 +443,9 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	result.tiles_total = adventure_tilemap.get_total_tile_count()
 	result.madra_left = ResourceManager.get_madra()
 	result.madra_max = ResourceManager.get_max_madra()
+	result.core_density_xp_earned = adventure_tilemap.get_core_density_xp_earned()
+	result.core_density_level_before = _core_level_at_start
+	result.core_density_level_after = floori(CultivationManager.get_core_density_level())
 	result.loot_items = _loot_items.duplicate()
 	return result
 

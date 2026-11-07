@@ -4,6 +4,9 @@ extends Control
 ## AdventureEndCard
 ## Displays adventure results on a scroll overlay. Populated from AdventureResultData,
 ## plays open/close animations, and emits return_requested when dismissed.
+## Under the stats, the run's Core Density: the core's stars as they stand, the
+## part the run added in jade (LacquerStarRow, on parchment), and the XP the run's
+## rewards paid, "+N", or "none this run", with "Core full" once the core is.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -24,6 +27,8 @@ signal return_requested
 @onready var health_value_label: Label = %HealthValueLabel
 @onready var tiles_value_label: Label = %TilesValueLabel
 @onready var madra_value_label: Label = %MadraValueLabel
+@onready var core_density_stars: LacquerStarRow = %CoreDensityStars
+@onready var core_density_value_label: Label = %CoreDensityValueLabel
 @onready var loot_container: HBoxContainer = %LootContainer
 @onready var loot_empty_label: Label = %LootEmptyLabel
 @onready var return_button: Button = %ReturnButton
@@ -41,6 +46,7 @@ const GOLD_COLOR := Color("#b8860b")
 const HEALTH_GOOD_COLOR := Color("#228b22")
 const HEALTH_DEAD_COLOR := Color("#8b2020")
 const MADRA_COLOR := Color("#4a7ab5")
+const CORE_FULL_TEXT: String = "Core full"
 
 const VICTORY_ICON := preload("res://assets/sprites/ui/stat_icons/victory_icon.png")
 const DEFEAT_ICON := preload("res://assets/sprites/ui/stat_icons/skull_icon.png")
@@ -107,8 +113,26 @@ func _populate(data: AdventureResultData) -> void:
 	madra_value_label.text = "%d / %d" % [floori(data.madra_left), floori(data.madra_max)]
 	madra_value_label.add_theme_color_override("font_color", MADRA_COLOR)
 
+	core_density_stars.set_fills(
+		CultivationManager.get_star_fills_at(data.core_density_level_after),
+		CultivationManager.get_star_fills_at(data.core_density_level_before))
+	core_density_value_label.text = core_density_text(data)
+
 	# Loot
 	_populate_loot(data.loot_items)
+
+## The run's Core Density line beside its stars: "+N", the XP the run's rewards
+## paid; "none this run"; and "Core full" after it once the core is full ("+N ·
+## Core full" when the run filled it, "Core full" alone when it was full all run).
+static func core_density_text(data: AdventureResultData) -> String:
+	var xp: int = floori(data.core_density_xp_earned)
+	var cap: int = CultivationManager.get_core_density_cap()
+	var full: bool = cap > 0 and data.core_density_level_after >= cap
+	if xp <= 0:
+		return CORE_FULL_TEXT if full else "none this run"
+	if full:
+		return "+%d · %s" % [xp, CORE_FULL_TEXT]
+	return "+%d" % xp
 
 func _populate_loot(items: Array[Resource]) -> void:
 	# Clear existing preview/placeholder slots

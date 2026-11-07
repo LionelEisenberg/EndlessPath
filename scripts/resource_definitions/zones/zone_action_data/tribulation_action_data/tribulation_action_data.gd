@@ -27,6 +27,9 @@ const _MAIN_STATS: Array[CharacterAttributesData.AttributeType] = [
 # EXPORTED PROPERTIES
 #-----------------------------------------------------------------------------
 
+## The core's requirement line.
+const FULL_CORE_LINE: String = "a full core"
+
 ## The trial this action opens.
 @export var tribulation: TribulationData
 
@@ -55,18 +58,26 @@ func can_attempt() -> bool:
 	var in_stage_before_target: bool = CultivationManager.get_current_advancement_stage() == tribulation.target_stage - 1
 	return in_stage_before_target and get_missing_requirements().is_empty()
 
-## Every requirement of the trial still unmet, one line each, in the order Core
-## Density, Strength, Spirit: "Core Density 95 / 100", "Strength Lv 3 / 10",
-## "Spirit Lv 9 / 10". A stat counts its trained level, never a total that gear
-## lifts. With include_core false the Core Density line is left out, for a screen
-## whose rod already shows the core. Empty once nothing is missing.
-static func get_missing_requirements(include_core: bool = true) -> Array[String]:
+## The trial's refusal, a line each: get_missing_requirements() with this
+## trial's stage, so the stage is named when the player stands in another.
+func get_refusal_lines() -> Array[String]:
+	return get_missing_requirements(true, tribulation)
+
+## Every requirement of the trial still unmet, one line each, in the order the
+## stage, Core Density, Strength, Spirit: "the Foundation stage", "a full core",
+## "Strength Lv 3 / 10", "Spirit Lv 9 / 10". The stage's line comes only with a
+## `trial` to read it from, when the player stands in a stage other than the one
+## just before its target. A stat counts its trained level, never a total that
+## gear lifts. With include_core false the core's line is left out, for a screen
+## whose stars already show the core. Empty once nothing is missing.
+static func get_missing_requirements(include_core: bool = true, trial: TribulationData = null) -> Array[String]:
 	var missing: Array[String] = []
+	if trial != null:
+		var stage: int = trial.target_stage - 1
+		if CultivationManager.get_current_advancement_stage() != stage:
+			missing.append("the %s stage" % CultivationManager.get_advancement_stage_name(stage))
 	if include_core and not CultivationManager.is_core_full():
-		missing.append("Core Density %d / %d" % [
-			floori(CultivationManager.get_core_density_level()),
-			CultivationManager.get_core_density_cap(),
-		])
+		missing.append(FULL_CORE_LINE)
 	for stat: CharacterAttributesData.AttributeType in _MAIN_STATS:
 		if not CharacterManager.is_stat_capped(stat):
 			missing.append("%s Lv %d / %d" % [

@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for the lacquer cultivator cabinet (CultivatorPlate,
 ## lacquer kit §5.1): what it reads from the managers on _ready, how it follows
-## their signals, the fills it hands the two orb shaders, the beads it lights,
-## the Madra and XP it leaves out of its figures while pellets fly, and its six
+## their signals, the fills it hands the orb shaders, the core's stars, the
+## Madra and Health it leaves out of its figures while pellets fly, and its six
 ## stat cells: each stat's level and its XP ring, the flowing channel at the
 ## cap, following CharacterManager; where stat pellets land, the stat XP held
 ## while they fly, when a cell plays its level-up look and hops, and the hover
@@ -280,54 +280,74 @@ func test_rate_shows_the_cycling_rate() -> void:
 # CORE DENSITY
 #-----------------------------------------------------------------------------
 
-func test_level_and_stage_text() -> void:
-	assert_eq(_text("LevelLabel"), "Level 0")
+## The steps the core's stars show, 0 (empty) to 10 (lit), one per star.
+func _star_steps() -> Array[int]:
+	var row: LacquerStarRow = _node("CoreStars") as LacquerStarRow
+	var steps: Array[int] = []
+	for index: int in row.get_star_count():
+		steps.append(row.get_star_step(index))
+	return steps
+
+func test_stage_text() -> void:
 	assert_eq(_text("StageLabel"), "Foundation")
 
-func test_core_fill_follows_a_level_up() -> void:
+## The stars show the level in the stage's stars, ten of ten levels each: empty,
+## part-way, after a failed Tribulation, and full. The row has no level, bead or
+## XP figure beside it.
+func test_the_stars_show_the_level() -> void:
+	var cases: Array[Dictionary] = [
+		{"level": 0.0, "steps": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
+		{"level": 34.0, "steps": [10, 10, 10, 4, 0, 0, 0, 0, 0, 0]},
+		{"level": 95.0, "steps": [10, 10, 10, 10, 10, 10, 10, 10, 10, 5]},
+		{"level": 100.0, "steps": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]},
+	]
+	for case: Dictionary in cases:
+		_load_core_density(case.level, 0.0)
+		var steps: Array[int] = []
+		steps.assign(case.steps)
+		assert_eq(_star_steps(), steps, "level %d" % case.level)
+	assert_null(_plate.get_node_or_null("%LevelLabel"), "no level figure")
+	assert_null(_plate.get_node_or_null("%XpLabel"), "no XP figure")
+	assert_null(_plate.get_node_or_null("%XpBeads"), "no beads")
+
+func test_the_core_follows_a_level_up() -> void:
 	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
-	assert_eq(_text("LevelLabel"), "Level 1", "precondition: one level up")
+	assert_eq(_star_steps()[0], 1, "the first star a tenth up")
 	assert_almost_eq(_fill("CoreOrb"), 0.01, 0.0001)
 
-## The core fills against the stage's own cap, not a fixed 100.
-func test_core_fill_reads_the_stages_cap() -> void:
+## The core fills against the stage's own cap and stars, not a fixed 100.
+func test_the_core_reads_the_stages_cap() -> void:
 	_use_a_short_stage(40)
 	_load_core_density(20.0, 0.0)
 	assert_almost_eq(_fill("CoreOrb"), 0.5, 0.0001, "20 of the stage's 40 levels")
-	assert_ne(_text("XpLabel"), "Core full", "precondition: not full at 20 of 40")
+	assert_eq(_star_steps().slice(0, 6), [10, 10, 10, 10, 10, 0] as Array[int], "four levels a star")
 	_load_core_density(40.0, 0.0)
 	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
-	assert_eq(_text("XpLabel"), "Core full")
+	assert_eq(_star_steps()[9], 10, "the last star lit")
 
-## A failed Tribulation takes levels back: the core is no longer full, and the
-## figure and the beads go back to counting XP.
-func test_losing_levels_ends_core_full() -> void:
+## A failed Tribulation takes levels back, and the stars with them.
+func test_losing_levels_takes_the_stars_back() -> void:
 	_load_core_density(100.0, 0.0)
-	assert_eq(_text("XpLabel"), "Core full", "precondition: the core is full")
 	CultivationManager.lose_core_density_levels(5)
-	var need: float = CultivationManager.get_xp_for_next_level()
-	assert_eq(_text("LevelLabel"), "Level 95")
-	assert_eq(_text("XpLabel"), "0 / %d XP" % ceili(need))
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
+	assert_eq(_star_steps()[9], 5, "the tenth star half full")
 	assert_almost_eq(_fill("CoreOrb"), 0.95, 0.0001)
 
-func test_beads_follow_xp() -> void:
-	# Level 0 needs 10 XP for level 1: 5 XP lights half the 18 beads.
-	CultivationManager.add_core_density_xp(5.0)
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 9))
-	assert_eq(_text("XpLabel"), "5 / 10 XP")
-
-## The figure floors the XP and rounds the threshold up, so an unmet threshold
-## never reads as met: level 6 costs 10 × 1.02^5 = 11.04 XP, and 11 XP of it
-## reads 11 / 12, never 11 / 11.
-func test_the_xp_figure_never_shows_an_unmet_threshold_as_met() -> void:
-	_load_core_density(5.0, 11.0)
-	var need: float = CultivationManager.get_xp_for_next_level()
-	assert_ne(need, floorf(need), "precondition: level 6's threshold has decimals")
-	assert_lt(CultivationManager.get_core_density_xp(), need, "precondition: the threshold is not met")
-	var text: String = _text("XpLabel")
-	assert_string_contains(text, "/ %d" % ceili(need), "the figure holds the threshold rounded up")
-	assert_false(text.contains("/ %d " % floori(need)), "never the threshold rounded down")
+## Copper shows its own stars, empty, after the breakthrough.
+func test_the_breakthrough_empties_the_stars() -> void:
+	_load_core_density(100.0, 0.0)
+	var copper := AdvancementStageResource.new()
+	copper.stage_id = CultivationManager.AdvancementStage.COPPER
+	copper.stage_name = "Copper"
+	var foundation: AdvancementStageResource = null
+	for stage: AdvancementStageResource in CultivationManager.advancement_stage_resources:
+		if stage.stage_id == CultivationManager.AdvancementStage.FOUNDATION:
+			foundation = stage
+	foundation.next_stage = copper
+	var stages: Array[AdvancementStageResource] = [foundation, copper]
+	CultivationManager.advancement_stage_resources = stages
+	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough")
+	assert_eq(_text("StageLabel"), "Copper")
+	assert_eq(_star_steps(), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as Array[int])
 
 #-----------------------------------------------------------------------------
 # PELLETS IN FLIGHT
@@ -349,36 +369,6 @@ func test_held_madra_shows_once_released() -> void:
 	_plate.release_madra(2.0)
 	assert_eq(_text("MadraValueLabel"), "46", "all of it landed")
 	assert_almost_eq(_fill("MadraOrb"), 0.46, 0.0001)
-
-## XP on its way to the Core orb is left out of the figure and the beads.
-func test_held_xp_shows_once_released() -> void:
-	CultivationManager.add_core_density_xp(5.0)
-	_plate.hold_core_xp(5.0)
-	assert_eq(_text("XpLabel"), "0 / 10 XP")
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
-	_plate.release_core_xp(2.5)
-	assert_eq(_text("XpLabel"), "2 / 10 XP")
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 4), "a pellet's share lights its beads")
-	_plate.release_core_xp(2.5)
-	assert_eq(_text("XpLabel"), "5 / 10 XP")
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 9))
-
-## A hit that levels the core up shows the old level, its beads filling, until
-## enough of its pellets land to cross it. 8.5 XP, so float dust in the sums
-## still floors to 8.
-func test_held_xp_holds_back_a_level_up() -> void:
-	_load_core_density(5.0, 8.5)
-	var need: float = CultivationManager.get_xp_for_next_level()
-	CultivationManager.add_core_density_xp(need)
-	assert_eq(_text("LevelLabel"), "Level 6", "precondition: the hit levelled the core up")
-	_plate.hold_core_xp(need)
-	assert_eq(_text("LevelLabel"), "Level 5", "still the old level while the XP flies")
-	assert_eq(_text("XpLabel"), "8 / %d XP" % ceili(need))
-	assert_almost_eq(_fill("CoreOrb"), 0.05, 0.0001, "and the old level's spiral")
-	_plate.release_core_xp(need - 8.0)
-	assert_eq(_text("LevelLabel"), "Level 6", "crossed once enough has landed")
-	_plate.release_core_xp(8.0)
-	assert_eq(_text("XpLabel"), "8 / %d XP" % ceili(CultivationManager.get_xp_for_next_level()))
 
 func test_rewind_core_within_a_level() -> void:
 	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 3.0, _cost), Vector2(4, 4.0))
