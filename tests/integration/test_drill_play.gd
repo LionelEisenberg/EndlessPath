@@ -423,6 +423,25 @@ func test_a_capped_strength_pops_capped() -> void:
 	assert_eq(_floater("LineFloater").get_icons(), [StatDisplay.mini_icon_of(AttributeType.STRENGTH)] as Array[Texture2D], "Strength's icon")
 	assert_eq(_floater("LineFloater").get_text(), " capped")
 
+## A drill's other stat at the cap reads "capped" as Strength does, takes no XP,
+## and the rep still restores Health.
+func test_a_capped_minor_stat_pops_capped() -> void:
+	CharacterManager.set_stat_level(AttributeType.BODY, CharacterManager.get_stat_level_cap())
+	ResourceManager.set_health(50.0)
+	var body_xp: float = CharacterManager.get_stat_xp(AttributeType.BODY)
+	_ready_stance(0.1)
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_clock_to(0.2)
+	_play.handle_press_event(_press(false))
+	_at(4.0)
+	assert_eq(_floater("WordFloater").get_text(), "Perfect")
+	assert_eq(_floater("LineFloater").get_icons(), [StatDisplay.mini_icon_of(AttributeType.BODY)] as Array[Texture2D], "Body's icon")
+	assert_eq(_floater("LineFloater").get_text(), " capped")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), body_xp, "Body takes no XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 8.0, "Strength still does")
+	assert_eq(ResourceManager.get_health(), 54.0, "and Health still refills")
+
 func test_a_rep_that_pays_everything_shows_no_line() -> void:
 	ResourceManager.set_health(50.0)
 	_lift(0, 0.6)

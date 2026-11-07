@@ -16,8 +16,8 @@ extends Control
 ## judged rep is paid at once through BodyRefiningManager.pay_rep() into the set's
 ## result, a MISS included (it pays nothing), so a set stopped midway keeps what its
 ## reps paid. Its bead lights in its tier's colour, its tier pops where the stage
-## says in that colour, and under it a Miss's reason, or, in tan, the part a scored
-## rep could not pay: Strength's icon with "capped", the Health heart with "full".
+## says in that colour, and under it a Miss's reason, or, in tan, what a scored rep
+## could not pay: a trained stat's icon with "capped", the Health heart with "full".
 ## Then rep_judged reports the rep, the Health it restored and the XP each stat
 ## took, for the board's pellets, which leave from get_pellet_origin(). Every timed
 ## effect reads clock_usec.
@@ -331,12 +331,18 @@ func _pop(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary) -> 
 			_line_floater.pop_parts(parts, ThemeConstants.LACQUER_TAN)
 	_place_floaters()
 
-## What a scored rep could not pay: Strength's icon with "capped" when Strength
-## took none of its XP, the Health heart with "full" when it restored no Health.
+## What a scored rep could not pay: the icon of each stat it trains that took none
+## of its XP with "capped" (Strength first), and the Health heart with "full" when
+## it restored no Health.
 func _unpaid_parts(health: float, stat_xp: Dictionary) -> Array:
 	var parts: Array = []
-	if stat_xp.get(AttributeType.STRENGTH, 0.0) <= 0.0:
-		parts.append_array([StatDisplay.mini_icon_of(AttributeType.STRENGTH), CAPPED_TEXT])
+	for stat: AttributeType in stat_xp:
+		if stat_xp[stat] > 0.0:
+			continue
+		if not parts.is_empty():
+			parts.append(PART_GAP)
+		var mini: Texture2D = StatDisplay.mini_icon_of(stat)
+		parts.append_array([mini if mini != null else StatDisplay.name_of(stat), CAPPED_TEXT])
 	if health <= 0.0:
 		if not parts.is_empty():
 			parts.append(PART_GAP)
