@@ -244,11 +244,15 @@ func describe_levels_in_stars(levels: int) -> String:
 	var fallback: String = "%d level%s" % [levels, "" if levels == 1 else "s"]
 	if res == null or res.core_density_star_count <= 0 or res.max_core_density_level <= 0:
 		return fallback
-	var halves: float = float(levels) * res.core_density_star_count * 2.0 / res.max_core_density_level
-	if not is_equal_approx(halves, roundf(halves)) or roundi(halves) <= 0:
+	# In whole numbers: levels make whole or half stars when their half-stars do.
+	var half_stars: int = levels * res.core_density_star_count * 2
+	if levels <= 0 or half_stars % res.max_core_density_level != 0:
 		return fallback
-	var whole: int = roundi(halves) / 2
-	var half: bool = roundi(halves) % 2 == 1
+	@warning_ignore("integer_division")
+	var halves: int = half_stars / res.max_core_density_level
+	@warning_ignore("integer_division")
+	var whole: int = halves / 2
+	var half: bool = halves % 2 == 1
 	if whole == 0:
 		return "half a star"
 	if whole == 1:

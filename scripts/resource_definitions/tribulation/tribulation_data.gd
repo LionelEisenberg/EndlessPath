@@ -40,8 +40,9 @@ const EARLY_REACH_PAST_GOOD: float = 0.10
 @export var intro_text: String = "Your core is full. Breathe with the aura as it gathers, and let it pour into you."
 
 ## The intro panel's rules line, as a template: {cracks} stands for
-## cracks_to_fail and {levels} for failure_level_loss. get_rules_line() fills it.
-@export var rules_text: String = "{cracks} cracks end the trial and cost {levels} levels of Core Density."
+## cracks_to_fail and {loss} for failure_level_loss said in the core's stars
+## ("half a star"). get_rules_line() fills it.
+@export var rules_text: String = "{cracks} cracks end the trial and cost {loss} of Core Density."
 
 ## The last breath's name. The last breath is not one of the phases, so its
 ## name and tip live here instead of on a TribulationPhaseData.
@@ -59,10 +60,10 @@ const EARLY_REACH_PAST_GOOD: float = 0.10
 ## The heading of the result panel when the trial is failed.
 @export var fail_title: String = "Your core cracks"
 
-## The result panel's text when the trial is failed, as a template: {before} and
-## {after} stand for the Core Density before and after the penalty.
+## The result panel's text when the trial is failed, as a template: {loss}
+## stands for failure_level_loss said in the core's stars ("half a star").
 ## get_fail_line() fills it.
-@export var fail_text: String = "Core Density falls from {before} to {after}."
+@export var fail_text: String = "Your core loses {loss}."
 
 #-----------------------------------------------------------------------------
 # TIMING
@@ -146,10 +147,14 @@ const EARLY_REACH_PAST_GOOD: float = 0.10
 func get_early_reach() -> float:
 	return maxf(early_reach_min, good_window + EARLY_REACH_PAST_GOOD)
 
-## The intro panel's rules line: rules_text with {cracks} and {levels} filled in.
+## The intro panel's rules line: rules_text with {cracks} and {loss} filled in.
 func get_rules_line() -> String:
-	return rules_text.format({"cracks": cracks_to_fail, "levels": failure_level_loss})
+	return rules_text.format({"cracks": cracks_to_fail, "loss": get_loss_in_stars()})
 
-## The fail panel's line: fail_text with {before} and {after} filled in.
-func get_fail_line(before: int, after: int) -> String:
-	return fail_text.format({"before": before, "after": after})
+## The fail panel's line: fail_text with {loss} filled in.
+func get_fail_line() -> String:
+	return fail_text.format({"loss": get_loss_in_stars()})
+
+## failure_level_loss said in the current stage's stars ("half a star").
+func get_loss_in_stars() -> String:
+	return CultivationManager.describe_levels_in_stars(failure_level_loss)

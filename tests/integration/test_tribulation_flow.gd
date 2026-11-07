@@ -287,13 +287,13 @@ func test_the_trial_needs_a_full_core_and_both_main_stats_at_the_cap() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "everything met", "core": core_cap, "strength": cap, "spirit": cap, "missing": []},
 		{"name": "the core short", "core": core_cap - 5, "strength": cap, "spirit": cap,
-			"missing": ["Core Density %d / %d" % [core_cap - 5, core_cap]]},
+			"missing": ["a full core"]},
 		{"name": "Strength short", "core": core_cap, "strength": cap - 1, "spirit": cap,
 			"missing": ["Strength Lv %d / %d" % [cap - 1, cap]]},
 		{"name": "Spirit short", "core": core_cap, "strength": cap, "spirit": 1,
 			"missing": ["Spirit Lv 1 / %d" % cap]},
 		{"name": "nothing met", "core": 0, "strength": 1, "spirit": 1,
-			"missing": ["Core Density 0 / %d" % core_cap, "Strength Lv 1 / %d" % cap, "Spirit Lv 1 / %d" % cap]},
+			"missing": ["a full core", "Strength Lv 1 / %d" % cap, "Spirit Lv 1 / %d" % cap]},
 	]
 	for case: Dictionary in cases:
 		PersistenceManager.save_game_data.core_density_level = float(case["core"])

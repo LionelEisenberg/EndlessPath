@@ -491,10 +491,9 @@ func _end(passed: bool) -> void:
 		_result_title.text = _data.pass_title
 		_result_text.text = _data.pass_text
 	else:
-		var before: int = int(CultivationManager.get_core_density_level())
 		CultivationManager.lose_core_density_levels(_data.failure_level_loss)
 		_result_title.text = _data.fail_title
-		_result_text.text = _data.get_fail_line(before, int(CultivationManager.get_core_density_level()))
+		_result_text.text = _data.get_fail_line()
 	_grade_label.text = grade
 	_stats_label.text = stats
 	_core.set_frame(core_column, PASSED_CORE_ROW if passed else SPENT_CORE_ROW)

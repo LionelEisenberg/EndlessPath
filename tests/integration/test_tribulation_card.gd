@@ -1,11 +1,12 @@
 extends GutTest
 
 ## Integration tests for the Tribulation's activity card (the TribulationPresenter
-## on a ZoneActionButton). Not ready, the card shows "Core 95 / 100" on a rod and,
-## on a line under it, the main stats still short, tagged TRIAL, and refuses a
-## click with a log line per missing requirement. Ready (a full core, Strength and
-## Spirit at the cap), it shows the ready frame, the ENTER tag and the trial's
-## length and penalty on its detail line. Nothing on it is cut off: the stat line
+## on a ZoneActionButton). Not ready, the card shows the core's stars and, on a
+## line under them, the main stats still short, tagged TRIAL, and refuses a click
+## with a log line per missing requirement, the stage first when the player stands
+## in another. Ready (a full core, Strength and Spirit at the cap), it shows the
+## ready frame, the ENTER tag, the trial's length and its penalty in stars on its
+## detail line, and the full stars under it. Nothing on it is cut off: the stat line
 ## and a long ready line wrap, and the card grows by their lines. It follows the core's level, the stage, the stat levels and a save reset, and lets
 ## them go when it leaves the tree. Cards are built with setup_action, as the zone
 ## panel builds them, on a fresh save with the card's unlock condition forced and
@@ -27,8 +28,6 @@ const AURA_WELL_EVENT: String = "aura_well_discovered"
 ## 90 with the Core row and one stat line.
 const MIN_HEIGHT: float = 72.0
 const DETAIL_LINE: float = 18.0
-## The core rod has the adventure's Madra rod's 74 steps.
-const ROD_STEPS: int = 74
 
 ## Foundation's Core Density cap, and the level a failed trial (five levels lost)
 ## leaves a full core at.
@@ -135,8 +134,13 @@ func _ready_frame(card: ZoneActionButton) -> LacquerFrameOverlay:
 func _need_row(card: ZoneActionButton) -> Control:
 	return card.get_detail_slot().find_child("NeedGroup", true, false) as Control
 
-func _core_rod(card: ZoneActionButton) -> LacquerRod:
-	return card.get_detail_slot().find_child("CoreRod", true, false) as LacquerRod
+## The steps a star row of the card shows, 0 (empty) to 10 (lit), one per star.
+func _star_steps(card: ZoneActionButton, row_name: String) -> Array[int]:
+	var row: LacquerStarRow = card.get_detail_slot().find_child(row_name, true, false) as LacquerStarRow
+	var steps: Array[int] = []
+	for index: int in row.get_star_count():
+		steps.append(row.get_star_step(index))
+	return steps
 
 func _stat_line(card: ZoneActionButton) -> Label:
 	return card.get_detail_slot().find_child("StatNeedLabel", true, false) as Label
@@ -164,17 +168,35 @@ func _run_aura_well() -> void:
 # BELOW THE CAP
 #-----------------------------------------------------------------------------
 
-func test_below_the_cap_shows_the_core_figure() -> void:
+func test_below_the_cap_shows_the_core_stars() -> void:
 	_set_core_level(SHORT_CORE)
 	var card: ZoneActionButton = _card()
-	assert_true(_has_text_containing(card, "Core 95 / 100"), "the level and the cap beside the rod")
+	assert_eq(_star_steps(card, "CoreStars"), [10, 10, 10, 10, 10, 10, 10, 10, 10, 5] as Array[int], "nine and a half stars")
+	assert_false(_has_text_containing(card, "95"), "no level figure")
 	assert_false(_has_text_containing(card, "About"), "the ready line is hidden")
+	assert_false(_star_row_shown(card, "ReadyStarsRow"), "and its stars")
 	assert_eq(_tag_text(card), "TRIAL")
-	var rod: LacquerRod = _core_rod(card)
-	assert_not_null(rod, "the core rod sits on the detail line")
-	if rod:
-		assert_eq(rod.get_step(), roundi(0.95 * ROD_STEPS), "95 / 100 of 74 steps")
 	assert_false(_ready_frame(card).visible, "no ready frame below the cap")
+	assert_eq(card.size.y, MIN_HEIGHT, "one line: the stars, the stats at the cap")
+
+## The not-ready card's height follows its stat line below the cap too, under
+## #87's growth rule (DM-12): the stars' line, then a line per stat line.
+func test_the_not_ready_cards_height_follows_its_stat_line() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	_set_core_level(SHORT_CORE)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, cap - 1)
+	var card: ZoneActionButton = _card()
+	var stat_line: Label = _stat_line(card)
+	assert_true(stat_line.visible, "precondition: Strength is a level short")
+	assert_eq(card.size.y, MIN_HEIGHT + DETAIL_LINE * stat_line.get_line_count(), "the card grows by the stat line")
+	CharacterManager.add_stat_levels(Attribute.STRENGTH, 1)
+	assert_false(stat_line.visible, "precondition: the stats at the cap")
+	assert_eq(_tag_text(card), "TRIAL", "precondition: still short of a full core")
+	assert_eq(card.size.y, MIN_HEIGHT, "and shrinks back to the stars' line")
+
+func _star_row_shown(card: ZoneActionButton, row_name: String) -> bool:
+	var row: Control = card.get_detail_slot().find_child(row_name, true, false) as Control
+	return row != null and row.is_visible_in_tree()
 
 #-----------------------------------------------------------------------------
 # AT THE CAP
@@ -184,20 +206,25 @@ func test_at_the_cap_the_card_is_ready() -> void:
 	_set_core_level(FULL_CORE)
 	var card: ZoneActionButton = _card()
 	assert_eq(_ready_label(card).text if _ready_label(card) else "", "About 38 s", "the trial's length on the left")
-	assert_eq(card.get_detail_right_text(), "failure costs 5 levels", "and its penalty in the right column")
+	assert_eq(card.get_detail_right_text(), "failure costs half a star", "and its penalty in the right column, in stars")
 	assert_eq(_tag_text(card), "ENTER")
 	assert_true(_ready_frame(card).visible, "the ready frame")
+	assert_true(_star_row_shown(card, "ReadyStarsRow"), "the full stars under the line")
+	assert_eq(_star_steps(card, "ReadyStars"), [10, 10, 10, 10, 10, 10, 10, 10, 10, 10] as Array[int])
 	var row: Control = _need_row(card)
-	assert_not_null(row, "the Core figure and its rod sit on the detail line")
+	assert_not_null(row, "the Core row sits on the detail line")
 	if row:
-		assert_false(row.visible, "and hide once the card is ready")
+		assert_false(row.visible, "and hides once the card is ready")
 
 ## The line reads the trial's own tempo and penalty, not the shipped numbers: a
-## trial at tempo 2 takes half as long, and its failure costs what its data says.
+## trial at tempo 2 takes half as long, and its failure costs what its data says,
+## in stars when it makes whole or half stars, else in levels.
 func test_ready_line_follows_the_trial_data() -> void:
 	_set_core_level(FULL_CORE)
-	var card: ZoneActionButton = _card_for(_action_with_trial(2.0, 7))
+	var card: ZoneActionButton = _card_for(_action_with_trial(2.0, 20))
 	assert_true(_has_text_containing(card, "About 19 s"))
+	assert_eq(card.get_detail_right_text(), "failure costs 2 stars")
+	card = _card_for(_action_with_trial(2.0, 7))
 	assert_eq(card.get_detail_right_text(), "failure costs 7 levels")
 
 ## The last level of a core, earned with XP, readies the card the player is
@@ -205,7 +232,7 @@ func test_ready_line_follows_the_trial_data() -> void:
 func test_filling_the_core_readies_the_card() -> void:
 	_set_core_level(FULL_CORE - 1.0)
 	var card: ZoneActionButton = _card()
-	assert_true(_has_text_containing(card, "Core 99 / 100"), "precondition: one level short")
+	assert_eq(_tag_text(card), "TRIAL", "precondition: one level short")
 	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
 	assert_eq(_tag_text(card), "ENTER")
 	assert_true(_ready_frame(card).visible)
@@ -242,16 +269,19 @@ func test_a_stat_level_up_readies_the_card() -> void:
 # CLICKS
 #-----------------------------------------------------------------------------
 
+## The core alone refuses (the stats stand at the cap): one line, the core's
+## (DM-14).
 func test_rejected_click_below_the_cap_logs_why() -> void:
 	_run_aura_well()
 	_set_core_level(SHORT_CORE)
+	assert_eq(TribulationActionData.get_missing_requirements(false), [] as Array[String], "precondition: only the core is short")
 	var card: ZoneActionButton = _card()
 	_logged.clear()
 	_click(card)
 	assert_eq(_current_id(), AURA_WELL_ID, "the idle action runs on")
 	assert_eq(_logged.size(), 1, "the reject writes one log line")
 	if _logged.size() == 1:
-		assert_string_contains(_logged[0], "Core Density 95 / 100")
+		assert_string_contains(_logged[0], "The Tribulation needs a full core.")
 
 func test_click_at_the_cap_starts_the_trial() -> void:
 	_set_core_level(FULL_CORE)
@@ -278,7 +308,7 @@ func test_rejected_click_names_every_missing_requirement() -> void:
 	if _logged.size() == 2:
 		for line: String in _logged:
 			assert_string_contains(line, "The Tribulation needs")
-		assert_string_contains(_logged[0], "Core Density 95 / 100")
+		assert_string_contains(_logged[0], "a full core")
 		assert_string_contains(_logged[1], "Strength Lv 1 / %d" % cap)
 
 #-----------------------------------------------------------------------------
@@ -290,14 +320,10 @@ func test_card_follows_a_lost_level() -> void:
 	var card: ZoneActionButton = _card()
 	assert_eq(_tag_text(card), "ENTER", "precondition: a full core is ready")
 	CultivationManager.lose_core_density_levels(5)
-	assert_true(_has_text_containing(card, "Core 95 / 100"))
 	assert_eq(_tag_text(card), "TRIAL")
 	assert_false(_ready_frame(card).visible, "the ready frame goes")
 	assert_false(_has_text_containing(card, "About"), "and the ready line")
-	var rod: LacquerRod = _core_rod(card)
-	assert_not_null(rod)
-	if rod:
-		assert_eq(rod.get_step(), roundi(0.95 * ROD_STEPS), "the rod follows the level")
+	assert_eq(_star_steps(card, "CoreStars")[9], 5, "the stars follow the level: the tenth half full")
 
 ## The stage alone, with the level where it was, takes the card out of its ready
 ## state: the trial leads out of the stage before its target.
@@ -313,6 +339,22 @@ func test_card_follows_a_stage_change() -> void:
 	assert_true(TribulationActionData.get_missing_requirements().is_empty(), "precondition: only the stage refuses")
 	assert_eq(_tag_text(card), "TRIAL")
 	assert_false(_ready_frame(card).visible)
+
+## When only the stage stands in the way, the refusal names it (DM-13). Play
+## can't reach this, since the card hides past its stage.
+func test_a_refusal_on_the_stage_alone_names_the_stage() -> void:
+	_set_core_level(FULL_CORE)
+	PersistenceManager.save_game_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	StatCaps.cap_main_stats()
+	_run_aura_well()
+	var card: ZoneActionButton = _card()
+	assert_true(TribulationActionData.get_missing_requirements().is_empty(), "precondition: only the stage refuses")
+	_logged.clear()
+	_click(card)
+	assert_eq(_current_id(), AURA_WELL_ID, "the trial does not start")
+	assert_eq(_logged.size(), 1, "one line")
+	if _logged.size() == 1:
+		assert_string_contains(_logged[0], "The Tribulation needs the Foundation stage.")
 
 ## A save reset swaps every level at once (a dev switch, New game): the card
 ## re-reads the new save's stat levels at once, not at the next level-up (LL-01).
@@ -333,7 +375,7 @@ func test_card_follows_a_save_reset() -> void:
 
 ## The stat line sits under the Core row and grows the card by its lines; the
 ## Core row stays the detail line's first row. With the stats at the cap again the
-## card is ready and 72 px.
+## card is ready: its line and the full stars under it, 90 px.
 func test_the_stat_line_grows_the_card_and_the_core_row_stays() -> void:
 	var cap: int = CharacterManager.get_stat_level_cap()
 	_set_core_level(FULL_CORE)
@@ -349,7 +391,7 @@ func test_the_stat_line_grows_the_card_and_the_core_row_stays() -> void:
 	assert_eq(row.position.y, 0.0, "at its top")
 	CharacterManager.add_stat_levels(Attribute.STRENGTH, 1)
 	assert_eq(_tag_text(card), "ENTER", "precondition: ready again")
-	assert_eq(card.size.y, MIN_HEIGHT, "one line again")
+	assert_eq(card.size.y, MIN_HEIGHT + DETAIL_LINE, "the ready line and its stars")
 
 ## A ready line too wide for its room wraps instead of being cut, and the card is
 ## 72 again once it is not ready. Here the penalty runs past half the line, so the
