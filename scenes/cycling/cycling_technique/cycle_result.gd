@@ -38,12 +38,9 @@ var zones_total: int = 0
 ## How many of the scored zones were PERFECT.
 var perfect_count: int = 0
 
-## The share of the cycle the cursor followed the ball, 0 to 1.
+## The share of the cycle the cursor followed the ball, 0 to 1. A slip a grace
+## held counts as followed.
 var followed_ratio: float = 0.0
-
-## Whether the cursor followed the ball on every frame of the cycle, from its
-## first to its end: the gold ring never went out.
-var followed_throughout: bool = false
 
 ## The XP each stat took this cycle, AttributeType to float: what the stat
 ## gained, which the cap can make less than it was paid.
@@ -81,11 +78,12 @@ func is_stat_capped(stat: CharacterAttributesData.AttributeType) -> bool:
 	return capped_stats.has(stat)
 
 ## Returns whether the cycle was perfect, which unlocks its technique's Auto:
-## followed throughout, every zone pressed PERFECT and every seal opened. A
-## technique with neither only follows. A full pool or a capped stat does not
-## matter: it is how the cycle was played, not what it paid.
+## followed for CyclingRules.PERFECT_FOLLOWED_SHARE of it, every zone pressed
+## PERFECT and every seal opened. A technique with neither only follows. A full
+## pool or a capped stat does not matter: it is how the cycle was played, not
+## what it paid.
 func is_perfect() -> bool:
-	if not followed_throughout:
+	if not CyclingRules.followed_enough(followed_ratio):
 		return false
 	for state: int in zone_states:
 		if state != CyclingZone.State.PERFECT:

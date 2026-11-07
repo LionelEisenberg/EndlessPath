@@ -58,3 +58,23 @@ func test_redraws_only_when_the_lit_count_changes() -> void:
 	groove.set_lit_length(60.0)
 	await wait_process_frames(2)
 	assert_signal_emit_count(groove, "draw", 2, "a changed lit count does again")
+
+## A span lights the cells along it and leaves the rest dark, so a slip between
+## two spans shows as a gap.
+func test_spans_light_their_stretches_of_the_path() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	groove.set_lit_spans([Vector2(0.0, 30.0), Vector2(60.0, 90.0)] as Array[Vector2])
+	for case: Array in [[10.0, true], [45.0, false], [70.0, true], [95.0, false]]:
+		assert_eq(groove.is_lit_at(case[0]), case[1], "%s px along" % case[0])
+
+## A new cycle holds what showed lit, and the sweep clears it from the start.
+func test_held_light_clears_as_the_sweep_passes() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	groove.set_lit_spans([Vector2(0.0, 30.0), Vector2(60.0, 90.0)] as Array[Vector2])
+	groove.hold_light()
+	groove.set_swept_length(-1.0)
+	assert_true(groove.is_lit_at(70.0), "the last cycle's light shows until the sweep")
+	assert_false(groove.is_lit_at(45.0), "and so does its gap")
+	groove.set_swept_length(80.0)
+	assert_false(groove.is_lit_at(70.0), "the sweep cleared it")
+	assert_true(groove.is_lit_at(85.0), "past the sweep it still shows")

@@ -388,7 +388,7 @@ func test_tray_shows_the_cycle_ready() -> void:
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	await wait_process_frames(2)
-	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "10 s cycle", "Now"] as Array[String])
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(CYCLING_ID).icon, "the action's icon")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is empty")
@@ -419,7 +419,7 @@ func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
 	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
 	CyclingManager.end_cycle_session()
 	await wait_process_frames(1)
-	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String], "the rate back at +0")
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "10 s cycle", "Now"] as Array[String], "the rate back at +0")
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark again")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "and the rod empty")
 
@@ -436,7 +436,7 @@ func test_tray_names_the_equipped_technique() -> void:
 	assert_has(texts, "Smooth Flow Technique")
 	assert_has(texts, "15 s cycle")
 	assert_does_not_have(texts, "Foundational Technique")
-	assert_does_not_have(texts, "8 s cycle")
+	assert_does_not_have(texts, "10 s cycle")
 
 func test_cycling_tray_takes_no_clicks() -> void:
 	# A press on the running tray scrolls the chest to its card; the cycling card

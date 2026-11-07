@@ -73,6 +73,11 @@ func _run(seconds: float, fps: float, track: bool) -> void:
 	for _frame: int in roundi(seconds * fps):
 		_technique.advance(1.0 / fps, _technique.get_ball_global_position() if track else FAR)
 
+## Steps `seconds` of 60 FPS frames with the cursor `offset` from the ball.
+func _run_off_the_ball(seconds: float, offset: Vector2) -> void:
+	for _frame: int in roundi(seconds * 60.0):
+		_technique.advance(FRAME, _technique.get_ball_global_position() + offset)
+
 ## Steps 60 FPS frames with the cursor far away until `done` returns true, the
 ## cycle ends or `limit` seconds pass. Returns whether `done` is true.
 func _step_until(done: Callable, limit: float = 20.0) -> bool:
@@ -123,9 +128,10 @@ func _count_pellets() -> Array[int]:
 	_technique.madra_particle_requested.connect(func(_from_pos: Vector2, _amount: float) -> void: count[0] += 1)
 	return count
 
-## Swaps the fixture's technique for a new one playing foundation_technique: an 8 s
-## cycle of 30 Madra in 100 steps of 0.3, no zones, on a path that ends where it
-## starts. It is built with the technique, so no old zones are thrown away.
+## Swaps the fixture's technique for a new one playing foundation_technique: a
+## 10 s cycle of 37.5 Madra in 125 steps of 0.3, no zones, on a path that ends
+## where it starts. It is built with the technique, so no old zones are thrown
+## away.
 func _use_foundation() -> void:
 	_technique = TECHNIQUE_SCENE.instantiate() as CyclingTechnique
 	_technique.technique_data_input = load(FOUNDATION_PATH)
@@ -185,11 +191,23 @@ func _straight_technique_with_zones(zone_positions: Array[Vector2]) -> CyclingTe
 		data.cycling_zones.append(zone)
 	return data
 
-## Runs the straight technique's cycle for one frame that carries the true ball
-## to `x` on the path (the cycle eases with 0.5 - 0.5 cos(pi t / 10)), with the
-## cursor at `cursor`.
+## Returns the second of a cycle `duration` long at which the eased ball
+## (CyclingRules.eased_ratio()) has covered `ratio` of the path, found by halving.
+func _seconds_to_reach(ratio: float, duration: float) -> float:
+	var low: float = 0.0
+	var high: float = duration
+	for _step: int in 60:
+		var middle: float = (low + high) / 2.0
+		if CyclingRules.eased_ratio(middle, duration) < ratio:
+			low = middle
+		else:
+			high = middle
+	return (low + high) / 2.0
+
+## Runs the straight technique's 10 s cycle for one frame that carries the true
+## ball to `x` on the path, with the cursor at `cursor`.
 func _advance_straight_to(x: float, cursor: Vector2) -> void:
-	_technique.advance(10.0 * acos(1.0 - 2.0 * x / 1000.0) / PI, cursor)
+	_technique.advance(_seconds_to_reach(x / 1000.0, 10.0), cursor)
 
 #-----------------------------------------------------------------------------
 # CYCLE LIFECYCLE
@@ -318,14 +336,14 @@ func test_the_result_counts_the_madra_the_pool_gained() -> void:
 
 func test_spirit_raises_the_madra_a_cycle_draws() -> void:
 	# Spirit Lv 6 is 15, a multiplier of 1.5, so the Foundational Technique's
-	# cycle of 30 draws 45. The level is set after the technique is ready: it
+	# cycle of 37.5 draws 56.25. The level is set after the technique is ready: it
 	# follows the stats change, not only what it read on ready.
 	_make_room(500.0)
 	ResourceManager.set_madra(0.0)
 	_use_foundation()
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
-	assert_eq(_track_one_cycle(func() -> float: return FRAME), 100, "precondition: the cycle's 100 steps")
-	assert_almost_eq(_technique.get_current_result().madra_added, 45.0, 0.01, "30 Madra at 1.5x")
+	assert_eq(_track_one_cycle(func() -> float: return FRAME), 125, "precondition: the cycle's 125 steps")
+	assert_almost_eq(_technique.get_current_result().madra_added, 56.25, 0.01, "37.5 Madra at 1.5x")
 
 func test_the_rate_reads_madra_at_spirit() -> void:
 	# At Spirit 15 steady tracking reads 1.5 x base_madra_per_cycle / cycle_duration.
@@ -335,26 +353,27 @@ func test_the_rate_reads_madra_at_spirit() -> void:
 	_run(2.0, 60.0, true)
 	assert_almost_eq(CyclingManager.get_madra_rate(), 1.5 * MADRA_RATE, 0.001)
 
-func test_a_tracked_8_s_cycle_pays_its_last_step_at_120_fps() -> void:
-	# An 8 s cycle holds exactly 100 steps of 0.08 s, so its 100th step falls on
-	# its last instant. Float error in 960 frames of 1 / 120 s must not cost it.
+func test_a_tracked_10_s_cycle_pays_its_last_step_at_120_fps() -> void:
+	# A 10 s cycle holds exactly 125 steps of 0.08 s, so its 125th step falls on
+	# its last instant. Float error in 1200 frames of 1 / 120 s must not cost it.
 	_use_foundation()
-	assert_eq(_track_one_cycle(func() -> float: return 1.0 / 120.0), 100, "100 steps at 120 FPS")
-	assert_almost_eq(_technique.get_current_result().madra_added, 30.0, 0.000001, "the cycle's 30 Madra")
+	assert_eq(_track_one_cycle(func() -> float: return 1.0 / 120.0), 125, "125 steps at 120 FPS")
+	assert_almost_eq(_technique.get_current_result().madra_added, 37.5, 0.000001, "the cycle's 37.5 Madra")
+	assert_eq(roundi(_technique.get_current_result().madra_added), 38, "which the card and the log round up, as the drawer does")
 
-func test_a_tracked_8_s_cycle_pays_100_steps_at_uneven_frame_times() -> void:
+func test_a_tracked_10_s_cycle_pays_125_steps_at_uneven_frame_times() -> void:
 	# Frames of 1 / 120 to 1 / 40 s, drawn from fixed seeds.
 	var rng := RandomNumberGenerator.new()
 	for seed_value: int in [1, 2, 3, 4, 5]:
 		rng.seed = seed_value
 		ResourceManager.set_madra(25.0)
 		_use_foundation()
-		assert_eq(_track_one_cycle(func() -> float: return rng.randf_range(0.5, 1.5) / 60.0), 100, "100 steps with seed %d" % seed_value)
+		assert_eq(_track_one_cycle(func() -> float: return rng.randf_range(0.5, 1.5) / 60.0), 125, "125 steps with seed %d" % seed_value)
 
 func test_a_hitch_through_the_end_pays_only_the_steps_left() -> void:
-	# 2 s of tracking pay 25 of the cycle's 100 steps. A 16 s frame then covers 200
+	# 2 s of tracking pay 25 of the cycle's 125 steps. A 16 s frame then covers 200
 	# steps with the cursor on the ball (the path ends where it starts), but only
-	# 6 s of it, 75 steps, were left in the cycle.
+	# 8 s of it, 100 steps, were left in the cycle.
 	_make_room(500.0)
 	assert_eq(ResourceManager.get_max_madra(), 600.0, "precondition: the max does not bound the hitch")
 	_use_foundation()
@@ -367,8 +386,8 @@ func test_a_hitch_through_the_end_pays_only_the_steps_left() -> void:
 	assert_eq(pellets[0], 25, "precondition: 2 s of tracking paid 25 steps")
 	_technique.advance(16.0, path_end)
 	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
-	assert_eq(pellets[0], 100, "the 75 steps left in the cycle, not the 200 the frame covers")
-	assert_almost_eq(_technique.get_current_result().madra_added, 30.0, 0.000001)
+	assert_eq(pellets[0], 125, "the 100 steps left in the cycle, not the 200 the frame covers")
+	assert_almost_eq(_technique.get_current_result().madra_added, 37.5, 0.000001)
 
 #-----------------------------------------------------------------------------
 # THE MADRA RATE
@@ -403,8 +422,8 @@ func test_rate_falls_to_zero_once_tracking_stops() -> void:
 		_technique.start_cycle()
 		_run(1.0, fps, true)
 		assert_gt(CyclingManager.get_madra_rate(), 0.0, "precondition: the cursor draws at %d FPS" % fps)
-		_run(CyclingTechnique.RATE_WINDOW + 1.0 / fps, fps, false)
-		assert_eq(CyclingManager.get_madra_rate(), 0.0, "RATE_WINDOW and a frame after the cursor left, at %d FPS" % fps)
+		_run(CyclingRules.FOLLOW_GRACE + CyclingTechnique.RATE_WINDOW + 1.0 / fps, fps, false)
+		assert_eq(CyclingManager.get_madra_rate(), 0.0, "the grace, RATE_WINDOW and a frame after the cursor left, at %d FPS" % fps)
 
 func test_rate_rises_and_falls_within_a_second() -> void:
 	# A cursor that catches the ball mid-cycle follows at once, so a window half
@@ -417,7 +436,7 @@ func test_rate_rises_and_falls_within_a_second() -> void:
 	_run(0.5, 60.0, true)
 	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "a second of following")
 	_run(0.5, 60.0, false)
-	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second after it stopped")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE * (0.5 + CyclingRules.FOLLOW_GRACE), 0.1, "half a second after it stopped, the grace still drawn")
 
 func test_rate_falls_to_zero_once_the_cap_is_met() -> void:
 	ResourceManager.set_madra(98.0)
@@ -496,8 +515,11 @@ func test_following_needs_the_cursor_in_the_ring() -> void:
 	# The ball moves a few px a frame here, so the offsets keep clear of the edge.
 	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(0.0, 24.0))
 	assert_true(_technique.is_following(), "off the ball's centre, still in the ring, it follows")
-	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 10.0, 0.0))
-	assert_false(_technique.is_following(), "past the ring nothing follows")
+	var past: Vector2 = Vector2(CyclingTechnique.CURSOR_REACH + 10.0, 0.0)
+	_technique.advance(FRAME, _technique.get_ball_global_position() + past)
+	assert_true(_technique.is_following(), "past the ring, the grace holds it a moment")
+	_run_off_the_ball(CyclingRules.FOLLOW_GRACE, past)
+	assert_false(_technique.is_following(), "once the grace runs out, past the ring nothing follows")
 
 func test_on_the_ball_uses_the_drawn_ball() -> void:
 	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
@@ -518,8 +540,8 @@ func test_the_cursor_follows_on_the_ring_and_not_past_it() -> void:
 	_advance_straight_to(100.6, Vector2(100.0, 33.0))
 	assert_eq(_technique.get_ball_global_position(), Vector2(100.0, 0.0), "precondition: the ball is drawn at x 100")
 	assert_true(_technique.is_following(), "33 px off, on the ring, the cursor follows")
-	_technique.advance(0.0, Vector2(100.0, 37.0))
-	assert_false(_technique.is_following(), "37 px off, past the ring, it does not")
+	_technique.advance(CyclingRules.FOLLOW_GRACE + FRAME, Vector2(100.0, 37.0))
+	assert_false(_technique.is_following(), "37 px off, past the ring and the grace, it does not")
 	await _await_queued_frees()
 
 ## The Foundational path starts, crosses itself and ends at one point. A cursor
@@ -591,7 +613,7 @@ func test_auto_never_starts_following_for_a_resting_cursor() -> void:
 # SPIRIT XP
 #-----------------------------------------------------------------------------
 
-## The Foundational pays 12 Spirit XP for a fully followed 8 s cycle: 1.5 a
+## The Foundational pays 15 Spirit XP for a fully followed 10 s cycle: 1.5 a
 ## second, 0.75 every half second.
 const SPIRIT_XP_PER_SECOND: float = 1.5
 const SPIRIT := CharacterAttributesData.AttributeType.SPIRIT
@@ -633,8 +655,8 @@ func test_a_fully_followed_cycle_pays_its_spirit_xp() -> void:
 		_use_foundation()
 		_track_one_cycle(case.next)
 		var result: CycleResult = _technique.get_current_result()
-		assert_almost_eq(_spirit_xp(), 12.0, 0.0001, "%s: Spirit took the cycle's 12 XP" % case.name)
-		assert_almost_eq(result.get_stat_xp(SPIRIT), 12.0, 0.0001, "%s: and the result holds them" % case.name)
+		assert_almost_eq(_spirit_xp(), 15.0, 0.0001, "%s: Spirit took the cycle's 15 XP" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 15.0, 0.0001, "%s: and the result holds them" % case.name)
 		assert_almost_eq(result.followed_ratio, 1.0, 0.01, "%s: the whole cycle was followed" % case.name)
 
 func test_following_pays_spirit_xp_with_madra_full() -> void:
@@ -642,7 +664,7 @@ func test_following_pays_spirit_xp_with_madra_full() -> void:
 	_use_foundation()
 	_track_one_cycle(func() -> float: return FRAME)
 	assert_eq(_technique.get_current_result().madra_added, 0.0, "precondition: no Madra fit")
-	assert_almost_eq(_spirit_xp(), 12.0, 0.0001, "following still paid its Spirit XP")
+	assert_almost_eq(_spirit_xp(), 15.0, 0.0001, "following still paid its Spirit XP")
 
 func test_a_resting_cursor_earns_no_spirit_xp() -> void:
 	_use_foundation()
@@ -708,8 +730,8 @@ func test_the_payment_that_reaches_the_cap_carries_only_what_it_took() -> void:
 
 func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
 	# 2 s of following pay four half seconds. A 16 s frame then follows to the
-	# path's end, where it started, but only 6 s of it were left in the cycle:
-	# one payment of 9 Spirit XP, 12 in all.
+	# path's end, where it started, but only 8 s of it were left in the cycle:
+	# one payment of 12 Spirit XP, 15 in all.
 	_make_room(500.0)
 	_use_foundation()
 	var path_end: Vector2 = _technique.get_ball_global_position()
@@ -720,7 +742,7 @@ func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
 	_technique.advance(16.0, path_end)
 	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 5, "the hitch paid once")
-	assert_almost_eq(_spirit_xp(), 12.0, 0.0001, "the cycle's 12, not the 24 the frame covers")
+	assert_almost_eq(_spirit_xp(), 15.0, 0.0001, "the cycle's 15, not the 24 the frame covers")
 
 #-----------------------------------------------------------------------------
 # ZONES AND SCORING
@@ -956,10 +978,12 @@ func test_scaling_the_path_leaves_the_technique_s_curve_alone() -> void:
 #-----------------------------------------------------------------------------
 
 func test_ball_follows_the_eased_path() -> void:
-	_technique.start_cycle()
-	_run(CYCLE_SECONDS / 2.0, 60.0, false)
 	var follow := _node("PathFollow2D") as PathFollow2D
-	assert_almost_eq(follow.progress_ratio, 0.5, 0.001, "half way through at half the time")
+	for seconds: float in [0.5, 1.0, CYCLE_SECONDS / 2.0, CYCLE_SECONDS - 0.5]:
+		_technique.stop_cycling()
+		_technique.start_cycle()
+		_run(seconds, 60.0, false)
+		assert_almost_eq(follow.progress_ratio, CyclingRules.eased_ratio(seconds, CYCLE_SECONDS), 0.001, "the eased share %s s in" % seconds)
 	_technique.stop_cycling()
 	assert_eq(follow.progress_ratio, 0.0)
 
@@ -1252,9 +1276,9 @@ func test_the_result_keeps_each_zone_outcome() -> void:
 #-----------------------------------------------------------------------------
 
 ## The Foundational's Madra and Spirit XP a cycle nobody follows pays under an
-## unlocked Auto: 0.4 of its 30 Madra and 12 Spirit XP.
-const AUTO_MADRA_PER_CYCLE: float = 30.0 * 0.4
-const AUTO_SPIRIT_PER_CYCLE: float = 12.0 * 0.4
+## unlocked Auto: 0.4 of its 37.5 Madra and 15 Spirit XP.
+const AUTO_MADRA_PER_CYCLE: float = 37.5 * 0.4
+const AUTO_SPIRIT_PER_CYCLE: float = 15.0 * 0.4
 
 ## Turns Auto on for the fixture's technique, unlocking it first when `unlocked`.
 func _auto_on(unlocked: bool) -> void:
@@ -1276,22 +1300,11 @@ func _auto_cycle(track: bool = false) -> CycleResult:
 	assert_eq(results.size(), 1, "precondition: the cycle ended")
 	return results[0] if not results.is_empty() else CycleResult.new()
 
-func test_a_cycle_followed_to_its_end_is_followed_throughout() -> void:
+func test_a_cycle_followed_to_its_end_is_perfect() -> void:
 	_use_foundation()
 	_track_one_cycle(func() -> float: return FRAME)
-	assert_true(_technique.get_current_result().followed_throughout)
-
-func test_one_frame_off_the_ball_breaks_following_throughout() -> void:
-	_use_foundation()
-	watch_signals(_technique)
-	_technique.start_cycle()
-	_run(1.0, 60.0, true)
-	_technique.advance(FRAME, FAR)
-	while _technique.is_cycling():
-		_technique.advance(FRAME, _technique.get_ball_global_position())
-	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
-	assert_false(result.followed_throughout)
-	assert_gt(result.followed_ratio, 0.9, "precondition: almost all of it was followed")
+	assert_almost_eq(_technique.get_current_result().followed_ratio, 1.0, 0.000001)
+	assert_true(_technique.get_current_result().is_perfect())
 
 func test_unattended_auto_pays_at_the_auto_rate() -> void:
 	_use_foundation()
@@ -1302,7 +1315,7 @@ func test_unattended_auto_pays_at_the_auto_rate() -> void:
 	assert_almost_eq(result.get_stat_xp(SPIRIT), AUTO_SPIRIT_PER_CYCLE, 0.0001, "0.4 of its Spirit XP")
 	assert_almost_eq(_spirit_xp(), AUTO_SPIRIT_PER_CYCLE, 0.0001, "and Spirit took it")
 	assert_eq(result.followed_ratio, 0.0, "Auto's time is not followed time")
-	assert_false(result.followed_throughout)
+	assert_false(result.is_perfect())
 
 func test_auto_pays_nothing_unattended_before_the_unlock() -> void:
 	_use_foundation()
@@ -1317,15 +1330,15 @@ func test_following_under_auto_pays_the_full_rate() -> void:
 	_use_foundation()
 	_auto_on(true)
 	var result: CycleResult = _auto_cycle(true)
-	assert_almost_eq(result.madra_added, 30.0, 0.01)
-	assert_almost_eq(result.get_stat_xp(SPIRIT), 12.0, 0.0001)
+	assert_almost_eq(result.madra_added, 37.5, 0.01)
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 15.0, 0.0001)
 
 func test_the_session_reads_the_auto_rate() -> void:
 	_use_foundation()
 	_auto_on(true)
 	_technique.start_cycle(false)
 	_run(2.0, 60.0, false)
-	assert_almost_eq(CyclingManager.get_madra_rate(), 30.0 / 8.0 * 0.4, 0.001)
+	assert_almost_eq(CyclingManager.get_madra_rate(), 37.5 / 10.0 * 0.4, 0.001)
 
 func test_auto_at_the_spirit_cap_still_refills_madra() -> void:
 	_use_foundation()
@@ -1341,7 +1354,7 @@ func test_auto_at_the_spirit_cap_still_refills_madra() -> void:
 func test_an_auto_cycle_moves_the_ball_at_an_even_speed() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "Auto unlocked", "unlocked": true, "ratio": 0.25},
-		{"name": "Auto locked", "unlocked": false, "ratio": 0.5 - 0.5 * cos(PI * 0.25)},
+		{"name": "Auto locked", "unlocked": false, "ratio": CyclingRules.eased_ratio(CYCLE_SECONDS / 4.0, CYCLE_SECONDS)},
 	]
 	for case: Dictionary in cases:
 		PersistenceManager.save_game_data = SaveGameData.new()
@@ -1369,3 +1382,112 @@ func test_an_auto_cycle_s_seals_burst_on_their_nodes() -> void:
 		assert_lt(offset.length(), 8.0, "the even ball meets the node as it bursts")
 	assert_almost_eq(CharacterManager.get_stat_xp(MIND), 15.0, 0.0001, "seals keyed under Auto still pay Mind")
 	await _await_queued_frees()
+
+#-----------------------------------------------------------------------------
+# THE GRACE AND A PERFECT CYCLE
+#-----------------------------------------------------------------------------
+
+## How far off the ball a slipping cursor sits: past the ring.
+const SLIP: Vector2 = Vector2(80.0, 0.0)
+
+## Plays one Foundational cycle from a press at 60 FPS, the cursor on the ball
+## but `slip` seconds off it from 3 s in, and returns its result.
+func _cycle_with_a_slip(slip: float) -> CycleResult:
+	_use_foundation()
+	_technique.start_cycle()
+	_run(3.0, 60.0, true)
+	_run_off_the_ball(slip, SLIP)
+	while _technique.is_cycling():
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+	return _technique.get_current_result()
+
+## A slip the grace holds counts as followed and is paid. One past the grace
+## counts as missed from the moment the cursor left, and a cycle still needs
+## 95% of it followed to be perfect: 0.4 s of a 10 s cycle is under the 5%,
+## 0.6 s is over.
+func test_a_slip_counts_against_the_cycle_past_the_grace() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "held by the grace", "slip": 0.05, "ratio": 1.0, "perfect": true},
+		{"name": "0.3 s", "slip": 0.3, "ratio": 0.97, "perfect": true},
+		{"name": "0.4 s", "slip": 0.4, "ratio": 0.96, "perfect": true},
+		{"name": "0.6 s", "slip": 0.6, "ratio": 0.94, "perfect": false},
+	]
+	for case: Dictionary in cases:
+		CharacterManager.set_stat_level(SPIRIT, 1)
+		var result: CycleResult = _cycle_with_a_slip(case.slip)
+		assert_almost_eq(result.followed_ratio, case.ratio, 0.002, "%s: the share followed" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 15.0 * case.ratio, 0.05, "%s: Spirit paid for the time followed" % case.name)
+		assert_eq(result.is_perfect(), case.perfect, "%s: perfect" % case.name)
+
+func test_the_ring_dims_once_the_cycle_cannot_be_perfect() -> void:
+	_use_foundation()
+	var ring := _node("BallRing") as CanvasItem
+	_technique.start_cycle()
+	_run(2.0, 60.0, true)
+	assert_true(_technique.can_still_be_perfect(), "followed so far")
+	assert_eq(ring.self_modulate, Color.WHITE)
+	_run_off_the_ball(0.4, SLIP)
+	_run(0.5, 60.0, true)
+	assert_true(_technique.can_still_be_perfect(), "0.4 s missed is within the 5%")
+	assert_eq(ring.self_modulate, Color.WHITE, "the ring is bright")
+	_run_off_the_ball(0.3, SLIP)
+	_run(0.5, 60.0, true)
+	assert_false(_technique.can_still_be_perfect(), "0.7 s missed is not")
+	assert_eq(ring.self_modulate, CyclingTechnique.RING_LOST_MODULATE, "the following ring dims")
+	_technique.stop_cycling()
+	assert_eq(ring.self_modulate, Color.WHITE, "the ready ring is bright again")
+
+## Steps 60 FPS frames with the cursor on the ball until `done` returns true or
+## the cycle ends, and returns whether `done` is true.
+func _follow_until(done: Callable) -> bool:
+	while _technique.is_cycling() and not done.call():
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+	return done.call()
+
+func test_a_missed_zone_or_seal_ends_the_perfect_at_once() -> void:
+	_technique.start_cycle()
+	assert_true(_follow_until(func() -> bool: return _zone(0).get_state() == CyclingZone.State.ACTIVE), "precondition: zone 0 opened")
+	assert_true(_technique.can_still_be_perfect(), "followed, nothing missed yet")
+	assert_true(_follow_until(func() -> bool: return _zone(0).get_state() == CyclingZone.State.SPENT), "precondition: zone 0 went by unscored")
+	assert_false(_technique.can_still_be_perfect(), "a zone left unscored")
+	_use_torrential()
+	_technique.start_cycle()
+	assert_true(_follow_until(func() -> bool: return _seal(0).get_state() == SealNode.State.SHOWING), "precondition: seal 0 shows")
+	assert_true(_technique.can_still_be_perfect(), "followed, nothing missed yet")
+	assert_true(_follow_until(func() -> bool: return _seal(0).get_state() == SealNode.State.SPENT), "precondition: seal 0 fizzled")
+	assert_false(_technique.can_still_be_perfect(), "a seal that fizzled")
+	await _await_queued_frees()
+
+## The groove lights where the ball paid: a slip past the grace leaves a dark
+## gap, kept once the cycle ends, and one the grace held stays lit.
+func test_a_slip_leaves_a_dark_gap_in_the_groove() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "past the grace", "slip": 0.5, "lit": false},
+		{"name": "held by the grace", "slip": 0.05, "lit": true},
+	]
+	for case: Dictionary in cases:
+		_use_foundation()
+		var groove := _node("CyclingGroove") as CyclingGroove
+		var follow := _node("PathFollow2D") as PathFollow2D
+		_technique.start_cycle()
+		_run(2.0, 60.0, true)
+		var before: float = follow.progress
+		_run_off_the_ball(case.slip / 2.0, SLIP)
+		var during: float = follow.progress
+		_run_off_the_ball(case.slip / 2.0, SLIP)
+		_run(1.0, 60.0, true)
+		var after: float = follow.progress
+		assert_true(groove.is_lit_at(before - 4.0), "%s: lit before the slip" % case.name)
+		assert_eq(groove.is_lit_at(during), case.lit, "%s: the slip" % case.name)
+		assert_true(groove.is_lit_at(after - 4.0), "%s: lit again once followed" % case.name)
+		while _technique.is_cycling():
+			_technique.advance(FRAME, _technique.get_ball_global_position())
+		assert_eq(groove.is_lit_at(during), case.lit, "%s: the cycle's light stays until the next one" % case.name)
+
+func test_an_auto_cycle_nobody_follows_lights_its_groove() -> void:
+	_use_foundation()
+	_auto_on(true)
+	_technique.start_cycle(false)
+	_run(3.0, 60.0, false)
+	var progress: float = (_node("PathFollow2D") as PathFollow2D).progress
+	assert_true((_node("CyclingGroove") as CyclingGroove).is_lit_at(progress - 4.0), "Auto paid behind the ball")
