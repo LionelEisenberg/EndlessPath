@@ -1246,3 +1246,126 @@ func test_the_result_keeps_each_zone_outcome() -> void:
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_eq(result.zone_states, [CyclingZone.State.PERFECT, CyclingZone.State.SPENT, CyclingZone.State.SPENT, CyclingZone.State.SPENT] as Array[int])
 	assert_eq(result.seal_states, [] as Array[int], "smooth_flow has no seals")
+
+#-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+## The Foundational's Madra and Spirit XP a cycle nobody follows pays under an
+## unlocked Auto: 0.4 of its 30 Madra and 12 Spirit XP.
+const AUTO_MADRA_PER_CYCLE: float = 30.0 * 0.4
+const AUTO_SPIRIT_PER_CYCLE: float = 12.0 * 0.4
+
+## Turns Auto on for the fixture's technique, unlocking it first when `unlocked`.
+func _auto_on(unlocked: bool) -> void:
+	if unlocked:
+		CyclingManager.unlock_auto(_technique.technique_data.id)
+	_technique.auto_cycle = true
+
+## Plays one cycle from ready, with the cursor far away or on the ball when
+## `track`, and returns its result: under Auto the next cycle starts at once,
+## so the technique's current result is already the next one's.
+func _auto_cycle(track: bool = false) -> CycleResult:
+	var results: Array[CycleResult] = []
+	_technique.cycle_completed.connect(func(result: CycleResult) -> void: results.append(result))
+	_technique.start_cycle(track)
+	for _frame: int in roundi(20.0 * 60.0):
+		if not results.is_empty():
+			break
+		_technique.advance(FRAME, _technique.get_ball_global_position() if track else FAR)
+	assert_eq(results.size(), 1, "precondition: the cycle ended")
+	return results[0] if not results.is_empty() else CycleResult.new()
+
+func test_a_cycle_followed_to_its_end_is_followed_throughout() -> void:
+	_use_foundation()
+	_track_one_cycle(func() -> float: return FRAME)
+	assert_true(_technique.get_current_result().followed_throughout)
+
+func test_one_frame_off_the_ball_breaks_following_throughout() -> void:
+	_use_foundation()
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(1.0, 60.0, true)
+	_technique.advance(FRAME, FAR)
+	while _technique.is_cycling():
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
+	assert_false(result.followed_throughout)
+	assert_gt(result.followed_ratio, 0.9, "precondition: almost all of it was followed")
+
+func test_unattended_auto_pays_at_the_auto_rate() -> void:
+	_use_foundation()
+	_auto_on(true)
+	assert_true(_technique.is_auto_running())
+	var result: CycleResult = _auto_cycle()
+	assert_almost_eq(result.madra_added, AUTO_MADRA_PER_CYCLE, 0.01, "0.4 of the cycle's Madra")
+	assert_almost_eq(result.get_stat_xp(SPIRIT), AUTO_SPIRIT_PER_CYCLE, 0.0001, "0.4 of its Spirit XP")
+	assert_almost_eq(_spirit_xp(), AUTO_SPIRIT_PER_CYCLE, 0.0001, "and Spirit took it")
+	assert_eq(result.followed_ratio, 0.0, "Auto's time is not followed time")
+	assert_false(result.followed_throughout)
+
+func test_auto_pays_nothing_unattended_before_the_unlock() -> void:
+	_use_foundation()
+	_auto_on(false)
+	assert_false(_technique.is_auto_running())
+	var result: CycleResult = _auto_cycle()
+	assert_eq(result.madra_added, 0.0)
+	assert_eq(_spirit_xp(), 0.0)
+	assert_true(_technique.is_cycling(), "Auto still chains the cycles")
+
+func test_following_under_auto_pays_the_full_rate() -> void:
+	_use_foundation()
+	_auto_on(true)
+	var result: CycleResult = _auto_cycle(true)
+	assert_almost_eq(result.madra_added, 30.0, 0.01)
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 12.0, 0.0001)
+
+func test_the_session_reads_the_auto_rate() -> void:
+	_use_foundation()
+	_auto_on(true)
+	_technique.start_cycle(false)
+	_run(2.0, 60.0, false)
+	assert_almost_eq(CyclingManager.get_madra_rate(), 30.0 / 8.0 * 0.4, 0.001)
+
+func test_auto_at_the_spirit_cap_still_refills_madra() -> void:
+	_use_foundation()
+	CharacterManager.set_stat_level(SPIRIT, CultivationManager.get_stat_level_cap())
+	_auto_on(true)
+	watch_signals(_technique)
+	var result: CycleResult = _auto_cycle()
+	var multiplier: float = CharacterManager.get_total_attributes_data().get_cycling_madra_multiplier()
+	assert_almost_eq(result.madra_added, AUTO_MADRA_PER_CYCLE * multiplier, 0.01, "Spirit at its cap raises the cycle's Madra")
+	assert_true(result.is_stat_capped(SPIRIT), "the cap took Auto's Spirit XP")
+	assert_signal_not_emitted(_technique, "stat_xp_paid")
+
+func test_an_auto_cycle_moves_the_ball_at_an_even_speed() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "Auto unlocked", "unlocked": true, "ratio": 0.25},
+		{"name": "Auto locked", "unlocked": false, "ratio": 0.5 - 0.5 * cos(PI * 0.25)},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		_technique.stop_cycling()
+		_auto_on(case.unlocked)
+		_technique.start_cycle(false)
+		_run(CYCLE_SECONDS / 4.0, 60.0, false)
+		assert_almost_eq((_node("PathFollow2D") as PathFollow2D).progress_ratio, case.ratio, 0.002, case.name)
+
+func test_an_auto_cycle_s_seals_burst_on_their_nodes() -> void:
+	_use_torrential()
+	_auto_on(true)
+	var bursts: Array[Vector2] = []
+	_technique.seal_burst.connect(func(seal: SealNode, _xp: float, _taken: float) -> void:
+		bursts.append(seal.global_position - (_node("PathFollow2D") as PathFollow2D).global_position))
+	_technique.start_cycle(false)
+	for index: int in _technique.seal_nodes.size():
+		var shown: bool = _step_until(func() -> bool: return _seal(index).get_state() == SealNode.State.SHOWING)
+		assert_true(shown, "seal %d shows" % index)
+		_key_seal(index)
+	_step_until(func() -> bool: return bursts.size() == 3)
+	assert_eq(bursts.size(), 3, "every opened seal burst")
+	for offset: Vector2 in bursts:
+		assert_lt(offset.length(), 8.0, "the even ball meets the node as it bursts")
+	assert_almost_eq(CharacterManager.get_stat_xp(MIND), 15.0, 0.0001, "seals keyed under Auto still pay Mind")
+	await _await_queued_frees()

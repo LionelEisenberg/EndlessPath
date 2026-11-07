@@ -8,7 +8,7 @@ extends RefCounted
 ## three spaces apart, the icons as [img] tags the log draws). A stat the cap
 ## took XP from reads "capped" after its icon. Cycling pays no Core Density. It
 ## holds the totals and writes the line; the cycle that owns it keeps the totals
-## up to date.
+## up to date. It also knows whether the cycle was perfect (is_perfect()).
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -40,6 +40,10 @@ var perfect_count: int = 0
 
 ## The share of the cycle the cursor followed the ball, 0 to 1.
 var followed_ratio: float = 0.0
+
+## Whether the cursor followed the ball on every frame of the cycle, from its
+## first to its end: the gold ring never went out.
+var followed_throughout: bool = false
 
 ## The XP each stat took this cycle, AttributeType to float: what the stat
 ## gained, which the cap can make less than it was paid.
@@ -75,6 +79,21 @@ func get_stat_xp(stat: CharacterAttributesData.AttributeType) -> float:
 ## Returns whether the cap took XP from `stat` this cycle.
 func is_stat_capped(stat: CharacterAttributesData.AttributeType) -> bool:
 	return capped_stats.has(stat)
+
+## Returns whether the cycle was perfect, which unlocks its technique's Auto:
+## followed throughout, every zone pressed PERFECT and every seal opened. A
+## technique with neither only follows. A full pool or a capped stat does not
+## matter: it is how the cycle was played, not what it paid.
+func is_perfect() -> bool:
+	if not followed_throughout:
+		return false
+	for state: int in zone_states:
+		if state != CyclingZone.State.PERFECT:
+			return false
+	for state: int in seal_states:
+		if state != SealNode.State.OPEN:
+			return false
+	return true
 
 ## Returns the Spiritual stats the cycle paid, in the screens' order
 ## (StatDisplay.SPIRITUAL): each that took XP rounding to 1 or more, and each
