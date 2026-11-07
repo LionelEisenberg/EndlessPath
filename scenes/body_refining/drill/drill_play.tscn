@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/stone_lifting_stage.tscn" id="9_stone_stage"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/horse_stance_stage.tscn" id="10_stance_stage"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/falling_leaf_stage.tscn" id="11_leaf_stage"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/waterfall_stage.tscn" id="12_falls_stage"]
 
 [node name="DrillPlay" type="Control" unique_id=412822345]
 layout_mode = 3
@@ -33,6 +34,9 @@ layout_mode = 0
 layout_mode = 0
 
 [node name="FallingLeafStage" parent="Stages" unique_id=1161064943 instance=ExtResource("11_leaf_stage")]
+layout_mode = 0
+
+[node name="WaterfallStage" parent="Stages" unique_id=361411486 instance=ExtResource("12_falls_stage")]
 layout_mode = 0
 
 [node name="Beads" type="HBoxContainer" parent="." unique_id=944033335]

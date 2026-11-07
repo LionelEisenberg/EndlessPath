@@ -50,7 +50,6 @@ signal set_completed(result: DrillSetResult)
 const Tier = DrillRules.Tier
 const Miss = DrillRun.Miss
 const AttributeType = CharacterAttributesData.AttributeType
-const InputKind = DrillData.InputKind
 
 ## The drill's input.
 const PRESS_ACTION: StringName = &"drill_press"
@@ -254,12 +253,11 @@ func _press_point(event: InputEvent) -> Vector2:
 # THE SET
 #-----------------------------------------------------------------------------
 
-## Shows the stage of the drill's input at rest and hides the others. An input
-## with no stage of its own yet plays Stone Lifting's.
+## Shows the stage of the drill's input at rest and hides the others.
 func _show_stage() -> void:
 	_stage = null
 	if _drill != null:
-		_stage = _stages.get(_drill.input_kind, _stages.get(InputKind.HOLD_RELEASE))
+		_stage = _stages.get(_drill.input_kind)
 	for stage: DrillStage in _stages.values():
 		stage.visible = stage == _stage
 	if _stage != null:
@@ -270,7 +268,7 @@ func _show_stage() -> void:
 ## hidden, and the session running.
 func _start_set() -> void:
 	_start_usec = clock_usec.call()
-	_run = run_for.call(_drill, _start_usec) if _stages.has(_drill.input_kind) else StoneLiftingRun.new(_drill)
+	_run = run_for.call(_drill, _start_usec)
 	_result = DrillSetResult.new(_drill)
 	_set_running = true
 	for bead: LacquerStripRect in _beads:
@@ -345,12 +343,19 @@ func _unpaid_parts(health: float, stat_xp: Dictionary) -> Array:
 		parts.append_array([HEALTH_ICON, FULL_TEXT])
 	return parts
 
-## Stands each floater that shows on its spot, raised by its rise.
+## Stands each floater that shows on its spot, raised by its rise, both moved left
+## together as far as the wider one needs to stay on the play.
 func _place_floaters() -> void:
+	var width: int = 0
 	if _word_floater.visible:
-		_word_floater.position = _word_at - Vector2(0, _word_floater.get_rise())
+		width = _word_floater.get_token_width()
 	if _line_floater.visible:
-		_line_floater.position = _word_at + Vector2(0, LINE_DROP - _line_floater.get_rise())
+		width = maxi(width, _line_floater.get_token_width())
+	var x: float = minf(_word_at.x, size.x - width)
+	if _word_floater.visible:
+		_word_floater.position = Vector2(x, _word_at.y - _word_floater.get_rise())
+	if _line_floater.visible:
+		_line_floater.position = Vector2(x, _word_at.y + LINE_DROP - _line_floater.get_rise())
 
 static func _tier_color(tier: Tier) -> Color:
 	match tier:

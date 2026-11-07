@@ -72,6 +72,7 @@ func show_run(run: DrillRun, t_usec: int) -> void:
 
 ## The ember flickers.
 func tick(now_usec: int) -> void:
+	@warning_ignore("integer_division")
 	_ember.set_frame((now_usec / EMBER_FRAME_USEC) % EMBER_FRAMES)
 
 ## Over the gauge's deep end.

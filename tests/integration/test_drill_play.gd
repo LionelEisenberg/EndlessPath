@@ -145,6 +145,7 @@ func test_each_drill_shows_its_own_stage() -> void:
 		{"drill": "stone_lifting", "stage": "StoneLiftingStage"},
 		{"drill": "horse_stance", "stage": "HorseStanceStage"},
 		{"drill": "falling_leaf", "stage": "FallingLeafStage"},
+		{"drill": "waterfall_tempering", "stage": "WaterfallStage"},
 	]
 	for case: Dictionary in cases:
 		_play.setup(BodyRefiningManager.get_drill(case["drill"]))
@@ -255,6 +256,7 @@ func test_a_landed_leaf_stays_on_the_ground() -> void:
 func test_the_starting_press_starts_without_a_rep_on_the_press_drills() -> void:
 	var cases: Array[Dictionary] = [
 		{"drill": "falling_leaf", "start_aim": LEAF_START, "next_at": 1.8, "next_aim": LEAF_HALF},
+		{"drill": "waterfall_tempering", "start_aim": Vector2.ZERO, "next_at": 1.5, "next_aim": Vector2.ZERO},
 	]
 	for case: Dictionary in cases:
 		if case["drill"] == "falling_leaf":
@@ -277,6 +279,49 @@ func test_the_starting_press_starts_without_a_rep_on_the_press_drills() -> void:
 		if judged.size() == 1:
 			assert_eq(judged[0].tier, Tier.PERFECT, "%s: Perfect" % case["drill"])
 		_play.rep_judged.disconnect(note)
+
+#-----------------------------------------------------------------------------
+# WATERFALL TEMPERING
+#-----------------------------------------------------------------------------
+
+## A press as the first surge lands on the line: Perfect, which trains Body beside
+## Strength.
+func test_a_waterfall_landing_pays_body() -> void:
+	ResourceManager.set_health(50.0)
+	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_clock_to(1.5)
+	_play.handle_press_event(_press())
+	assert_eq(_bead_frames()[0], 1, "a Perfect brace")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 6.0, "Waterfall Tempering's Strength XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 3.0, "and its Body XP")
+	assert_eq(ResourceManager.get_health(), 53.0, "and its Health")
+
+## Each surge rides down from the top of the falls as its rep starts and lands on
+## the line exactly when a press is Perfect; a braced surge is gone, and one
+## nobody braced against crashes through the line.
+func test_the_surge_rides_down_to_the_line() -> void:
+	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
+	var surge: Control = _play.get_stage().get_node("%Surge") as Control
+	var middle := func() -> float: return surge.position.y + surge.size.y / 2.0
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_at(0.0)
+	assert_eq(middle.call(), WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX, "at the top as the rep starts")
+	_at(0.75)
+	assert_eq(middle.call(), WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX / 2.0, "half way down half way through its lead")
+	_at(1.5)
+	assert_eq(middle.call(), WaterfallStage.LINE_Y, "on the line as it lands")
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_at(1.5)
+	assert_false(surge.visible, "braced, it is gone")
+	_at(4.6)
+	assert_true(surge.visible, "the next surge, unbraced")
+	assert_gt(middle.call(), WaterfallStage.LINE_Y, "crashes through the line")
 
 #-----------------------------------------------------------------------------
 # A SET
