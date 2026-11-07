@@ -9,16 +9,16 @@ extends DrillRun
 ## began. A release judges the lift by how long it held the stone up: its offset
 ## from BAND_CENTRE_USEC turns into a share (share_for_offset()), and
 ## DrillRules.judge() turns the share into a tier, so a MISS below the band is
-## TOO_LOW. A lift held to the top drops the stone, a MISS (DROPPED). A lift still
-## held when its slot ends is judged there, as if let go. A slot nobody lifted in is
-## a MISS (TOO_LATE) at its end.
+## TOO_LOW. A lift held to the top drops the stone, a MISS (DROPPED).
 ##
 ## After a judgement the stone rests where it stopped for REST_HOLD_USEC (not after
 ## a drop), then sets down over SET_DOWN_USEC; a stone at rest needs no setting
-## down. The next rep lifts once its slot has begun and the stone is down: a press
-## then lifts at once, and a press made earlier and still held lifts the moment
-## both are true. The set ends once its last rep is judged and its stone is down
-## (get_end_usec()), and presses after the last rep judge nothing.
+## down. The next rep lifts on a new press, one made since the last judgement, once
+## the stone is down: a press then lifts at once, and a press made while it sets
+## down lifts the moment it is down (#143: no slot, so the stone waits for the
+## player as long as they like). A press still held from the last rep, through a
+## drop, lifts nothing. The set ends once its last rep is judged and its stone is
+## down (get_end_usec()), and presses after the last rep judge nothing.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -48,8 +48,10 @@ var _lift_start: int = -1
 ## Whether the press is down, and since when.
 var _held: bool = false
 var _held_since: int = 0
-## The last judgement, when its stone starts to set down, and when it is down.
+## The last judgement, when it came, when its stone starts to set down, and when
+## it is down.
 var _last: Judgement = null
+var _judged_at: int = 0
 var _rest_end_usec: int = 0
 var _stone_down_usec: int = 0
 
@@ -58,8 +60,8 @@ var _stone_down_usec: int = 0
 #-----------------------------------------------------------------------------
 
 ## Judges a press at `t`: what the time up to it decided first, then the press,
-## which lifts the stone if the rep may begin (or once it may, while it stays
-## held). Returns every rep judged, in order.
+## which lifts the stone once it is down (at once, or as it lands while the press
+## stays held). Returns every rep judged, in order.
 func press(t_usec: int) -> Array[Judgement]:
 	var judged: Array[Judgement] = _settle(t_usec)
 	if not _held:
@@ -77,14 +79,14 @@ func release(t_usec: int) -> Array[Judgement]:
 		judged.append(_judge_lift(t_usec))
 	return judged
 
-## Judges what the passing of time to `t` decided: drops, lifts held to their
-## slot's end and slots nobody lifted in. Returns every rep judged, in order.
+## Judges what the passing of time to `t` decided: a lift held to the top drops.
+## Returns every rep judged, in order.
 func advance(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
 
-## Plays the set as Auto up to `t`: lifts as each rep may begin (its slot begun
-## and the stone down) and lets go BAND_CENTRE_USEC later, the stone's base at the
-## band's centre. Returns every rep judged, in order.
+## Plays the set as Auto up to `t`: lifts rep k once its turn at Auto's pace has
+## come and the stone is down, and lets go BAND_CENTRE_USEC later, the stone's base
+## at the band's centre. Returns every rep judged, in order.
 func play_auto(t_usec: int) -> Array[Judgement]:
 	var judged: Array[Judgement] = []
 	while true:
@@ -128,6 +130,10 @@ func height_at(t_usec: int) -> float:
 		return _last.height
 	return _last.height * (1.0 - float(t_usec - _rest_end_usec) / SET_DOWN_USEC)
 
+## The rep in play's motion: the stone's height while it is lifted, else 0.
+func rep_progress_at(t_usec: int) -> float:
+	return height_at(t_usec) if _lift_start >= 0 else 0.0
+
 ## When the set ends: once its last rep is judged and that stone is down. -1
 ## until the last rep is judged.
 func get_end_usec() -> int:
@@ -137,38 +143,29 @@ func get_end_usec() -> int:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## Judges, in order, what the time up to `t` decided for the reps still to come:
-## the lift in progress drops at the top or is judged at its slot's end; with no
-## lift, a held press lifts once it may, and a slot that ends with no lift is
-## TOO_LATE.
+## Judges, in order, what the time up to `t` decided: the lift in progress drops
+## at the top; with no lift, a new press held lifts once the stone is down.
 func _settle(t: int) -> Array[Judgement]:
 	var judged: Array[Judgement] = []
 	while _judgements.size() < _reps:
-		var slot_end: int = (_judgements.size() + 1) * _rep_usec
 		if _lift_start >= 0:
 			var top: int = _lift_start + RISE_USEC
-			if top <= t and top <= slot_end:
-				judged.append(_judge_drop(top))
-			elif slot_end <= t:
-				judged.append(_judge_lift(slot_end))
-			else:
+			if top > t:
 				break
-		else:
-			if _held and _try_lift(t):
-				continue
-			if slot_end <= t:
-				judged.append(_judge_too_late(slot_end))
-			else:
-				break
+			judged.append(_judge_drop(top))
+		elif not (_held and _try_lift(t)):
+			break
 	return judged
 
-## Starts the held press's lift at the first moment it may begin: once the next
-## rep's slot has begun and the stone is down, and not before the press. Returns
-## true when that moment is no later than `t` and inside the slot.
+## Starts the held press's lift at the first moment it may begin: once the stone
+## is down, and not before the press. A press made before the last judgement is
+## held over from that rep and lifts nothing. Returns true when that moment is no
+## later than `t`.
 func _try_lift(t: int) -> bool:
-	var slot_start: int = _judgements.size() * _rep_usec
-	var start: int = maxi(maxi(_held_since, slot_start), _stone_down_usec)
-	if start > t or start >= slot_start + _rep_usec:
+	if _last != null and _held_since < _judged_at:
+		return false
+	var start: int = maxi(_held_since, _stone_down_usec)
+	if start > t:
 		return false
 	_lift_start = start
 	return true
@@ -184,16 +181,13 @@ func _judge_lift(at: int) -> Judgement:
 func _judge_drop(at: int) -> Judgement:
 	return _record_stone(DrillRules.Tier.MISS, Miss.DROPPED, 1.0, at, 0)
 
-## The rep's slot ended at `at` with no lift.
-func _judge_too_late(at: int) -> Judgement:
-	return _record_stone(DrillRules.Tier.MISS, Miss.TOO_LATE, 0.0, at, 0)
-
 ## Records the next rep's judgement; the stone rests `rest` there, then sets down
 ## (at once, from rest, when it stopped at 0).
 func _record_stone(tier: DrillRules.Tier, miss: Miss, height: float, at: int, rest: int) -> Judgement:
 	var judgement: Judgement = _record(tier, miss, height, at)
 	_lift_start = -1
 	_last = judgement
+	_judged_at = at
 	_rest_end_usec = at + rest
 	_stone_down_usec = _rest_end_usec + (SET_DOWN_USEC if height > 0.0 else 0)
 	return judgement
