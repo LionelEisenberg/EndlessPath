@@ -340,10 +340,11 @@ func _apply(judgements: Array[DrillRun.Judgement]) -> void:
 		if not _set_running:
 			return
 
-## The XP each stat the drill trains has taken this set so far.
+## The XP each stat the drill trains has taken this set so far. An Auto set trains
+## Strength alone: its other stat is not left unpaid, so no "capped" pops for it.
 func _stat_xp_now() -> Dictionary:
 	var xp: Dictionary = {AttributeType.STRENGTH: _result.get_stat_xp(AttributeType.STRENGTH)}
-	if _drill.has_minor_stat():
+	if _drill.has_minor_stat() and not _auto_set:
 		xp[_drill.minor_stat as AttributeType] = _result.get_stat_xp(_drill.minor_stat as AttributeType)
 	return xp
 

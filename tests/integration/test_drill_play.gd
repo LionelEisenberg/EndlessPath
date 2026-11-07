@@ -581,3 +581,19 @@ func test_turning_auto_off_drops_its_set() -> void:
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "nor counted")
 	_at(10.0)
 	assert_false(_play.is_set_running(), "no set until a press")
+
+## An Auto rep never pays the drill's other stat, so it doesn't report it: nothing
+## pops "capped" for Body, and rep_judged carries Strength alone.
+func test_an_auto_rep_does_not_report_the_other_stat_unpaid() -> void:
+	ResourceManager.set_health(20.0)
+	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
+	BodyRefiningManager.unlock_auto("waterfall_tempering")
+	_play.set_auto_play(true)
+	watch_signals(_play)
+	_frames_to(2.0)
+	assert_signal_emit_count(_play, "rep_judged", 1, "the first surge braced")
+	var params: Array = get_signal_parameters(_play, "rep_judged")
+	if params.size() == 3:
+		assert_eq((params[2] as Dictionary).keys(), [AttributeType.STRENGTH], "the XP Strength took, alone")
+	assert_eq(_floater("WordFloater").get_text(), "Auto")
+	assert_false(_floater("LineFloater").visible, "no capped line for Body")
