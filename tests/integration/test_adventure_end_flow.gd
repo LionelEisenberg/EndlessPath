@@ -161,14 +161,42 @@ func test_a_run_quit_midway_keeps_what_it_spent_and_what_is_left() -> void:
 		assert_eq(_results[0].madra_left, 50.0, "the end card is told the Madra left")
 		assert_eq(_results[0].madra_max, 100.0, "over the pool's max")
 
-func test_zero_health_counts_a_lost_adventure() -> void:
-	_set_player_health(0.0)
-	_begin_a_run_without_a_map(300.0)
-	_view.stop_adventure()
-	assert_eq(_results.size(), 1)
+func test_a_lost_fight_counts_a_lost_adventure() -> void:
+	_start_adventure(300)
+	var choice := _boss_choice(RecordingEffect.new())
+	choice.is_boss = false
+	_view.adventure_tilemap._current_combat_choice = choice
+	_view._on_start_combat(choice)
+
+	_view.combat.trigger_combat_end.emit(false, 0)  # the player falls
+
+	assert_eq(_results.size(), 1, "the lost fight ended the run once")
+	if _results.size() == 1:
+		assert_eq(_results[0].defeat_reason, "Your health reached zero")
 	var stats: PlayStatsData = _stats()
-	assert_eq(stats.adventures_lost, 1, "Health at 0 counts a loss")
+	assert_eq(stats.adventures_lost, 1, "a lost fight counts a loss")
 	assert_eq(stats.adventures_won + stats.adventures_timed_out, 0, "and no win or timeout")
+
+## A run may start at 0 Health; only a lost fight makes it a loss.
+func test_a_run_at_zero_health_ends_as_its_time_or_its_retreat_says() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "time ran out", "time_left": 0.0, "reason": "Time ran out", "timed_out": 1},
+		{"name": "left early", "time_left": 300.0, "reason": "You retreated from the adventure", "timed_out": 0},
+	]
+	_set_player_health(0.0)
+	for case: Dictionary in cases:
+		_results.clear()
+		PersistenceManager.save_game_data.stats = PlayStatsData.new()
+		_begin_a_run_without_a_map(case.time_left)
+		if case.time_left <= 0.0:
+			_view.get_run_timer().stop()
+		_view.stop_adventure()
+		assert_eq(_results.size(), 1, case.name)
+		if _results.size() == 1:
+			assert_eq(_results[0].defeat_reason, case.reason, case.name)
+		var stats: PlayStatsData = _stats()
+		assert_eq(stats.adventures_lost, 0, "%s: no loss at 0 Health" % case.name)
+		assert_eq(stats.adventures_timed_out, case.timed_out, "%s: the timeout count" % case.name)
 
 func test_stopping_with_no_run_counts_nothing() -> void:
 	# The adventure action is current while the start's zoom runs, before any run has

@@ -109,13 +109,14 @@ func _update_combat_max() -> void:
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-## Fills Health and Stamina to their maxima, and an enemy's Madra to its max.
-## The player's Health is the saved pool, so a run start fills the pool (until
-## body refining refills it at home); the player's Madra pool is never touched.
+## Fills Stamina to its max, and an enemy's Health and Madra to theirs. The
+## player's Health and Madra are the saved pools and are never touched: a run
+## starts on the Health the last one left, and at home only body refining
+## refills it.
 func initialize_current_values() -> void:
-	current_health = max_health
 	current_stamina = max_stamina
 	if not is_player:
+		current_health = max_health
 		current_madra = max_madra
 
 ## Adds each amount (negative to spend), held to [0, max]. The player's Health

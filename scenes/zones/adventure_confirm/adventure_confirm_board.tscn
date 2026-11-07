@@ -1,0 +1,152 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/adventure_confirm/adventure_confirm_board.gd" id="1_board"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://betjmkgl3dodf" path="res://assets/styleboxes/lacquer/trib_board9.tres" id="3_board"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="4_wrap_pad"]
+[ext_resource type="PackedScene" path="res://scenes/zones/zone_action_button/presenters/forage_yield.tscn" id="5_pool"]
+[ext_resource type="Texture2D" uid="uid://b3k8fa8wbun8t" path="res://assets/ui/lacquer/lacquer_about_ai.png" id="6_button"]
+[ext_resource type="Texture2D" uid="uid://bol0dgd52c2ql" path="res://assets/ui/lacquer/lacquer_about_open_ai.png" id="7_button_pressed"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="8_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="9_frame_hover"]
+
+[node name="AdventureConfirmBoard" type="Control" unique_id=1450297310]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_board")
+
+[node name="ClickAway" type="Control" parent="." unique_id=1920465871]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Board" type="PanelContainer" parent="." unique_id=470195734]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 722.0
+offset_right = 1202.0
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("3_board")
+
+[node name="Margin" type="MarginContainer" parent="Board" unique_id=1185224016]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="VBox" type="VBoxContainer" parent="Board/Margin" unique_id=1648832154]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Board/Margin/VBox" unique_id=1015837062]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPanelTitle"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "Head out?"
+autowrap_mode = 3
+
+[node name="Lines" type="VBoxContainer" parent="Board/Margin/VBox" unique_id=744196183]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Pools" type="HFlowContainer" parent="Board/Margin/VBox/Lines" unique_id=1395217020]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 0
+
+[node name="HealthPool" parent="Board/Margin/VBox/Lines/Pools" unique_id=1277016484 instance=ExtResource("5_pool")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MadraPool" parent="Board/Margin/VBox/Lines/Pools" unique_id=2051238722 instance=ExtResource("5_pool")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Advice" type="Label" parent="Board/Margin/VBox/Lines" unique_id=1863451909]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+autowrap_mode = 3
+
+[node name="ButtonRow" type="HBoxContainer" parent="Board/Margin/VBox" unique_id=1530372921]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="GoButton" type="TextureButton" parent="Board/Margin/VBox/ButtonRow" unique_id=1785229462]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("6_button")
+texture_pressed = ExtResource("7_button_pressed")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="GoLabel" type="Label" parent="Board/Margin/VBox/ButtonRow/GoButton" unique_id=1137046512]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 101.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "Head out"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GoHover" parent="Board/Margin/VBox/ButtonRow/GoButton" unique_id=1606457011 instance=ExtResource("8_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("9_frame_hover")
+
+[node name="StayButton" type="TextureButton" parent="Board/Margin/VBox/ButtonRow" unique_id=1347805573]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("6_button")
+texture_pressed = ExtResource("7_button_pressed")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="StayLabel" type="Label" parent="Board/Margin/VBox/ButtonRow/StayButton" unique_id=1925370336]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 101.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "Not yet"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StayHover" parent="Board/Margin/VBox/ButtonRow/StayButton" unique_id=1095818822 instance=ExtResource("8_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("9_frame_hover")

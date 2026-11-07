@@ -20,6 +20,9 @@ signal stop_cycling()
 
 ## adventure signals
 signal adventure_start_requested(action_data: AdventureActionData)
+## The adventure card was clicked while Health or Madra is below half: the
+## "Head out?" board asks, and starts the run through select_action().
+signal adventure_confirm_requested(action_data: AdventureActionData)
 signal start_adventure(action_data: AdventureActionData)
 signal stop_adventure()
 
@@ -346,6 +349,12 @@ func _on_forage_timer_finished(action_data: ForageActionData) -> void:
 func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
 	adventure_start_requested.emit(action_data)
+
+## Asks the player to confirm a run started while Health or Madra is below
+## half: emits adventure_confirm_requested and starts nothing. The "Head out?"
+## board (AdventureConfirmState) answers it.
+func ask_to_start_adventure(action_data: AdventureActionData) -> void:
+	adventure_confirm_requested.emit(action_data)
 
 ## Confirm adventure start once the zone view's zoom ends. This is the
 ## real start, so it is the one that counts in the save's play stats: the
