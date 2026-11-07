@@ -18,6 +18,14 @@ extends Control
 ## ledger and the end card show. When a reward deepens the core (a kill's Core
 ## Density), its beads burst out of the hex the player stands on and home into the
 ## cabinet's Core row, over every board, in the effects layer.
+## A fight has a way in and a way out (#138), which FightTransition plays: from the
+## pick, the map pushes in and dissolves into the fight while both fighters arrive,
+## and the fight starts once they land; from the hit that decides it, the kill is
+## paid at once, the loser falls, and the fight dissolves back into the map. The
+## run clock holds through both edges. The boards' news of a fight's end (the
+## tile's line, the Run ledger, the beads) waits for the map to be whole, and so
+## does the end of a run that a lost fight or the boss's win ends. A run that ends
+## any other way cuts a fight under way at once.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -66,13 +74,15 @@ const _BEAD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pe
 @onready var _expedition_page: ExpeditionPage = adventure_chest.get_expedition_page()
 @onready var _run_timer: Timer = %RunTimer
 @onready var _effects_layer: Control = %EffectsLayer
+@onready var _fight_transition: FightTransition = %FightTransition
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 var current_action_data: AdventureActionData = null
 
-var is_in_combat: bool = false # Whether the player is currently in combat
+## Whether a fight is under way, from its pick until the map is whole again.
+var is_in_combat: bool = false
 
 # Adventure result tracking
 var _combats_fought: int = 0
@@ -85,6 +95,19 @@ var _pending_victory: bool = false
 ## Set when the run's fight is lost. Only a lost fight marks a lost run: a run may
 ## start at 0 Health, and one that times out or is left early then is no loss.
 var _fight_lost: bool = false
+
+# The boards' news a fight's way out holds until the map is whole: the tile's
+# resolved line, the run's figures, and each burst of beads, whose Core Density
+# the cabinet already holds back.
+var _news_held: bool = false
+var _has_held_resolved: bool = false
+var _held_resolved_coord: Vector3i = Vector3i.ZERO
+var _held_resolved_summary: String = ""
+var _held_stats: bool = false
+var _held_bursts: Array[float] = []
+## Whether the deciding hit came while the play stats were paused (a dev
+## force-win), so the run's end after the close counts as no play either.
+var _close_unrecorded: bool = false
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -115,6 +138,9 @@ func _ready() -> void:
 	
 	run_stats_changed.connect(_on_run_stats_changed)
 	_run_timer.timeout.connect(_on_adventure_timer_timeout)
+	_fight_transition.landed.connect(_on_fight_landed)
+	_fight_transition.fight_hidden.connect(_on_fight_hidden)
+	_fight_transition.map_whole.connect(_on_map_whole)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -154,14 +180,15 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	
 	# Start the run's clock
 	var time_limit: float = action_data.time_limit_seconds if action_data.time_limit_seconds > 0 else 10
+	_run_timer.paused = false
 	_run_timer.start(time_limit)
 	adventure_chest.get_run_clock().bind_timer(_run_timer)
 	
 	adventure_tilemap.start_adventure(action_data)
 	
 	# Connect to the combat node
-	if not combat.trigger_combat_end.is_connected(_on_stop_combat):
-		combat.trigger_combat_end.connect(_on_stop_combat)
+	if not combat.trigger_combat_end.is_connected(_on_combat_decided):
+		combat.trigger_combat_end.connect(_on_combat_decided)
 
 	# Ensure we're showing the tilemap view
 	tilemap_view.visible = true
@@ -209,15 +236,19 @@ func stop_adventure() -> void:
 	if InventoryManager and InventoryManager.item_awarded.is_connected(_on_item_awarded):
 		InventoryManager.item_awarded.disconnect(_on_item_awarded)
 
-	# The run is over before the map clears: its teardown, and a fight it cuts
-	# short, change no figure of the run's (the ledger keeps the run's last ones)
-	# and end no run again.
+	# A fight under way goes at once, edges and all, while the run is still on and
+	# its map still there: the boards show what a kill made before won, beside the
+	# end card.
+	if is_in_combat:
+		_cut_fight()
+
+	# The run is over before the map clears: its teardown changes no figure of the
+	# run's (the ledger keeps the run's last ones) and ends no run again.
 	current_action_data = null
 	adventure_tilemap.stop_adventure()
 	_run_timer.stop()
+	_run_timer.paused = false
 	_update_stamina_regen(0.0)
-	if is_in_combat:
-		_on_stop_combat()
 	_release_fight_boards()
 
 	_pending_victory = false
@@ -235,17 +266,15 @@ static func bead_count_for(xp: float) -> int:
 func get_run_timer() -> Timer:
 	return _run_timer
 
-## DEV-only: immediately resolve the current combat as a win, by taking all of the
+## DEV-only: immediately decide the current combat as a win, by taking all of the
 ## enemy's Health, so the fight ends as in play: AdventureCombat works out the
-## fight's gold, fires q_first_steps_enemy_defeated and reports the win, then the
-## map pays the gold, and the view and the map end the fight.
-## No-op if not currently in combat, or if the enemy is gone or already down: the
-## Health setter reports 0 again, which would pay the fight's gold a second time.
+## fight's gold, fires q_first_steps_enemy_defeated and reports the win, the map
+## pays, and the fight's way out plays.
+## No-op unless the fight is live (is_fight_live(): not on its way in or out), or if
+## the enemy is gone or already down.
 ## Called by DevCommands.force_win_fight(); do not call from gameplay code.
 func force_win_combat() -> void:
-	if not is_in_combat:
-		return
-	if combat == null:
+	if not is_fight_live():
 		return
 	var enemy := combat.enemy_combatant
 	if not is_instance_valid(enemy) or enemy.vitals_manager.current_health <= 0.0:
@@ -266,6 +295,18 @@ func force_end_adventure(victory: bool) -> void:
 func is_adventure_running() -> bool:
 	return current_action_data != null
 
+## Whether a fight is on and live: both fighters have landed and the hit that
+## decides it has not.
+func is_fight_live() -> bool:
+	return is_in_combat and combat.is_live()
+
+## Plays the rest of the fight's edge under way at once, every beat in order: the
+## way in ends with the fight live, the way out with the map whole (and the run
+## ended, if the fight ended it). Gameplay never calls it; the tests step over the
+## edges' timing with it.
+func finish_fight_transition() -> void:
+	_fight_transition.finish_now()
+
 ## DEV-only: toggle a visual fog-of-war override that reveals every tile
 ## on the current adventure map. Purely visual — progression state is
 ## unaffected. Used by the dev panel; do not call from gameplay code.
@@ -278,46 +319,49 @@ func set_show_whole_map(enabled: bool) -> void:
 # PRIVATE METHODS - View Management
 #-----------------------------------------------------------------------------
 
-## Transition from tilemap view to combat view
+## The player picked a fight: its way in plays. The fight is set up held, the run
+## clock stops, and the fight starts once both fighters have landed
+## (_on_fight_landed()). A pick while a fight is under way does nothing.
 func _on_start_combat(choice: CombatChoice) -> void:
 	if choice == null:
 		Log.error("AdventureView: Cannot start combat with null choice")
 		return
-	
+	if is_in_combat:
+		return
 
-	# Start the combat encounter
-	if combat:
-		combat.initialize_combat(
-			choice,
-			current_action_data # Pass adventure action data for gold multiplier
-		)
-		combat.start()
-		combat.play_enter()
-		combat.begin()
-		# The dock takes the player's techniques and consumables, and the cabinet
-		# their buffs
-		if combat.player_combatant:
-			technique_dock.bind(combat.player_combatant.ability_manager, PlayerManager.vitals_manager, combat.player_combatant.consumable_manager)
-			vitals_plate.bind_buffs(combat.player_combatant.buff_manager)
-			if not technique_dock.ability_selected.is_connected(combat.on_player_ability_selected):
-				technique_dock.ability_selected.connect(combat.on_player_ability_selected)
-			if not technique_dock.consumable_selected.is_connected(combat.on_player_consumable_selected):
-				technique_dock.consumable_selected.connect(combat.on_player_consumable_selected)
-		
+	# The adventure's action carries the gold multiplier.
+	combat.initialize_combat(choice, current_action_data)
+	combat.start()
 	is_in_combat = true
-	
+	_run_timer.paused = true
+
 	Log.info("AdventureView: Transitioning to combat view - %s" % choice.label)
 	if LogManager:
 		LogManager.log_message("[color=orange]Encounter: %s[/color]" % choice.label)
-		
-	tilemap_view.visible = false
-	combat_view.visible = true
-	_fade_in_combat_view()
 
-## Transition from combat view back to tilemap view
-func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
+	_fight_transition.play_way_in()
+
+## Both fighters stand on their spots: the fight starts, the dock takes the
+## player's techniques and consumables and the cabinet their buffs, and the run
+## clock runs again.
+func _on_fight_landed() -> void:
+	combat.begin()
+	_bind_fight_boards()
+	_run_timer.paused = false
+
+## The hit that decides the fight: its way out plays. The kill is paid now, as the
+## result goes to the map (AdventureTilemap.handle_combat_result()), while the
+## boards' news of it waits for the map to be whole. The dock and the cabinet let
+## go, the run clock stops and time slows for the hit-stop. A fight's end counts
+## once: a report while the way out plays, or with no fight on, does nothing. A
+## report on the way in (only the tests send one) plays the way in out first.
+func _on_combat_decided(successful: bool = false, gold_earned: int = 0) -> void:
+	if not is_in_combat or _fight_transition.is_closing():
+		return
+	if _fight_transition.is_playing():
+		_fight_transition.finish_now()
 	Log.info("AdventureView: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
-	
+
 	if LogManager:
 		if successful:
 			LogManager.log_message("[color=green]Combat Victory![/color]")
@@ -328,31 +372,66 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	_combats_fought += 1
 	if successful:
 		_gold_earned += gold_earned
+
+	_release_fight_boards()
+	_run_timer.paused = true
+	_news_held = true
+	_close_unrecorded = PersistenceManager.save_game_data.stats.recording_paused
+	# The map pays the kill and resolves its tile; the boss's win says so.
+	adventure_tilemap.handle_combat_result(successful, gold_earned)
+	if not successful:
+		_fight_lost = true
 	_announce_run_stats()
 
-	# The dock and the cabinet let go of the fight
-	_release_fight_boards()
-	
-	tilemap_view.visible = true
-	combat_view.visible = false
+	GameSpeed.hit_stop(get_tree())
+	_fight_transition.play_way_out(successful)
 
-	# Mark the fight over before its result is handled: a boss win ends the
-	# whole adventure synchronously inside handle_combat_result(), and
-	# stop_adventure() must not see a fight still running and end it again as
-	# a defeat.
-	is_in_combat = false
-
-	# Notify the tilemap that combat has ended (tilemap handles reward processing)
+## The fight's view has gone: its fighters go with it.
+func _on_fight_hidden() -> void:
 	combat.stop()
-	adventure_tilemap.handle_combat_result(successful, gold_earned)
 
-	if current_action_data:
-		if not successful:
-			_fight_lost = true
-			ActionManager.stop_action(successful)
-		elif _pending_victory:
-			# The boss's win ends the run as a victory.
-			ActionManager.stop_action(true)
+## The map is back and whole: the fight is over. The boards show what it won, the
+## run clock runs again, and a lost fight or the boss's win ends the run, under the
+## play-stat pause its deciding hit came under.
+func _on_map_whole() -> void:
+	is_in_combat = false
+	_release_board_news()
+	_run_timer.paused = false
+	if current_action_data == null or not (_fight_lost or _pending_victory):
+		return
+	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
+	var was_paused: bool = stats.recording_paused
+	stats.recording_paused = was_paused or _close_unrecorded
+	ActionManager.stop_action(_pending_victory)
+	stats.recording_paused = was_paused
+
+## Drops the fight under way at once, as a run's end cuts it: the edge under way
+## goes, the map shows outright, the fighters go, the dock and the cabinet let go,
+## and the boards show what a kill made before won. A fight not yet decided goes
+## to the map as a loss, as it always has, which runs its choice's failure
+## effects. It ends no run.
+func _cut_fight() -> void:
+	var decided: bool = _fight_transition.is_closing()
+	_fight_transition.cut()
+	_release_fight_boards()
+	combat.stop()
+	is_in_combat = false
+	if not decided:
+		adventure_tilemap.handle_combat_result(false, 0)
+	_release_board_news()
+
+## The dock takes the player's techniques and consumables, and the cabinet their
+## buffs.
+func _bind_fight_boards() -> void:
+	var player: CombatantNode = combat.player_combatant
+	if player == null:
+		return
+	technique_dock.bind(player.ability_manager, PlayerManager.vitals_manager, player.consumable_manager)
+	vitals_plate.bind_buffs(player.buff_manager)
+	if not technique_dock.ability_selected.is_connected(combat.on_player_ability_selected):
+		technique_dock.ability_selected.connect(combat.on_player_ability_selected)
+	if not technique_dock.consumable_selected.is_connected(combat.on_player_consumable_selected):
+		technique_dock.consumable_selected.connect(combat.on_player_consumable_selected)
 
 ## The dock and the cabinet let go of the fight: no press reaches it, the dock
 ## previews the loadout and the hotbar again (its cast tray hidden) and the buff
@@ -365,9 +444,21 @@ func _release_fight_boards() -> void:
 	technique_dock.reset()
 	vitals_plate.unbind_buffs()
 
-func _fade_in_combat_view() -> void:
-	combat_view.modulate.a = 0.0
-	create_tween().tween_property(combat_view, "modulate:a", 1.0, 0.25)
+## Shows the news a fight's way out held since its deciding hit, if any: the tile's
+## line, each burst of beads out of the player's hex, and the run's figures.
+func _release_board_news() -> void:
+	if not _news_held:
+		return
+	_news_held = false
+	if _has_held_resolved:
+		_has_held_resolved = false
+		_on_encounter_resolved(_held_resolved_coord, _held_resolved_summary)
+	for xp: float in _held_bursts:
+		_burst_beads(xp, true)
+	_held_bursts.clear()
+	if _held_stats:
+		_held_stats = false
+		_announce_run_stats()
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - The map's news for the boards
@@ -377,8 +468,14 @@ func _fade_in_combat_view() -> void:
 func _on_tile_entered(_coord: Vector3i, encounter: AdventureEncounter, _first_visit: bool, summary: String) -> void:
 	_expedition_page.show_tile(encounter, summary, current_action_data)
 
-## The chest shows the tile resolved, when it is the one the player stands on.
+## The chest shows the tile resolved, when it is the one the player stands on; a
+## fight's tile, once the map is whole again.
 func _on_encounter_resolved(coord: Vector3i, summary: String) -> void:
+	if _news_held:
+		_has_held_resolved = true
+		_held_resolved_coord = coord
+		_held_resolved_summary = summary
+		return
 	if coord == adventure_tilemap.get_current_tile():
 		_expedition_page.show_resolved(summary)
 
@@ -397,11 +494,21 @@ func _on_map_changed() -> void:
 	_announce_run_stats()
 
 ## A reward deepened the core by `xp`: its beads burst out of the hex the player
-## stands on (the fight's, as the fight closes) and home into the cabinet's Core
-## orb, each carrying an even share, which the cabinet holds back until the bead
-## lands. They fly on after a boss's win ends the run: the cabinet stays in sight
-## beside the end card.
+## stands on and home into the cabinet's Core orb. A fight's kill bursts them once
+## the map is whole again; the cabinet holds its Core Density back from the hit, so
+## its Core row stands still until they land. They fly on after a boss's win ends
+## the run: the cabinet stays in sight beside the end card.
 func _on_core_density_earned(xp: float) -> void:
+	if _news_held:
+		vitals_plate.hold_core_xp(xp)
+		_held_bursts.append(xp)
+		return
+	_burst_beads(xp, false)
+
+## Bursts `xp`'s beads out of the player's hex, each carrying an even share, which
+## the cabinet counts in as the bead lands. `held`: the cabinet already holds the
+## XP back; otherwise each bead's share is held as it sets off.
+func _burst_beads(xp: float, held: bool) -> void:
 	var flights: Array[PelletFlight] = PelletFlight.burst(
 		adventure_tilemap.get_tile_screen_position(adventure_tilemap.get_current_tile()),
 		vitals_plate.get_core_orb_global_position(),
@@ -415,7 +522,8 @@ func _on_core_density_earned(xp: float) -> void:
 		_effects_layer.add_child(bead)
 		bead.set_ramp(LacquerPellet.Ramp.BRASS)
 		bead.fly(flight)
-		vitals_plate.hold_core_xp(share)
+		if not held:
+			vitals_plate.hold_core_xp(share)
 		bead.delivered.connect(vitals_plate.release_core_xp.bind(share))
 
 ## Takes every bead in flight out of the effects layer; each delivers its share to
@@ -460,10 +568,15 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	result.loot_items = _loot_items.duplicate()
 	return result
 
-## Tells the boards the run's figures changed, while a run is on.
+## Tells the boards the run's figures changed, while a run is on: during a fight's
+## way out, once the map is whole again.
 func _announce_run_stats() -> void:
-	if current_action_data != null:
-		run_stats_changed.emit()
+	if current_action_data == null:
+		return
+	if _news_held:
+		_held_stats = true
+		return
+	run_stats_changed.emit()
 
 ## The chest's Run ledger shows the run so far: the fights fought (a lost one
 ## ends the run) of the map's fights, gold earned, tiles explored of the map's

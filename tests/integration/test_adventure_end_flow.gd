@@ -73,6 +73,7 @@ func test_boss_win_ends_the_adventure_once_as_a_victory() -> void:
 	_view._on_start_combat(boss_choice)
 
 	_view.combat.trigger_combat_end.emit(true, 0)  # the boss falls
+	_view.finish_fight_transition()  # its close plays
 
 	assert_eq(_results.size(), 1, "the adventure ends exactly once")
 	if _results.size() == 1:
@@ -84,17 +85,17 @@ func test_boss_win_ends_the_adventure_once_as_a_victory() -> void:
 	assert_eq(stats.fights_won, 1, "and the boss fight as a won fight")
 	assert_eq(stats.adventures_lost + stats.adventures_timed_out, 0, "and no loss or timeout")
 
-	# AdventureCombat reports the win again while its enemy takes another hit at 0
-	# Health, before the enemy is freed. The run is over: the boss's win counts,
-	# resolves and ends nothing a second time, and marks nothing on the cleared map.
+	# The win reported again once the run is over counts, resolves and ends nothing
+	# a second time, and marks nothing on the cleared map.
 	_view.combat.trigger_combat_end.emit(true, 0)
 	assert_eq(_results.size(), 1, "the adventure still ended once")
 	assert_eq(stats.fights_won, 1, "the boss fight is counted once")
 	assert_eq(stats.adventures_won, 1, "and so is the win")
 	assert_eq(_view.adventure_tilemap.get_visited_tile_count(), 0, "the repeat marked nothing on the cleared map")
 
-## The boss's win ends the run in the same frame. Its Core Density is already in
-## the save when the run ends, and a repeat of the win pays nothing more.
+## The boss pays at its deciding hit; its win ends the run once its close has
+## played. Its Core Density is already in the save when the run ends, and a repeat
+## of the win pays nothing more.
 func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
 	_start_adventure(300)
 	var xp_when_the_run_ended: Array[float] = []
@@ -111,6 +112,7 @@ func test_the_boss_pays_its_core_density_before_the_run_ends() -> void:
 
 	_view.combat.trigger_combat_end.emit(true, 0)
 	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.finish_fight_transition()
 
 	assert_eq(xp_when_the_run_ended.size(), 1, "the run ended once")
 	if xp_when_the_run_ended.size() == 1:
@@ -143,8 +145,8 @@ func test_the_result_carries_the_runs_core_density() -> void:
 		assert_gt(_results[0].core_density_level_after, 3, "the kill bought levels")
 
 ## The chest stays in sight beside the end card, and its Run ledger counts the
-## boss's Core Density: the boss's win announces the run's figures before it ends
-## the run.
+## boss's Core Density: the boss's close shows the run's figures before its win
+## ends the run.
 func test_the_ledger_counts_the_boss() -> void:
 	_start_adventure(300)
 	var boss_choice := _boss_choice(RecordingEffect.new())
@@ -155,6 +157,7 @@ func test_the_ledger_counts_the_boss() -> void:
 	_view._on_start_combat(boss_choice)
 
 	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.finish_fight_transition()
 
 	assert_eq(_results.size(), 1, "precondition: the boss's win ended the run")
 	var core_value := _view.adventure_chest.get_expedition_page().get_node("%CoreValue") as Label
@@ -198,6 +201,7 @@ func test_a_lost_fight_counts_a_lost_adventure() -> void:
 	_view._on_start_combat(choice)
 
 	_view.combat.trigger_combat_end.emit(false, 0)  # the player falls
+	_view.finish_fight_transition()  # the close plays
 
 	assert_eq(_results.size(), 1, "the lost fight ended the run once")
 	if _results.size() == 1:
@@ -245,6 +249,7 @@ func test_every_way_a_run_ends_starts_nothing() -> void:
 				_view.adventure_tilemap._current_combat_choice = choice
 				_view._on_start_combat(choice)
 				_view.combat.trigger_combat_end.emit(way == "boss win", 0)
+				_view.finish_fight_transition()
 			"time ran out":
 				await wait_for_signal(_view.adventure_completed, 3.0)
 			"dev exit as victory":

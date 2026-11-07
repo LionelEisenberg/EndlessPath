@@ -315,10 +315,11 @@ static func refill_vitals() -> String:
 	return _succeed("Refilled Health and Stamina")
 
 ## Wins the fight that is on by killing its enemy through its Health, so the fight
-## ends as in play: it pays its gold, fires q_first_steps_enemy_defeated and resolves
-## its tile. Refuses without a view or a fight.
+## ends as in play: it pays its gold, fires q_first_steps_enemy_defeated, resolves
+## its tile and plays its way out. Refuses without a view or a live fight: on a
+## fight's way in or out there is no fight to win.
 static func force_win_fight(view: AdventureView) -> String:
-	if not is_instance_valid(view) or not view.is_in_combat:
+	if not is_instance_valid(view) or not view.is_fight_live():
 		return "No fight is on"
 	_while_paused(view.force_win_combat)
 	return _succeed("Won the fight")

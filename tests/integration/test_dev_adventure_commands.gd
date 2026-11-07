@@ -113,15 +113,16 @@ func _start_run() -> void:
 	ActionManager.confirm_adventure_start(_action)
 
 ## Starts a run and puts a fight under way, as picking its combat card does: the
-## tilemap remembers the choice and the view starts the fight. The fight is the
-## fixture map's, against one Amorphous Spirit, unless a choice is given. Returns the
-## choice.
+## tilemap remembers the choice and the view starts the fight, whose way in plays
+## out at once, so the fight is live. The fight is the fixture map's, against one
+## Amorphous Spirit, unless a choice is given. Returns the choice.
 func _start_a_fight(fight: CombatChoice = null) -> CombatChoice:
 	_start_run()
 	if fight == null:
 		fight = AdventureMapFixture.fight_choice(_map)
 	_view.adventure_tilemap._current_combat_choice = fight
 	_view._on_start_combat(fight)
+	_view.finish_fight_transition()
 	return fight
 
 ## The [DEV] lines the player's log got since watch_signals(LogManager).
@@ -151,7 +152,7 @@ func test_force_win_pays_gold_and_fires_the_event() -> void:
 	assert_eq(ResourceManager.get_gold(), gold_before + reward, "the fight paid its gold")
 	assert_signal_emit_count(_view.combat, "trigger_combat_end", 1)
 	assert_signal_emitted_with_parameters(_view.combat, "trigger_combat_end", [true, reward])
-	assert_false(_view.is_in_combat, "and the fight is over")
+	assert_false(_view.is_fight_live(), "and the fight is decided")
 
 func test_force_win_twice_pays_once() -> void:
 	var fight: CombatChoice = _start_a_fight()
@@ -165,26 +166,22 @@ func test_force_win_twice_pays_once() -> void:
 	assert_eq(ResourceManager.get_gold(), gold_before + reward, "the gold was paid once")
 	assert_signal_emit_count(_view.combat, "trigger_combat_end", 1)
 
-## A press on an enemy that is already down pays nothing: the Health setter reports
-## 0 again, and AdventureCombat would pay the fight's gold a second time. The view
-## drops the fight at once, so this test tells it the fight is still on: the one way
-## to reach the guards on the enemy itself.
-func test_force_win_ignores_an_enemy_that_is_already_down() -> void:
+## A force-win on a fight already decided pays nothing more: while its close plays
+## the fight is no longer live, and once the close is over its enemy is gone, and a
+## press must not reach into it.
+func test_force_win_ignores_a_decided_fight() -> void:
 	_start_a_fight()
 	assert_eq(DevCommands.force_win_fight(_view), "")
 	var gold_won: float = ResourceManager.get_gold()
 	watch_signals(_view.combat)
 
-	_view.is_in_combat = true
 	_view.force_win_combat()
-	assert_signal_not_emitted(_view.combat, "trigger_combat_end")
-	assert_eq(ResourceManager.get_gold(), gold_won, "the fallen enemy paid nothing more")
-
-	# The enemy is freed once the frame ends, and a press must not reach into it.
+	assert_signal_not_emitted(_view.combat, "trigger_combat_end", "in the close")
+	_view.finish_fight_transition()
 	await get_tree().process_frame
 	_view.force_win_combat()
-	assert_signal_not_emitted(_view.combat, "trigger_combat_end")
-	_view.is_in_combat = false
+	assert_signal_not_emitted(_view.combat, "trigger_combat_end", "once the enemy is gone")
+	assert_eq(ResourceManager.get_gold(), gold_won, "the fallen enemy paid nothing more")
 
 func test_dev_force_win_is_not_play() -> void:
 	_start_a_fight()
@@ -202,8 +199,9 @@ func test_dev_force_win_is_not_play() -> void:
 	assert_false(stats.event_first_times.has(ENEMY_DEFEATED_EVENT), "nor the event's first time recorded")
 	assert_false(stats.recording_paused, "and recording is on again")
 
-## The boss's fall ends the whole run inside the one command: the fight, the win and
-## the gold come from the real death path, and none of them counts as play.
+## The boss's fall ends the whole run once its close has played: the fight, the win
+## and the gold come from the real death path, and none of them counts as play, the
+## run's end after the close included.
 func test_force_win_of_the_boss_wins_the_adventure() -> void:
 	var boss: CombatChoice = _start_a_fight(_map[AdventureMapFixture.BOSS].choices[0] as CombatChoice)
 	var reward: int = AdventureCombat.gold_reward_for(boss, _action)
@@ -211,6 +209,8 @@ func test_force_win_of_the_boss_wins_the_adventure() -> void:
 	var gold_before: float = ResourceManager.get_gold()
 
 	assert_eq(DevCommands.force_win_fight(_view), "")
+	assert_true(_view.is_adventure_running(), "the boss's close plays first")
+	_view.finish_fight_transition()
 
 	assert_false(_view.is_adventure_running(), "the boss's fall ended the adventure")
 	assert_eq(_results.size(), 1, "once")

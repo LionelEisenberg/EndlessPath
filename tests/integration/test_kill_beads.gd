@@ -64,11 +64,13 @@ func _fight_paying(xp: float, is_boss: bool = false) -> CombatChoice:
 	choice.success_effects.append(award)
 	return choice
 
-## Picks the fight, as the chest's drawer does, and wins it.
+## Picks the fight, as the chest's drawer does, wins it, and plays its way out to
+## the map, where the beads leave the hex (#138).
 func _win(choice: CombatChoice) -> void:
 	_view.adventure_tilemap._current_combat_choice = choice
 	_view._on_start_combat(choice)
 	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.finish_fight_transition()
 
 ## The beads in flight.
 func _beads() -> Array[LacquerPellet]:
@@ -107,8 +109,7 @@ func test_bead_count_follows_the_xp() -> void:
 	for case: Dictionary in cases:
 		assert_eq(AdventureView.bead_count_for(case.xp), case.beads, "%s XP" % case.xp)
 
-## AdventureCombat reports a win again on each hit at 0 Health: the fight sends
-## one burst.
+## A win reported again sends no second burst.
 func test_a_won_fight_sends_one_burst() -> void:
 	_start_adventure()
 

@@ -613,6 +613,8 @@ func test_fight_binds_the_dock_and_buffs() -> void:
 	await _walk_to(FIGHT)
 
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	# The dock and the cabinet bind once both fighters have landed (#138).
+	_view.finish_fight_transition()
 
 	var player: CombatantNode = _view.combat.player_combatant
 	assert_not_null(player, "precondition: the fight started")
@@ -643,6 +645,7 @@ func test_a_key_uses_a_consumable_in_a_real_fight() -> void:
 	await _walk_to(FIGHT)
 
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_view.finish_fight_transition()
 
 	var player: CombatantNode = _view.combat.player_combatant
 	assert_not_null(player, "precondition: the fight started")
@@ -671,6 +674,7 @@ func test_a_fight_ending_mid_cooldown_lets_the_row_go() -> void:
 	_start_run()
 	await _walk_to(FIGHT)
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_view.finish_fight_transition()
 	var player: CombatantNode = _view.combat.player_combatant
 	assert_not_null(player, "precondition: the fight started")
 	if player == null:
@@ -679,6 +683,7 @@ func test_a_fight_ending_mid_cooldown_lets_the_row_go() -> void:
 	assert_true(player.consumable_manager.use_consumable_instance(instance), "precondition: used, now recharging")
 
 	_view.combat.trigger_combat_end.emit(true, 15)
+	_view.finish_fight_transition()
 	await wait_process_frames(3)
 
 	var socket: ConsumableSlot = _view.technique_dock.get_consumable_slot(0)
@@ -695,9 +700,11 @@ func test_run_stats_follow_the_run() -> void:
 	await _walk_to(FIGHT)
 	assert_eq(_page_text("ExploredValue"), "2 / %d" % tiles_total, "every new tile counts")
 	tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_view.finish_fight_transition()
 	watch_signals(_view)
 
 	_view.combat.trigger_combat_end.emit(true, 15)
+	_view.finish_fight_transition()
 
 	assert_signal_emitted(_view, "run_stats_changed", "a fight's end changes the run's figures")
 	assert_eq(_page_text("FightsValue"), "1 / %d" % fights_total, "the won fight counts")
@@ -710,7 +717,7 @@ func test_run_stats_follow_the_run() -> void:
 	assert_true(first_loot.visible, "an item the run awards shows in the ledger")
 	assert_eq(first_loot.texture, CRUDE_SCALE.icon)
 
-## The boss win ends the run inside the fight's end, with no redraw of the map
+## The boss win ends the run at the end of its close, with no redraw of the map
 ## after it: the ledger still counts that fight and its gold, and the run's
 ## teardown (which clears the map) leaves the run's last figures standing.
 func test_the_ledger_keeps_the_runs_last_figures() -> void:
@@ -718,12 +725,16 @@ func test_the_ledger_keeps_the_runs_last_figures() -> void:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	await _walk_to(FIGHT)
 	tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_view.finish_fight_transition()
 	_view.combat.trigger_combat_end.emit(true, 15)
+	_view.finish_fight_transition()
 	await _walk_to(AdventureMapFixture.BOSS)
 	tilemap.select_choice(_map[AdventureMapFixture.BOSS].choices[0])
+	_view.finish_fight_transition()
 	watch_signals(_view)
 
 	_view.combat.trigger_combat_end.emit(true, 40)
+	_view.finish_fight_transition()
 
 	assert_signal_emitted(_view, "adventure_completed", "precondition: the boss win ended the run")
 	assert_eq(_page_text("FightsValue"), "2 / 2", "the boss fight counts")
@@ -736,6 +747,7 @@ func test_second_run_starts_clean() -> void:
 	_start_run(SHORT_TIME_LIMIT)
 	await _walk_to(FIGHT)
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_view.finish_fight_transition()
 	await _cast_the_first_technique()
 	_view.combat.player_combatant.buff_manager.apply_buff(_make_buff())
 	await wait_process_frames(1)

@@ -323,6 +323,7 @@ func test_a_wheel_during_a_fight_does_not_zoom_the_hidden_map() -> void:
 	_start_run()
 	await _walk_to(FIGHT)
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_view.finish_fight_transition()
 	assert_true(_view.combat_view.visible, "precondition: the fight is on")
 	assert_false(_view.tilemap_view.visible, "precondition: the map's view is hidden")
 	var controller: CameraZoomController = _zoom_controller()
@@ -337,6 +338,7 @@ func test_a_wheel_during_a_fight_does_not_zoom_the_hidden_map() -> void:
 	assert_eq(controller.target_zoom, Vector2.ONE, "nor did its target")
 
 	_view.combat.trigger_combat_end.emit(true, 15)
+	_view.finish_fight_transition()
 	assert_true(_view.tilemap_view.visible, "precondition: the map is back")
 	await wait_process_frames(2)
 	_wheel(MAP_POINT, MOUSE_BUTTON_WHEEL_UP)
