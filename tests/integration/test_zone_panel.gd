@@ -492,8 +492,9 @@ func test_tray_shows_the_set_ready() -> void:
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE)
 
 func test_tray_follows_the_running_set() -> void:
-	# Halfway through rep 4 of 10: the ring lights floor(0.5 x 13) = 6 beads over
-	# the rep, and the rod (144 steps) stands at round(0.35 x 144) = 50 over the set.
+	# Halfway through rep 4 of 10's motion: the ring lights floor(0.5 x 13) = 6
+	# beads over the rep, and the rod (144 steps) stands at the three reps that
+	# landed, round(0.3 x 144) = 43 (#143).
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(BODY_REFINING_ID))
 	BodyRefiningManager.start_set_session(10)
@@ -501,7 +502,7 @@ func test_tray_follows_the_running_set() -> void:
 	await wait_process_frames(1)
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(6, 0), "six beads")
 	assert_eq((_strip_node("TicksLabel") as Label).text, "Rep 4 / 10")
-	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(0.35 * 144.0))
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(0.3 * 144.0))
 	assert_has(_texts(_strip()), "Stone Lifting", "the detail stays the drill's name")
 
 ## A set stopped midway, or finished, ends the session: the tray reads the reps

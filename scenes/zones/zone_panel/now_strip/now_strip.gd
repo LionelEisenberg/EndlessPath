@@ -23,13 +23,15 @@ extends Control
 ## sizes the slot again. The cycling card is not in the list while the player
 ## cycles, so the cycling tray takes no clicks.
 ## While the player drills, the tray shows the set in the same layout, read from
-## BodyRefiningManager's set session: the ring lights over each rep, the action's
+## BodyRefiningManager's set session: the ring lights with the rep in play's own
+## motion (the stone's lift, the stance's hold, the oldest falling leaf, the
+## surge's ride) and is dark while the drill waits for the player, the action's
 ## name with the Health heart and what a Perfect rep of the equipped drill restores
-## at the player's Strength ("+4 / rep"), the drill with "Rep 4 / 10" ("10 reps"
-## between sets) and the rod filling over the set. A stats change (a Strength
-## level, Strength gear) or another drill reads the rate again. The body refining
-## board covers the chest while the player drills, so this tray takes no clicks
-## either.
+## at the player's Strength ("+4 / rep"), the drill with "Rep 4 / 10", the reps
+## that landed plus one ("10 reps" between sets), and the rod filling a tenth as
+## each rep lands (#143: no clock runs). A stats change (a Strength level,
+## Strength gear) or another drill reads the rate again. The body refining board
+## covers the chest while the player drills, so this tray takes no clicks either.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
@@ -387,10 +389,10 @@ func _update_rep_rate() -> void:
 	var health: float = BodyRefiningManager.perfect_rep_health(drill)
 	_rate_text.text = LacquerText.decimal_bbcode(REP_RATE_FORMAT % LacquerText.rate(health))
 
-## The ring over the rep, the rod over the set and the figure, read from the set
-## session. The drill wraps beside the figure, so when the figure changes the rows
-## get their room again and the strip fits; on the frames between, nothing is
-## laid out.
+## The ring over the rep in play's motion, the rod over the reps that landed and
+## the figure, read from the set session. The drill wraps beside the figure, so
+## when the figure changes the rows get their room again and the strip fits; on the
+## frames between, nothing is laid out.
 func _update_set_display() -> void:
 	_light_ring(BodyRefiningManager.get_rep_progress() if BodyRefiningManager.is_set_running() else 0.0)
 	_well_rod.set_fraction(BodyRefiningManager.get_set_progress())
