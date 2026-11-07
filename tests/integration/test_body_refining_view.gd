@@ -198,14 +198,32 @@ func test_health_pellets_land_on_the_health_orb() -> void:
 	_land(pellets)
 	assert_eq(_plate_health(), "44", "all have")
 
-func test_strength_pellets_land_on_strength_s_cell() -> void:
+## A rep's XP waits for the set's end (#143): the rep sends Health pellets only.
+func test_a_rep_sends_only_health_pellets() -> void:
+	ResourceManager.set_health(40.0)
 	_lift(0, CENTRE)
+	assert_eq(_pellets(LacquerPellet.Ramp.STRENGTH).size(), 0, "no Strength pellets yet")
+	assert_eq(_pellets(LacquerPellet.Ramp.HEALTH).size(), 4, "four Health pellets")
+
+## The set's end pours its XP from the beads: one Strength pellet from each bead
+## that stored XP, holding the XP out of Strength's cell until it lands.
+func test_the_set_s_end_pours_xp_from_the_beads() -> void:
+	ResourceManager.set_health(20.0)
+	_play_set(_ten(CENTRE))
 	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
-	assert_eq(pellets.size(), 4, "and four Strength pellets")
+	assert_eq(pellets.size(), 10, "a pellet a bead")
 	var cell: StatCell = _plate.get_node("%StrengthCell") as StatCell
-	assert_eq(cell.get_shown_xp(), 0.0, "none has landed")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "the set's XP is paid")
+	assert_eq(cell.get_shown_xp(), 0.0, "and held out of the cell while it flies")
 	_land(pellets)
-	assert_almost_eq(cell.get_shown_xp(), 6.0, 0.0001, "the rep's 6 XP has")
+	assert_almost_eq(cell.get_shown_xp(), 60.0, 0.0001, "the set's 60 XP has landed")
+
+## Review Focus 4: each pellet leaves from its own rep's bead.
+func test_the_pour_leaves_from_each_bead() -> void:
+	ResourceManager.set_health(20.0)
+	_play_set([CENTRE, 0.6, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE])
+	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
+	assert_eq(pellets.size(), 9, "the Miss's bead stored nothing")
 
 func test_fewer_pellets_for_a_lesser_tier() -> void:
 	ResourceManager.set_health(40.0)
@@ -222,8 +240,9 @@ func test_no_strength_pellets_at_the_cap() -> void:
 	CharacterManager.set_stat_level(AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
 	ResourceManager.set_health(40.0)
 	_lift(0, CENTRE)
-	assert_eq(_pellets(LacquerPellet.Ramp.STRENGTH).size(), 0, "a capped Strength takes no pellets")
 	assert_eq(_pellets(LacquerPellet.Ramp.HEALTH).size(), 4, "the Health still comes")
+	_play_set(_ten(CENTRE))
+	assert_eq(_pellets(LacquerPellet.Ramp.STRENGTH).size(), 0, "a capped Strength takes no pellets at the set's end")
 
 ## Review Focus 5: a rep that tops Health up sends pellets carrying only what it
 ## restored.
@@ -442,8 +461,8 @@ func test_the_footer_and_log_under_auto() -> void:
 	assert_false(text.contains("perfect"), "no Perfect count")
 	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
 	assert_eq(LogWindow.plain_text(line), "Set · Auto · +24 Strength XP · +16 Health")
-	_at(39.0)
-	assert_true(_play.is_set_running(), "the next Auto set started")
+	_at(40.0)
+	assert_true(_play.is_set_running(), "the next Auto set started at Auto's pace, 40 s after the last")
 	assert_string_contains(_view.get_status_text(), "Last set · Auto", "the last set's line stays")
 
 ## Turning Auto on mid-set ends the played set there: its reps stay paid.
