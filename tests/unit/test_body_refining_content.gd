@@ -4,7 +4,7 @@ extends GutTest
 ## its file writes out the values it would otherwise leave to its script's
 ## defaults (Godot's text saver drops a value equal to the default, and a
 ## changed default would then silently change the action), it unlocks when First
-## Steps Out ends or a fight is lost, and the valley lists it under Cultivate
+## Steps Out ends, at NPC 3's talk, and the valley lists it under Cultivate
 ## right after Wilderness Cycling.
 
 const ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/body_refining_action.tres"

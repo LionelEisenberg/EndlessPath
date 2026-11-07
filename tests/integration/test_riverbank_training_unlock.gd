@@ -1,15 +1,17 @@
 extends GutTest
 
-## Riverbank Training opens when First Steps Out ends, at NPC 3's talk, or at
-## once when a fight is lost: a lost fight sends the player home at 0 Health, and
-## the river is the only home source of Health. A won fight, a fight the run's
-## stop cuts short, and a run with no fight open nothing. Drives the real
-## AdventureView scene through ActionManager, the way the zone starts a run.
+## First Steps Out is the first adventure: however a run ends (a won fight, a
+## lost one, a fight cut short, or no fight at all), its end completes the
+## quest's first step and opens NPC 3's talk. The run itself opens nothing else:
+## Riverbank Training waits for First Steps Out's end at that talk. Drives the
+## real AdventureView scene through ActionManager, the way the zone starts a run.
 
 const AdventureViewScene := preload("res://scenes/adventure/adventure_view/adventure_view.tscn")
 const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
-const ENEMY_DEFEATED: String = "q_first_steps_enemy_defeated"
+const ADVENTURE_ENDED: String = "q_first_steps_adventure_ended"
+const NPC_2_TALKED: String = "celestial_intervener_dialogue_2"
+const NPC_3_ACTION: String = "celestial_intervener_dialogue_3"
 const RIVERBANK_ACTION: String = "riverbank_training_action"
 const SPIRIT_VALLEY_ID: String = "SpiritValley"
 
@@ -18,8 +20,7 @@ var _view: AdventureView
 func before_each() -> void:
 	# Ending a run resumes the zone's idle action, which writes to the save.
 	# Run on a fresh one, never the developer's save loaded in memory.
-	PersistenceManager.save_game_data = SaveGameData.new()
-	PersistenceManager.save_data_reset.emit()
+	_use_fresh_save()
 	_view = AdventureViewScene.instantiate()
 	add_child_autofree(_view)
 	await get_tree().process_frame
@@ -40,16 +41,19 @@ func after_each() -> void:
 # TESTS
 #-----------------------------------------------------------------------------
 
-func test_only_a_lost_fight_opens_riverbank_training() -> void:
+func test_every_way_a_run_ends_opens_npc_3_and_not_the_river() -> void:
 	var cases: Array[Dictionary] = [
-		{"name": "a won fight", "end": "win", "opens": false, "enemy_defeated": true},
-		{"name": "a lost fight", "end": "loss", "opens": true, "enemy_defeated": false},
-		{"name": "a fight the run's stop cuts short", "end": "stop", "opens": false, "enemy_defeated": false},
+		{"name": "a won fight", "end": "win"},
+		{"name": "a lost fight", "end": "loss"},
+		{"name": "a fight the run's stop cuts short", "end": "stop"},
+		{"name": "no fight", "end": "no_fight"},
 	]
 	for case: Dictionary in cases:
 		_use_fresh_save()
+		EventManager.trigger_event(NPC_2_TALKED)
 		_start_adventure()
-		_view._on_start_combat(_fight())
+		if case.end != "no_fight":
+			_view._on_start_combat(_fight())
 		match case.end:
 			"win":
 				# Takes the enemy's Health, so AdventureCombat ends the fight as in play.
@@ -57,15 +61,17 @@ func test_only_a_lost_fight_opens_riverbank_training() -> void:
 				_view.stop_adventure()
 			"loss":
 				_view.combat.trigger_combat_end.emit(false, 0)
-			"stop":
+			"stop", "no_fight":
 				_view.stop_adventure()
-		assert_eq(_is_riverbank_open(), case.opens, "%s: Riverbank Training is open" % case.name)
-		assert_eq(EventManager.has_event_triggered(ENEMY_DEFEATED), case.enemy_defeated, "%s: only a win counts as the enemy defeated" % case.name)
+		assert_true(EventManager.has_event_triggered(ADVENTURE_ENDED), "%s: the first adventure is done" % case.name)
+		assert_true(_is_available(NPC_3_ACTION), "%s: NPC 3's talk is open" % case.name)
+		assert_false(_is_available(RIVERBANK_ACTION), "%s: Riverbank Training waits for the talk" % case.name)
 
-func test_a_run_with_no_fight_keeps_riverbank_training_shut() -> void:
-	_start_adventure()
+## The adventure action is current while the start's zoom runs, before any run
+## has started. A stop then ends no adventure.
+func test_a_stop_before_the_run_starts_ends_no_adventure() -> void:
 	_view.stop_adventure()
-	assert_false(_is_riverbank_open(), "Riverbank Training stays shut")
+	assert_false(EventManager.has_event_triggered(ADVENTURE_ENDED))
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -94,8 +100,8 @@ func _fight() -> CombatChoice:
 	_view.adventure_tilemap._current_combat_choice = choice
 	return choice
 
-func _is_riverbank_open() -> bool:
+func _is_available(action_id: String) -> bool:
 	for action: ZoneActionData in ZoneManager.get_available_actions(SPIRIT_VALLEY_ID):
-		if action.action_id == RIVERBANK_ACTION:
+		if action.action_id == action_id:
 			return true
 	return false

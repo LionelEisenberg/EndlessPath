@@ -3,7 +3,7 @@ extends GutTest
 ## The Celestial Intervener's chain, in play order NPC 1, 2, 3, 5, 4 (NPC 5 is
 ## dialogue_5, the body refining beat #109 added before NPC 4). Each return visit
 ## shows only after the talk before it, even when its own goal (Madra 100, the
-## first win, Strength Lv 2, two stars of the core) is met first; each talk
+## first adventure, Strength Lv 2, two stars of the core) is met first; each talk
 ## completes one quest and starts the next, and no talk refills Madra or Health.
 ## Played through DevCommands on the real managers and quests, as the story route
 ## plays them. Saves written before a talk's condition was registered, or before
@@ -32,8 +32,8 @@ const NPCS: Dictionary[int, String] = {
 ## The order the talks play in.
 const CHAIN: Array[int] = [1, 2, 3, 5, 4]
 
-## Fired by the first won fight: NPC 3's own gate.
-const ENEMY_DEFEATED_EVENT: String = "q_first_steps_enemy_defeated"
+## Fired as the first adventure ends: NPC 3's own gate.
+const ADVENTURE_ENDED_EVENT: String = "q_first_steps_adventure_ended"
 const AWAKEN_YOUR_SPIRIT: String = "q_fill_core"
 const FIRST_STEPS_OUT: String = "q_first_steps"
 ## "Temper Your Body", which NPC 3 starts and NPC 5's talk completes.
@@ -96,7 +96,7 @@ func _is_available(npc: int) -> bool:
 	return false
 
 ## Meets the NPC's own gate, beside the talk before it: Madra 100 for NPC 2, the
-## first win for NPC 3, Strength Lv 2 for NPC 5, two stars for NPC 4. NPC 1 has
+## first adventure for NPC 3, Strength Lv 2 for NPC 5, two stars for NPC 4. NPC 1 has
 ## none.
 func _meet_own_gate(npc: int) -> void:
 	var reason: String = ""
@@ -104,7 +104,7 @@ func _meet_own_gate(npc: int) -> void:
 		2:
 			reason = DevCommands.set_madra(100.0)
 		3:
-			reason = DevCommands.trigger_event(ENEMY_DEFEATED_EVENT)
+			reason = DevCommands.trigger_event(ADVENTURE_ENDED_EVENT)
 		5:
 			reason = DevCommands.set_stat_level(&"strength", 2)
 		4:

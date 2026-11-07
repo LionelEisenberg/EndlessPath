@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="3_r2vv0"]
 [ext_resource type="Script" uid="uid://dnny6lt7o8jep" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="4_43dbk"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_ld4ux"]
-[ext_resource type="Resource" uid="uid://bqfsendefeat01" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_n0njg"]
+[ext_resource type="Resource" path="res://resources/unlocks/q_first_steps_adventure_ended.tres" id="6_n0njg"]
 [ext_resource type="Resource" path="res://resources/unlocks/celestial_intervener_dialogue_2.tres" id="7_cid2"]
 [ext_resource type="Texture2D" uid="uid://lobvyu83antr" path="res://assets/ui/lacquer/icons/ic_story_ai.png" id="20_icon"]
 

@@ -18,7 +18,7 @@ const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
 
 const FILL_CORE_QUEST_ID: String = "q_fill_core"
 const FIRST_STEPS_QUEST_ID: String = "q_first_steps"
-const FIRST_STEPS_ENEMY_EVENT: String = "q_first_steps_enemy_defeated"
+const FIRST_STEPS_ADVENTURE_EVENT: String = "q_first_steps_adventure_ended"
 const FIRST_STEPS_RETURN_EVENT: String = "celestial_intervener_dialogue_3"
 const CORE_DENSITY_QUEST_ID: String = "q_reach_core_density_10"
 ## NPC 4's event, and the condition that wraps it: Foundation's Breakthrough
@@ -182,20 +182,20 @@ func test_figure_follows_madra() -> void:
 func test_event_step_has_no_figure() -> void:
 	_add_goals()
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
-	assert_eq(_text("QuestStepLabel"), "Defeat an enemy in combat")
+	assert_eq(_text("QuestStepLabel"), "Venture into the Shallow Woods")
 	assert_false(_is_shown("QuestFigureLabel"))
 
 func test_refreshes_on_step_advance() -> void:
 	_add_goals()
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
-	EventManager.trigger_event(FIRST_STEPS_ENEMY_EVENT)
+	EventManager.trigger_event(FIRST_STEPS_ADVENTURE_EVENT)
 	assert_eq(QuestManager.get_current_step_index(FIRST_STEPS_QUEST_ID), 1, "precondition: the step advanced")
 	assert_eq(_text("QuestStepLabel"), "Return to the Celestial [INTERVENER]")
 
 func test_completed_quest_falls_back_to_milestone() -> void:
 	_add_goals()
 	QuestManager.start_quest(FIRST_STEPS_QUEST_ID)
-	EventManager.trigger_event(FIRST_STEPS_ENEMY_EVENT)
+	EventManager.trigger_event(FIRST_STEPS_ADVENTURE_EVENT)
 	EventManager.trigger_event(FIRST_STEPS_RETURN_EVENT)
 	assert_true(QuestManager.has_completed_quest(FIRST_STEPS_QUEST_ID), "precondition: the quest completed")
 	await wait_process_frames(1)

@@ -44,10 +44,9 @@ const BEAD_BURST_REACH: float = 48.0
 ## One bead carries about this much Core Density XP; a burst has 1 to MAX_BEADS.
 const BEAD_XP: float = 4.0
 const MAX_BEADS: int = 16
-## Fired by a lost fight, which sends the player home at 0 Health, so the only
-## home source of Health is open before First Steps Out's end fires it too.
-## Riverbank Training's condition shares its id.
-const RIVERBANK_TRAINING_OPENED_EVENT: String = "riverbank_training_opened"
+## Fired as each run ends, however it ends: First Steps Out's first step, the
+## first adventure, is done.
+const ADVENTURE_ENDED_EVENT: String = "q_first_steps_adventure_ended"
 const _BEAD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 
 #-----------------------------------------------------------------------------
@@ -200,6 +199,9 @@ func stop_adventure() -> void:
 	else:
 		defeat_reason = "You retreated from the adventure"
 
+	if run_is_on:
+		EventManager.trigger_event(ADVENTURE_ENDED_EVENT)
+
 	# Build result before cleanup clears the data
 	var result_data := _build_result_data(is_victory, defeat_reason)
 
@@ -345,7 +347,6 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	if current_action_data:
 		if not successful:
 			_fight_lost = true
-			EventManager.trigger_event(RIVERBANK_TRAINING_OPENED_EVENT)
 			ActionManager.stop_action(successful)
 
 ## The dock and the cabinet let go of the fight: no press reaches it, the dock

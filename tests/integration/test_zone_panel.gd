@@ -23,7 +23,7 @@ const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
 const TRIBULATION_ID: String = "spirit_valley_tribulation"
 const BODY_REFINING_ID: String = "riverbank_training_action"
-## Opens Riverbank Training: First Steps Out's end, or a lost fight.
+## Opens Riverbank Training: First Steps Out's end.
 const BODY_REFINING_UNLOCK: String = "riverbank_training_opened"
 
 ## The unlock condition that reveals the Tribulation's card.

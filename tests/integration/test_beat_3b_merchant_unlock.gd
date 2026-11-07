@@ -20,7 +20,7 @@ const NPC1_ACTION_ID: String = "celestial_intervener_dialogue_1"
 const NPC2_ACTION_ID: String = "celestial_intervener_dialogue_2"
 const NPC3_ACTION_ID: String = "celestial_intervener_dialogue_3"
 const NPC5_ACTION_ID: String = "celestial_intervener_dialogue_5"
-const ENEMY_DEFEATED_EVENT: String = "q_first_steps_enemy_defeated"
+const ADVENTURE_ENDED_EVENT: String = "q_first_steps_adventure_ended"
 
 func before_each() -> void:
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -63,7 +63,7 @@ func _play_through_npc_5() -> void:
 	assert_eq(DevCommands.complete_action(NPC1_ACTION_ID), "", "precondition: NPC 1 is talked to")
 	assert_eq(DevCommands.set_madra(100.0), "", "precondition: Madra reaches 100")
 	assert_eq(DevCommands.complete_action(NPC2_ACTION_ID), "", "precondition: NPC 2 is talked to")
-	assert_eq(DevCommands.trigger_event(ENEMY_DEFEATED_EVENT), "", "precondition: the first fight is won")
+	assert_eq(DevCommands.trigger_event(ADVENTURE_ENDED_EVENT), "", "precondition: the first adventure is over")
 	assert_eq(DevCommands.complete_action(NPC3_ACTION_ID), "", "precondition: NPC 3 is talked to")
 	assert_eq(DevCommands.set_stat_level(&"strength", 2), "", "precondition: Strength reaches Lv 2")
 	assert_eq(DevCommands.complete_action(NPC5_ACTION_ID), "", "precondition: NPC 5 is talked to")
