@@ -23,6 +23,8 @@ const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
 const TRIBULATION_ID: String = "spirit_valley_tribulation"
 const BODY_REFINING_ID: String = "riverbank_training_action"
+## Opens Riverbank Training: First Steps Out's end.
+const BODY_REFINING_UNLOCK: String = "riverbank_training_opened"
 
 ## The unlock condition that reveals the Tribulation's card.
 const FULL_CORE_CONDITION: String = "core_density_full"
@@ -1208,7 +1210,7 @@ func test_cycling_card_shows_new_after_a_technique_unlock() -> void:
 func test_body_refining_card_shows_new_after_a_drill_unlock() -> void:
 	# ZoneManager marks the body refining action unseen when a drill unlocks; the
 	# chest's rebuild is what shows the card's NEW seal again.
-	UnlockManager.force_unlock_condition(FORAGING_EVENT)
+	UnlockManager.force_unlock_condition(BODY_REFINING_UNLOCK)
 	ZoneManager.mark_action_seen(BODY_REFINING_ID)
 	await _add_panel()
 	var card: ZoneActionButton = _panel.get_card(BODY_REFINING_ID) as ZoneActionButton
