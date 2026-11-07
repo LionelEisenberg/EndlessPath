@@ -43,6 +43,7 @@ func test_each_tier_pays_its_share() -> void:
 		[Tier.GOOD, 0.75],
 		[Tier.OK, 0.5],
 		[Tier.MISS, 0.0],
+		[Tier.AUTO, 0.4],
 	]
 	for case: Array in cases:
 		var tier_name: String = Tier.keys()[case[0]]
@@ -107,11 +108,15 @@ func test_a_set_is_perfect_when_all_its_reps_are() -> void:
 	all_perfect.fill(Tier.PERFECT)
 	var one_good: Array = all_perfect.duplicate()
 	one_good[4] = Tier.GOOD
+	var all_auto: Array = []
+	all_auto.resize(10)
+	all_auto.fill(Tier.AUTO)
 	var cases: Array[Dictionary] = [
 		{"name": "ten PERFECT reps", "tiers": all_perfect, "complete": true, "perfect": true},
 		{"name": "one GOOD rep among ten", "tiers": one_good, "complete": true, "perfect": false},
 		{"name": "nine PERFECT reps, a set not finished", "tiers": all_perfect.slice(0, 9), "complete": false, "perfect": false},
 		{"name": "no reps", "tiers": [], "complete": false, "perfect": false},
+		{"name": "ten AUTO reps", "tiers": all_auto, "complete": true, "perfect": false},
 	]
 	for case: Dictionary in cases:
 		var result: DrillSetResult = _result_of(case["tiers"])
@@ -183,6 +188,8 @@ func test_log_line_reads_what_the_set_paid() -> void:
 		{"name": "the pool was full", "drill": strength_only, "xp": [[AttributeType.STRENGTH, 60.0, false]], "reps": [[Tier.PERFECT, 0.0]], "line": "Set · +60 Strength XP · Health full"},
 		{"name": "nothing but misses", "drill": strength_only, "xp": [], "reps": [[Tier.MISS, 0.0], [Tier.MISS, 0.0]], "line": "Set · +0 Strength XP · +0 Health"},
 		{"name": "a drill with another stat", "drill": _body_drill(), "xp": [[AttributeType.STRENGTH, 80.0, false], [AttributeType.BODY, 40.0, false]], "reps": [[Tier.PERFECT, 40.0]], "line": "Set · +80 Strength XP · +40 Body XP · +40 Health"},
+		{"name": "Auto played it", "drill": _body_drill(), "xp": [[AttributeType.STRENGTH, 32.0, false]], "reps": [[Tier.AUTO, 16.0]], "line": "Set · Auto · +32 Strength XP · +16 Health"},
+		{"name": "Auto at the cap", "drill": _body_drill(), "xp": [[AttributeType.STRENGTH, 0.0, true]], "reps": [[Tier.AUTO, 16.0]], "line": "Set · Auto · Strength capped · +16 Health"},
 	]
 	for case: Dictionary in cases:
 		var result := DrillSetResult.new(case["drill"])

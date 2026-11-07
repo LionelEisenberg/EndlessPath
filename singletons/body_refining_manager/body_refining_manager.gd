@@ -8,10 +8,12 @@ extends Node
 ## capped Strength still refills, recording in the set's result what each stat
 ## took. It also holds a snapshot of the set being played, for the Now strip,
 ## and counts each set played to its last rep in the play stats (finish_set()).
+## It keeps which drills' Auto a perfect set has unlocked (unlock_auto()).
 ## Modelled on CyclingManager.
 
 signal drill_unlocked(drill: DrillData)
 signal equipped_drill_changed(drill: DrillData)
+signal auto_unlocked(drill: DrillData)
 
 const AttributeType = CharacterAttributesData.AttributeType
 const Tier = DrillRules.Tier
@@ -104,6 +106,32 @@ func is_drill_unlocked(drill_id: String) -> bool:
 		return false
 	return drill_id in _live_save_data.unlocked_drill_ids
 
+# ----- Auto -----
+# A drill's Auto unlocks once a set of it ends perfect (the board decides that,
+# DrillSetResult.is_perfect()) and stays unlocked: the save keeps the drill ids.
+# Until then the board's Auto toggle is locked.
+
+## Unlocks Auto for the drill with this ID and announces it. Idempotent: a drill
+## whose Auto is already unlocked changes nothing and is not announced again. An
+## ID outside the catalog is refused.
+func unlock_auto(drill_id: String) -> void:
+	if not _live_save_data:
+		return
+	if drill_id in _live_save_data.auto_drill_ids:
+		return
+	if not _drills_by_id.has(drill_id):
+		push_error("BodyRefiningManager: unknown drill_id '%s'" % drill_id)
+		return
+	_live_save_data.auto_drill_ids.append(drill_id)
+	Log.info("BodyRefiningManager: Unlocked Auto for '%s'" % drill_id)
+	auto_unlocked.emit(_drills_by_id[drill_id])
+
+## Returns true once the drill's Auto is unlocked.
+func is_auto_unlocked(drill_id: String) -> bool:
+	if not _live_save_data:
+		return false
+	return drill_id in _live_save_data.auto_drill_ids
+
 # ----- Seen drills -----
 
 ## Records that the player has seen the drill, which clears its NEW mark.
@@ -132,7 +160,8 @@ func is_drill_seen(drill_id: String) -> bool:
 ## ResourceManager.add_health() without a log line. Then the XP: Strength's, and
 ## the drill's other stat's when it has one, each once, through
 ## CharacterManager.add_stat_xp(). XP is paid at full Health too, and a capped
-## stat loses its XP while the rep still refills Health. A MISS pays nothing.
+## stat loses its XP while the rep still refills Health. A MISS pays nothing. An
+## AUTO rep pays Strength and Health only, never the other stat (#110).
 ## Returns the Health the rep restored, which is less than it paid near the max.
 func pay_rep(drill: DrillData, tier: Tier, result: DrillSetResult = null) -> float:
 	if drill == null:
@@ -142,7 +171,7 @@ func pay_rep(drill: DrillData, tier: Tier, result: DrillSetResult = null) -> flo
 	var health: float = DrillRules.health_for_rep(drill, tier, strength)
 	var restored: float = ResourceManager.add_health(health, true) if health > 0.0 else 0.0
 	_pay_stat_xp(AttributeType.STRENGTH, DrillRules.xp_for_rep(drill.strength_xp_per_rep, tier), result)
-	if drill.has_minor_stat():
+	if drill.has_minor_stat() and tier != Tier.AUTO:
 		_pay_stat_xp(drill.minor_stat as AttributeType, DrillRules.xp_for_rep(drill.minor_xp_per_rep, tier), result)
 	if result != null:
 		result.add_rep(tier, restored)

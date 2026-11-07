@@ -9,13 +9,18 @@ extends RefCounted
 
 const AttributeType = CharacterAttributesData.AttributeType
 
-## How a rep was judged. Never saved, so its values may be reordered.
-enum Tier { MISS, OK, GOOD, PERFECT }
+## How a rep was judged. Never saved, so its values may be reordered. AUTO is
+## never judged: it is a rep Auto played, which pays AUTO_RATE of a PERFECT one.
+enum Tier { MISS, OK, GOOD, PERFECT, AUTO }
 
 ## The lowest share each tier takes, best first. A share below OK's is a MISS.
 const PERFECT_SHARE: float = 0.85
 const GOOD_SHARE: float = 0.6
 const OK_SHARE: float = 0.3
+
+## The share of a PERFECT rep's Strength XP and Health a rep Auto plays pays
+## (#110): cycling's Auto rate, so "40%" reads the same on both sides.
+const AUTO_RATE: float = 0.4
 
 ## The share of a PERFECT rep's XP and Health each tier pays.
 const TIER_FACTORS: Dictionary[Tier, float] = {
@@ -23,6 +28,7 @@ const TIER_FACTORS: Dictionary[Tier, float] = {
 	Tier.OK: 0.5,
 	Tier.GOOD: 0.75,
 	Tier.PERFECT: 1.0,
+	Tier.AUTO: AUTO_RATE,
 }
 
 ## The Health a rep gains for each Strength point above the baseline, as a share

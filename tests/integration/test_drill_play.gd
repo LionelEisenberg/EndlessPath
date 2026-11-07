@@ -503,3 +503,97 @@ func test_focus_loss_lets_the_stone_go() -> void:
 		_play._notification(focus_loss)
 		assert_false(_stone_run().is_lifting(), "notification %d: the lift is over" % focus_loss)
 		assert_eq(_bead_frames()[0], 1, "notification %d: judged where it was let go" % focus_loss)
+
+#-----------------------------------------------------------------------------
+# AUTO
+#-----------------------------------------------------------------------------
+
+## Turns Auto on for the drill on the play, unlocking its Auto first when `unlock`.
+func _auto_on(unlock: bool = true) -> void:
+	if unlock:
+		BodyRefiningManager.unlock_auto(STARTING_DRILL_ID)
+	_play.set_auto_play(true)
+
+## Runs frames every half second from 0 to `seconds` after the set's start.
+func _frames_to(seconds: float) -> void:
+	var t: float = 0.0
+	while t <= seconds:
+		_at(t)
+		t += 0.5
+
+## With Auto on and unlocked the play starts a set by itself and plays it: each rep
+## lands at the drill's pace and pays 0.4 of a Perfect rep's Strength XP and
+## Health (#110).
+func test_auto_plays_reps_at_the_auto_rate() -> void:
+	ResourceManager.set_health(20.0)
+	watch_signals(_play)
+	_auto_on()
+	_frames_to(4.0)
+	assert_true(_play.is_set_running(), "Auto started a set by itself")
+	assert_true(_play.is_auto_set())
+	assert_signal_emit_count(_play, "rep_judged", 1, "one rep in its first 4 s slot")
+	var params: Array = get_signal_parameters(_play, "rep_judged")
+	if params.size() == 3:
+		assert_eq((params[0] as DrillRun.Judgement).tier, Tier.AUTO, "an Auto rep")
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 2.4, 0.0001, "0.4 of 6 Strength XP")
+	assert_almost_eq(ResourceManager.get_health(), 21.6, 0.0001, "0.4 of 4 Health")
+	assert_eq(_bead_frames()[0], 1, "its bead lights Perfect's frame")
+	assert_eq(_play._beads[0].self_modulate, DrillPlay.AUTO_BEAD_TINT, "dimmed")
+	_frames_to(38.5)
+	assert_signal_emit_count(_play, "rep_judged", 10, "ten reps a set, the last stone down by 38.5 s")
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 24.0, 0.0001, "a set pays 24 Strength XP")
+	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported")
+	var completed: Array = get_signal_parameters(_play, "set_completed")
+	if not completed.is_empty():
+		assert_true((completed[0] as DrillSetResult).is_auto(), "as an Auto set")
+		assert_false((completed[0] as DrillSetResult).is_perfect(), "never perfect")
+	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "and counted")
+	_at(39.0)
+	assert_true(_play.is_set_running(), "the next set starts by itself on the next frame")
+
+## Before the drill's Auto unlocks, Auto plays nothing, even switched on.
+func test_locked_auto_plays_nothing() -> void:
+	_auto_on(false)
+	_frames_to(10.0)
+	assert_false(_play.is_auto_running())
+	assert_false(_play.is_set_running(), "no set starts")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "no rep lands")
+
+## A press while Auto runs is taken and plays nothing.
+func test_a_press_under_auto_plays_nothing() -> void:
+	_auto_on()
+	_clock_to(0.0)
+	assert_true(_play.handle_press_event(_press()), "the press is taken")
+	assert_false(_play.is_set_running(), "but starts no set")
+	_at(0.0)
+	assert_true(_play.is_auto_set(), "Auto's set starts on the next frame")
+
+## Turning Auto off drops Auto's set: its reps stay paid, it is neither counted nor
+## reported, and the next set waits for a press.
+func test_turning_auto_off_drops_its_set() -> void:
+	watch_signals(_play)
+	_auto_on()
+	_frames_to(9.0)
+	_play.set_auto_play(false)
+	assert_false(_play.is_set_running())
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 4.8, 0.0001, "two reps stay paid")
+	assert_signal_emit_count(_play, "set_completed", 0, "the set is not reported")
+	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "nor counted")
+	_at(10.0)
+	assert_false(_play.is_set_running(), "no set until a press")
+
+## An Auto rep never pays the drill's other stat, so it doesn't report it: nothing
+## pops "capped" for Body, and rep_judged carries Strength alone.
+func test_an_auto_rep_does_not_report_the_other_stat_unpaid() -> void:
+	ResourceManager.set_health(20.0)
+	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
+	BodyRefiningManager.unlock_auto("waterfall_tempering")
+	_play.set_auto_play(true)
+	watch_signals(_play)
+	_frames_to(2.0)
+	assert_signal_emit_count(_play, "rep_judged", 1, "the first surge braced")
+	var params: Array = get_signal_parameters(_play, "rep_judged")
+	if params.size() == 3:
+		assert_eq((params[2] as Dictionary).keys(), [AttributeType.STRENGTH], "the XP Strength took, alone")
+	assert_eq(_floater("WordFloater").get_text(), "Auto")
+	assert_false(_floater("LineFloater").visible, "no capped line for Body")

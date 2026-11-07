@@ -82,6 +82,27 @@ func release(t_usec: int) -> Array[Judgement]:
 func advance(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
 
+## Plays the set as Auto up to `t`: lifts as each rep may begin (its slot begun
+## and the stone down) and lets go BAND_CENTRE_USEC later, the stone's base at the
+## band's centre. Returns every rep judged, in order.
+func play_auto(t_usec: int) -> Array[Judgement]:
+	var judged: Array[Judgement] = []
+	while true:
+		if _lift_start >= 0:
+			var let_go: int = _lift_start + BAND_CENTRE_USEC
+			if let_go > t_usec:
+				break
+			judged.append_array(release(let_go))
+		else:
+			if _judgements.size() >= _reps:
+				break
+			var start: int = maxi(_judgements.size() * _rep_usec, _stone_down_usec)
+			if start > t_usec:
+				break
+			judged.append_array(press(start))
+	judged.append_array(advance(t_usec))
+	return judged
+
 ## The share of a rep whose stone stopped `offset_usec` (in time held) off the
 ## band's centre, through the brass's edge, the band's and the tan's.
 static func share_for_offset(offset_usec: int) -> float:
