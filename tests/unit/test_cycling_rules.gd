@@ -158,3 +158,41 @@ func test_paid_stats() -> void:
 	]
 	for case: Dictionary in cases:
 		assert_eq((case.result as CycleResult).get_paid_stats(), case.stats, case.name)
+
+#-----------------------------------------------------------------------------
+# A PERFECT CYCLE
+#-----------------------------------------------------------------------------
+
+## A result followed throughout or not, with these zone and seal states.
+func _played(followed: bool, zones: Array[int], seals: Array[int]) -> CycleResult:
+	var result: CycleResult = CycleResult.new()
+	result.followed_throughout = followed
+	result.zone_states = zones
+	result.seal_states = seals
+	return result
+
+func test_is_perfect() -> void:
+	var p := CyclingZone.State.PERFECT
+	var g := CyclingZone.State.GOOD
+	var spent := CyclingZone.State.SPENT
+	var open := SealNode.State.OPEN
+	var missed := SealNode.State.SPENT
+	var no_states: Array[int] = []
+	var full_capped: CycleResult = _played(true, no_states, no_states)
+	full_capped.record_stat_xp(SPIRIT, 0.0, true)
+	var cases: Array[Dictionary] = [
+		{"name": "zoneless, followed throughout", "result": _played(true, no_states, no_states), "perfect": true},
+		{"name": "zoneless, a break", "result": _played(false, no_states, no_states), "perfect": false},
+		{"name": "every zone PERFECT", "result": _played(true, [p, p, p, p] as Array[int], no_states), "perfect": true},
+		{"name": "one zone GOOD", "result": _played(true, [p, p, g, p] as Array[int], no_states), "perfect": false},
+		{"name": "one zone missed", "result": _played(true, [p, spent, p, p] as Array[int], no_states), "perfect": false},
+		{"name": "every zone PERFECT but a break", "result": _played(false, [p, p, p, p] as Array[int], no_states), "perfect": false},
+		{"name": "every seal opened", "result": _played(true, no_states, [open, open, open] as Array[int]), "perfect": true},
+		{"name": "one seal missed", "result": _played(true, no_states, [open, missed, open] as Array[int]), "perfect": false},
+		{"name": "a capped stat still counts", "result": full_capped, "perfect": true},
+	]
+	for case: Dictionary in cases:
+		assert_eq((case.result as CycleResult).is_perfect(), case.perfect, case.name)
+
+func test_a_new_result_is_not_perfect() -> void:
+	assert_false(CycleResult.new().is_perfect(), "nothing was followed yet")

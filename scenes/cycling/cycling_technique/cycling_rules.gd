@@ -50,6 +50,10 @@ const FOLLOW_WINDOW: float = 0.25
 ## a resting one never does, and a twitch does not either.
 const FOLLOW_START_MOVE: float = 4.0
 
+## The share of the full rate an unlocked Auto pays while nobody follows the
+## ball, for Madra and Spirit XP alike.
+const AUTO_RATE: float = 0.4
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------

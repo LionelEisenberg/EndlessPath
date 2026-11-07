@@ -11,6 +11,11 @@ extends Node2D
 ## (CyclingRules.is_following(), over a FollowWindow). A cursor resting on the
 ## path never starts, so it follows nothing as the ball passes. With Auto a
 ## streak carries from one cycle into the next.
+## Auto chains cycles. Once the technique's Auto is unlocked (a perfect cycle,
+## CycleResult.is_perfect()), an Auto cycle that nobody follows still pays, at
+## CyclingRules.AUTO_RATE of the full rate for Madra and Spirit alike, and its
+## ball moves at an even speed, so chained cycles never slow at their ends.
+## Following pays the full rate, Auto or not. Auto plays no zone and no seal.
 ## Following also trains Spirit: a second clock gathers the time followed, and
 ## every STAT_XP_INTERVAL of it pays Spirit XP through CharacterManager, the
 ## technique's spirit_xp_per_cycle over a fully followed cycle, Madra full or not.
@@ -164,7 +169,9 @@ const _SEAL_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique
 ## path: the figure's top-left corner on the board.
 @export var path_pivot: Vector2 = Vector2.ZERO
 
-## When on, the next cycle starts as soon as one ends.
+## When on, the next cycle starts as soon as one ends, and once the technique's
+## Auto is unlocked, cycles nobody follows pay at the Auto rate
+## (is_auto_running()).
 var auto_cycle: bool = false
 
 ## The technique being played. Null until setup() is given one.
@@ -182,6 +189,12 @@ var seal_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _cycling: bool = false
 ## Whether the cursor follows the ball this frame: the follow window's verdict.
 var _following: bool = false
+## Whether every frame of the running cycle so far has followed the ball.
+var _followed_throughout: bool = false
+## Whether the running cycle moves the ball at an even speed: an Auto cycle.
+## Decided as the cycle starts, so turning Auto on or off mid-cycle never makes
+## the ball jump.
+var _flat: bool = false
 ## The last quarter second of the running cycle, which judges following.
 var _follow_window: FollowWindow = FollowWindow.new()
 ## Seconds the cursor has followed the ball this cycle.
@@ -265,6 +278,8 @@ func start_cycle(starts_following: bool = true) -> bool:
 	_followed_seconds = 0.0
 	_unpaid_spirit_seconds = 0.0
 	_follow_window.reset(starts_following)
+	_followed_throughout = true
+	_flat = is_auto_running()
 	_result = _new_result()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
@@ -286,11 +301,11 @@ func stop_cycling() -> void:
 ## Moves the play on by `delta` seconds, with the cursor at `cursor_global`.
 ## While no cycle runs only the swirl moves and the ball waits at the start. While
 ## one runs, in this order: the ball moves and is drawn, the follow window judges
-## the frame and the cursor draws Madra if it follows, the zones turn active or
-## spent, the groove's sweep and trail move on, the frame joins the rate window
-## and the session is updated. The cycle ends once its time is up. A frame that
-## runs past the end counts only the time left in the cycle, so a long hitch
-## draws no Madra beyond it.
+## the frame and the cursor draws Madra if it follows (or Auto draws at its rate
+## if nobody follows), the zones turn active or spent, the groove's sweep and
+## trail move on, the frame joins the rate window and the session is updated.
+## The cycle ends once its time is up. A frame that runs past the end counts
+## only the time left in the cycle, so a long hitch draws no Madra beyond it.
 func advance(delta: float, cursor_global: Vector2) -> void:
 	_swirl_clock += delta
 	if not _cycling:
@@ -301,23 +316,31 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	var duration: float = technique_data.cycle_duration
 	var cycle_delta: float = minf(delta, duration - _elapsed)
 	_elapsed = minf(_elapsed + delta, duration)
-	_follow.progress_ratio = _eased_ratio()
+	_follow.progress_ratio = _ball_ratio()
 	_draw_ball()
 	var on_ball: bool = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
 	_following = _follow_window.judge(cycle_delta, on_ball, cursor_global)
 	_ball_ring.visible = _following
+	if not _following:
+		_followed_throughout = false
+	# The share of the full rate the frame pays: all of it while followed,
+	# Auto's while nobody follows, nothing otherwise.
+	var share: float = 1.0 if _following else (CyclingRules.AUTO_RATE if is_auto_running() else 0.0)
 	# Whether the frame draws is judged before its steps can fill the pool.
-	var drawing: bool = _following and not _madra_full()
+	var drawing: bool = share > 0.0 and not _madra_full()
 	if _following:
 		_set_ring_frame(_RING_FOLLOWING)
 		_draw_madra(cycle_delta)
 		_follow_spirit(cycle_delta)
+	elif share > 0.0:
+		_draw_madra(cycle_delta * share)
+		_gather_spirit(cycle_delta * share)
 	_result.followed_ratio = _followed_seconds / duration if duration > 0.0 else 0.0
 	_update_zones()
 	_update_seals(cycle_delta)
 	_groove.set_swept_length(_path_length * minf(_elapsed / GROOVE_SWEEP_SECONDS, 1.0))
 	_groove.set_lit_length(_follow.progress)
-	_record_rate(cycle_delta, drawing)
+	_record_rate(cycle_delta, share if drawing else 0.0)
 	_update_session()
 	if _elapsed >= duration:
 		_finish_cycle()
@@ -379,6 +402,13 @@ func wants_pointer(cursor_global: Vector2) -> bool:
 func is_cycling() -> bool:
 	return _cycling
 
+## Returns true while Auto runs this technique: auto_cycle is on and the
+## technique's Auto is unlocked (CyclingManager). Only then does a cycle nobody
+## follows pay, at CyclingRules.AUTO_RATE, and move the ball at an even speed.
+## A locked technique never pays unattended, whatever auto_cycle says.
+func is_auto_running() -> bool:
+	return auto_cycle and technique_data != null and CyclingManager.is_auto_unlocked(technique_data.id)
+
 ## Returns true while a cycle runs and the cursor follows the ball: in its gold
 ## ring, since the press or since it moved there.
 func is_following() -> bool:
@@ -398,16 +428,29 @@ func get_current_result() -> CycleResult:
 # CYCLE
 #-----------------------------------------------------------------------------
 
-## Returns the ball's share of the path at the elapsed time: a sine ease in and
-## out, 0 at the start and 1 once the cycle's time is up.
-func _eased_ratio() -> float:
-	return _eased_ratio_at(_elapsed)
+## Returns the ball's share of the path at the elapsed time, 0 at the start and
+## 1 once the cycle's time is up: eased in and out with a sine, or at an even
+## speed in a flat (Auto) cycle, so chained Auto cycles never slow at their ends.
+func _ball_ratio() -> float:
+	return _cycle_fraction(_elapsed) if _flat else _eased_ratio_at(_elapsed)
 
-## Returns the ball's share of the path `seconds` into a cycle.
+## Returns the eased ball's share of the path `seconds` into a cycle, which
+## places the seal nodes.
 func _eased_ratio_at(seconds: float) -> float:
+	return 0.5 - 0.5 * cos(PI * _cycle_fraction(seconds))
+
+## Returns `seconds` as a share of the cycle, 0 to 1.
+func _cycle_fraction(seconds: float) -> float:
 	var duration: float = technique_data.cycle_duration
-	var fraction: float = 1.0 if duration <= 0.0 else minf(seconds / duration, 1.0)
-	return 0.5 - 0.5 * cos(PI * fraction)
+	return 1.0 if duration <= 0.0 else minf(seconds / duration, 1.0)
+
+## Returns the second of the running cycle at which the ball reaches `seal`'s
+## node: its own second, or in a flat cycle the one at which the even ball
+## reaches the share of the path where the eased ball meets the node.
+func _seal_arrival(seal: SealNode) -> float:
+	if not _flat:
+		return seal.arrive_seconds
+	return _eased_ratio_at(seal.arrive_seconds) * technique_data.cycle_duration
 
 ## Adds the Madra the cursor draws in `delta` seconds: a step for every
 ## MADRA_PARTICLE_INTERVAL the timer has gathered, to within _STEP_EPSILON. The
@@ -418,10 +461,16 @@ func _draw_madra(delta: float) -> void:
 		_madra_timer -= MADRA_PARTICLE_INTERVAL
 		_draw_madra_step()
 
-## Gathers `seconds` of following on the Spirit clock and pays every whole
-## STAT_XP_INTERVAL it holds, to within _STEP_EPSILON, in one payment.
+## Gathers `seconds` of following on the Spirit clock and pays it
+## (_gather_spirit()).
 func _follow_spirit(seconds: float) -> void:
 	_followed_seconds += seconds
+	_gather_spirit(seconds)
+
+## Gathers `seconds` on the Spirit clock, followed or Auto's share of time
+## nobody followed, and pays every whole STAT_XP_INTERVAL it holds, to within
+## _STEP_EPSILON, in one payment.
+func _gather_spirit(seconds: float) -> void:
 	_unpaid_spirit_seconds += seconds
 	var intervals: int = floori((_unpaid_spirit_seconds + _STEP_EPSILON) / STAT_XP_INTERVAL)
 	if intervals > 0:
@@ -523,10 +572,11 @@ func _update_seals(delta: float) -> void:
 	var before: float = _elapsed - delta
 	for seal: SealNode in seal_nodes:
 		seal.advance(delta)
-		if seal.get_state() == SealNode.State.IDLE and _elapsed >= seal.arrive_seconds - CyclingRules.SEAL_LEAD - _STEP_EPSILON:
+		var arrival: float = _seal_arrival(seal)
+		if seal.get_state() == SealNode.State.IDLE and _elapsed >= arrival - CyclingRules.SEAL_LEAD - _STEP_EPSILON:
 			seal.show_seal(CyclingRules.random_seal(seal_rng))
 			seal_shown.emit(seal)
-		var arrives_now: bool = before < seal.arrive_seconds - _STEP_EPSILON and _elapsed >= seal.arrive_seconds - _STEP_EPSILON
+		var arrives_now: bool = before < arrival - _STEP_EPSILON and _elapsed >= arrival - _STEP_EPSILON
 		if not arrives_now:
 			continue
 		if seal.get_state() == SealNode.State.OPEN:
@@ -538,11 +588,13 @@ func _update_seals(delta: float) -> void:
 			seal_missed.emit(seal)
 
 ## Adds a running frame to the rate window: its `delta` seconds and the Madra the
-## cursor drew in it, which is the technique's Madra per second over those seconds
-## when `drawing`, else 0. Then drops the oldest frames while the rest still cover
-## RATE_WINDOW, which leaves the shortest run of the newest frames that does.
-func _record_rate(delta: float, drawing: bool) -> void:
-	var drawn: float = (_madra_per_step() / MADRA_PARTICLE_INTERVAL * delta) if drawing else 0.0
+## cursor drew in it, which is `share` of the technique's Madra per second over
+## those seconds: 1 while it followed with room under the max, Auto's rate
+## while Auto drew for nobody, else 0. Then drops the oldest frames while the
+## rest still cover RATE_WINDOW, which leaves the shortest run of the newest
+## frames that does.
+func _record_rate(delta: float, share: float) -> void:
+	var drawn: float = _madra_per_step() / MADRA_PARTICLE_INTERVAL * delta * share
 	_rate_window.append(Vector2(delta, drawn))
 	var covered: float = 0.0
 	for frame: Vector2 in _rate_window:
@@ -580,6 +632,7 @@ func _finish_cycle() -> void:
 		_result.zone_states.append(zone.get_state())
 	for seal: SealNode in seal_nodes:
 		_result.seal_states.append(seal.get_state())
+	_result.followed_throughout = _followed_throughout
 	var carried: bool = _following
 	_pay_unpaid_spirit()
 	_cycling = false
@@ -606,6 +659,8 @@ func _return_to_ready() -> void:
 	var was_cycling: bool = _cycling
 	_cycling = false
 	_following = false
+	_followed_throughout = false
+	_flat = false
 	_elapsed = 0.0
 	_madra_timer = 0.0
 	_rate_window.clear()
