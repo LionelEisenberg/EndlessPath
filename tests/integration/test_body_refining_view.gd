@@ -4,8 +4,8 @@ extends GutTest
 ## its header names the action and the drill, and under them what a Perfect rep
 ## pays at the player's Strength, with Strength's icon and the Health heart; the
 ## footer tells how to start, then how to play, then what the last set paid; a
-## finished set writes one log line; each scored rep sends its pellets from the
-## stone to the cabinet, Strength's to its cell and Health's to the orb, carrying
+## finished set writes one log line; each scored rep sends its pellets from its
+## stage to the cabinet, Strength's to its cell and Health's to the orb, carrying
 ## only what was taken; closing mid-set keeps what was paid and reports nothing.
 ## The cabinet stands beside the view, as MainView hands it over. Every test runs on
 ## a fresh save with the real Stone Lifting, on a test clock, with the original save
@@ -121,7 +121,7 @@ func _ten(hold: float) -> Array:
 func test_setup_names_the_action_and_the_drill() -> void:
 	assert_eq((_node("ActionLabel") as Label).text, "Riverbank Training")
 	assert_eq((_node("TitleLabel") as Label).text, "Stone Lifting")
-	assert_eq(_view.get_status_text(), BodyRefiningView.READY)
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line)
 
 func test_the_pay_line_reads_a_perfect_rep_at_your_strength() -> void:
 	var text: String = _pay_line().get_parsed_text()
@@ -146,10 +146,10 @@ func test_the_pay_line_at_the_cap_says_capped() -> void:
 
 func test_the_status_line_follows_the_set() -> void:
 	ResourceManager.set_health(50.0)
-	assert_eq(_view.get_status_text(), BodyRefiningView.READY)
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line)
 	_clock_to(0.0)
 	_view.handle_press_event(_press())
-	assert_eq(_view.get_status_text(), BodyRefiningView.LIFT, "a set runs")
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().play_line, "a set runs")
 	_clock_to(CENTRE)
 	_view.handle_press_event(_press(false))
 	for rep: int in range(1, 10):
@@ -252,7 +252,7 @@ func test_closing_mid_set_keeps_what_was_paid() -> void:
 func test_reopening_starts_clean() -> void:
 	_play_set(_ten(CENTRE))
 	_view.setup(ZoneManager.get_action_by_id(ACTION_ID))
-	assert_eq(_view.get_status_text(), BodyRefiningView.READY, "the last set's line is gone")
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line, "the last set's line is gone")
 
 func test_the_close_button_stops_the_action() -> void:
 	var action: ZoneActionData = ZoneManager.get_action_by_id(ACTION_ID)

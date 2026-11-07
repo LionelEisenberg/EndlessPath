@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/body_refining/drill/stages/stone_lifting_stage.gd" id="1_stage"]
+[ext_resource type="Texture2D" uid="uid://pgsljhm0rngj" path="res://assets/ui/lacquer/cycling/lacquer_cyc_body_carved_ai.png" id="2_body"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_rim_strength_ai.png" id="3_rim"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_track9_ai.png" id="4_track"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_rail_ai.png" id="5_rail"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_jade_ai.png" id="6_jade"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_stone_ai.png" id="7_stone"]
+
+[node name="StoneLiftingStage" type="Control" unique_id=1840297311]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+script = ExtResource("1_stage")
+
+[node name="Backdrop" type="TextureRect" parent="." unique_id=1203948551]
+layout_mode = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+texture = ExtResource("2_body")
+
+[node name="Rim" type="TextureRect" parent="." unique_id=1450983277]
+layout_mode = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+texture = ExtResource("3_rim")
+
+[node name="Track" type="NinePatchRect" parent="." unique_id=1086830553]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 244.0
+offset_top = 32.0
+offset_right = 280.0
+offset_bottom = 494.0
+mouse_filter = 2
+texture = ExtResource("4_track")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
+
+[node name="RailLeft" type="TextureRect" parent="." unique_id=1076948300]
+layout_mode = 0
+offset_left = 218.0
+offset_top = 92.0
+offset_right = 226.0
+offset_bottom = 344.0
+mouse_filter = 2
+texture = ExtResource("5_rail")
+
+[node name="RailRight" type="TextureRect" parent="." unique_id=1755245616]
+layout_mode = 0
+offset_left = 298.0
+offset_top = 92.0
+offset_right = 306.0
+offset_bottom = 344.0
+mouse_filter = 2
+texture = ExtResource("5_rail")
+
+[node name="Fill" type="NinePatchRect" parent="." unique_id=475267398]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 248.0
+offset_top = 492.0
+offset_right = 276.0
+offset_bottom = 492.0
+mouse_filter = 2
+texture = ExtResource("6_jade")
+axis_stretch_vertical = 1
+
+[node name="Stone" type="TextureRect" parent="." unique_id=1615078126]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 230.0
+offset_top = 436.0
+offset_right = 294.0
+offset_bottom = 492.0
+mouse_filter = 2
+texture = ExtResource("7_stone")

@@ -1,13 +1,15 @@
 extends GutTest
 
-## Integration tests for DrillPlay, the Stone Lifting stage on the body refining
-## board: the first press starts a set, each rep is judged at its exact time on an
-## injected clock and paid through BodyRefiningManager.pay_rep(), its bead lights
-## in its tier's colour, its tier pops beside the stone (with what it could not pay
-## under it, or a Miss's reason), and a set played to its last rep is counted and
-## reported. The hold belongs to the kind of input that started it. Every test runs
-## on a fresh save with the real Stone Lifting (6 Strength XP and 4 Health a
-## Perfect rep, 4 s reps, 10 to a set), with the original save put back after it.
+## Integration tests for DrillPlay, the drill played on the body refining board:
+## each drill's input shows its own stage, the first press starts a set, each rep
+## is judged at its exact time on an injected clock and paid through
+## BodyRefiningManager.pay_rep(), its bead lights in its tier's colour, its tier
+## pops where its stage says (with what it could not pay under it, or a Miss's
+## reason), and a set played to its last rep is counted and reported. The hold
+## belongs to the kind of input that started it. Every test runs on a fresh save
+## with the real Stone Lifting (6 Strength XP and 4 Health a Perfect rep, 4 s reps,
+## 10 to a set) unless it readies another drill, with the original save put back
+## after it.
 
 const PLAY_SCENE: PackedScene = preload("res://scenes/body_refining/drill/drill_play.tscn")
 const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
@@ -96,6 +98,29 @@ func _bead_frames() -> Array[int]:
 func _floater(unique_name: String) -> LacquerFloater:
 	return _play.get_node("%" + unique_name) as LacquerFloater
 
+## The run of the stone being lifted.
+func _stone_run() -> StoneLiftingRun:
+	return _play.get_run() as StoneLiftingRun
+
+#-----------------------------------------------------------------------------
+# THE STAGE
+#-----------------------------------------------------------------------------
+
+## Each drill plays on the scene of its input, and only that scene shows.
+func test_each_drill_shows_its_own_stage() -> void:
+	var cases: Array[Dictionary] = [
+		{"drill": "stone_lifting", "stage": "StoneLiftingStage"},
+	]
+	for case: Dictionary in cases:
+		_play.setup(BodyRefiningManager.get_drill(case["drill"]))
+		var stage: DrillStage = _play.get_stage()
+		assert_not_null(stage, "%s has a stage" % case["drill"])
+		if stage == null:
+			continue
+		assert_eq(stage.name, case["stage"], "%s's stage" % case["drill"])
+		for other: Node in _play.get_node("%Stages").get_children():
+			assert_eq((other as Control).visible, other == stage, "%s: %s shows only when it is the drill's" % [case["drill"], other.name])
+
 #-----------------------------------------------------------------------------
 # A SET
 #-----------------------------------------------------------------------------
@@ -107,7 +132,7 @@ func test_a_press_starts_a_set_and_lifts() -> void:
 	_play.handle_press_event(_press())
 	assert_signal_emit_count(_play, "set_started", 1)
 	assert_true(_play.is_set_running())
-	assert_true(_play.get_run().is_lifting(), "the first press lifts the stone")
+	assert_true(_stone_run().is_lifting(), "the first press lifts the stone")
 	assert_true(BodyRefiningManager.is_set_running(), "the set session runs")
 	assert_eq(BodyRefiningManager.get_set_rep(), 1, "on its first rep")
 
@@ -207,10 +232,10 @@ func test_the_stone_stands_on_the_jade() -> void:
 	_clock_to(0.0)
 	_play.handle_press_event(_press())
 	_at(1.0)
-	var stone: TextureRect = _play.get_node("%Stone") as TextureRect
-	var fill: Control = _play.get_node("%Fill") as Control
-	assert_eq(stone.position.y + stone.size.y, DrillPlay.REST_BASE_Y - 200.0, "a second of lifting: the stone's base 200 px up")
-	assert_eq(fill.position.y, DrillPlay.REST_BASE_Y - 200.0, "the jade reaches the stone's base")
+	var stone: TextureRect = _play.get_stage().get_node("%Stone") as TextureRect
+	var fill: Control = _play.get_stage().get_node("%Fill") as Control
+	assert_eq(stone.position.y + stone.size.y, StoneLiftingStage.REST_BASE_Y - 200.0, "a second of lifting: the stone's base 200 px up")
+	assert_eq(fill.position.y, StoneLiftingStage.REST_BASE_Y - 200.0, "the jade reaches the stone's base")
 	assert_eq(fill.size.y, 200.0)
 
 #-----------------------------------------------------------------------------
@@ -232,7 +257,7 @@ func test_key_repeats_are_not_presses() -> void:
 	_clock_to(4.0)
 	_play.handle_press_event(_key(true, true))
 	_at(4.2)
-	assert_false(_play.get_run().is_lifting(), "a key repeat lifts nothing")
+	assert_false(_stone_run().is_lifting(), "a key repeat lifts nothing")
 
 ## Review Focus 1: a lift started by the key is let go only by the key.
 func test_a_mouse_release_leaves_a_key_lift() -> void:
@@ -240,7 +265,7 @@ func test_a_mouse_release_leaves_a_key_lift() -> void:
 	_play.handle_press_event(_key(true))
 	_clock_to(1.0)
 	_play.handle_press_event(_mouse(false))
-	assert_true(_play.get_run().is_lifting(), "the mouse coming up leaves the key's lift")
+	assert_true(_stone_run().is_lifting(), "the mouse coming up leaves the key's lift")
 	_clock_to(CENTRE)
 	_play.handle_press_event(_key(false))
 	assert_eq(_bead_frames()[0], 1, "the key's release judges it Perfect")
@@ -255,5 +280,5 @@ func test_focus_loss_lets_the_stone_go() -> void:
 		_play.handle_press_event(_press())
 		_clock_to(CENTRE)
 		_play._notification(focus_loss)
-		assert_false(_play.get_run().is_lifting(), "notification %d: the lift is over" % focus_loss)
+		assert_false(_stone_run().is_lifting(), "notification %d: the lift is over" % focus_loss)
 		assert_eq(_bead_frames()[0], 1, "notification %d: judged where it was let go" % focus_loss)

@@ -152,7 +152,7 @@ func test_start_sets_the_board_up_for_the_action() -> void:
 	_state._on_start_body_refining(_action())
 	assert_true(_view.visible, "the board shows")
 	assert_eq((_view.get_node("%ActionLabel") as Label).text, "Riverbank Training")
-	assert_eq(_view.get_status_text(), BodyRefiningView.READY)
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line)
 	assert_false(_main_view.dock.visible, "the dock is off")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "and the map takes no input")
 
