@@ -83,6 +83,9 @@ func test_the_first_press_is_every_drill_s_first_input() -> void:
 	var stance := DrillRun.for_drill(_drill(InputKind.HOLD_STEADY)) as HorseStanceRun
 	stance.press_at(0, FAR)
 	assert_true(stance.is_rep_in_play(), "Horse Stance: the player sinks into the first stance")
+	var leaf := DrillRun.for_drill(_drill(InputKind.CATCH)) as FallingLeafRun
+	leaf.press_at(0, FAR)
+	assert_true(leaf.is_dropped(0), "Falling Leaf: the branch shakes down the first leaf")
 
 #-----------------------------------------------------------------------------
 # AUTO
@@ -126,6 +129,7 @@ func test_auto_keeps_its_pace() -> void:
 	var cases: Array[Dictionary] = [
 		{"kind": InputKind.HOLD_RELEASE, "rep": 4.0},
 		{"kind": InputKind.HOLD_STEADY, "rep": 4.0},
+		{"kind": InputKind.CATCH, "rep": 2.0},
 	]
 	for case: Dictionary in cases:
 		var what: String = InputKind.keys()[case["kind"]]
