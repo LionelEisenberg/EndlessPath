@@ -2,7 +2,8 @@ extends GutTest
 
 ## Unit tests for BodyRefiningManager: the drill catalog, unlocking and equipping
 ## a drill, the seen drills and their first pass, and pay_rep(), which pays a
-## rep's Strength XP, its other stat's XP and its Health. Every test runs on a
+## rep's Health and its Strength XP and its other stat's XP (in a set, the XP is
+## stored for the set's end to pay, finish_set()). Every test runs on a
 ## fresh save that the managers are re-bound to, with two drills built here in
 ## place of the catalog; after_each() puts the real save and catalog back.
 
@@ -289,23 +290,75 @@ func test_a_rep_is_recorded_in_the_set_result() -> void:
 	assert_eq(result.count_of(Tier.GOOD), 1)
 	assert_eq(result.get_health_restored(), 7.0, "4 + 3")
 
-func test_a_rep_records_the_xp_each_stat_took() -> void:
+## In a set a rep pays its Health at once and stores its XP on the set's result,
+## for the set's end to pay (#143).
+func test_a_rep_in_a_set_pays_health_and_stores_its_xp() -> void:
+	ResourceManager.set_health(50.0)
+	var result := DrillSetResult.new(_body_drill)
+	var restored: float = BodyRefiningManager.pay_rep(_body_drill, Tier.PERFECT, result)
+	assert_eq(restored, 4.0, "the Health comes at once")
+	assert_eq(ResourceManager.get_health(), 54.0)
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "no Strength XP yet")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 0.0, "no Body XP yet")
+	assert_eq(result.get_stored_stat_xp(AttributeType.STRENGTH), 8.0, "the set holds it")
+	assert_eq(result.get_stored_stat_xp(AttributeType.BODY), 4.0)
+
+## An Auto rep stores 0.4 of a PERFECT rep's Strength XP, and none of the
+## drill's other stat.
+func test_an_auto_rep_stores_strength_at_the_auto_rate() -> void:
+	var result := DrillSetResult.new(_body_drill)
+	BodyRefiningManager.pay_rep(_body_drill, Tier.AUTO, result)
+	assert_almost_eq(result.get_stored_stat_xp(AttributeType.STRENGTH), 3.2, 0.0001)
+	assert_eq(result.get_stored_stat_xp(AttributeType.BODY), 0.0)
+
+## The set's end pays what its reps stored, one payment a stat, and the result
+## records what each stat took.
+func test_finishing_a_set_pays_its_stored_xp_once_a_stat() -> void:
 	var result := DrillSetResult.new(_body_drill)
 	BodyRefiningManager.pay_rep(_body_drill, Tier.PERFECT, result)
-	BodyRefiningManager.pay_rep(_body_drill, Tier.PERFECT, result)
-	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 16.0)
-	assert_eq(result.get_stat_xp(AttributeType.BODY), 8.0)
+	BodyRefiningManager.pay_rep(_body_drill, Tier.GOOD, result)
+	var paid: Array = []
+	var record: Callable = func(stat: AttributeType, _xp: float, _to_next: float) -> void: paid.append(stat)
+	CharacterManager.stat_xp_changed.connect(record)
+	BodyRefiningManager.finish_set(result)
+	CharacterManager.stat_xp_changed.disconnect(record)
+	assert_eq(paid, [AttributeType.STRENGTH, AttributeType.BODY], "one payment a stat")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 14.0, "8 + 6")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 7.0, "4 + 3")
+	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 14.0, "what Strength took")
+	assert_eq(result.get_stat_xp(AttributeType.BODY), 7.0)
+	assert_eq(result.get_stored_stat_xp(AttributeType.STRENGTH), 0.0, "nothing is left stored")
 	assert_false(result.is_stat_capped(AttributeType.STRENGTH))
 
-## A rep that reaches the cap pays Strength only what reaches it: the result
+## A set stopped short pays what it stored all the same, and counts nothing.
+func test_a_set_cut_short_pays_what_it_stored_and_counts_nothing() -> void:
+	var result := DrillSetResult.new(_starting_drill)
+	for i: int in 3:
+		BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
+	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.finish_set(result)
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 18.0, "three reps' XP")
+	assert_eq(_save_data.stats.sets_finished, 0, "a short set counts nothing")
+
+func test_stored_xp_is_paid_once() -> void:
+	var result := DrillSetResult.new(_starting_drill)
+	BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
+	BodyRefiningManager.pay_stored_xp(result)
+	BodyRefiningManager.pay_stored_xp(result)
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 6.0)
+	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 6.0)
+
+## A set whose XP reaches the cap pays Strength only what reaches it: the result
 ## holds what Strength took, and that the cap took the rest.
-func test_a_rep_that_reaches_the_cap_records_what_strength_took() -> void:
+func test_a_set_that_reaches_the_cap_records_what_strength_took() -> void:
 	var cap: int = CharacterManager.get_stat_level_cap()
 	CharacterManager.set_stat_level(AttributeType.STRENGTH, cap - 1)
 	CharacterManager.set_stat_level(AttributeType.STRENGTH, cap - 1, CharacterManager.get_stat_xp_to_next(AttributeType.STRENGTH) - 1.0)
 	var result := DrillSetResult.new(_starting_drill)
 	BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
-	assert_true(CharacterManager.is_stat_capped(AttributeType.STRENGTH), "precondition: the rep reached the cap")
+	BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
+	BodyRefiningManager.pay_stored_xp(result)
+	assert_true(CharacterManager.is_stat_capped(AttributeType.STRENGTH), "precondition: the set reached the cap")
 	assert_almost_eq(result.get_stat_xp(AttributeType.STRENGTH), 1.0, 0.0001, "Strength took the 1 XP that reached the cap")
 	assert_true(result.is_stat_capped(AttributeType.STRENGTH), "and the cap took the rest")
 
@@ -313,6 +366,7 @@ func test_a_capped_strength_takes_nothing_and_is_recorded_capped() -> void:
 	CharacterManager.set_stat_level(AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
 	var result := DrillSetResult.new(_starting_drill)
 	BodyRefiningManager.pay_rep(_starting_drill, Tier.PERFECT, result)
+	BodyRefiningManager.pay_stored_xp(result)
 	assert_eq(result.get_stat_xp(AttributeType.STRENGTH), 0.0)
 	assert_true(result.is_stat_capped(AttributeType.STRENGTH))
 
@@ -337,7 +391,7 @@ func test_the_set_session_snapshot() -> void:
 	BodyRefiningManager.update_set_session(4, 0.5)
 	assert_eq(BodyRefiningManager.get_set_rep(), 4)
 	assert_eq(BodyRefiningManager.get_rep_progress(), 0.5)
-	assert_almost_eq(BodyRefiningManager.get_set_progress(), 0.35, 0.0001, "three reps and a half of ten")
+	assert_almost_eq(BodyRefiningManager.get_set_progress(), 0.3, 0.0001, "the three reps that landed, of ten")
 	BodyRefiningManager.end_set_session()
 	assert_false(BodyRefiningManager.is_set_running())
 	assert_eq(BodyRefiningManager.get_set_rep(), 0)

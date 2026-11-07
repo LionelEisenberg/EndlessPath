@@ -3,11 +3,12 @@ extends DrillStage
 
 ## HorseStanceStage
 ## Horse Stance's scene: the figure with its hips and legs rimmed in brass, the
-## stance gauge over it, and an incense stick burning down over the set with the
-## seconds left under it. It draws its HorseStanceRun: the needle at the run's
-## depth and the arc where the run has it, lit in brass while the needle is in it
-## and in tan while out (two gauges, one showing). A rep's tier pops over the
-## gauge's deep end and its pellets leave from the needle's tip.
+## stance gauge over it, and an incense stick that counts the set, not seconds
+## (#143): it burns only while the needle is in the arc, a tenth of the stick a
+## rep, and is whole again for the next set. It draws its HorseStanceRun: the
+## needle at the run's depth and the arc where the run has it, lit in brass while a
+## rep's needle is in it and in tan otherwise (two gauges, one showing). A rep's
+## tier pops over the gauge's deep end and its pellets leave from the needle's tip.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -26,7 +27,6 @@ const EMBER_RISE: float = 18.0
 ## The ember flickers through its strip, a frame each EMBER_FRAME_USEC.
 const EMBER_FRAMES: int = 3
 const EMBER_FRAME_USEC: int = 200_000
-const SECONDS_FORMAT: String = "%d s"
 ## Where a rep's tier pops.
 const FLOATER_ANCHOR: Vector2 = Vector2(340, 236)
 
@@ -41,34 +41,37 @@ const PROGRESS: StringName = &"progress"
 @onready var _needle: ColorRect = %Needle
 @onready var _stick: TextureRect = %IncenseStick
 @onready var _ember: LacquerStripRect = %IncenseEmber
-@onready var _seconds: Label = %Seconds
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
-## How long a set of the drill runs, in microseconds.
-var _set_usec: int = 0
+## How many reps a set of the drill has: the incense burns a tenth of its stick
+## each, for ten.
+var _reps: int = 10
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Reads how long a set of `drill` runs, for the incense.
+## Reads how many reps a set of `drill` has, for the incense.
 func setup(drill: DrillData) -> void:
-	_set_usec = roundi(drill.rep_seconds * 1_000_000.0) * drill.reps_per_set
+	_reps = maxi(drill.reps_per_set, 1)
 
-## The needle standing, the arc where a set starts, and the incense whole.
+## The needle standing, the arc at the top where each rep starts, and the incense
+## whole.
 func show_rest() -> void:
 	_draw_gauge(0.0, HorseStanceRun.BAND_START, false)
-	_draw_incense(_set_usec)
+	_draw_incense(0.0)
 
-## The needle and the arc where `run` has them at `t_usec`, and the incense burnt
-## down to what is left of the set.
+## The needle and the arc where `run` has them at `t_usec`, brass while a rep's
+## needle is in the arc, and the incense burnt down by the reps that landed and the
+## hold of the rep in play.
 func show_run(run: DrillRun, t_usec: int) -> void:
 	var stance := run as HorseStanceRun
-	_draw_gauge(stance.marker_at(t_usec), stance.band_centre_at(t_usec), stance.is_inside_at(t_usec))
-	_draw_incense(maxi(0, _set_usec - t_usec))
+	var inside: bool = stance.is_rep_in_play() and stance.is_inside_at(t_usec)
+	_draw_gauge(stance.marker_at(t_usec), stance.band_centre_at(t_usec), inside)
+	_draw_incense((stance.get_judged_count() + stance.hold_progress()) / _reps)
 
 ## The ember flickers.
 func tick(now_usec: int) -> void:
@@ -102,12 +105,9 @@ func _draw_gauge(depth: float, band_centre: float, inside: bool) -> void:
 	_gauge_lit.visible = inside
 	_gauge_dim.visible = not inside
 
-## The stick burnt down to what is left of the set, the ember on its top, and the
-## seconds left under it.
-func _draw_incense(left_usec: int) -> void:
-	var share: float = float(left_usec) / _set_usec if _set_usec > 0 else 1.0
-	var height: float = snappedf(STICK_FULL_PX * share, 2.0)
+## The stick burnt down by `burnt` of its height, 0 to 1, with the ember on its top.
+func _draw_incense(burnt: float) -> void:
+	var height: float = snappedf(STICK_FULL_PX * (1.0 - clampf(burnt, 0.0, 1.0)), 2.0)
 	_stick.position.y = STICK_FOOT_Y - height
 	_stick.size.y = height
 	_ember.position.y = STICK_FOOT_Y - height - EMBER_RISE
-	_seconds.text = SECONDS_FORMAT % ceili(left_usec / 1_000_000.0)

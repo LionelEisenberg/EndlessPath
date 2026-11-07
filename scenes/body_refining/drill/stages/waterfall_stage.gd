@@ -5,12 +5,12 @@ extends DrillStage
 ## Waterfall Tempering's scene: a close-up under the falls, the figure's head and
 ## shoulders rimmed in brass, the falls streaming down in 2 px steps, and a brass
 ## brace line over the head between two rails marked with the tiers' windows at
-## the surges' speed. It draws its WaterfallRun: each rep's surge of foam rides
-## down the falls from its rep's start and lands on the line at its target. A surge
-## braced with a scored press is gone, and the line rings: brass and swelling for
-## a Perfect or Good press, tan for an OK one. Any other surge crashes through the
-## line. A rep's tier pops beside the line and its pellets leave from the line's
-## middle.
+## the surges' speed. It draws its WaterfallRun: the next surge waiting at the
+## ledge until a press sends it (#143), and the surge sent riding down the falls to
+## land on the line at its target. A surge braced with a scored press is gone, and
+## the line rings: brass and swelling for a Perfect or Good press, tan for an OK
+## one. Any other surge crashes through the line. A rep's tier pops beside the line
+## and its pellets leave from the line's middle.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -45,30 +45,46 @@ const PELLET_ORIGIN: Vector2 = Vector2(262, 472)
 
 @onready var _falls: LacquerStripRect = %Falls
 @onready var _surge: TextureRect = %Surge
+@onready var _waiting_surge: TextureRect = %WaitingSurge
 @onready var _ring: LacquerStripRect = %Ring
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
+
+## How many surges a set of the drill sends.
+var _reps: int = 10
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## The first surge waiting at the top of the falls, and no ring.
+## Reads how many surges a set of `drill` sends.
+func setup(drill: DrillData) -> void:
+	_reps = drill.reps_per_set
+
+## The first surge waiting at the ledge, none riding, and no ring.
 func show_rest() -> void:
-	_surge.visible = true
-	_draw_surge(LEAD_PX)
+	_surge.visible = false
+	_waiting_surge.visible = true
 	_ring.visible = false
 
-## The surge of the rep in play where `run` has it at `t_usec`, and the ring of a
-## surge braced in the last moments.
+## The surge sent last where `run` has it at `t_usec` (riding down, or after a
+## Miss falling on through the line), the next waiting at the ledge while none
+## rides and surges are left, and the ring of a surge braced in the last moments.
 func show_run(run: DrillRun, t_usec: int) -> void:
 	var falls := run as WaterfallRun
 	var judgements: Array[DrillRun.Judgement] = run.get_judgements()
-	var rep: int = run.rep_at(t_usec)
-	var landing: int = falls.target_usec(rep)
-	var above: float = float(landing - t_usec) * LEAD_PX / WaterfallRun.LEAD_USEC
-	var braced: bool = rep < judgements.size() and judgements[rep].tier != Tier.MISS
-	_surge.visible = t_usec >= landing - WaterfallRun.LEAD_USEC and not braced and above >= -CRASH_PX
-	if _surge.visible:
-		_draw_surge(above)
+	var in_play: int = falls.rep_in_play()
+	var rep: int = in_play if in_play >= 0 else judgements.size() - 1
+	_surge.visible = false
+	if rep >= 0:
+		var above: float = float(falls.target_usec(rep) - t_usec) * LEAD_PX / WaterfallRun.LEAD_USEC
+		var braced: bool = rep < judgements.size() and judgements[rep].tier != Tier.MISS
+		_surge.visible = not braced and above >= -CRASH_PX
+		if _surge.visible:
+			_draw_surge(above)
+	_waiting_surge.visible = in_play < 0 and judgements.size() < _reps
 	_ring.visible = false
 	if not judgements.is_empty():
 		var last: DrillRun.Judgement = judgements[judgements.size() - 1]

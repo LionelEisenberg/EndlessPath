@@ -4,38 +4,47 @@ extends Control
 ## DrillPlay
 ## The drill being played on the body refining board: the scene of the drill's
 ## input (a DrillStage under Stages, one for each input kind, the drill's alone
-## showing), ten rep beads under it and a pair of floaters. The drill's run
+## showing), ten rep beads under it, a brass ring on the rep the player is on, the
+## beads' brass frame, and a pair of floaters. The drill's run
 ## (DrillRun.for_drill()) judges, the stage draws, and this plays the set.
 ##
-## The first press of the drill's input (drill_press: Space or the left mouse
-## button) starts a set at that moment on clock_usec. On the hold drills that press
-## is also the first lift or sink; on the others it only starts the set. Each press
-## after it is judged on the clock as it arrives, aimed where it was made (a mouse
-## press's point, else the pointer's), and each frame judges what the passing of
-## time decided (a drop at the top, a leaf landing, a rep nobody played). Each
-## judged rep is paid at once through BodyRefiningManager.pay_rep() into the set's
-## result, a MISS included (it pays nothing), so a set stopped midway keeps what its
-## reps paid. Its bead lights in its tier's colour, its tier pops where the stage
-## says in that colour, and under it a Miss's reason, or, in tan, what a scored rep
-## could not pay: a trained stat's icon with "capped", the Health heart with "full".
-## Then rep_judged reports the rep, the Health it restored and the XP each stat
-## took, for the board's pellets, which leave from get_pellet_origin(). Every timed
-## effect reads clock_usec.
+## A set is ten reps at the player's own pace (#143): no clock runs. The first
+## press of the drill's input (drill_press: Space or the left mouse button) starts
+## a set at that moment on clock_usec, and is its first rep's input: a lift, a
+## sink, a shake of the branch, a surge sent down. Each press is judged on the
+## clock as it arrives, aimed where it was made (a mouse press's point, else the
+## pointer's), and each frame judges what the passing of time decided, which is
+## only ever a rep's own motion (a stone dropping at the top, a stance lost, a leaf
+## landing, a surge crashing through). Each judged rep restores its Health at once
+## through BodyRefiningManager.pay_rep() and stores its XP on the set's result, a
+## MISS included (it earns nothing). Its bead lights in its tier's colour, its tier
+## pops where the stage says in that colour, and under it a Miss's reason, or, in
+## tan, what a scored rep could not pay: a trained stat's icon with "capped" while
+## that stat is capped, the Health heart with "full". Then rep_judged reports the
+## rep, the Health it restored and the XP each stat stored, for the board's
+## pellets, which leave from get_pellet_origin(), and, at the set's end, from each
+## bead (get_bead_origin()). Every timed effect reads clock_usec.
 ##
 ## While a set runs it keeps BodyRefiningManager's set session up to date for the
-## Now strip. Once the run is over it counts the set (finish_set()) and emits
-## set_completed; the next press starts another set, with its beads empty. The hold
-## belongs to the kind of input that started it, key or mouse button: only that
-## kind coming up lets it go, a key repeat is no press, and a focus loss always lets
-## go: the window's, which every build sends (the Web build sends no other), or the
-## application's. stop_set() drops a set in progress, counting nothing, and so do
-## hiding the stage and readying a drill.
+## Now strip (the rep the player is on and the rep in play's motion), and the ring
+## stands on the first bead not lit. Once the run is over the set ends: its XP is
+## paid and it is counted (finish_set()), the beads' frame flashes twice, and
+## set_completed is emitted; the next press starts another set, with its beads
+## empty. The hold belongs to the kind of input that started it, key or mouse
+## button: only that kind coming up lets it go, a key repeat is no press, and a
+## focus loss always lets go: the window's, which every build sends (the Web build
+## sends no other), or the application's. stop_set() drops a set in progress,
+## paying its stored XP and counting nothing, and so do hiding the stage and
+## readying a drill. Closing the window mid-set pays the stored XP and saves again,
+## since the save on quit comes first.
 ##
 ## Auto (#110): with set_auto_play() on and the drill's Auto unlocked
-## (is_auto_running()), the play starts a set by itself whenever none runs, and the
-## run plays it (DrillRun.play_auto()). Each rep it judges is paid as an AUTO rep:
-## "Auto" pops in tan, and its bead lights Perfect's frame dimmed. A press while
-## Auto runs plays nothing. Turning Auto on or off drops a set in progress.
+## (is_auto_running()), the play starts a set by itself whenever none runs and
+## Auto's pace allows (a set no sooner than DrillRun.get_auto_set_usec() after the
+## last one's start), and the run plays it (DrillRun.play_auto()). Each rep it
+## judges is paid as an AUTO rep: "Auto" pops in tan, and its bead lights
+## Perfect's frame dimmed. A press while Auto runs plays nothing. Turning Auto on or
+## off drops a set in progress, and the next starts at once.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -43,10 +52,10 @@ extends Control
 
 ## The first press started a set.
 signal set_started
-## A rep was judged and paid: what it restored and the XP each stat took
-## (AttributeType to float), for the board's pellets.
+## A rep was judged and paid: the Health it restored and the XP each stat stored
+## for the set's end (AttributeType to float), for the board's pellets.
 signal rep_judged(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary)
-## A set was played to its last rep, and counted.
+## A set was played to its last rep: its XP is paid and it is counted.
 signal set_completed(result: DrillSetResult)
 
 #-----------------------------------------------------------------------------
@@ -89,6 +98,10 @@ const EMPTY_BEAD: int = 0
 ## An Auto rep lights Perfect's frame, dimmed by AUTO_BEAD_TINT.
 const BEAD_FRAMES: Dictionary = {Tier.PERFECT: 1, Tier.GOOD: 2, Tier.OK: 3, Tier.MISS: 4, Tier.AUTO: 1}
 const AUTO_BEAD_TINT: Color = Color(0.62, 0.62, 0.62, 1.0)
+## The ring stands this far up and left of the bead it marks, around it.
+const MARK_OFFSET: Vector2 = Vector2(-2, -2)
+## How many times the beads' frame flashes as a set ends.
+const SET_FLASH_TIMES: int = 2
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -96,6 +109,8 @@ const AUTO_BEAD_TINT: Color = Color(0.62, 0.62, 0.62, 1.0)
 
 @onready var _stages_box: Control = %Stages
 @onready var _beads_box: HBoxContainer = %Beads
+@onready var _bead_mark: TextureRect = %BeadMark
+@onready var _set_frame: LacquerFrameOverlay = %SetFrame
 @onready var _word_floater: LacquerFloater = %WordFloater
 @onready var _line_floater: LacquerFloater = %LineFloater
 
@@ -124,10 +139,15 @@ var _hold_by_mouse: bool = false
 ## Where the tier word popped, before its rise.
 var _word_at: Vector2 = Vector2.ZERO
 var _beads: Array[LacquerStripRect] = []
+## Whether each bead is lit in the set running or last run.
+var _lit: Array[bool] = []
 ## Whether Auto is on (the board's toggle), and whether Auto plays the set running
 ## or last run.
 var _auto_play: bool = false
 var _auto_set: bool = false
+## When Auto's pace lets its next set start, on clock_usec: 0 when it may start at
+## once.
+var _auto_ready_usec: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -136,6 +156,7 @@ var _auto_set: bool = false
 func _ready() -> void:
 	for child: Node in _beads_box.get_children():
 		_beads.append(child as LacquerStripRect)
+		_lit.append(false)
 	for child: Node in _stages_box.get_children():
 		var stage := child as DrillStage
 		if stage != null:
@@ -147,23 +168,29 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _stage != null:
 		_stage.tick(clock_usec.call())
-	if not _set_running and is_auto_running():
+	if not _set_running and is_auto_running() and clock_usec.call() >= _auto_ready_usec:
 		_start_set(true)
 	if _set_running:
 		var t: int = _set_time()
 		_apply(_run.play_auto(t) if _auto_set else _run.advance(t))
 		if _set_running:
 			_stage.show_run(_run, t)
-			BodyRefiningManager.update_set_session(_run.rep_at(t) + 1, _run.rep_progress_at(t))
+			BodyRefiningManager.update_set_session(mini(_run.get_judged_count() + 1, _drill.reps_per_set), _run.rep_progress_at(t))
 			var end_usec: int = _run.get_end_usec()
 			if end_usec >= 0 and t >= end_usec:
 				_finish()
+	_place_mark()
 	_place_floaters()
 
 func _notification(what: int) -> void:
 	var focus_lost: bool = what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT
 	if focus_lost and _holding:
 		_let_go()
+	# The save on quit runs first (PersistenceManager is an earlier autoload), so a
+	# set's stored XP is paid here and saved again.
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and _set_running:
+		BodyRefiningManager.pay_stored_xp(_result)
+		PersistenceManager.autosave()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -197,17 +224,25 @@ func handle_press_event(event: InputEvent) -> bool:
 		_on_release(event)
 	return true
 
-## Drops a set in progress: its reps stay paid, but it is neither counted nor
-## reported. The session ends, the hold is let go, the floaters hide and the stage
-## goes back to rest. The beads keep what they showed.
+## Drops a set in progress: its reps' Health stays, the XP they stored is paid,
+## and it is neither counted nor reported. A set whose last rep has landed, its
+## piece still coming back to rest, is finished instead: paid, counted and
+## reported. The session ends, the hold is let go, the floaters and the ring hide
+## and the stage goes back to rest. The beads keep what they showed. Auto's next
+## set may start at once.
 func stop_set() -> void:
-	if _set_running:
+	if _set_running and _result.is_complete():
+		_finish()
+	elif _set_running:
 		_set_running = false
+		BodyRefiningManager.pay_stored_xp(_result)
 		BodyRefiningManager.end_set_session()
 	_holding = false
+	_auto_ready_usec = 0
 	if is_node_ready():
 		_word_floater.stop()
 		_line_floater.stop()
+		_bead_mark.hide()
 		if _stage != null:
 			_stage.show_rest()
 
@@ -254,6 +289,12 @@ func get_stage() -> DrillStage:
 func get_pellet_origin(judgement: DrillRun.Judgement) -> Vector2:
 	return _stage.get_global_transform() * _stage.get_pellet_origin(judgement)
 
+## Returns bead `rep`'s middle, in the screen's space: where the XP a rep stored
+## leaves from when its set ends.
+func get_bead_origin(rep: int) -> Vector2:
+	var bead: LacquerStripRect = _beads[rep]
+	return bead.get_global_transform() * (bead.size / 2.0)
+
 #-----------------------------------------------------------------------------
 # INPUT
 #-----------------------------------------------------------------------------
@@ -263,11 +304,9 @@ func _on_press(event: InputEvent) -> void:
 		return
 	_holding = true
 	_hold_by_mouse = event is InputEventMouseButton
-	var starts: bool = not _set_running
-	if starts:
+	if not _set_running:
 		_start_set()
-	if not starts or _run.judges_starting_press():
-		_apply(_run.press_at(_set_time(), _press_point(event)))
+	_apply(_run.press_at(_set_time(), _press_point(event)))
 
 func _on_release(event: InputEvent) -> void:
 	if _holding and (event is InputEventMouseButton) == _hold_by_mouse:
@@ -327,39 +366,55 @@ func _apply(judgements: Array[DrillRun.Judgement]) -> void:
 		if _auto_set:
 			judgement.tier = Tier.AUTO
 			judgement.miss = Miss.NONE
-		var before: Dictionary = _stat_xp_now()
+		var before: Dictionary = _stored_xp_now()
 		var health: float = BodyRefiningManager.pay_rep(_drill, judgement.tier, _result)
 		var stat_xp: Dictionary = {}
 		for stat: AttributeType in before:
-			stat_xp[stat] = _result.get_stat_xp(stat) - before[stat]
+			stat_xp[stat] = _result.get_stored_stat_xp(stat) - before[stat]
 		_beads[judgement.rep].set_frame(BEAD_FRAMES[judgement.tier])
 		_beads[judgement.rep].self_modulate = AUTO_BEAD_TINT if judgement.tier == Tier.AUTO else Color.WHITE
+		_lit[judgement.rep] = true
 		_stage.show_judgement(judgement)
 		_pop(judgement, health, stat_xp)
 		rep_judged.emit(judgement, health, stat_xp)
 		if not _set_running:
 			return
 
-## The XP each stat the drill trains has taken this set so far. An Auto set trains
+## The XP each stat the drill trains has stored this set so far. An Auto set trains
 ## Strength alone: its other stat is not left unpaid, so no "capped" pops for it.
-func _stat_xp_now() -> Dictionary:
-	var xp: Dictionary = {AttributeType.STRENGTH: _result.get_stat_xp(AttributeType.STRENGTH)}
+func _stored_xp_now() -> Dictionary:
+	var xp: Dictionary = {AttributeType.STRENGTH: _result.get_stored_stat_xp(AttributeType.STRENGTH)}
 	if _drill.has_minor_stat() and not _auto_set:
-		xp[_drill.minor_stat as AttributeType] = _result.get_stat_xp(_drill.minor_stat as AttributeType)
+		xp[_drill.minor_stat as AttributeType] = _result.get_stored_stat_xp(_drill.minor_stat as AttributeType)
 	return xp
 
 ## Empties every bead.
 func _empty_beads() -> void:
-	for bead: LacquerStripRect in _beads:
-		bead.set_frame(EMPTY_BEAD)
-		bead.self_modulate = Color.WHITE
+	for index: int in _beads.size():
+		_beads[index].set_frame(EMPTY_BEAD)
+		_beads[index].self_modulate = Color.WHITE
+		_lit[index] = false
 
-## The run is over: the set is counted and reported.
+## The run is over: the set's XP is paid and it is counted, the beads' frame
+## flashes, and the set is reported. After an Auto set, Auto's next waits for its
+## pace.
 func _finish() -> void:
 	_set_running = false
 	_stage.show_rest()
+	_bead_mark.hide()
 	BodyRefiningManager.finish_set(_result)
+	_set_frame.flash(SET_FLASH_TIMES)
+	if _auto_set:
+		_auto_ready_usec = _start_usec + _run.get_auto_set_usec()
 	set_completed.emit(_result)
+
+## Stands the ring on the rep the player is on, the first bead not lit, while a
+## set runs; hides it otherwise.
+func _place_mark() -> void:
+	var index: int = _lit.find(false) if _set_running else -1
+	_bead_mark.visible = index >= 0
+	if index >= 0:
+		_bead_mark.position = _beads_box.position + _beads[index].position + MARK_OFFSET
 
 #-----------------------------------------------------------------------------
 # DRAWING
@@ -380,13 +435,13 @@ func _pop(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary) -> 
 			_line_floater.pop_parts(parts, ThemeConstants.LACQUER_TAN)
 	_place_floaters()
 
-## What a scored rep could not pay: the icon of each stat it trains that took none
-## of its XP with "capped" (Strength first), and the Health heart with "full" when
-## it restored no Health.
+## What a scored rep could not pay: the icon of each stat it trains that is capped,
+## so its stored XP will be lost, with "capped" (Strength first), and the Health
+## heart with "full" when it restored no Health.
 func _unpaid_parts(health: float, stat_xp: Dictionary) -> Array:
 	var parts: Array = []
 	for stat: AttributeType in stat_xp:
-		if stat_xp[stat] > 0.0:
+		if not CharacterManager.is_stat_capped(stat):
 			continue
 		if not parts.is_empty():
 			parts.append(PART_GAP)

@@ -1,10 +1,13 @@
 extends GutTest
 
 ## Unit tests for HorseStanceRun, the judge of one set of Horse Stance: hold and the
-## stance gauge's needle sinks deeper, let go and it rises, and each 4 s rep is
-## judged by how much of it the needle spent inside an arc drifting along the gauge. Every time is on
-## the set's own clock in microseconds, from the first press. The arcs here are
-## built in each test, still or moving along known lines, so every share is exact.
+## stance gauge's needle sinks deeper, let go and it rises. Each rep is one stance
+## (#143): a press sinks the player into it, it lands once the needle has spent
+## HOLD_USEC inside an arc drifting along the gauge, judged by the share of the rep
+## spent inside, and then the needle stands and the arc returns to the top. Every
+## time is on the set's own clock in microseconds, from the first press. The arcs
+## here are built in each test, still or moving along known lines, so every share
+## and every time is exact.
 
 const Tier = DrillRules.Tier
 const Miss = DrillRun.Miss
@@ -17,7 +20,7 @@ const EPS: float = 0.000001
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## A drill of ten 4 s reps, as Horse Stance's.
+## A drill of ten reps with a 4 s Auto pace, as Horse Stance's.
 func _drill() -> DrillData:
 	var drill := DrillData.new()
 	drill.id = "test_stance"
@@ -30,12 +33,12 @@ func _drill() -> DrillData:
 	drill.reps_per_set = 10
 	return drill
 
-## A run whose arc's centre passes through `centres` at `times` (usec), straight
-## between them and held after the last.
+## A run whose every rep's arc passes through `centres` at `times` (usec from the
+## rep's start), straight between them and held after the last.
 func _run(times: Array, centres: Array) -> HorseStanceRun:
-	return HorseStanceRun.new(_drill(), PackedInt64Array(times), PackedFloat64Array(centres))
+	return HorseStanceRun.new(_drill(), [[PackedInt64Array(times), PackedFloat64Array(centres)]])
 
-## A run whose arc stands still with its centre at `centre`.
+## A run whose every rep's arc stands still with its centre at `centre`.
 func _still(centre: float) -> HorseStanceRun:
 	return _run([0], [centre])
 
@@ -51,19 +54,6 @@ func _play(run: HorseStanceRun, events: Array, until: int) -> Array[DrillRun.Jud
 	judged.append_array(run.advance(until))
 	return judged
 
-## A press at 0 and a release at `first_release`, then a tap every 0.1 s (let go,
-## press, let go...) up to and including `last`, which holds the needle between the
-## depth it was let go at and 0.05 shallower.
-func _hover(first_release: int, last: int) -> Array:
-	var events: Array = [[0, true]]
-	var t: int = first_release
-	var down: bool = false
-	while t <= last:
-		events.append([t, down])
-		down = not down
-		t += 100_000
-	return events
-
 #-----------------------------------------------------------------------------
 # THE NEEDLE
 #-----------------------------------------------------------------------------
@@ -74,114 +64,188 @@ func test_the_needle_sinks_while_held_and_rises_when_let_go() -> void:
 	assert_almost_eq(run.marker_at(S), 0.5, EPS, "held a second: half way down the gauge")
 	run.release(S)
 	assert_almost_eq(run.marker_at(1_500_000), 0.25, EPS, "let go: it rises as fast")
+	run.advance(3 * S)
 	assert_eq(run.marker_at(3 * S), 0.0, "and stands")
 
+## Held past the deepest the needle stays there; it never drops. Out of the arc
+## at 0.5 from 1.24 s on, the rep is lost once 4.67 s of it were spent out.
 func test_the_needle_stops_at_the_deepest_and_never_drops() -> void:
 	var run: HorseStanceRun = _still(0.5)
 	run.press(0)
-	assert_eq(run.advance(3 * S).size(), 0, "nothing is judged before the rep's end")
-	assert_eq(run.marker_at(3 * S), 1.0, "held past the end, the needle stays there")
-	var judged: Array[DrillRun.Judgement] = run.advance(4 * S)
-	assert_eq(judged.size(), 1, "the rep is judged at its end")
+	assert_eq(run.advance(3 * S).size(), 0, "nothing is judged while the rep can still land")
+	assert_eq(run.marker_at(3 * S), 1.0, "held past the deepest, the needle stays there")
+	var judged: Array[DrillRun.Judgement] = run.advance(6 * S)
+	assert_eq(judged.size(), 1, "the rep is lost")
 	if judged.size() == 1:
-		assert_eq(judged[0].at_usec, 4 * S)
-		assert_ne(judged[0].miss, Miss.DROPPED, "the needle never drops")
-		assert_eq(judged[0].height, 1.0, "it is judged where it stands")
+		assert_eq(judged[0].miss, Miss.TOO_DEEP, "deep longer than shallow")
+		assert_eq(judged[0].at_usec, 1_240_000 + HorseStanceRun.OUT_LIMIT_USEC - 760_000, "the moment its time out reached the limit")
+		assert_eq(judged[0].height, 1.0, "judged where the needle stood")
 
 #-----------------------------------------------------------------------------
 # A REP
 #-----------------------------------------------------------------------------
 
-## The share is the part of the rep the needle spent in the arc.
-func test_a_rep_is_judged_by_its_time_in_the_band() -> void:
-	var cases: Array[Dictionary] = [
-		# An arc near the standing end: the needle sunk 0.4 s and let rise never leaves it.
-		{"name": "the whole rep inside", "centre": 0.1, "events": [[0, true], [400_000, false]], "tier": Tier.PERFECT, "miss": Miss.NONE},
-		# Held deep through an arc in the middle: inside from 0.76 s to 1.24 s only,
-		# and past it, too deep, for longer than it was under it.
-		{"name": "held through the arc", "centre": 0.5, "events": [[0, true]], "tier": Tier.MISS, "miss": Miss.TOO_DEEP},
-		# Left standing short of an arc in the middle: too shallow all the rep.
-		{"name": "left short of the arc", "centre": 0.5, "events": [[0, true], [0, false]], "tier": Tier.MISS, "miss": Miss.TOO_SHALLOW},
-		# In the arc from 0.36 s, then kept there by taps: 3.64 s of 4.
-		{"name": "kept in the arc", "centre": 0.3, "events": _hover(600_000, 3_900_000), "tier": Tier.PERFECT, "miss": Miss.NONE},
-		# The same until 2.9 s, then held: out of the band at 3.24 s, 2.88 s inside.
-		{"name": "kept in, then held out", "centre": 0.3, "events": _hover(600_000, 2_800_000) + [[2_900_000, true]], "tier": Tier.GOOD, "miss": Miss.NONE},
-		# Held out at 2.24 s: 1.88 s inside.
-		{"name": "held out early", "centre": 0.3, "events": _hover(600_000, 1_800_000) + [[1_900_000, true]], "tier": Tier.OK, "miss": Miss.NONE},
-	]
-	for case: Dictionary in cases:
-		var judged: Array[DrillRun.Judgement] = _play(_still(case["centre"]), case["events"], 4 * S)
-		assert_eq(judged.size(), 1, "%s: one rep judged" % case["name"])
-		if judged.size() != 1:
-			continue
-		assert_eq(judged[0].rep, 0, "%s: the first rep" % case["name"])
-		assert_eq(judged[0].tier, case["tier"], "%s: the tier" % case["name"])
-		assert_eq(judged[0].miss, case["miss"], "%s: the reason" % case["name"])
-		assert_eq(judged[0].at_usec, 4 * S, "%s: judged at the rep's end" % case["name"])
+## With the arc around the standing needle the rep is inside from its press: it
+## lands the moment it has held the arc 2 s, a Perfect stance.
+func test_a_rep_inside_from_the_start_lands_after_its_hold() -> void:
+	var judged: Array[DrillRun.Judgement] = _play(_still(HorseStanceRun.BAND_START), [[0, true], [100_000, false]], 3 * S)
+	assert_eq(judged.size(), 1, "one rep")
+	if judged.size() == 1:
+		assert_eq(judged[0].rep, 0)
+		assert_eq(judged[0].tier, Tier.PERFECT)
+		assert_eq(judged[0].at_usec, HorseStanceRun.HOLD_USEC, "2 s in the arc")
 
-## The arc moves: a needle left standing is inside only once the arc has come
-## back to it, from 1.9 s here, 2.1 s of the rep.
-func test_a_moving_band_counts_the_time_inside() -> void:
-	var run: HorseStanceRun = _run([0, 2 * S], [0.5, 0.1])
-	run.press(0)
-	run.release(0)
-	run.advance(S)
-	assert_false(run.is_inside_at(S), "the arc is still deeper than the needle at 1 s")
-	run.advance(3 * S)
-	assert_true(run.is_inside_at(3 * S), "and over it at 3 s")
-	var judged: Array[DrillRun.Judgement] = run.advance(4 * S)
+## Held deep through the arc at the gauge's deep end: out until 1.52 s, then in it
+## until it lands at 3.52 s, 2 s of 3.52: OK.
+func test_a_rep_lands_once_the_needle_has_held_the_arc() -> void:
+	var judged: Array[DrillRun.Judgement] = _play(_still(0.88), [[0, true]], 5 * S)
 	assert_eq(judged.size(), 1)
 	if judged.size() == 1:
-		assert_eq(judged[0].tier, Tier.OK, "2.1 s of 4 inside")
+		assert_eq(judged[0].at_usec, 3_520_000)
+		assert_eq(judged[0].tier, Tier.OK, "2 s in the arc over 3.52 s")
+		assert_eq(judged[0].height, 1.0, "the needle at the deepest")
+
+## The share is the part of the rep the needle spent in the arc, #97's tiers. Held
+## `h` from the standing needle under an arc at the top, the needle is out from
+## 0.48 s to 2h - 0.48 s, and the rep lands at 2h + 1.04 s.
+func test_a_rep_is_judged_by_its_share_in_the_arc() -> void:
+	var cases: Array[Dictionary] = [
+		{"held": 655_000, "at": 2_350_000, "tier": Tier.PERFECT, "miss": Miss.NONE},
+		{"held": 980_000, "at": 3_000_000, "tier": Tier.GOOD, "miss": Miss.NONE},
+		{"held": 1_480_000, "at": 4_000_000, "tier": Tier.OK, "miss": Miss.NONE},
+		{"held": 4 * S, "at": 480_000 + HorseStanceRun.OUT_LIMIT_USEC, "tier": Tier.MISS, "miss": Miss.TOO_DEEP},
+	]
+	for case: Dictionary in cases:
+		var what: String = "held %d us" % case["held"]
+		var judged: Array[DrillRun.Judgement] = _play(_still(HorseStanceRun.BAND_START), [[0, true], [case["held"], false]], 8 * S)
+		assert_eq(judged.size(), 1, "%s: one rep" % what)
+		if judged.size() != 1:
+			continue
+		assert_eq(judged[0].at_usec, case["at"], "%s: when it ended" % what)
+		assert_eq(judged[0].tier, case["tier"], "%s: the tier" % what)
+		assert_eq(judged[0].miss, case["miss"], "%s: the reason" % what)
+
+## Left standing under an arc at the deep end, the rep is lost the moment it has
+## been out of the arc 4.67 s: too shallow.
+func test_a_rep_out_of_the_arc_too_long_is_a_miss() -> void:
+	var judged: Array[DrillRun.Judgement] = _play(_still(0.88), [[0, true], [100_000, false]], 10 * S)
+	assert_eq(judged.size(), 1)
+	if judged.size() == 1:
+		assert_eq(judged[0].tier, Tier.MISS)
+		assert_eq(judged[0].miss, Miss.TOO_SHALLOW)
+		assert_eq(judged[0].at_usec, HorseStanceRun.OUT_LIMIT_USEC)
+
+## The arc moves along its path from the rep's press: a needle left standing is
+## inside only while the arc is over it.
+func test_a_moving_arc_counts_the_time_inside() -> void:
+	var run: HorseStanceRun = _run([0, S, 2 * S], [0.12, 0.5, 0.12])
+	run.press(0)
+	run.release(100_000)
+	run.advance(S)
+	assert_false(run.is_inside_at(S), "the arc has left the standing needle at 1 s")
+	run.advance(2_900_000)
+	assert_true(run.is_inside_at(2_900_000), "and is back over it by 2.9 s")
+	assert_true(run.is_rep_in_play(), "the rep runs on")
+
+#-----------------------------------------------------------------------------
+# BETWEEN REPS
+#-----------------------------------------------------------------------------
+
+## After a rep the needle rises whatever the press, and the arc slides back to
+## the top with it, both arriving as the needle stands.
+func test_after_a_rep_the_needle_stands_and_the_arc_returns() -> void:
+	var run: HorseStanceRun = _still(0.88)
+	_play(run, [[0, true]], 3_520_000)
+	assert_false(run.is_rep_in_play(), "precondition: the rep landed at 3.52 s")
+	run.advance(4_520_000)
+	assert_almost_eq(run.marker_at(4_520_000), 0.5, EPS, "half way up a second later, though still held")
+	assert_almost_eq(run.band_centre_at(4_520_000), 0.5, EPS, "the arc half way back")
+	run.advance(5_520_000)
+	assert_eq(run.marker_at(5_520_000), 0.0, "standing")
+	assert_almost_eq(run.band_centre_at(5_520_000), HorseStanceRun.BAND_START, EPS, "the arc at the top")
+
+func test_a_press_held_through_the_landing_sinks_nothing() -> void:
+	var run: HorseStanceRun = _still(0.88)
+	_play(run, [[0, true]], 20 * S)
+	assert_eq(run.get_judged_count(), 1, "one rep, then nothing")
+	assert_false(run.is_rep_in_play(), "the press still held starts no rep")
+	assert_eq(run.marker_at(20 * S), 0.0)
+
+## A press made while standing up sinks the player once they stand.
+func test_a_press_made_while_standing_up_sinks_once_standing() -> void:
+	var run: HorseStanceRun = _still(0.88)
+	_play(run, [[0, true], [3_600_000, false], [4 * S, true]], 5 * S)
+	assert_false(run.is_rep_in_play(), "still standing up at 5 s")
+	run.advance(5_520_000)
+	assert_true(run.is_rep_in_play(), "the rep starts as the needle stands")
+	run.advance(6_020_000)
+	assert_almost_eq(run.marker_at(6_020_000), 0.25, EPS, "sinking from 5.52 s")
+
+## Review Focus 2: between reps nothing moves on. The arc rests at the top and a
+## minute's wait judges nothing.
+func test_a_pause_judges_nothing_and_the_arc_stays_still() -> void:
+	var run: HorseStanceRun = _run([0, S], [0.12, 0.5])
+	run.press(0)
+	run.release(100_000)
+	assert_eq(run.advance(5 * S).size(), 1, "precondition: the first rep, lost standing")
+	assert_eq(run.advance(65 * S).size(), 0, "a minute's wait judges nothing")
+	assert_almost_eq(run.band_centre_at(65 * S), HorseStanceRun.BAND_START, EPS, "the arc rests at the top")
+	assert_false(run.is_rep_in_play())
 
 #-----------------------------------------------------------------------------
 # A SET
 #-----------------------------------------------------------------------------
 
-## Review Focus 1: a hitch never changes a result. Each rep is judged at its own
-## slot's end, in order, however late the frame comes.
-func test_a_long_gap_judges_each_rep_in_order() -> void:
-	var run: HorseStanceRun = _still(0.1)
-	run.press(0)
-	run.release(400_000)
-	var judged: Array[DrillRun.Judgement] = run.advance(41 * S)
+func test_the_set_ends_once_the_needle_stands_after_the_tenth() -> void:
+	var run: HorseStanceRun = _still(HorseStanceRun.BAND_START)
+	var judged: Array[DrillRun.Judgement] = []
+	for rep: int in 10:
+		judged.append_array(run.press(rep * 3 * S))
+		judged.append_array(run.release(rep * 3 * S + 100_000))
+		if rep < 9:
+			assert_eq(run.get_end_usec(), -1, "no end before the last rep")
+	judged.append_array(run.advance(40 * S))
 	assert_eq(judged.size(), 10, "ten reps")
 	for index: int in judged.size():
 		assert_eq(judged[index].rep, index, "in order")
-		assert_eq(judged[index].tier, Tier.PERFECT, "rep %d stayed in the arc" % index)
-		assert_eq(judged[index].at_usec, (index + 1) * 4 * S, "at the end of its own slot")
-	assert_eq(run.get_end_usec(), 40 * S, "a standing needle ends the set with its last rep")
+		assert_eq(judged[index].tier, Tier.PERFECT)
+	assert_eq(run.get_end_usec(), 29 * S, "the tenth landed at 29 s with the needle standing")
+	assert_eq(run.press(41 * S).size(), 0, "a press after the last rep judges nothing")
+	assert_false(run.is_rep_in_play())
 
-func test_the_set_ends_once_the_needle_stands() -> void:
-	var run: HorseStanceRun = _still(0.5)
+## The rep's progress is its hold: the time inside over HOLD_USEC, 0 between reps.
+func test_hold_progress_follows_the_time_inside() -> void:
+	var run: HorseStanceRun = _still(HorseStanceRun.BAND_START)
 	run.press(0)
-	assert_eq(run.get_end_usec(), -1, "no end before the last rep")
-	assert_eq(run.advance(40 * S).size(), 10, "every rep judged, the needle held at the deepest")
-	assert_eq(run.get_end_usec(), 42 * S, "the set ends once the needle has risen from the deepest")
-	assert_almost_eq(run.marker_at(41 * S), 0.5, EPS, "it rises though the press is still down")
-	assert_eq(run.press(43 * S).size(), 0, "a press after the last rep judges nothing")
-	assert_eq(run.marker_at(43 * S), 0.0, "and sinks nothing")
+	run.release(100_000)
+	run.advance(S)
+	assert_almost_eq(run.hold_progress(), 0.5, EPS, "a second of the two")
+	assert_almost_eq(run.rep_progress_at(S), 0.5, EPS)
+	run.advance(3 * S)
+	assert_eq(run.hold_progress(), 0.0, "the rep landed")
 
 #-----------------------------------------------------------------------------
-# THE ARC'S PATH
+# THE ARC'S PATHS
 #-----------------------------------------------------------------------------
 
-## The arc a set plays: it starts shallow, stays on the gauge, turns every 0.8 to
-## 1.6 s at 0.1 to 0.275 of the gauge a second, and lasts the whole set. A seed
-## always makes the same path.
-func test_the_band_path_stays_on_the_track() -> void:
-	var path: Array = HorseStanceRun.band_path(7, 40 * S)
-	var times: PackedInt64Array = path[0]
-	var centres: PackedFloat64Array = path[1]
-	assert_eq(times.size(), centres.size(), "a centre for every time")
-	assert_eq(times[0], 0, "it starts with the set")
-	assert_eq(centres[0], HorseStanceRun.BAND_START, "shallow on the gauge")
-	assert_gte(times[times.size() - 1], 40 * S, "it lasts the whole set")
-	for index: int in range(1, times.size()):
-		var duration: int = times[index] - times[index - 1]
-		var speed: float = absf(centres[index] - centres[index - 1]) / (duration / 1_000_000.0)
-		assert_between(duration, HorseStanceRun.TURN_MIN_USEC, HorseStanceRun.TURN_MAX_USEC, "turn %d comes in time" % index)
-		assert_between(speed, HorseStanceRun.SPEED_MIN - EPS, HorseStanceRun.SPEED_MAX + EPS, "turn %d's speed" % index)
-		assert_between(centres[index], HorseStanceRun.BAND_LOW, HorseStanceRun.BAND_HIGH, "turn %d stays on the gauge" % index)
-	assert_eq(HorseStanceRun.band_path(7, 40 * S), path, "the same seed, the same path")
-	assert_ne(HorseStanceRun.band_path(8, 40 * S), path, "another seed, another path")
+## Each rep's arc starts at the top around the standing needle, stays on the
+## gauge, turns every 0.8 to 1.6 s at 0.1 to 0.275 of the gauge a second, and
+## outlasts the longest rep. A seed always makes the same paths.
+func test_the_band_paths_start_at_the_top_and_stay_on_the_gauge() -> void:
+	var paths: Array = HorseStanceRun.band_paths(7, 10)
+	assert_eq(paths.size(), 10, "a path a rep")
+	for path: Array in paths:
+		var times: PackedInt64Array = path[0]
+		var centres: PackedFloat64Array = path[1]
+		assert_eq(times.size(), centres.size(), "a centre for every time")
+		assert_eq(times[0], 0, "it starts with the rep")
+		assert_eq(centres[0], HorseStanceRun.BAND_START, "at the top")
+		assert_gte(times[times.size() - 1], HorseStanceRun.PATH_USEC, "it outlasts the longest rep")
+		for index: int in range(1, times.size()):
+			var duration: int = times[index] - times[index - 1]
+			var speed: float = absf(centres[index] - centres[index - 1]) / (duration / 1_000_000.0)
+			assert_between(duration, HorseStanceRun.TURN_MIN_USEC, HorseStanceRun.TURN_MAX_USEC, "turn %d comes in time" % index)
+			assert_between(speed, HorseStanceRun.SPEED_MIN - EPS, HorseStanceRun.SPEED_MAX + EPS, "turn %d's speed" % index)
+			assert_between(centres[index], HorseStanceRun.BAND_LOW, HorseStanceRun.BAND_HIGH, "turn %d stays on the gauge" % index)
+	assert_eq(HorseStanceRun.band_paths(7, 10), paths, "the same seed, the same paths")
+	assert_ne(HorseStanceRun.band_paths(8, 10), paths, "another seed, other paths")

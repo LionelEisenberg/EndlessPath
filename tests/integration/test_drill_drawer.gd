@@ -78,13 +78,14 @@ func _press(drawer: DrillDrawer) -> void:
 # WHAT A DRAWER SHOWS
 #-----------------------------------------------------------------------------
 
-## Each drawer shows its drill's icon and name, how it plays with its rep, and the
-## stats it trains by their icons and names: Strength, and its other stat.
+## Each drawer shows its drill's icon and name, how it plays with what a set is
+## (its reps; a rep has no length, #143), and the stats it trains by their icons
+## and names: Strength, and its other stat.
 func test_a_drawer_shows_its_drill() -> void:
 	var cases: Array[Dictionary] = [
-		{"drill": STONE_ID, "rep": "4 s reps", "trains": [AttributeType.STRENGTH], "not": [AttributeType.BODY, AttributeType.AGILITY]},
-		{"drill": STANCE_ID, "rep": "4 s reps", "trains": [AttributeType.STRENGTH, AttributeType.BODY], "not": [AttributeType.AGILITY]},
-		{"drill": LEAF_ID, "rep": "2 s reps", "trains": [AttributeType.STRENGTH, AttributeType.AGILITY], "not": [AttributeType.BODY]},
+		{"drill": STONE_ID, "rep": "10 reps a set", "trains": [AttributeType.STRENGTH], "not": [AttributeType.BODY, AttributeType.AGILITY]},
+		{"drill": STANCE_ID, "rep": "10 reps a set", "trains": [AttributeType.STRENGTH, AttributeType.BODY], "not": [AttributeType.AGILITY]},
+		{"drill": LEAF_ID, "rep": "10 reps a set", "trains": [AttributeType.STRENGTH, AttributeType.AGILITY], "not": [AttributeType.BODY]},
 	]
 	for case: Dictionary in cases:
 		var drill: DrillData = BodyRefiningManager.get_drill(case["drill"])
@@ -93,7 +94,8 @@ func test_a_drawer_shows_its_drill() -> void:
 		assert_eq((_node(drawer, "Title") as Label).text, drill.drill_name, "%s: its name" % drill.id)
 		var detail: String = (_node(drawer, "Detail") as Label).text
 		assert_true(detail.begins_with(drill.play_hint), "%s: how it plays" % drill.id)
-		assert_string_contains(detail, case["rep"], "%s: its rep" % drill.id)
+		assert_string_contains(detail, case["rep"], "%s: its set" % drill.id)
+		assert_false(detail.contains(" s reps"), "%s: no rep length" % drill.id)
 		var trains: String = (_node(drawer, "Trains") as RichTextLabel).text
 		for stat: AttributeType in case["trains"]:
 			assert_string_contains(trains, StatDisplay.mini_icon_of(stat).resource_path, "%s trains %s, by its icon" % [drill.id, StatDisplay.name_of(stat)])

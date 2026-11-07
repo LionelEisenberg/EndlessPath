@@ -90,6 +90,17 @@ func _lift(rep: int, held: float) -> void:
 	_clock_to(rep * 4.0 + held)
 	_view.handle_press_event(_press(false))
 
+## A click of the left button at `point`, in the stage's px, `seconds` after the
+## set's first press: down, then up.
+func _click_at(seconds: float, point: Vector2) -> void:
+	_clock_to(seconds)
+	for down: bool in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = down
+		event.global_position = _play.get_stage().get_global_transform() * point
+		_view.handle_press_event(event)
+
 ## Plays a whole set, each rep held `holds[rep]` seconds, then steps past its end.
 func _play_set(holds: Array) -> void:
 	for rep: int in holds.size():
@@ -198,14 +209,90 @@ func test_health_pellets_land_on_the_health_orb() -> void:
 	_land(pellets)
 	assert_eq(_plate_health(), "44", "all have")
 
-func test_strength_pellets_land_on_strength_s_cell() -> void:
+## A rep's XP waits for the set's end (#143): the rep sends Health pellets only.
+func test_a_rep_sends_only_health_pellets() -> void:
+	ResourceManager.set_health(40.0)
 	_lift(0, CENTRE)
+	assert_eq(_pellets(LacquerPellet.Ramp.STRENGTH).size(), 0, "no Strength pellets yet")
+	assert_eq(_pellets(LacquerPellet.Ramp.HEALTH).size(), 4, "four Health pellets")
+
+## The set's end pours its XP from the beads: one Strength pellet from each bead
+## that stored XP, holding the XP out of Strength's cell until it lands.
+func test_the_set_s_end_pours_xp_from_the_beads() -> void:
+	ResourceManager.set_health(20.0)
+	_play_set(_ten(CENTRE))
 	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
-	assert_eq(pellets.size(), 4, "and four Strength pellets")
+	assert_eq(pellets.size(), 10, "a pellet a bead")
 	var cell: StatCell = _plate.get_node("%StrengthCell") as StatCell
-	assert_eq(cell.get_shown_xp(), 0.0, "none has landed")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "the set's XP is paid")
+	assert_eq(cell.get_shown_xp(), 0.0, "and held out of the cell while it flies")
 	_land(pellets)
-	assert_almost_eq(cell.get_shown_xp(), 6.0, 0.0001, "the rep's 6 XP has")
+	assert_almost_eq(cell.get_shown_xp(), 60.0, 0.0001, "the set's 60 XP has landed")
+
+## Each scored bead pours; a Miss's bead stored nothing.
+func test_the_pour_skips_a_miss_s_bead() -> void:
+	ResourceManager.set_health(20.0)
+	_play_set([CENTRE, 0.6, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE])
+	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
+	assert_eq(pellets.size(), 9, "the Miss's bead stored nothing")
+
+## Review Focus 4: leaves caught out of turn pour from their own beads. Leaf 1 is
+## caught before leaf 0, which is caught Good (18 px off): every pellet leaves from
+## the bead of the rep it carries, bead 0's carrying the Good catch's 3 XP.
+func test_the_pour_leaves_from_each_leaf_s_own_bead() -> void:
+	ResourceManager.set_health(20.0)
+	BodyRefiningManager.unlock_drill("falling_leaf")
+	_play.run_for = func(drill: DrillData, _seed: int) -> DrillRun:
+		var leaves: Array[FallingLeafRun.Leaf] = []
+		for rep: int in drill.reps_per_set:
+			leaves.append(FallingLeafRun.Leaf.new(100.0 + rep * 30.0, 64.0, 0.0, 1_600_000, 0.0))
+		return FallingLeafRun.new(drill, leaves)
+	BodyRefiningManager.equip_drill("falling_leaf")
+	await wait_process_frames(1)
+	var shake := Vector2(500.0, 860.0)
+	var fallen := func(seconds: float) -> float: return 64.0 + 792.0 * seconds / 3.6
+	_click_at(0.0, shake)
+	_click_at(0.5, shake)
+	_click_at(1.0, Vector2(130.0, fallen.call(0.5)))
+	_click_at(1.2, Vector2(118.0, fallen.call(1.2)))
+	for rep: int in range(2, 10):
+		var at: float = 1.5 + (rep - 2) * 1.0
+		_click_at(at, shake)
+		_click_at(at + 0.5, Vector2(100.0 + rep * 30.0, fallen.call(0.5)))
+	_at(9.1)
+	assert_eq(_play.get_result().count_of(DrillRules.Tier.PERFECT), 9, "precondition: nine Perfect catches")
+	assert_eq(_play.get_result().count_of(DrillRules.Tier.GOOD), 1, "and leaf 0's Good one, after leaf 1")
+	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
+	assert_eq(pellets.size(), 10, "a pellet a bead")
+	var carried_from: Dictionary = {}
+	for pellet: LacquerPellet in pellets:
+		for rep: int in 10:
+			if pellet.global_position.distance_to(_play.get_bead_origin(rep)) <= 2.0:
+				for connection: Dictionary in pellet.delivered.get_connections():
+					var bound: Array = (connection["callable"] as Callable).get_bound_arguments()
+					if bound.size() == 2:
+						carried_from[rep] = bound[1]
+	assert_eq(carried_from.keys().size(), 10, "each from its own bead")
+	assert_almost_eq(carried_from.get(0, 0.0), 3.0, 0.0001, "bead 0 carries the Good catch's XP")
+	assert_almost_eq(carried_from.get(1, 0.0), 4.0, 0.0001, "bead 1 a Perfect catch's")
+
+## The pour carries what the stat took, not what the set stored: 10 XP short of
+## the cap, the pellets carry the 10 that reached it.
+func test_the_pour_carries_only_what_was_taken() -> void:
+	var cap: int = CharacterManager.get_stat_level_cap()
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, cap - 1)
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, cap - 1, CharacterManager.get_stat_xp_to_next(AttributeType.STRENGTH) - 10.0)
+	ResourceManager.set_health(20.0)
+	_play_set(_ten(CENTRE))
+	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
+	assert_eq(pellets.size(), 10, "a pellet a bead")
+	var carried: float = 0.0
+	for pellet: LacquerPellet in pellets:
+		for connection: Dictionary in pellet.delivered.get_connections():
+			var bound: Array = (connection["callable"] as Callable).get_bound_arguments()
+			if bound.size() == 2:
+				carried += bound[1]
+	assert_almost_eq(carried, 10.0, 0.0001, "the 10 XP that reached the cap, shared")
 
 func test_fewer_pellets_for_a_lesser_tier() -> void:
 	ResourceManager.set_health(40.0)
@@ -222,8 +309,9 @@ func test_no_strength_pellets_at_the_cap() -> void:
 	CharacterManager.set_stat_level(AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
 	ResourceManager.set_health(40.0)
 	_lift(0, CENTRE)
-	assert_eq(_pellets(LacquerPellet.Ramp.STRENGTH).size(), 0, "a capped Strength takes no pellets")
 	assert_eq(_pellets(LacquerPellet.Ramp.HEALTH).size(), 4, "the Health still comes")
+	_play_set(_ten(CENTRE))
+	assert_eq(_pellets(LacquerPellet.Ramp.STRENGTH).size(), 0, "a capped Strength takes no pellets at the set's end")
 
 ## Review Focus 5: a rep that tops Health up sends pellets carrying only what it
 ## restored.
@@ -442,8 +530,8 @@ func test_the_footer_and_log_under_auto() -> void:
 	assert_false(text.contains("perfect"), "no Perfect count")
 	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
 	assert_eq(LogWindow.plain_text(line), "Set · Auto · +24 Strength XP · +16 Health")
-	_at(39.0)
-	assert_true(_play.is_set_running(), "the next Auto set started")
+	_at(40.0)
+	assert_true(_play.is_set_running(), "the next Auto set started at Auto's pace, 40 s after the last")
 	assert_string_contains(_view.get_status_text(), "Last set · Auto", "the last set's line stays")
 
 ## Turning Auto on mid-set ends the played set there: its reps stay paid.

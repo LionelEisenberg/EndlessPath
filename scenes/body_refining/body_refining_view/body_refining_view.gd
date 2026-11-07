@@ -15,15 +15,17 @@ extends Control
 ## finished set also writes one line to the log, in words. A name or a line too long for its width wraps, never cut,
 ## and the board grows under it.
 ##
-## Each scored rep sends its pellets from where its stage says (the stone, the
-## leaf caught) into the cultivator cabinet:
-## a burst of PELLETS_BY_TIER pellets in each trained stat's ramp to that stat's
-## cell, and as many in the Health ramp to the Health orb, each carrying an even
-## share of what the stat took or the rep restored, which the cabinet holds out of
-## its readout until each lands. A part that paid nothing sends nothing: no
-## Strength pellets at the cap, no Health pellets at full Health. MainView hands
-## the cabinet over in cultivator_plate; with none, or while the board is hidden,
-## no pellet flies.
+## Each scored rep sends its Health from where its stage says (the stone, the leaf
+## caught) into the cultivator cabinet: a burst of PELLETS_BY_TIER pellets in the
+## Health ramp to the Health orb, each carrying an even share of what the rep
+## restored. Its XP waits in its bead for the set's end (#143), and when the set
+## ends each bead that stored some sends a pellet in each trained stat's ramp to
+## that stat's cell, carrying its share of what the stat took. The cabinet holds
+## what a pellet carries out of its readout until it lands. A part that paid
+## nothing sends nothing: no Strength pellets at the cap, no Health pellets at full
+## Health. A set stopped short pays its XP with no pellets. MainView hands the
+## cabinet over in cultivator_plate; with none, or while the board is hidden, no
+## pellet flies.
 ##
 ## The root covers the screen and stops every click, as the Tribulation board's
 ## does, so none reaches the map while the board is up: a mouse press anywhere is
@@ -152,6 +154,9 @@ var _drill: DrillData = null
 ## Whether the footer shows an Auto set's line, which stays through the next Auto
 ## set until that one ends.
 var _auto_result_shown: bool = false
+## The set running's reps that stored XP, as [bead, the XP each stat stored]: what
+## the beads pour when the set ends.
+var _stored_by_bead: Array = []
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -454,38 +459,59 @@ func _place_unlock_floater() -> void:
 ## A set started: the drill's line during a set, or while Auto plays, AUTO_LINE,
 ## unless an Auto set's line is showing, which stays until this set ends.
 func _on_set_started() -> void:
+	_stored_by_bead.clear()
 	if not _drill_play.is_auto_set():
 		_auto_result_shown = false
 		_show_status(_drill.play_line)
 	elif not _auto_result_shown:
 		_show_status(AUTO_LINE % roundi(DrillRules.AUTO_RATE * 100.0))
 
-## A rep was judged and paid: a burst of its tier's pellets for each stat that took
-## XP, to the stat's cell, and for the Health it restored, to the Health orb, each
-## pellet holding its share out of the cabinet until it lands. A hidden board sends
-## nothing: what was paid is in the stats and the pool already, and shows at once.
+## A rep was judged and paid: a burst of its tier's pellets for the Health it
+## restored, to the Health orb, each pellet holding its share out of the cabinet
+## until it lands. The XP it stored is noted for its bead to pour when the set
+## ends. A hidden board sends nothing: what was paid is in the pool already, and
+## shows at once.
 func _on_rep_judged(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary) -> void:
+	if stat_xp.values().any(func(xp: float) -> bool: return xp > 0.0):
+		_stored_by_bead.append([judgement.rep, stat_xp])
 	var count: int = PELLETS_BY_TIER.get(judgement.tier, 0)
 	if cultivator_plate == null or count == 0 or not is_visible_in_tree():
 		return
-	var from: Vector2 = _drill_play.get_pellet_origin(judgement)
-	for stat: AttributeType in stat_xp:
-		var xp: float = stat_xp[stat]
-		if xp <= 0.0:
-			continue
-		var share: float = xp / count
-		for pellet: LacquerPellet in _burst(from, cultivator_plate.get_stat_cell_global_position(stat), count, LacquerPellet.stat_ramp(stat)):
-			cultivator_plate.hold_stat_xp(stat, share)
-			pellet.delivered.connect(cultivator_plate.release_stat_xp.bind(stat, share))
 	if health > 0.0:
 		var health_share: float = health / count
-		for pellet: LacquerPellet in _burst(from, cultivator_plate.get_health_orb_global_position(), count, LacquerPellet.Ramp.HEALTH):
+		for pellet: LacquerPellet in _burst(_drill_play.get_pellet_origin(judgement), cultivator_plate.get_health_orb_global_position(), count, LacquerPellet.Ramp.HEALTH):
 			cultivator_plate.hold_health(health_share)
 			pellet.delivered.connect(cultivator_plate.release_health.bind(health_share))
 
-## A set was played to its last rep: the footer shows what it paid, and one line
-## goes to the log. A perfect set unlocks its drill's Auto.
+## Pours the set's XP from its beads: for each stat the set paid, a pellet from
+## each bead that stored some of it, to the stat's cell, carrying the bead's share
+## of what the stat took and holding it out of the cabinet until it lands.
+func _pour(result: DrillSetResult) -> void:
+	var poured: Array = _stored_by_bead
+	_stored_by_bead = []
+	if cultivator_plate == null or not is_visible_in_tree():
+		return
+	var stored: Dictionary = {}
+	for entry: Array in poured:
+		for stat: AttributeType in entry[1]:
+			stored[stat] = stored.get(stat, 0.0) + entry[1][stat]
+	for stat: AttributeType in stored:
+		var taken: float = result.get_stat_xp(stat)
+		if taken <= 0.0 or stored[stat] <= 0.0:
+			continue
+		for entry: Array in poured:
+			var bead_xp: float = entry[1].get(stat, 0.0)
+			if bead_xp <= 0.0:
+				continue
+			var share: float = taken * bead_xp / stored[stat]
+			for pellet: LacquerPellet in _burst(_drill_play.get_bead_origin(entry[0]), cultivator_plate.get_stat_cell_global_position(stat), 1, LacquerPellet.stat_ramp(stat)):
+				cultivator_plate.hold_stat_xp(stat, share)
+				pellet.delivered.connect(cultivator_plate.release_stat_xp.bind(stat, share))
+
+## A set was played to its last rep: its beads pour its XP, the footer shows what
+## it paid, and one line goes to the log. A perfect set unlocks its drill's Auto.
 func _on_set_completed(result: DrillSetResult) -> void:
+	_pour(result)
 	_status_text.text = result_line(result)
 	_auto_result_shown = result.is_auto()
 	_relayout_board()

@@ -4,18 +4,24 @@ extends RefCounted
 ## DrillRun
 ## The judge of one set of a drill, and the contract every drill's input plays
 ## through: the set's first press starts it, presses and releases come in as they
-## happen, and each rep comes out judged, in order. Pure logic with no nodes:
-## DrillPlay calls advance() every frame and press() and release() on input, and
-## the tests drive it with exact times. Every time is on the set's own clock, in
-## microseconds from the set's first press.
+## happen, and each rep comes out judged. Pure logic with no nodes: DrillPlay calls
+## advance() every frame and press() and release() on input, and the tests drive it
+## with exact times. Every time is on the set's own clock, in microseconds from the
+## set's first press.
 ##
-## A set is the drill's reps_per_set reps, each a slot of rep_seconds: rep k's slot
-## runs from k rep lengths to k + 1. Each input measures how well a rep was played
-## as a share from 0 to 1 (share_through() for an input judged by how far off a
-## mark it was), and DrillRules.judge() turns the share into #97's tier, so the
-## tiers feel the same on every drill. Results never depend on when frames fall:
-## every call first judges, in order, whatever the time up to `t` decided. Each
-## input kind has its own run, which for_drill() picks.
+## A set is the drill's reps_per_set reps, played at the player's own pace (#143):
+## no clock runs. Each rep starts on a press and ends with its own motion (the
+## stone let go or dropped, the stance held, the leaf caught or landed, the surge
+## braced or crashed through), and nothing moves on while the drill waits for the
+## next press. Each input measures how well a rep was played as a share from 0 to 1
+## (share_through() for an input judged by how far off a mark it was), and
+## DrillRules.judge() turns the share into #97's tier, so the tiers feel the same
+## on every drill. Results never depend on when frames fall: every call first
+## judges, in order, whatever the time up to `t` decided. Each input kind has its
+## own run, which for_drill() picks.
+##
+## Auto (#110) has no player to wait for: play_auto() plays rep k from k of the
+## drill's rep_seconds into the set, its pace, as a good player would.
 
 #-----------------------------------------------------------------------------
 # TYPES
@@ -53,6 +59,8 @@ class Judgement:
 # STATE
 #-----------------------------------------------------------------------------
 
+## Auto's pace: how long Auto takes over each rep, from the drill's rep_seconds. A
+## rep the player plays has no length.
 var _rep_usec: int = 0
 var _reps: int = 0
 var _judgements: Array[Judgement] = []
@@ -61,7 +69,7 @@ var _judgements: Array[Judgement] = []
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
-## Reads the drill's rep length and reps, once.
+## Reads the drill's reps and Auto's pace, once.
 func _init(drill: DrillData) -> void:
 	_rep_usec = roundi(drill.rep_seconds * 1_000_000.0)
 	_reps = drill.reps_per_set
@@ -72,8 +80,7 @@ func _init(drill: DrillData) -> void:
 static func for_drill(drill: DrillData, rng_seed: int = 0) -> DrillRun:
 	match drill.input_kind:
 		DrillData.InputKind.HOLD_STEADY:
-			var path: Array = HorseStanceRun.band_path(rng_seed, roundi(drill.rep_seconds * 1_000_000.0) * drill.reps_per_set)
-			return HorseStanceRun.new(drill, path[0], path[1])
+			return HorseStanceRun.new(drill, HorseStanceRun.band_paths(rng_seed, drill.reps_per_set))
 		DrillData.InputKind.CATCH:
 			return FallingLeafRun.new(drill, FallingLeafRun.leaf_paths(rng_seed, drill))
 		DrillData.InputKind.BEAT:
@@ -105,17 +112,18 @@ func advance(_t_usec: int) -> Array[Judgement]:
 	return []
 
 ## Plays the set as Auto (#110) up to `t`: feeds the run, at their exact times, the
-## inputs a good player would give before `t`, then judges what the passing of time
-## decided. Returns every rep judged, in order. The tiers are the run's own; the
-## board pays them as Auto reps. A run with no input of its own only advances.
-## Ask it for times no earlier than the last call's.
+## inputs a good player would give before `t`, rep k from k of Auto's pace, then
+## judges what the passing of time decided. Returns every rep judged, in order.
+## The tiers are the run's own; the board pays them as Auto reps. A run with no
+## input of its own only advances. Ask it for times no earlier than the last
+## call's.
 func play_auto(t_usec: int) -> Array[Judgement]:
 	return advance(t_usec)
 
-## Whether the press that starts a set is also the first rep's input (a hold),
-## or only starts it.
-func judges_starting_press() -> bool:
-	return true
+## How long Auto takes over a whole set at its pace: a rep each rep_seconds. The
+## board starts Auto's next set no sooner after this one's start.
+func get_auto_set_usec() -> int:
+	return _reps * _rep_usec
 
 ## The share of a rep played `offset` off its mark, in any one unit (time, px): 1
 ## on the mark, then straight lines through 0.85 at `perfect`, 0.6 at `good` and
@@ -137,16 +145,11 @@ static func share_through(offset: float, perfect: float, good: float, ok: float,
 # QUERIES
 #-----------------------------------------------------------------------------
 
-## The rep whose slot holds `t`, counted from 0, the last one past the set's end.
-func rep_at(t_usec: int) -> int:
-	@warning_ignore("integer_division")
-	return mini(maxi(t_usec, 0) / _rep_usec, _reps - 1)
-
-## How far through its rep's slot `t` is, 0 to 1; 1 past the set's last slot.
-func rep_progress_at(t_usec: int) -> float:
-	if t_usec >= _reps * _rep_usec:
-		return 1.0
-	return float(maxi(t_usec, 0) - rep_at(t_usec) * _rep_usec) / _rep_usec
+## How far through its own motion the rep in play is at `t`, 0 to 1: 0 while the
+## drill waits for the player's press. Each run says what its motion is. Ask it for
+## the time of the last call.
+func rep_progress_at(_t_usec: int) -> float:
+	return 0.0
 
 ## How many reps have been judged.
 func get_judged_count() -> int:
@@ -156,10 +159,15 @@ func get_judged_count() -> int:
 func get_judgements() -> Array[Judgement]:
 	return _judgements.duplicate()
 
-## When the set ends, on its clock: once every rep is judged, the end of its last
-## slot. -1 until the last rep is judged.
+## When the set ends, on its clock: the moment its last rep is judged. -1 until
+## then. A run whose piece must come back to rest first says so itself.
 func get_end_usec() -> int:
-	return _reps * _rep_usec if _judgements.size() >= _reps else -1
+	if _judgements.size() < _reps:
+		return -1
+	var last: int = 0
+	for judgement: Judgement in _judgements:
+		last = maxi(last, judgement.at_usec)
+	return last
 
 #-----------------------------------------------------------------------------
 # PRIVATE

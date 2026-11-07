@@ -2,23 +2,25 @@ class_name TimedPressRun
 extends DrillRun
 
 ## TimedPressRun
-## A judge (DrillRun's contract) for a drill whose every rep is one moment to
-## press at, such as a surge of water landing on a line. Each rep has a target
-## time on the set's clock, inside its slot.
+## A judge (DrillRun's contract) for a drill whose every rep is one moment to press
+## at, a lead after the press that starts the rep, such as a surge sent down the
+## falls to land on a line.
 ##
-## The first press in a rep's slot is that rep's, judged by how far it came from
+## A press with no rep in play starts the next rep (#143): its target is the lead
+## later. The first press after that is the rep's, judged by how far it came from
 ## the target: share_through() at the run's reaches (perfect, good, OK, zero), a
-## MISS before the target TOO_EARLY and after it TOO_LATE. Further presses in a
-## judged rep's slot do nothing, so mashing can't meet every target. A rep with no
-## press is missed at its target plus the zero reach, once no press could score,
-## with the run's own reason. A release does nothing. The press that starts a set
-## only starts it: it is not judged.
+## MISS before the target TOO_EARLY and after it TOO_LATE. A rep with no press is
+## missed at its target plus the zero reach, once no press could score, with the
+## run's own reason. Then the next rep waits for a press, so nothing comes on its
+## own. A release does nothing. The set ends the moment its last rep is judged.
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
-## Each rep's target on the set's clock.
+## How long after the press that starts a rep its target comes.
+var _lead_usec: int = 0
+## Each started rep's target on the set's clock.
 var _targets: PackedInt64Array = PackedInt64Array()
 ## How far off the target each tier reaches, and where the share falls to 0:
 ## perfect, good, OK, zero.
@@ -30,11 +32,12 @@ var _no_press_miss: Miss = Miss.TOO_LATE
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
-## Reads the drill's rep length and reps, and takes each rep's target, the
-## reaches (perfect, good, OK, zero) and the reason a rep with no press misses.
-func _init(drill: DrillData, targets: PackedInt64Array, reaches: PackedInt64Array, no_press_miss: Miss) -> void:
+## Reads the drill's reps and Auto's pace, and takes the lead from a rep's start to
+## its target, the reaches (perfect, good, OK, zero) and the reason a rep with no
+## press misses.
+func _init(drill: DrillData, lead_usec: int, reaches: PackedInt64Array, no_press_miss: Miss) -> void:
 	super(drill)
-	_targets = targets
+	_lead_usec = lead_usec
 	_reaches = reaches
 	_no_press_miss = no_press_miss
 
@@ -42,56 +45,68 @@ func _init(drill: DrillData, targets: PackedInt64Array, reaches: PackedInt64Arra
 # JUDGING
 #-----------------------------------------------------------------------------
 
-## Judges what the time up to `t` decided, then the press: the next rep's, when
-## `t` is in its slot. Returns every rep judged, in order.
+## Judges what the time up to `t` decided, then the press: the rep in play's, or
+## with none in play, the start of the next rep. Returns every rep judged, in order.
 func press(t_usec: int) -> Array[Judgement]:
 	var judged: Array[Judgement] = _settle(t_usec)
-	var rep: int = _judgements.size()
-	if rep < _reps and t_usec >= rep * _rep_usec:
-		judged.append(_judge_press(rep, t_usec))
+	if rep_in_play() >= 0:
+		judged.append(_judge_press(rep_in_play(), t_usec))
+	elif _targets.size() < _reps:
+		_targets.append(t_usec + _lead_usec)
 	return judged
 
 ## Judges what the time up to `t` decided; a release meets no target.
 func release(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
 
-## Judges every rep whose deadline passed by `t`. Returns them, in order.
+## Judges a rep whose deadline passed by `t`. Returns it.
 func advance(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
 
-## Plays the set as Auto up to `t`: presses on each rep's target. Returns every
-## rep judged, in order.
+## Plays the set as Auto up to `t`: starts rep k at k of Auto's pace and presses on
+## its target. Returns every rep judged, in order.
 func play_auto(t_usec: int) -> Array[Judgement]:
 	var judged: Array[Judgement] = []
-	while _judgements.size() < _reps and _targets[_judgements.size()] <= t_usec:
-		judged.append_array(press(_targets[_judgements.size()]))
+	while _judgements.size() < _reps:
+		var rep: int = rep_in_play()
+		var at: int = _targets[rep] if rep >= 0 else _targets.size() * _rep_usec
+		if at > t_usec:
+			break
+		judged.append_array(press(at))
 	judged.append_array(_settle(t_usec))
 	return judged
-
-## The press that starts a set only starts it.
-func judges_starting_press() -> bool:
-	return false
 
 #-----------------------------------------------------------------------------
 # QUERIES
 #-----------------------------------------------------------------------------
 
-## Rep `rep`'s target on the set's clock.
+## Rep `rep`'s target on the set's clock; -1 before the rep starts.
 func target_usec(rep: int) -> int:
-	return _targets[rep]
+	return _targets[rep] if rep < _targets.size() else -1
+
+## The rep started and not yet judged, or -1 when the next one waits for a press.
+func rep_in_play() -> int:
+	return _judgements.size() if _targets.size() > _judgements.size() else -1
+
+## The rep in play's motion, from its start to its target; 0 with none in play.
+func rep_progress_at(t_usec: int) -> float:
+	var rep: int = rep_in_play()
+	if rep < 0:
+		return 0.0
+	return clampf(1.0 - float(_targets[rep] - t_usec) / _lead_usec, 0.0, 1.0)
 
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## Misses, in order, every rep whose target plus the zero reach came by `t`.
+## Misses the rep in play when its target plus the zero reach came by `t`.
 func _settle(t: int) -> Array[Judgement]:
 	var judged: Array[Judgement] = []
-	while _judgements.size() < _reps:
-		var deadline: int = _targets[_judgements.size()] + _reaches[3]
-		if deadline > t:
-			break
-		judged.append(_record(DrillRules.Tier.MISS, _no_press_miss, 0.0, deadline))
+	var rep: int = rep_in_play()
+	if rep >= 0:
+		var deadline: int = _targets[rep] + _reaches[3]
+		if deadline <= t:
+			judged.append(_record(DrillRules.Tier.MISS, _no_press_miss, 0.0, deadline))
 	return judged
 
 ## Judges rep `rep` pressed at `t`.

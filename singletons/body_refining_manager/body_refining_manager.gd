@@ -2,12 +2,13 @@ extends Node
 
 ## Manages body refining drills: which drills are unlocked and equipped, and
 ## which unlocked drills the player has seen (the NEW mark). Authoritative owner
-## of the drill catalog. It pays each rep through pay_rep(): Strength XP and the
-## drill's other stat's XP through CharacterManager.add_stat_xp(), so XP earned at
-## the cap is lost, and Health through ResourceManager.add_health(), which a
-## capped Strength still refills, recording in the set's result what each stat
-## took. It also holds a snapshot of the set being played, for the Now strip,
-## and counts each set played to its last rep in the play stats (finish_set()).
+## of the drill catalog. It pays each rep through pay_rep(): Health at once
+## through ResourceManager.add_health(), which a capped Strength still refills,
+## and the rep's Strength XP and other stat's XP stored on the set's result. The
+## set's end pays that XP (finish_set()) through CharacterManager.add_stat_xp(), so
+## XP earned past the cap is lost, recording in the result what each stat took. It
+## also holds a snapshot of the set being played, for the Now strip, and counts
+## each set played to its last rep in the play stats (finish_set()).
 ## It keeps which drills' Auto a perfect set has unlocked (unlock_auto()).
 ## Modelled on CyclingManager.
 
@@ -154,12 +155,13 @@ func is_drill_seen(drill_id: String) -> bool:
 
 # ----- Reps -----
 
-## Pays one rep of `drill` judged `tier`, and records it in `result` when one is
-## given. The Health comes first, at the player's Strength total (gear included)
-## before the rep's XP: DrillRules.health_for_rep(), through
-## ResourceManager.add_health() without a log line. Then the XP: Strength's, and
-## the drill's other stat's when it has one, each once, through
-## CharacterManager.add_stat_xp(). XP is paid at full Health too, and a capped
+## Pays one rep of `drill` judged `tier`. The Health comes at once, at the
+## player's Strength total (gear included): DrillRules.health_for_rep(), through
+## ResourceManager.add_health() without a log line. The XP is Strength's, and the
+## drill's other stat's when it has one. In a set (`result` given), the rep is
+## recorded there and its XP stored on it: the set pays it when it ends
+## (finish_set(), #143). With no set, each stat is paid at once, through
+## CharacterManager.add_stat_xp(). XP is earned at full Health too, and a capped
 ## stat loses its XP while the rep still refills Health. A MISS pays nothing. An
 ## AUTO rep pays Strength and Health only, never the other stat (#110).
 ## Returns the Health the rep restored, which is less than it paid near the max.
@@ -170,12 +172,27 @@ func pay_rep(drill: DrillData, tier: Tier, result: DrillSetResult = null) -> flo
 	var strength: float = CharacterManager.get_stat(StatModifierData.Stat.STRENGTH)
 	var health: float = DrillRules.health_for_rep(drill, tier, strength)
 	var restored: float = ResourceManager.add_health(health, true) if health > 0.0 else 0.0
-	_pay_stat_xp(AttributeType.STRENGTH, DrillRules.xp_for_rep(drill.strength_xp_per_rep, tier), result)
+	var earned: Dictionary = {AttributeType.STRENGTH: DrillRules.xp_for_rep(drill.strength_xp_per_rep, tier)}
 	if drill.has_minor_stat() and tier != Tier.AUTO:
-		_pay_stat_xp(drill.minor_stat as AttributeType, DrillRules.xp_for_rep(drill.minor_xp_per_rep, tier), result)
+		earned[drill.minor_stat as AttributeType] = DrillRules.xp_for_rep(drill.minor_xp_per_rep, tier)
+	for stat: AttributeType in earned:
+		if result != null:
+			result.store_stat_xp(stat, earned[stat])
+		else:
+			_pay_stat_xp(stat, earned[stat], null)
 	if result != null:
 		result.add_rep(tier, restored)
 	return restored
+
+## Pays the XP `result`'s reps stored, one CharacterManager.add_stat_xp() a stat,
+## and records on it what each stat took, and that the cap took the rest when it
+## did. The stored XP is then gone, so a second call pays nothing.
+func pay_stored_xp(result: DrillSetResult) -> void:
+	if result == null:
+		return
+	var stored: Dictionary = result.take_stored_xp()
+	for stat: AttributeType in stored:
+		_pay_stat_xp(stat, stored[stat], result)
 
 ## The Health a PERFECT rep of `drill` restores at the player's Strength total
 ## (gear included): what the board's pay line and the Now strip show.
@@ -194,8 +211,10 @@ func start_set_session(reps: int) -> void:
 	_set_rep = 1
 	_rep_progress = 0.0
 
-## Updates the running session: the rep being played, counted from 1, and how
-## far through it the set is, 0 to 1. Does nothing when no session is running.
+## Updates the running session: the rep being played, counted from 1 (the reps
+## that landed, plus one), and how far through its own motion the rep in play is,
+## 0 to 1: 0 while the drill waits for the player. Does nothing when no session
+## is running.
 func update_set_session(rep: int, rep_progress: float) -> void:
 	if not _set_running:
 		return
@@ -221,21 +240,23 @@ func get_set_rep() -> int:
 func get_set_reps() -> int:
 	return _set_reps
 
-## Returns how far through the rep being played the set is, 0 to 1.
+## Returns how far through its own motion the rep in play is, 0 to 1.
 func get_rep_progress() -> float:
 	return _rep_progress
 
-## Returns how far through the whole set it is, 0 to 1: the reps behind it and
-## the share of the one being played. 0 when no set is running.
+## Returns how far through the whole set it is, 0 to 1: the share of its reps
+## that landed. 0 when no set is running.
 func get_set_progress() -> float:
 	if not _set_running or _set_reps <= 0:
 		return 0.0
-	return clampf((_set_rep - 1 + _rep_progress) / _set_reps, 0.0, 1.0)
+	return clampf(float(_set_rep - 1) / _set_reps, 0.0, 1.0)
 
-## A set has ended: counts it in the save's play stats when it was played to
-## its last rep (`result` complete), then ends the session. A set stopped short
-## counts nothing.
+## A set has ended: pays the XP its reps stored (pay_stored_xp()), counts it in
+## the save's play stats when it was played to its last rep (`result` complete),
+## then ends the session. A set stopped short is paid what it stored all the
+## same, and counts nothing.
 func finish_set(result: DrillSetResult) -> void:
+	pay_stored_xp(result)
 	if result != null and result.is_complete() and _live_save_data:
 		_live_save_data.stats.count_set_finished()
 	end_set_session()

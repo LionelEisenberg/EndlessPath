@@ -17,4 +17,4 @@ rep_seconds = 2.0
 reps_per_set = 10
 play_hint = "Click the falling leaves"
 ready_line = "Press Space or click to shake the branch."
-play_line = "Click a leaf to catch it before it lands."
+play_line = "Click a leaf to catch it before it lands. Click anywhere else to shake down the next."

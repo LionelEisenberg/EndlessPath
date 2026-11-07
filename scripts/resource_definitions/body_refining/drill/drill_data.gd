@@ -30,7 +30,8 @@ enum InputKind {
 ## The Health a PERFECT rep restores at Strength Lv 1.
 @export var health_per_rep: float = 0.0
 @export var input_kind: InputKind = InputKind.HOLD_RELEASE
-## How long one rep takes to play, in seconds.
+## Auto's pace: how long Auto takes over each rep, in seconds. A rep the player
+## plays has no length: it starts on a press and ends with its own motion (#143).
 @export var rep_seconds: float = 0.0
 ## How many reps make a set.
 @export var reps_per_set: int = 0
