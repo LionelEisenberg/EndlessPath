@@ -59,6 +59,15 @@ func release(t_usec: int) -> Array[Judgement]:
 func advance(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
 
+## Plays the set as Auto up to `t`: presses on each rep's target. Returns every
+## rep judged, in order.
+func play_auto(t_usec: int) -> Array[Judgement]:
+	var judged: Array[Judgement] = []
+	while _judgements.size() < _reps and _targets[_judgements.size()] <= t_usec:
+		judged.append_array(press(_targets[_judgements.size()]))
+	judged.append_array(_settle(t_usec))
+	return judged
+
 ## The press that starts a set only starts it.
 func judges_starting_press() -> bool:
 	return false

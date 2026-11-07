@@ -68,6 +68,8 @@ const SWAY_MIN_PX: float = 16.0
 const SWAY_MAX_PX: float = 32.0
 const SWAY_MIN_USEC: int = 1_400_000
 const SWAY_MAX_USEC: int = 2_000_000
+## How far into its fall Auto catches a leaf: half way, as it passes the hands.
+const AUTO_CATCH_USEC: int = 1_800_000
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -136,6 +138,18 @@ func release(t_usec: int) -> Array[Judgement]:
 ## Judges every leaf that landed by `t`. Returns them, in order.
 func advance(t_usec: int) -> Array[Judgement]:
 	return _settle(t_usec)
+
+## Plays the set as Auto up to `t`: catches each leaf at its middle, in the palm,
+## AUTO_CATCH_USEC into its fall. Returns every rep judged, in the order of their
+## times.
+func play_auto(t_usec: int) -> Array[Judgement]:
+	var judged: Array[Judgement] = []
+	for index: int in _leaves.size():
+		var catch_at: int = _leaves[index].drop_usec + AUTO_CATCH_USEC
+		if not _judged[index] and catch_at <= t_usec:
+			judged.append_array(press_at(catch_at, leaf_position(index, catch_at)))
+	judged.append_array(_settle(t_usec))
+	return judged
 
 ## The press that starts a set shakes the branch.
 func judges_starting_press() -> bool:

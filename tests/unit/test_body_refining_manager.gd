@@ -202,6 +202,15 @@ func test_a_rep_pays_strength_the_minor_and_health() -> void:
 	assert_eq(ResourceManager.get_health(), 54.0, "Health at Strength Lv 1 is the drill's own amount")
 	assert_eq(restored, 4.0, "it returns what it restored")
 
+## An Auto rep pays 0.4 of a PERFECT rep's Strength XP and Health, and none of
+## the drill's other stat (#110).
+func test_an_auto_rep_pays_strength_and_health_at_the_auto_rate() -> void:
+	ResourceManager.set_health(50.0)
+	var restored: float = BodyRefiningManager.pay_rep(_body_drill, Tier.AUTO)
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 3.2, 0.0001, "0.4 of 8 Strength XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 0.0, "no Body XP")
+	assert_almost_eq(restored, 1.6, 0.0001, "0.4 of 4 Health")
+
 ## Each stat gets one add_stat_xp() call a rep, so XP lands once and levels are
 ## announced once.
 func test_a_rep_pays_each_stat_once() -> void:

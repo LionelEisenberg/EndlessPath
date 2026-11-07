@@ -160,7 +160,8 @@ func is_drill_seen(drill_id: String) -> bool:
 ## ResourceManager.add_health() without a log line. Then the XP: Strength's, and
 ## the drill's other stat's when it has one, each once, through
 ## CharacterManager.add_stat_xp(). XP is paid at full Health too, and a capped
-## stat loses its XP while the rep still refills Health. A MISS pays nothing.
+## stat loses its XP while the rep still refills Health. A MISS pays nothing. An
+## AUTO rep pays Strength and Health only, never the other stat (#110).
 ## Returns the Health the rep restored, which is less than it paid near the max.
 func pay_rep(drill: DrillData, tier: Tier, result: DrillSetResult = null) -> float:
 	if drill == null:
@@ -170,7 +171,7 @@ func pay_rep(drill: DrillData, tier: Tier, result: DrillSetResult = null) -> flo
 	var health: float = DrillRules.health_for_rep(drill, tier, strength)
 	var restored: float = ResourceManager.add_health(health, true) if health > 0.0 else 0.0
 	_pay_stat_xp(AttributeType.STRENGTH, DrillRules.xp_for_rep(drill.strength_xp_per_rep, tier), result)
-	if drill.has_minor_stat():
+	if drill.has_minor_stat() and tier != Tier.AUTO:
 		_pay_stat_xp(drill.minor_stat as AttributeType, DrillRules.xp_for_rep(drill.minor_xp_per_rep, tier), result)
 	if result != null:
 		result.add_rep(tier, restored)
