@@ -21,9 +21,9 @@ extends RefCounted
 # TYPES
 #-----------------------------------------------------------------------------
 
-## Why a rep was a MISS, or NONE for a scored rep. Never saved; TOO_LATE serves
-## every input that can come late.
-enum Miss { NONE, TOO_LOW, DROPPED, TOO_LATE, OUT_OF_BAND, TOO_EARLY, LET_FALL, MISSED_BEAT }
+## Why a rep was a MISS, or NONE for a scored rep. Never saved, so the values may
+## be reordered; TOO_LATE serves every input that can come late.
+enum Miss { NONE, TOO_LOW, DROPPED, TOO_LATE, TOO_DEEP, TOO_SHALLOW, TOO_EARLY, TOO_FAR, LANDED, BUCKLED }
 
 ## One judged rep.
 class Judgement:
@@ -32,17 +32,21 @@ class Judgement:
 	var tier: DrillRules.Tier = DrillRules.Tier.MISS
 	var miss: Miss = Miss.NONE
 	## Where the input's piece stood, 0 (at rest) to 1 (the top) of its travel,
-	## for the inputs that move one (the stone); 0 for the others.
+	## for the inputs that move one along a track or a gauge; 0 for the others.
 	var height: float = 0.0
 	## When the rep was judged, on the set's clock.
 	var at_usec: int = 0
+	## Where the rep's piece was, in the stage's px, for the inputs whose piece
+	## moves about the stage (a leaf); Vector2.ZERO for the others.
+	var point: Vector2 = Vector2.ZERO
 
-	func _init(p_rep: int, p_tier: DrillRules.Tier, p_miss: Miss, p_height: float, p_at_usec: int) -> void:
+	func _init(p_rep: int, p_tier: DrillRules.Tier, p_miss: Miss, p_height: float, p_at_usec: int, p_point: Vector2 = Vector2.ZERO) -> void:
 		rep = p_rep
 		tier = p_tier
 		miss = p_miss
 		height = p_height
 		at_usec = p_at_usec
+		point = p_point
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -62,7 +66,7 @@ func _init(drill: DrillData) -> void:
 	_reps = drill.reps_per_set
 
 ## The run that plays and judges a set of `drill`, by its input kind. `rng_seed`
-## makes what an input varies from set to set (Horse Stance's band, Falling Leaf's
+## makes what an input varies from set to set (Horse Stance's arc, Falling Leaf's
 ## leaves), the same for the same seed.
 static func for_drill(drill: DrillData, rng_seed: int = 0) -> DrillRun:
 	match drill.input_kind:
@@ -70,7 +74,7 @@ static func for_drill(drill: DrillData, rng_seed: int = 0) -> DrillRun:
 			var path: Array = HorseStanceRun.band_path(rng_seed, roundi(drill.rep_seconds * 1_000_000.0) * drill.reps_per_set)
 			return HorseStanceRun.new(drill, path[0], path[1])
 		DrillData.InputKind.CATCH:
-			return FallingLeafRun.new(drill, FallingLeafRun.leaf_arrivals(rng_seed, drill.reps_per_set))
+			return FallingLeafRun.new(drill, FallingLeafRun.leaf_paths(rng_seed, drill))
 		DrillData.InputKind.BEAT:
 			return WaterfallRun.new(drill)
 	return StoneLiftingRun.new(drill)
@@ -83,6 +87,11 @@ static func for_drill(drill: DrillData, rng_seed: int = 0) -> DrillRun:
 ## Returns every rep judged, in order.
 func press(t_usec: int) -> Array[Judgement]:
 	return advance(t_usec)
+
+## Judges a press at `t` aimed at `point`, in the stage's px. An input that aims at
+## nothing takes it as a plain press().
+func press_at(t_usec: int, _point: Vector2) -> Array[Judgement]:
+	return press(t_usec)
 
 ## Judges a release at `t`: what the time up to it decided first, then the
 ## release. Returns every rep judged, in order.
@@ -99,20 +108,20 @@ func advance(_t_usec: int) -> Array[Judgement]:
 func judges_starting_press() -> bool:
 	return true
 
-## The share of a rep played `offset` off its mark, in any one unit: 1 on the
-## mark, then straight lines through 0.85 at `perfect`, 0.6 at `good` and 0.3 at
-## `ok`, down to 0 at `zero` and past it, either side. DrillRules.judge() turns it
-## into the tier, each edge landing in the better one.
-static func share_through(offset: int, perfect: int, good: int, ok: int, zero: int) -> float:
-	var off: int = absi(offset)
+## The share of a rep played `offset` off its mark, in any one unit (time, px): 1
+## on the mark, then straight lines through 0.85 at `perfect`, 0.6 at `good` and
+## 0.3 at `ok`, down to 0 at `zero` and past it, either side. DrillRules.judge()
+## turns it into the tier, each edge landing in the better one.
+static func share_through(offset: float, perfect: float, good: float, ok: float, zero: float) -> float:
+	var off: float = absf(offset)
 	if off <= perfect:
-		return lerpf(1.0, DrillRules.PERFECT_SHARE, float(off) / perfect)
+		return lerpf(1.0, DrillRules.PERFECT_SHARE, off / perfect)
 	if off <= good:
-		return lerpf(DrillRules.PERFECT_SHARE, DrillRules.GOOD_SHARE, float(off - perfect) / (good - perfect))
+		return lerpf(DrillRules.PERFECT_SHARE, DrillRules.GOOD_SHARE, (off - perfect) / (good - perfect))
 	if off <= ok:
-		return lerpf(DrillRules.GOOD_SHARE, DrillRules.OK_SHARE, float(off - good) / (ok - good))
+		return lerpf(DrillRules.GOOD_SHARE, DrillRules.OK_SHARE, (off - good) / (ok - good))
 	if off <= zero:
-		return lerpf(DrillRules.OK_SHARE, 0.0, float(off - ok) / (zero - ok))
+		return lerpf(DrillRules.OK_SHARE, 0.0, (off - ok) / (zero - ok))
 	return 0.0
 
 #-----------------------------------------------------------------------------
@@ -149,6 +158,11 @@ func get_end_usec() -> int:
 
 ## Records the next rep's judgement.
 func _record(tier: DrillRules.Tier, miss: Miss, height: float, at: int) -> Judgement:
-	var judgement := Judgement.new(_judgements.size(), tier, miss, height, at)
+	return _record_rep(_judgements.size(), tier, miss, height, at)
+
+## Records rep `rep`'s judgement, which may come out of turn (a leaf caught before
+## an earlier one lands), with where its piece was.
+func _record_rep(rep: int, tier: DrillRules.Tier, miss: Miss, height: float, at: int, point: Vector2 = Vector2.ZERO) -> Judgement:
+	var judgement := Judgement.new(rep, tier, miss, height, at, point)
 	_judgements.append(judgement)
 	return judgement

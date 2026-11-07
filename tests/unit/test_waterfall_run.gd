@@ -1,8 +1,9 @@
 extends GutTest
 
 ## Unit tests for WaterfallRun, the judge of one set of Waterfall Tempering: once
-## each 3 s rep a blow of water lands 1.5 s into it, on a steady beat, and the
-## first press of the rep is judged by how close to the landing it came. They also
+## each 3 s rep a surge of foam lands on the brace line 1.5 s into it, a steady
+## beat, and the first press of the rep is judged by how close to the landing it
+## came. They also
 ## pin the rules every timed press shares (TimedPressRun): one judged press a rep,
 ## a rep with no press missed at its deadline, every rep judged in order. Every
 ## time is on the set's own clock in microseconds, from the press that started it,
@@ -13,7 +14,7 @@ const Miss = DrillRun.Miss
 
 ## One second on the set's clock.
 const S: int = 1_000_000
-## When the first blow lands.
+## When the first surge lands.
 const BEAT: int = 1_500_000
 ## How long after a landing a rep with no press is missed.
 const DEADLINE: int = 260_000
@@ -62,19 +63,19 @@ func test_a_press_is_judged_by_its_time_from_the_landing() -> void:
 		assert_eq(judged[0].miss, case["miss"], "%d us off: the reason" % case["offset"])
 		assert_eq(judged[0].at_usec, BEAT + case["offset"], "judged at the press")
 
-func test_each_blow_lands_on_a_steady_beat() -> void:
+func test_each_surge_lands_on_a_steady_beat() -> void:
 	var run: WaterfallRun = _run()
 	for rep: int in 10:
-		assert_eq(run.target_usec(rep), rep * 3 * S + BEAT, "blow %d lands 1.5 s into its rep" % rep)
+		assert_eq(run.target_usec(rep), rep * 3 * S + BEAT, "surge %d lands 1.5 s into its rep" % rep)
 
-func test_a_blow_nobody_meets_is_missed() -> void:
+func test_a_surge_nobody_braces_for_buckles() -> void:
 	var run: WaterfallRun = _run()
 	assert_eq(run.advance(BEAT + DEADLINE - 1).size(), 0, "a press could still score")
 	var judged: Array[DrillRun.Judgement] = run.advance(BEAT + DEADLINE)
 	assert_eq(judged.size(), 1, "missed once no press can score")
 	if judged.size() == 1:
 		assert_eq(judged[0].tier, Tier.MISS)
-		assert_eq(judged[0].miss, Miss.MISSED_BEAT)
+		assert_eq(judged[0].miss, Miss.BUCKLED)
 		assert_eq(judged[0].at_usec, BEAT + DEADLINE)
 
 ## Review Focus 2: mashing can't catch every beat. The first press of a rep is the
@@ -94,7 +95,7 @@ func test_only_the_first_press_of_a_rep_is_judged() -> void:
 
 func test_a_release_judges_nothing() -> void:
 	var run: WaterfallRun = _run()
-	assert_eq(run.release(BEAT).size(), 0, "only a press meets a blow")
+	assert_eq(run.release(BEAT).size(), 0, "only a press meets a surge")
 	assert_eq(run.get_judged_count(), 0)
 
 #-----------------------------------------------------------------------------
@@ -109,7 +110,7 @@ func test_a_long_gap_judges_each_rep_in_order() -> void:
 	assert_eq(judged.size(), 10, "ten reps")
 	for index: int in judged.size():
 		assert_eq(judged[index].rep, index, "in order")
-		assert_eq(judged[index].miss, Miss.MISSED_BEAT)
+		assert_eq(judged[index].miss, Miss.BUCKLED)
 		assert_eq(judged[index].at_usec, index * 3 * S + BEAT + DEADLINE, "at its own deadline")
 
 func test_a_set_is_ten_beats_and_ends_after_the_last() -> void:

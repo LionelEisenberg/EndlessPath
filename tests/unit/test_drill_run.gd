@@ -64,6 +64,13 @@ func test_each_input_gets_its_run() -> void:
 		if run != null:
 			assert_eq(run.get_script().get_global_name(), StringName(case["run"]), "%s's run" % InputKind.keys()[case["kind"]])
 
+## A press can carry the point it was aimed at (DrillPlay always sends one); the
+## drills that aim at nothing take it as a plain press.
+func test_a_press_at_a_point_is_a_press_for_the_runs_with_no_aim() -> void:
+	var run := StoneLiftingRun.new(_drill())
+	assert_eq(run.press_at(0, Vector2(9, 9)).size(), 0, "a press judges nothing yet")
+	assert_true(run.is_lifting(), "and lifts the stone")
+
 ## On the hold drills the press that starts a set is also its first lift; on the
 ## drills judged by a timed press it only starts the set.
 func test_only_the_hold_drills_judge_the_starting_press() -> void:

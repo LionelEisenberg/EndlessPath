@@ -3,8 +3,8 @@ extends DrillRun
 
 ## TimedPressRun
 ## A judge (DrillRun's contract) for a drill whose every rep is one moment to
-## press at: a leaf reaching the palm, a blow of water landing. Each rep has a
-## target time on the set's clock, inside its slot.
+## press at, such as a surge of water landing on a line. Each rep has a target
+## time on the set's clock, inside its slot.
 ##
 ## The first press in a rep's slot is that rep's, judged by how far it came from
 ## the target: share_through() at the run's reaches (perfect, good, OK, zero), a
