@@ -169,10 +169,15 @@ func get_judged_count() -> int:
 func get_judgements() -> Array[Judgement]:
 	return _judgements.duplicate()
 
-## When the set ends, on its clock: once every rep is judged, the end of its last
-## slot. -1 until the last rep is judged.
+## When the set ends, on its clock: the moment its last rep is judged. -1 until
+## then. A run whose piece must come back to rest first says so itself.
 func get_end_usec() -> int:
-	return _reps * _rep_usec if _judgements.size() >= _reps else -1
+	if _judgements.size() < _reps:
+		return -1
+	var last: int = 0
+	for judgement: Judgement in _judgements:
+		last = maxi(last, judgement.at_usec)
+	return last
 
 #-----------------------------------------------------------------------------
 # PRIVATE

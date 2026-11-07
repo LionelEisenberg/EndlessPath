@@ -230,15 +230,6 @@ func rep_progress_at(t_usec: int) -> float:
 			return clampf(float(t_usec - _leaves[index].drop_usec) / FALL_USEC, 0.0, 1.0)
 	return 0.0
 
-## When the set ends: the moment its last leaf is judged. -1 until then.
-func get_end_usec() -> int:
-	if _judgements.size() < _reps:
-		return -1
-	var last: int = 0
-	for judgement: Judgement in _judgements:
-		last = maxi(last, judgement.at_usec)
-	return last
-
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------

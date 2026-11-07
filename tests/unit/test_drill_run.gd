@@ -86,6 +86,9 @@ func test_the_first_press_is_every_drill_s_first_input() -> void:
 	var leaf := DrillRun.for_drill(_drill(InputKind.CATCH)) as FallingLeafRun
 	leaf.press_at(0, FAR)
 	assert_true(leaf.is_dropped(0), "Falling Leaf: the branch shakes down the first leaf")
+	var falls := DrillRun.for_drill(_drill(InputKind.BEAT)) as WaterfallRun
+	falls.press_at(0, FAR)
+	assert_eq(falls.rep_in_play(), 0, "Waterfall Tempering: the first surge is sent down")
 
 #-----------------------------------------------------------------------------
 # AUTO
@@ -130,6 +133,7 @@ func test_auto_keeps_its_pace() -> void:
 		{"kind": InputKind.HOLD_RELEASE, "rep": 4.0},
 		{"kind": InputKind.HOLD_STEADY, "rep": 4.0},
 		{"kind": InputKind.CATCH, "rep": 2.0},
+		{"kind": InputKind.BEAT, "rep": 3.0},
 	]
 	for case: Dictionary in cases:
 		var what: String = InputKind.keys()[case["kind"]]
