@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="4_strip"]
 [ext_resource type="Texture2D" uid="uid://buchwvpdtb5iw" path="res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png" id="5_madra"]
 [ext_resource type="Texture2D" uid="uid://c33tlokmqisik" path="res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png" id="6_core"]
-[ext_resource type="Texture2D" uid="uid://dqku0g2ulqgfj" path="res://assets/ui/lacquer/lacquer_beads_xp_strip_ai.png" id="7_beads"]
+[ext_resource type="PackedScene" path="res://scenes/common/lacquer/lacquer_star_row/lacquer_star_row.tscn" id="7_stars"]
 [ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="8_line"]
 [ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="9_gold"]
 [ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="10_madra_orb"]
@@ -186,39 +186,13 @@ offset_bottom = 252.0
 theme_type_variation = &"LabelLacquerStage"
 text = "Foundation"
 
-[node name="LevelLabel" type="Label" parent="." unique_id=818338061]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 222.0
-offset_top = 228.0
-offset_right = 422.0
-offset_bottom = 248.0
-theme_type_variation = &"LabelLacquerName"
-text = "Level 0"
-horizontal_alignment = 2
-
-[node name="XpBeads" type="TextureRect" parent="." unique_id=1652062574]
+[node name="CoreStars" parent="." instance=ExtResource("7_stars")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 114.0
-offset_top = 260.0
-offset_right = 336.0
-offset_bottom = 272.0
-mouse_filter = 2
-script = ExtResource("4_strip")
-strip = ExtResource("7_beads")
-frame_size = Vector2i(222, 12)
-
-[node name="XpLabel" type="Label" parent="." unique_id=913893326]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 222.0
-offset_top = 257.0
-offset_right = 422.0
+offset_top = 256.0
+offset_right = 348.0
 offset_bottom = 274.0
-theme_type_variation = &"LabelLacquerDetail"
-text = "0 / 10 XP"
-horizontal_alignment = 2
 
 [node name="PhysicalCells" type="Control" parent="."]
 unique_name_in_owner = true

@@ -14,8 +14,7 @@ extends Control
 ## fill. The Stamina row shakes in the soft shake's steps (the zone map's lock
 ## shake at half its travel) when a walk is refused.
 ## The Core row is the zone cabinet's core block (CultivatorPlate): the core orb,
-## the stage, the level, the XP beads and "xp / need XP", following
-## CultivationManager. A reward's Core Density flies to its orb as beads
+## the stage and the core's stars (LacquerStarRow), following CultivationManager. A reward's Core Density flies to its orb as beads
 ## (AdventureView), and the row holds that XP back until each bead lands
 ## (hold_core_xp(), release_core_xp()), so the core climbs as they land.
 ## setup_vitals() reads the figures once and then follows the VitalsManager's
@@ -48,9 +47,7 @@ const TOOLTIP_GAP: float = 8.0
 @onready var _core_orb: LacquerStripRect = %CoreOrb
 @onready var _core_fill: ShaderMaterial = _core_orb.material
 @onready var _stage_label: Label = %StageLabel
-@onready var _level_label: Label = %LevelLabel
-@onready var _xp_beads: LacquerStripRect = %XpBeads
-@onready var _xp_label: Label = %XpLabel
+@onready var _core_stars: LacquerStarRow = %CoreStars
 @onready var _stamina_row: Control = %StaminaRow
 @onready var _stamina_rod: LacquerRod = %StaminaRod
 @onready var _stamina_value_label: Label = %StaminaValueLabel
@@ -217,30 +214,20 @@ func _update_stamina() -> void:
 	_stamina_max_label.text = " / %d" % floori(max_stamina)
 
 ## The Core row, as the zone cabinet draws its core (CultivatorPlate): the stage,
-## the level, the core orb's spiral at min(level, cap) / cap (the dormant pebble at
-## level 0) and the XP beads, a bead lit only once its share of the XP is earned,
-## beside "xp / need XP". A full core reads "Core full" with every bead lit. With
-## XP held, the core shows as it stood that much XP ago (CultivatorPlate.rewind_core()).
+## the core orb's spiral at min(level, cap) / cap (the dormant pebble at level 0)
+## and the core's stars at the level. With XP held, the core shows as it stood
+## that much XP ago (CultivatorPlate.rewind_core()), so the stars climb as the
+## beads land.
 func _update_core_density() -> void:
 	var level: int = int(CultivationManager.get_core_density_level())
-	var xp: float = CultivationManager.get_core_density_xp()
 	if _held_core_xp > 0.0:
-		var shown: Vector2 = CultivatorPlate.rewind_core(level, xp, _held_core_xp, CultivationManager.get_xp_for_level)
-		level = int(shown.x)
-		xp = shown.y
+		var xp: float = CultivationManager.get_core_density_xp()
+		level = int(CultivatorPlate.rewind_core(level, xp, _held_core_xp, CultivationManager.get_xp_for_level).x)
 	var cap: int = CultivationManager.get_core_density_cap()
 	_stage_label.text = CultivationManager.get_current_advancement_stage_name()
-	_level_label.text = "Level %d" % level
 	_core_orb.set_frame(CultivatorPlate.CORE_ORB_SOCKET_COLUMN if level > 0 else CultivatorPlate.CORE_ORB_DORMANT_COLUMN)
 	_core_fill.set_shader_parameter(FILL_PARAMETER, float(clampi(level, 0, cap)) / cap if cap > 0 else 0.0)
-	if CultivationManager.is_core_full() and _held_core_xp <= 0.0:
-		_xp_beads.set_frame(0, CultivatorPlate.XP_BEADS_LAST_ROW)
-		_xp_label.text = CultivationManager.CORE_FULL_TEXT
-	else:
-		var need: float = CultivationManager.get_xp_for_level(level + 1)
-		var lit_beads: int = floori(xp * CultivatorPlate.XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
-		_xp_beads.set_frame(0, clampi(lit_beads, 0, CultivatorPlate.XP_BEADS_LAST_ROW))
-		_xp_label.text = "%d / %d XP" % [floori(xp), ceili(need)]
+	_core_stars.set_fills(CultivationManager.get_star_fills_at(level))
 
 #-----------------------------------------------------------------------------
 # STAMINA SHAKE

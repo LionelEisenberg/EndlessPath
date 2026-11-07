@@ -1,8 +1,8 @@
 extends GutTest
 
-## The run cabinet's Core row (VitalsPlate): the core as CultivationManager has it,
-## less the XP a kill's beads still carry to it, as the zone cabinet shows it while
-## cycling's pellets fly (hold_core_xp() and release_core_xp()). Each test starts on
+## The run cabinet's Core row (VitalsPlate): the core's stars as CultivationManager
+## has the core, less the XP a kill's beads still carry to it (hold_core_xp() and
+## release_core_xp()). Each test starts on
 ## a save at Core Density 6 with 3 XP, where level 7 costs 10 x 1.02^6 = 11.26.
 
 const VitalsPlateScene := preload("res://scenes/adventure/vitals_plate/vitals_plate.tscn")
@@ -32,39 +32,44 @@ func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 
-func _level() -> String:
-	return (_plate.get_node("%LevelLabel") as Label).text
+## The steps the Core row's stars show, 0 (empty) to 10 (lit).
+func _star_steps() -> Array[int]:
+	var row: LacquerStarRow = _plate.get_node("%CoreStars") as LacquerStarRow
+	var steps: Array[int] = []
+	for index: int in row.get_star_count():
+		steps.append(row.get_star_step(index))
+	return steps
 
-func _xp() -> String:
-	return (_plate.get_node("%XpLabel") as Label).text
+## The first star's step: the save's six levels are its tenths.
+func _first_star() -> int:
+	return _star_steps()[0]
 
 func test_the_core_row_shows_the_core() -> void:
-	assert_eq(_level(), "Level 6")
-	assert_eq(_xp(), "3 / 12 XP", "level 7's 11.26 XP, rounded up")
+	assert_eq(_first_star(), 6, "Core Density 6: the first star six tenths up")
+	assert_eq(_star_steps().size(), 10, "the stage's ten stars")
 
 ## 23 XP pays level 7's 11.26 and level 8's 11.49, leaving 0.25.
 func test_the_core_row_follows_the_core() -> void:
 	CultivationManager.add_core_density_xp(20.0)
-	assert_eq(_level(), "Level 8")
-	assert_eq(_xp(), "0 / 12 XP")
+	assert_eq(_first_star(), 8)
 
 func test_held_xp_stays_out_of_the_row_until_it_lands() -> void:
 	CultivationManager.add_core_density_xp(20.0)
 
 	_plate.hold_core_xp(20.0)
-	assert_eq(_level(), "Level 6", "the core as it stood before the beads' XP")
-	assert_eq(_xp(), "3 / 12 XP")
+	assert_eq(_first_star(), 6, "the core as it stood before the beads' XP")
 
 	_plate.release_core_xp(5.0)
-	assert_eq(_level(), "Level 6", "8 XP has landed, short of level 7")
-	assert_eq(_xp(), "8 / 12 XP")
+	assert_eq(_first_star(), 6, "8 XP has landed, short of level 7")
 
-	_plate.release_core_xp(15.0)
-	assert_eq(_level(), "Level 8", "every bead landed")
-	assert_eq(_xp(), "0 / 12 XP")
+	_plate.release_core_xp(10.0)
+	assert_eq(_first_star(), 7, "18 XP has landed: level 7")
 
-func test_a_full_core_reads_core_full() -> void:
+	_plate.release_core_xp(5.0)
+	assert_eq(_first_star(), 8, "every bead landed")
+
+func test_a_full_core_lights_every_star() -> void:
 	PersistenceManager.save_game_data.core_density_level = CultivationManager.get_core_density_cap()
 	PersistenceManager.save_game_data.core_density_xp = 0.0
 	CultivationManager.add_core_density_xp(0.0)
-	assert_eq(_xp(), CultivationManager.CORE_FULL_TEXT)
+	assert_eq(_star_steps(), [10, 10, 10, 10, 10, 10, 10, 10, 10, 10] as Array[int])
