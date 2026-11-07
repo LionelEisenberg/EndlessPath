@@ -125,11 +125,6 @@ func play_auto(t_usec: int) -> Array[Judgement]:
 func get_auto_set_usec() -> int:
 	return _reps * _rep_usec
 
-## Whether the press that starts a set is also the first rep's input (a hold),
-## or only starts it.
-func judges_starting_press() -> bool:
-	return true
-
 ## The share of a rep played `offset` off its mark, in any one unit (time, px): 1
 ## on the mark, then straight lines through 0.85 at `perfect`, 0.6 at `good` and
 ## 0.3 at `ok`, down to 0 at `zero` and past it, either side. DrillRules.judge()

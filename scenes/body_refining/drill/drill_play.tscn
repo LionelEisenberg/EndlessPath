@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/horse_stance_stage.tscn" id="10_stance_stage"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/falling_leaf_stage.tscn" id="11_leaf_stage"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/waterfall_stage.tscn" id="12_falls_stage"]
+[ext_resource type="Texture2D" uid="uid://c6kjwgx0c1orc" path="res://assets/ui/lacquer/body_refining/lacquer_drill_bead_mark_ai.png" id="13_mark"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="14_frame"]
 
 [node name="DrillPlay" type="Control" unique_id=412822345]
 layout_mode = 3
@@ -118,6 +120,30 @@ mouse_filter = 2
 script = ExtResource("6_strip")
 strip = ExtResource("7_beads")
 frame_size = Vector2i(24, 24)
+
+[node name="BeadMark" type="TextureRect" parent="." unique_id=1508734211]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 113.0
+offset_top = 810.0
+offset_right = 141.0
+offset_bottom = 838.0
+mouse_filter = 2
+texture = ExtResource("13_mark")
+
+[node name="SetFrame" parent="." unique_id=1730462587 instance=ExtResource("14_frame")]
+unique_name_in_owner = true
+layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 105.0
+offset_top = 802.0
+offset_right = 419.0
+offset_bottom = 846.0
+grow_horizontal = 1
+grow_vertical = 1
 
 [node name="Floaters" type="Control" parent="." unique_id=1079136323]
 layout_mode = 1

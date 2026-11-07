@@ -1,15 +1,17 @@
 extends GutTest
 
 ## Integration tests for DrillPlay, the drill played on the body refining board:
-## each drill's input shows its own stage, the first press starts a set, each rep
-## is judged at its exact time on an injected clock and paid through
-## BodyRefiningManager.pay_rep(), its bead lights in its tier's colour, its tier
-## pops where its stage says (with what it could not pay under it, or a Miss's
-## reason), and a set played to its last rep is counted and reported. The hold
-## belongs to the kind of input that started it. Every test runs on a fresh save
-## with the real Stone Lifting (6 Strength XP and 4 Health a Perfect rep, 4 s reps,
-## 10 to a set) unless it readies another drill, with the original save put back
-## after it.
+## each drill's input shows its own stage, the first press starts a set, every rep
+## starts on the player's press and ends with its own motion (#143), judged at its
+## exact time on an injected clock. Each judged rep restores its Health at once
+## through BodyRefiningManager.pay_rep() and stores its XP for the set's end, its
+## bead lights in its tier's colour, a brass ring marks the rep the player is on,
+## its tier pops where its stage says (with what it could not pay under it, or a
+## Miss's reason), and a set played to its last rep pays its XP, flashes the beads'
+## frame, and is counted and reported. The hold belongs to the kind of input that
+## started it. Every test runs on a fresh save with the real Stone Lifting (6
+## Strength XP and 4 Health a Perfect rep, a 4 s Auto pace, 10 to a set) unless it
+## readies another drill, with the original save put back after it.
 
 const PLAY_SCENE: PackedScene = preload("res://scenes/body_refining/drill/drill_play.tscn")
 const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
@@ -22,8 +24,8 @@ const Tier = DrillRules.Tier
 const START_USEC: int = 1_000_000
 ## A release this long after a lift stops the stone at the band's centre.
 const CENTRE: float = 1.37
-## Falling Leaf's test leaves (_ready_leaves()): each drops at its rep's start from
-## LEAF_START, without sway, and is half way down, at LEAF_HALF, 1.8 s later.
+## Falling Leaf's test leaves (_ready_leaves()): each hangs at LEAF_START, falls
+## without sway, and is half way down, at LEAF_HALF, 1.8 s after it is shaken down.
 const LEAF_START: Vector2 = Vector2(200, 64)
 const LEAF_HALF: Vector2 = Vector2(200, 460)
 
@@ -92,7 +94,7 @@ func _click(down: bool, point: Vector2) -> InputEventMouseButton:
 	event.global_position = _play.get_stage().get_global_transform() * point
 	return event
 
-## Lifts at the start of rep `rep`'s slot and lets go `held` seconds later.
+## Lifts `rep` times 4 s into the set and lets go `held` seconds later.
 func _lift(rep: int, held: float) -> void:
 	_clock_to(rep * 4.0)
 	_play.handle_press_event(_press())
@@ -105,6 +107,18 @@ func _bead_frames() -> Array[int]:
 		frames.append((bead as LacquerStripRect).get_frame().x)
 	return frames
 
+## The bead the ring stands on, or -1 while it hides.
+func _marked_bead() -> int:
+	var mark: Control = _play.get_node("%BeadMark") as Control
+	if not mark.visible:
+		return -1
+	var beads: Array[Node] = _play.get_node("%Beads").get_children()
+	for index: int in beads.size():
+		var bead: Control = beads[index] as Control
+		if bead.get_global_rect().get_center().is_equal_approx(mark.get_global_rect().get_center()):
+			return index
+	return -2
+
 func _floater(unique_name: String) -> LacquerFloater:
 	return _play.get_node("%" + unique_name) as LacquerFloater
 
@@ -112,18 +126,18 @@ func _floater(unique_name: String) -> LacquerFloater:
 func _stone_run() -> StoneLiftingRun:
 	return _play.get_run() as StoneLiftingRun
 
-## Readies Horse Stance, its sets' arc held at `band_centre` all set long.
+## Readies Horse Stance, every rep's arc held at `band_centre`.
 func _ready_stance(band_centre: float) -> void:
 	_play.run_for = func(drill: DrillData, _seed: int) -> DrillRun:
-		return HorseStanceRun.new(drill, PackedInt64Array([0, 40_000_000]), PackedFloat64Array([band_centre, band_centre]))
+		return HorseStanceRun.new(drill, [[PackedInt64Array([0]), PackedFloat64Array([band_centre])]])
 	_play.setup(BodyRefiningManager.get_drill("horse_stance"))
 
-## Readies Falling Leaf, its sets' leaves the test's: one a rep from LEAF_START.
+## Readies Falling Leaf, its sets' leaves the test's: each hangs at LEAF_START.
 func _ready_leaves() -> void:
 	_play.run_for = func(drill: DrillData, _seed: int) -> DrillRun:
 		var leaves: Array[FallingLeafRun.Leaf] = []
 		for rep: int in drill.reps_per_set:
-			leaves.append(FallingLeafRun.Leaf.new(rep * 2_000_000, LEAF_START.x, LEAF_START.y, 0.0, 1_600_000, 0.0))
+			leaves.append(FallingLeafRun.Leaf.new(LEAF_START.x, LEAF_START.y, 0.0, 1_600_000, 0.0))
 		return FallingLeafRun.new(drill, leaves)
 	_play.setup(BodyRefiningManager.get_drill("falling_leaf"))
 
@@ -161,20 +175,21 @@ func test_each_drill_shows_its_own_stage() -> void:
 # HORSE STANCE
 #-----------------------------------------------------------------------------
 
-## A sink into an arc at the top of the gauge, and a rise to stand in it for the
-## rest of the rep: Perfect, which trains Body beside Strength.
-func test_a_horse_stance_rep_pays_strength_body_and_health() -> void:
+## A sink into the arc at the top of the gauge, standing in it for the rest of the
+## rep: Perfect, which restores Health at once and stores Strength and Body XP.
+func test_a_horse_stance_rep_restores_health_and_stores_body() -> void:
 	ResourceManager.set_health(50.0)
-	_ready_stance(0.1)
+	_ready_stance(HorseStanceRun.BAND_START)
 	_clock_to(0.0)
 	_play.handle_press_event(_press())
 	_clock_to(0.2)
 	_play.handle_press_event(_press(false))
-	_at(4.0)
-	assert_eq(_bead_frames()[0], 1, "a Perfect rep")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 8.0, "Horse Stance's Strength XP")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 4.0, "and its Body XP")
-	assert_eq(ResourceManager.get_health(), 54.0, "and its Health")
+	_at(2.0)
+	assert_eq(_bead_frames()[0], 1, "a Perfect rep after its 2 s in the arc")
+	assert_eq(ResourceManager.get_health(), 54.0, "its Health at once")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 8.0, "Horse Stance's Strength XP, stored")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 4.0, "and its Body XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "paid when the set ends")
 
 ## The needle and the arc stand where the run has them, and the brass gauge shows
 ## exactly while the needle is in the arc.
@@ -196,26 +211,14 @@ func test_the_gauge_follows_the_run() -> void:
 		assert_eq(gauge_lit.visible, case["inside"], "%.1f s: the brass gauge" % case["at"])
 		assert_eq(gauge_dim.visible, not case["inside"], "%.1f s: the tan gauge" % case["at"])
 
-## The incense counts the set's seconds down, and is whole again for the next set.
-func test_the_incense_burns_down_with_the_set() -> void:
-	_ready_stance(0.5)
-	var seconds: Label = _play.get_stage().get_node("%Seconds") as Label
-	assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % 40, "a whole set before it starts")
-	_clock_to(0.0)
-	_play.handle_press_event(_press())
-	for case: Array in [[0.0, 40], [10.0, 30], [39.5, 1]]:
-		_at(case[0])
-		assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % case[1], "%.1f s into the set" % case[0])
-	_play.stop_set()
-	assert_eq(seconds.text, HorseStanceStage.SECONDS_FORMAT % 40, "whole again once it stops")
-
 #-----------------------------------------------------------------------------
 # FALLING LEAF
 #-----------------------------------------------------------------------------
 
-## A click on a leaf's middle half way down: Perfect, which trains Agility beside
-## Strength. The leaf turns into its pellets and the ring snaps where the click came.
-func test_a_falling_leaf_catch_pays_agility() -> void:
+## The first click shakes down a leaf; a click on its middle half way down is
+## Perfect, which restores Health and stores Agility beside Strength. The leaf turns
+## into its pellets and the ring snaps where the click came.
+func test_a_falling_leaf_catch_stores_agility() -> void:
 	ResourceManager.set_health(50.0)
 	_ready_leaves()
 	_clock_to(0.0)
@@ -225,9 +228,9 @@ func test_a_falling_leaf_catch_pays_agility() -> void:
 	_play.handle_press_event(_click(true, LEAF_HALF))
 	_at(1.8)
 	assert_eq(_bead_frames()[0], 1, "a Perfect catch")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 4.0, "Falling Leaf's Strength XP")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.AGILITY), 2.0, "and its Agility XP")
-	assert_eq(ResourceManager.get_health(), 52.0, "and its Health")
+	assert_eq(ResourceManager.get_health(), 52.0, "its Health at once")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 4.0, "Falling Leaf's Strength XP, stored")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.AGILITY), 2.0, "and its Agility XP")
 	var ring: Control = _play.get_stage().get_node("%CatchRing") as Control
 	assert_true(ring.visible, "the ring shows")
 	assert_eq(ring.position + ring.size / 2.0, LEAF_HALF, "where the click came")
@@ -235,7 +238,7 @@ func test_a_falling_leaf_catch_pays_agility() -> void:
 	_at(2.4)
 	assert_false(ring.visible, "the ring goes")
 
-## A leaf nobody catches is a Miss as it lands, and lies there until the set ends.
+## A leaf nobody catches is a Miss as it lands, and lies there while the set runs.
 func test_a_landed_leaf_stays_on_the_ground() -> void:
 	_ready_leaves()
 	_clock_to(0.0)
@@ -246,14 +249,33 @@ func test_a_landed_leaf_stays_on_the_ground() -> void:
 	for seconds: float in [3.6, 10.0, 20.0]:
 		_at(seconds)
 		assert_true(_leaf_node(0).visible, "%.1f s: the leaf lies on the ground" % seconds)
-	_at(21.6)
-	assert_false(_play.is_set_running(), "precondition: the last leaf landed and the set ended")
-	assert_false(_leaf_node(0).visible, "the ground is cleared for the next set")
+	_play.stop_set()
+	assert_false(_leaf_node(0).visible, "the ground is cleared once the set ends")
 
-## Review Focus 5: on Falling Leaf the press that starts a set shakes the branch
-## and on Waterfall Tempering it opens the falls: it judges no rep, even aimed at
-## the first leaf. The next press is judged.
-func test_the_starting_press_starts_without_a_rep_on_the_press_drills() -> void:
+#-----------------------------------------------------------------------------
+# WATERFALL TEMPERING
+#-----------------------------------------------------------------------------
+
+## The first press sends the waiting surge; a press as it lands on the line is
+## Perfect, which restores Health and stores Body beside Strength.
+func test_a_waterfall_brace_stores_body() -> void:
+	ResourceManager.set_health(50.0)
+	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_clock_to(1.5)
+	_play.handle_press_event(_press())
+	assert_eq(_bead_frames()[0], 1, "a Perfect brace")
+	assert_eq(ResourceManager.get_health(), 53.0, "its Health at once")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 6.0, "Waterfall Tempering's Strength XP, stored")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 3.0, "and its Body XP")
+
+## Review Focus 5: the press that starts a set is its first rep's input on every
+## drill: on Falling Leaf it shakes down the first leaf, even aimed where the leaf
+## hangs, and on Waterfall Tempering it sends the first surge. It judges no rep;
+## the press after it is judged.
+func test_the_first_press_drops_a_leaf_and_sends_a_surge() -> void:
 	var cases: Array[Dictionary] = [
 		{"drill": "falling_leaf", "start_aim": LEAF_START, "next_at": 1.8, "next_aim": LEAF_HALF},
 		{"drill": "waterfall_tempering", "start_aim": Vector2.ZERO, "next_at": 1.5, "next_aim": Vector2.ZERO},
@@ -281,49 +303,6 @@ func test_the_starting_press_starts_without_a_rep_on_the_press_drills() -> void:
 		_play.rep_judged.disconnect(note)
 
 #-----------------------------------------------------------------------------
-# WATERFALL TEMPERING
-#-----------------------------------------------------------------------------
-
-## A press as the first surge lands on the line: Perfect, which trains Body beside
-## Strength.
-func test_a_waterfall_landing_pays_body() -> void:
-	ResourceManager.set_health(50.0)
-	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
-	_clock_to(0.0)
-	_play.handle_press_event(_press())
-	_play.handle_press_event(_press(false))
-	_clock_to(1.5)
-	_play.handle_press_event(_press())
-	assert_eq(_bead_frames()[0], 1, "a Perfect brace")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 6.0, "Waterfall Tempering's Strength XP")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), 3.0, "and its Body XP")
-	assert_eq(ResourceManager.get_health(), 53.0, "and its Health")
-
-## Each surge rides down from the top of the falls as its rep starts and lands on
-## the line exactly when a press is Perfect; a braced surge is gone, and one
-## nobody braced against crashes through the line.
-func test_the_surge_rides_down_to_the_line() -> void:
-	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
-	var surge: Control = _play.get_stage().get_node("%Surge") as Control
-	var middle := func() -> float: return surge.position.y + surge.size.y / 2.0
-	_clock_to(0.0)
-	_play.handle_press_event(_press())
-	_play.handle_press_event(_press(false))
-	_at(0.0)
-	assert_eq(middle.call(), WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX, "at the top as the rep starts")
-	_at(0.75)
-	assert_eq(middle.call(), WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX / 2.0, "half way down half way through its lead")
-	_at(1.5)
-	assert_eq(middle.call(), WaterfallStage.LINE_Y, "on the line as it lands")
-	_play.handle_press_event(_press())
-	_play.handle_press_event(_press(false))
-	_at(1.5)
-	assert_false(surge.visible, "braced, it is gone")
-	_at(4.6)
-	assert_true(surge.visible, "the next surge, unbraced")
-	assert_gt(middle.call(), WaterfallStage.LINE_Y, "crashes through the line")
-
-#-----------------------------------------------------------------------------
 # A SET
 #-----------------------------------------------------------------------------
 
@@ -338,25 +317,31 @@ func test_a_press_starts_a_set_and_lifts() -> void:
 	assert_true(BodyRefiningManager.is_set_running(), "the set session runs")
 	assert_eq(BodyRefiningManager.get_set_rep(), 1, "on its first rep")
 
-func test_a_set_scores_and_pays_each_rep() -> void:
+## Each rep restores its Health at once; the set's XP lands when its tenth rep
+## does, and the set is counted and reported once.
+func test_reps_pay_health_and_the_set_s_end_pays_xp() -> void:
 	ResourceManager.set_health(50.0)
 	watch_signals(_play)
-	for rep: int in 10:
+	for rep: int in 9:
 		_lift(rep, CENTRE)
+	assert_eq(ResourceManager.get_health(), 86.0, "nine reps of Health, at once")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "no Strength XP before the set ends")
+	_lift(9, CENTRE)
 	_at(40.0)
 	assert_signal_emit_count(_play, "rep_judged", 10, "ten reps judged")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "ten Perfect reps of Strength XP")
-	assert_eq(ResourceManager.get_health(), 90.0, "and of Health")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "ten Perfect reps of Strength XP at the set's end")
+	assert_eq(ResourceManager.get_health(), 90.0)
 	assert_eq(_bead_frames(), [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] as Array[int], "every bead lit brass")
 	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported once")
 	var completed: Array = get_signal_parameters(_play, "set_completed")
 	if not completed.is_empty():
 		assert_true((completed[0] as DrillSetResult).is_perfect(), "a perfect set")
+		assert_eq((completed[0] as DrillSetResult).get_stat_xp(AttributeType.STRENGTH), 60.0, "holding what Strength took")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "and counted")
 	assert_false(_play.is_set_running())
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
 
-func test_rep_judged_reports_what_was_paid() -> void:
+func test_rep_judged_reports_what_was_stored() -> void:
 	ResourceManager.set_health(50.0)
 	watch_signals(_play)
 	_lift(0, CENTRE)
@@ -366,14 +351,35 @@ func test_rep_judged_reports_what_was_paid() -> void:
 		return
 	assert_eq((params[0] as DrillRun.Judgement).tier, Tier.PERFECT)
 	assert_eq(params[1], 4.0, "the Health restored")
-	assert_eq(params[2], {AttributeType.STRENGTH: 6.0}, "the XP each stat took")
+	assert_eq(params[2], {AttributeType.STRENGTH: 6.0}, "the XP each stat stored")
 
-func test_the_set_session_follows_the_set() -> void:
+## Review Focus 2: no clock. Two reps, then a minute's wait judges nothing, and the
+## next press plays the third rep.
+func test_a_pause_judges_nothing_and_the_next_press_plays_on() -> void:
+	watch_signals(_play)
+	_lift(0, CENTRE)
+	_lift(1, CENTRE)
+	_at(64.0)
+	assert_signal_emit_count(_play, "rep_judged", 2, "nothing judged while the player waits")
+	assert_eq(_bead_frames(), [1, 1, 0, 0, 0, 0, 0, 0, 0, 0] as Array[int])
+	assert_true(_play.is_set_running(), "the set waits")
+	_lift(16, CENTRE)
+	assert_eq(_bead_frames()[2], 1, "the next press plays rep 3, Perfect")
+
+## The Now strip's snapshot: the rep the player is on (the reps landed, plus one),
+## and the rep in play's own motion, 0 while the drill waits.
+func test_the_session_counts_landed_reps() -> void:
 	_clock_to(0.0)
 	_play.handle_press_event(_press())
-	_at(6.0)
-	assert_eq(BodyRefiningManager.get_set_rep(), 2, "the second rep")
-	assert_almost_eq(BodyRefiningManager.get_rep_progress(), 0.5, 0.0001, "half through it")
+	_at(1.0)
+	assert_eq(BodyRefiningManager.get_set_rep(), 1, "the first rep")
+	assert_almost_eq(BodyRefiningManager.get_rep_progress(), 0.5, 0.0001, "the stone half way up")
+	_clock_to(CENTRE)
+	_play.handle_press_event(_press(false))
+	_at(5.0)
+	assert_eq(BodyRefiningManager.get_set_rep(), 2, "on the second rep once the first landed")
+	assert_eq(BodyRefiningManager.get_rep_progress(), 0.0, "waiting for the press")
+	assert_almost_eq(BodyRefiningManager.get_set_progress(), 0.1, 0.0001, "a tenth of the set")
 
 func test_a_new_set_starts_on_the_next_press() -> void:
 	watch_signals(_play)
@@ -385,16 +391,82 @@ func test_a_new_set_starts_on_the_next_press() -> void:
 	assert_signal_emit_count(_play, "set_started", 2, "a second set")
 	assert_eq(_bead_frames(), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as Array[int], "its beads start empty")
 
-func test_stop_set_keeps_the_paid_reps_and_counts_nothing() -> void:
+## A set stopped short pays the XP its reps stored, and is neither counted nor
+## reported.
+func test_stopping_mid_set_pays_the_stored_xp_and_counts_nothing() -> void:
 	watch_signals(_play)
 	_lift(0, CENTRE)
 	_lift(1, CENTRE)
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "precondition: the XP is stored")
 	_play.stop_set()
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "the two reps' XP stays")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "the two reps' XP is paid")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "a stopped set is not counted")
 	assert_signal_emit_count(_play, "set_completed", 0, "nor reported")
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
 	assert_false(_play.is_set_running())
+
+## Review Focus 3: the save on quit comes before the play hears of it, so closing
+## the window mid-set pays the set's stored XP (and saves again).
+func test_closing_the_window_mid_set_pays_the_stored_xp() -> void:
+	_lift(0, CENTRE)
+	_lift(1, CENTRE)
+	_play._notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "the two reps' XP is paid")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 0.0, "and none is left to pay twice")
+
+#-----------------------------------------------------------------------------
+# THE SET ON THE BOARD
+#-----------------------------------------------------------------------------
+
+## A brass ring marks the rep the player is on: the first bead not lit, while a
+## set runs.
+func test_the_ring_marks_the_rep_you_are_on() -> void:
+	await wait_process_frames(1)
+	assert_eq(_marked_bead(), -1, "no ring before a set")
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_at(0.5)
+	assert_eq(_marked_bead(), 0, "the first rep in play")
+	_clock_to(CENTRE)
+	_play.handle_press_event(_press(false))
+	_at(2.0)
+	assert_eq(_marked_bead(), 1, "then the second, waiting for the press")
+	for rep: int in range(1, 10):
+		_lift(rep, CENTRE)
+	_at(40.0)
+	assert_eq(_marked_bead(), -1, "no ring once the set ends")
+
+## Review Focus 4: leaves caught out of turn light their own beads; the ring stays
+## on the first bead not lit.
+func test_the_ring_stays_on_the_first_bead_not_lit() -> void:
+	_ready_leaves()
+	await wait_process_frames(1)
+	var away: Vector2 = LEAF_START + Vector2(0, -200)
+	_clock_to(0.0)
+	_play.handle_press_event(_click(true, away))
+	_play.handle_press_event(_click(false, away))
+	_clock_to(0.5)
+	_play.handle_press_event(_click(true, away))
+	_play.handle_press_event(_click(false, away))
+	var run := _play.get_run() as FallingLeafRun
+	_clock_to(1.5)
+	_play.handle_press_event(_click(true, run.leaf_position(1, roundi(1.5e6))))
+	_at(1.5)
+	assert_eq(_bead_frames()[1], 1, "the second leaf, caught first")
+	assert_eq(_marked_bead(), 0, "the ring stays on the first")
+	assert_eq(BodyRefiningManager.get_set_rep(), 2, "one rep landed")
+
+## The tenth rep's landing ends the set with a flash of the beads' brass frame.
+func test_the_tenth_rep_flashes_the_set_frame() -> void:
+	var frame: LacquerFrameOverlay = _play.get_node("%SetFrame") as LacquerFrameOverlay
+	assert_false(frame.visible, "hidden before")
+	for rep: int in 10:
+		_lift(rep, CENTRE)
+		if rep < 9:
+			_at(rep * 4.0 + 3.0)
+			assert_false(frame.is_flashing(), "rep %d: no flash mid-set" % rep)
+	_at(40.0)
+	assert_true(frame.is_flashing(), "the set's end flashes it")
 
 #-----------------------------------------------------------------------------
 # WHAT A REP SHOWS
@@ -423,24 +495,25 @@ func test_a_capped_strength_pops_capped() -> void:
 	assert_eq(_floater("LineFloater").get_icons(), [StatDisplay.mini_icon_of(AttributeType.STRENGTH)] as Array[Texture2D], "Strength's icon")
 	assert_eq(_floater("LineFloater").get_text(), " capped")
 
-## A drill's other stat at the cap reads "capped" as Strength does, takes no XP,
-## and the rep still restores Health.
+## A drill's other stat at the cap reads "capped" as Strength does, takes no XP at
+## the set's end, and the rep still restores Health.
 func test_a_capped_minor_stat_pops_capped() -> void:
 	CharacterManager.set_stat_level(AttributeType.BODY, CharacterManager.get_stat_level_cap())
 	ResourceManager.set_health(50.0)
 	var body_xp: float = CharacterManager.get_stat_xp(AttributeType.BODY)
-	_ready_stance(0.1)
+	_ready_stance(HorseStanceRun.BAND_START)
 	_clock_to(0.0)
 	_play.handle_press_event(_press())
 	_clock_to(0.2)
 	_play.handle_press_event(_press(false))
-	_at(4.0)
+	_at(2.0)
 	assert_eq(_floater("WordFloater").get_text(), "Perfect")
 	assert_eq(_floater("LineFloater").get_icons(), [StatDisplay.mini_icon_of(AttributeType.BODY)] as Array[Texture2D], "Body's icon")
 	assert_eq(_floater("LineFloater").get_text(), " capped")
+	assert_eq(ResourceManager.get_health(), 54.0, "Health still refills")
+	_play.stop_set()
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), body_xp, "Body takes no XP")
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 8.0, "Strength still does")
-	assert_eq(ResourceManager.get_health(), 54.0, "and Health still refills")
 
 func test_a_rep_that_pays_everything_shows_no_line() -> void:
 	ResourceManager.set_health(50.0)
@@ -521,35 +594,38 @@ func _frames_to(seconds: float) -> void:
 		_at(t)
 		t += 0.5
 
-## With Auto on and unlocked the play starts a set by itself and plays it: each rep
-## lands at the drill's pace and pays 0.4 of a Perfect rep's Strength XP and
-## Health (#110).
-func test_auto_plays_reps_at_the_auto_rate() -> void:
+## With Auto on and unlocked the play starts a set by itself and plays it: a rep
+## each 4 s, each restoring 0.4 of a Perfect rep's Health and storing 0.4 of its
+## Strength XP, paid when the set ends (#110, #143). Auto's next set waits for its
+## pace: ten reps of 4 s from the last one's start.
+func test_auto_plays_reps_at_the_auto_rate_and_pace() -> void:
 	ResourceManager.set_health(20.0)
 	watch_signals(_play)
 	_auto_on()
 	_frames_to(4.0)
 	assert_true(_play.is_set_running(), "Auto started a set by itself")
 	assert_true(_play.is_auto_set())
-	assert_signal_emit_count(_play, "rep_judged", 1, "one rep in its first 4 s slot")
+	assert_signal_emit_count(_play, "rep_judged", 1, "one rep in its first 4 s")
 	var params: Array = get_signal_parameters(_play, "rep_judged")
 	if params.size() == 3:
 		assert_eq((params[0] as DrillRun.Judgement).tier, Tier.AUTO, "an Auto rep")
-	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 2.4, 0.0001, "0.4 of 6 Strength XP")
 	assert_almost_eq(ResourceManager.get_health(), 21.6, 0.0001, "0.4 of 4 Health")
+	assert_almost_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 2.4, 0.0001, "0.4 of 6 Strength XP, stored")
 	assert_eq(_bead_frames()[0], 1, "its bead lights Perfect's frame")
 	assert_eq(_play._beads[0].self_modulate, DrillPlay.AUTO_BEAD_TINT, "dimmed")
 	_frames_to(38.5)
 	assert_signal_emit_count(_play, "rep_judged", 10, "ten reps a set, the last stone down by 38.5 s")
-	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 24.0, 0.0001, "a set pays 24 Strength XP")
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 24.0, 0.0001, "a set pays 24 Strength XP as it ends")
 	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported")
 	var completed: Array = get_signal_parameters(_play, "set_completed")
 	if not completed.is_empty():
 		assert_true((completed[0] as DrillSetResult).is_auto(), "as an Auto set")
 		assert_false((completed[0] as DrillSetResult).is_perfect(), "never perfect")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "and counted")
-	_at(39.0)
-	assert_true(_play.is_set_running(), "the next set starts by itself on the next frame")
+	_at(39.5)
+	assert_false(_play.is_set_running(), "Review Focus 5: the next set waits for Auto's pace")
+	_at(40.0)
+	assert_true(_play.is_set_running(), "and starts 40 s after the last one did")
 
 ## Before the drill's Auto unlocks, Auto plays nothing, even switched on.
 func test_locked_auto_plays_nothing() -> void:
@@ -568,21 +644,31 @@ func test_a_press_under_auto_plays_nothing() -> void:
 	_at(0.0)
 	assert_true(_play.is_auto_set(), "Auto's set starts on the next frame")
 
-## Turning Auto off drops Auto's set: its reps stay paid, it is neither counted nor
-## reported, and the next set waits for a press.
+## Turning Auto off drops Auto's set: its reps' XP is paid, it is neither counted
+## nor reported, and the next set waits for a press.
 func test_turning_auto_off_drops_its_set() -> void:
 	watch_signals(_play)
 	_auto_on()
 	_frames_to(9.0)
 	_play.set_auto_play(false)
 	assert_false(_play.is_set_running())
-	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 4.8, 0.0001, "two reps stay paid")
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 4.8, 0.0001, "two reps' XP paid at the stop")
 	assert_signal_emit_count(_play, "set_completed", 0, "the set is not reported")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "nor counted")
 	_at(10.0)
 	assert_false(_play.is_set_running(), "no set until a press")
 
-## An Auto rep never pays the drill's other stat, so it doesn't report it: nothing
+## Review Focus 5: turning Auto back on starts its set at once, whatever its pace.
+func test_turning_auto_on_starts_at_once() -> void:
+	_auto_on()
+	_frames_to(39.0)
+	_play.set_auto_play(false)
+	_play.set_auto_play(true)
+	_at(39.5)
+	assert_true(_play.is_auto_set(), "a new Auto set at once")
+	assert_true(_play.is_set_running())
+
+## An Auto rep never earns the drill's other stat, so it doesn't report it: nothing
 ## pops "capped" for Body, and rep_judged carries Strength alone.
 func test_an_auto_rep_does_not_report_the_other_stat_unpaid() -> void:
 	ResourceManager.set_health(20.0)
@@ -594,6 +680,6 @@ func test_an_auto_rep_does_not_report_the_other_stat_unpaid() -> void:
 	assert_signal_emit_count(_play, "rep_judged", 1, "the first surge braced")
 	var params: Array = get_signal_parameters(_play, "rep_judged")
 	if params.size() == 3:
-		assert_eq((params[2] as Dictionary).keys(), [AttributeType.STRENGTH], "the XP Strength took, alone")
+		assert_eq((params[2] as Dictionary).keys(), [AttributeType.STRENGTH], "the XP Strength stored, alone")
 	assert_eq(_floater("WordFloater").get_text(), "Auto")
 	assert_false(_floater("LineFloater").visible, "no capped line for Body")
