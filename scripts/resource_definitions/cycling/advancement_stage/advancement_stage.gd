@@ -42,3 +42,11 @@ func get_star_fill(level: int, star: int) -> float:
 		return 0.0
 	var stars: float = float(clampi(level, 0, max_core_density_level)) * core_density_star_count / max_core_density_level
 	return clampf(stars - star, 0.0, 1.0)
+
+## Every star's fill at Core Density `level`, in order (get_star_fill()): one
+## entry per star, so the list is as long as the star count.
+func get_star_fills(level: int) -> Array[float]:
+	var fills: Array[float] = []
+	for star: int in maxi(core_density_star_count, 0):
+		fills.append(get_star_fill(level, star))
+	return fills

@@ -620,3 +620,33 @@ func test_the_manager_reads_the_current_stages_stars() -> void:
 func test_the_shipped_stages_have_ten_stars() -> void:
 	for stage: AdvancementStageResource in _original_stage_resources:
 		assert_eq(stage.core_density_star_count, 10, stage.stage_name)
+
+## A star row reads every star's fill for any level of the current stage, the
+## rewound level a cabinet shows while beads fly included.
+func test_star_fills_at_a_level() -> void:
+	_stage_resource.core_density_star_count = 4
+	_stage_resource.max_core_density_level = 40
+	assert_eq(CultivationManager.get_star_fills_at(15), [1.0, 0.5, 0.0, 0.0] as Array[float])
+	assert_eq(CultivationManager.get_star_fills_at(0), [0.0, 0.0, 0.0, 0.0] as Array[float])
+	_use_stages([])
+	assert_eq(CultivationManager.get_star_fills_at(15), [] as Array[float])
+
+## A line that counts levels says them in stars: Foundation's trial costs 5
+## levels, half a star of ten levels.
+func test_levels_are_said_in_stars() -> void:
+	_stage_resource.core_density_star_count = 10
+	_stage_resource.max_core_density_level = 100
+	var cases: Array[Dictionary] = [
+		{"levels": 5, "text": "half a star"},
+		{"levels": 10, "text": "a star"},
+		{"levels": 15, "text": "a star and a half"},
+		{"levels": 20, "text": "2 stars"},
+		{"levels": 25, "text": "2 and a half stars"},
+		{"levels": 3, "text": "3 levels"},
+		{"levels": 1, "text": "1 level"},
+		{"levels": 0, "text": "0 levels"},
+	]
+	for case: Dictionary in cases:
+		assert_eq(CultivationManager.describe_levels_in_stars(case.levels), case.text, "%d levels" % case.levels)
+	_stage_resource.core_density_star_count = 0
+	assert_eq(CultivationManager.describe_levels_in_stars(5), "5 levels", "no stars, no stars said")

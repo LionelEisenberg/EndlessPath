@@ -1,0 +1,253 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/common/lacquer/lacquer_star_row/lacquer_star_row.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="2_strip"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_core_stars_strip_ai.png" id="3_stars"]
+
+[node name="LacquerStarRow" type="HBoxContainer"]
+offset_right = 234.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_constants/separation = 6
+script = ExtResource("1_script")
+strip = ExtResource("3_stars")
+
+[node name="Star0" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star0"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star0"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star1" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star1"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star1"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star2" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star2"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star2"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star3" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star3"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star3"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star4" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star4"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star4"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star5" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star5"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star5"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star6" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star6"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star6"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star7" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star7"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star7"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star8" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star8"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star8"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Star9" type="Control" parent="."]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Base" type="TextureRect" parent="Star9"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)
+
+[node name="Before" type="TextureRect" parent="Star9"]
+visible = false
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+script = ExtResource("2_strip")
+strip = ExtResource("3_stars")
+frame_size = Vector2i(18, 18)

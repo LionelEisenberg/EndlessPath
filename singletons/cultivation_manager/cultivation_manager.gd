@@ -230,6 +230,33 @@ func get_core_density_star_fill(star: int) -> float:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res.get_star_fill(floori(get_core_density_level()), star) if res else 0.0
 
+## Every star's fill at Core Density `level` in the current stage, one entry per
+## star (AdvancementStageResource.get_star_fills()): what a star row shows for
+## that level. Empty when there is no save or no stage resource.
+func get_star_fills_at(level: int) -> Array[float]:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_star_fills(level) if res else ([] as Array[float])
+
+## `levels` of Core Density said in the current stage's stars, for a line that
+## counts levels: "half a star", "a star", "a star and a half", "2 stars", "2 and
+## a half stars", or
+## "N levels" when the levels make no whole or half star (or there are no stars).
+func describe_levels_in_stars(levels: int) -> String:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	var fallback: String = "%d level%s" % [levels, "" if levels == 1 else "s"]
+	if res == null or res.core_density_star_count <= 0 or res.max_core_density_level <= 0:
+		return fallback
+	var halves: float = float(levels) * res.core_density_star_count * 2.0 / res.max_core_density_level
+	if not is_equal_approx(halves, roundf(halves)) or roundi(halves) <= 0:
+		return fallback
+	var whole: int = roundi(halves) / 2
+	var half: bool = roundi(halves) % 2 == 1
+	if whole == 0:
+		return "half a star"
+	if whole == 1:
+		return "a star and a half" if half else "a star"
+	return "%d and a half stars" % whole if half else "%d stars" % whole
+
 ## The highest level the six stats can be trained to in the current stage. It is
 ## read from the stage each time, so the breakthrough raises it. 0 when there is
 ## no save or no stage resource.
