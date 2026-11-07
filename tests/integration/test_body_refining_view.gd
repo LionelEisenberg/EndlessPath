@@ -255,6 +255,32 @@ func test_closing_mid_set_keeps_what_was_paid() -> void:
 	await wait_process_frames(1)
 	assert_eq(_node("EffectsLayer").get_children().filter(func(child: Node) -> bool: return child is LacquerPellet).size(), 0, "no pellet left")
 
+## Review Focus 4: picking another drill mid-set ends the set there. Its scored
+## reps stay paid, it is neither counted nor logged, and the board readies the
+## picked drill: its stage, its line before a set, the beads empty.
+func test_picking_another_drill_mid_set_keeps_what_was_paid() -> void:
+	ResourceManager.set_health(50.0)
+	BodyRefiningManager.unlock_drill("horse_stance")
+	watch_signals(LogManager)
+	_lift(0, CENTRE)
+	_lift(1, CENTRE)
+	assert_true(_play.is_set_running(), "precondition: the set runs")
+	BodyRefiningManager.equip_drill("horse_stance")
+	assert_eq(ResourceManager.get_health(), 58.0, "the two reps' Health stays")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "and their XP")
+	assert_signal_not_emitted(LogManager, "message_logged", "no log line")
+	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "no set counted")
+	assert_false(_play.is_set_running(), "the set ended")
+	assert_false(BodyRefiningManager.is_set_running(), "and its session")
+	for bead: Node in _play.get_node("%Beads").get_children():
+		assert_eq((bead as LacquerStripRect).get_frame().x, DrillPlay.EMPTY_BEAD, "%s is empty" % bead.name)
+	assert_eq((_node("TitleLabel") as Label).text, "Horse Stance", "the board names the picked drill")
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_drill("horse_stance").ready_line, "with its line before a set")
+	assert_true(_play.get_stage() is HorseStanceStage, "on its stage")
+	_clock_to(9.0)
+	_view.handle_press_event(_press())
+	assert_true(_play.get_run() is HorseStanceRun, "and the next press plays it")
+
 func test_reopening_starts_clean() -> void:
 	_play_set(_ten(CENTRE))
 	_view.setup(ZoneManager.get_action_by_id(ACTION_ID))
