@@ -289,7 +289,7 @@ func test_title_follows_the_equipped_technique() -> void:
 	assert_eq(title.text, "Smooth Flow Technique", "the technique equipped when the board was built")
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	CyclingManager.equip_technique(TORRENTIAL_ID)
-	assert_eq(title.text, "Torrential Flow")
+	assert_eq(title.text, "Seal Flow Technique")
 	await _await_queued_frees()
 
 func test_the_technique_follows_the_equipped_technique() -> void:
@@ -791,7 +791,7 @@ func test_showing_names_the_technique_that_is_set_up() -> void:
 	assert_eq((_node("TitleLabel") as Label).text, "Smooth Flow Technique", "precondition: the title still names the old one")
 	_view.hide()
 	_view.show()
-	assert_eq((_node("TitleLabel") as Label).text, "Torrential Flow")
+	assert_eq((_node("TitleLabel") as Label).text, "Seal Flow Technique")
 	await _await_queued_frees()
 
 func test_close_stops_the_action() -> void:

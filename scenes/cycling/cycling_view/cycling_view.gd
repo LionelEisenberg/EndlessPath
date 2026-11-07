@@ -14,7 +14,7 @@ extends Control
 ## cabinet's Madra orb, and each payment of a stat's XP bursts into that stat's
 ## cell. Following pays Spirit, a puff of STAT_PELLETS from the ball; a hit pays
 ## the technique's other stat (Smooth Flow's Control) its tier's pellets from the
-## zone, and an opened seal (Torrential Flow's Mind) SEAL_PELLETS from its node.
+## zone, and an opened seal (Seal Flow's Mind) SEAL_PELLETS from its node.
 ## A capped stat takes no XP, and no pellet flies to it. The cabinet holds what
 ## each pellet carries out of its readout until the pellet lands, so its orbs and
 ## cells fill as the pellets arrive. MainView hands the cabinet over in
