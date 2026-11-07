@@ -350,6 +350,9 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 		if not successful:
 			_fight_lost = true
 			ActionManager.stop_action(successful)
+		elif _pending_victory:
+			# The boss's win ends the run as a victory.
+			ActionManager.stop_action(true)
 
 ## The dock and the cabinet let go of the fight: no press reaches it, the dock
 ## previews the loadout and the hotbar again (its cast tray hidden) and the buff

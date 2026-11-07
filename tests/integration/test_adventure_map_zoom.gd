@@ -343,6 +343,53 @@ func test_a_wheel_during_a_fight_does_not_zoom_the_hidden_map() -> void:
 	assert_signal_emitted(controller, "zoom_changed", "back on the map the wheel zooms it again")
 
 #-----------------------------------------------------------------------------
+# A FIGHT'S PUSH IN
+#-----------------------------------------------------------------------------
+
+## A fight's way in pushes the map's camera in on the player's hex, to 1.5 times
+## its zoom: the hex stays where it is drawn, and the wheel waits meanwhile.
+func test_the_push_in_keeps_the_hex_in_place() -> void:
+	_start_run()
+	await wait_process_frames(2)
+	var tilemap: AdventureTilemap = _view.adventure_tilemap
+	assert_almost_eq(_screen_point_of(START), Vector2(960, 470), Vector2(2, 2), "precondition: the player's hex at (960, 470)")
+	var controller: CameraZoomController = _zoom_controller()
+	await _move_pointer_to(MAP_POINT)
+	watch_signals(controller)
+
+	tilemap.push_in_on_player(0.3)
+	_wheel_ticks(MAP_POINT, MOUSE_BUTTON_WHEEL_UP, 3)
+	await wait_seconds(0.4)
+
+	assert_true(tilemap.is_pushed_in(), "the map is pushed in")
+	assert_eq(_camera().zoom, Vector2(1.5, 1.5), "to 1.5 times its zoom")
+	assert_almost_eq(_screen_point_of(START), Vector2(960, 470), Vector2(2, 2), "with the hex where it was")
+	assert_signal_not_emitted(controller, "zoom_changed", "a wheel during the push aims no zoom")
+
+## Ending the push puts the camera back at the zoom the player left it at, and the
+## wheel zooms again.
+func test_ending_the_push_puts_the_camera_back() -> void:
+	_start_run()
+	await wait_process_frames(2)
+	var tilemap: AdventureTilemap = _view.adventure_tilemap
+	await _move_pointer_to(MAP_POINT)
+	_wheel_ticks(MAP_POINT, MOUSE_BUTTON_WHEEL_UP, 12)
+	await _wait_for_the_zoom()
+	assert_eq(_camera().zoom, Vector2(2, 2), "precondition: zoomed in to 2")
+	tilemap.push_in_on_player(0.3)
+	await wait_seconds(0.4)
+
+	tilemap.end_push_in()
+
+	assert_false(tilemap.is_pushed_in(), "the push is over")
+	assert_eq(_camera().zoom, Vector2(2, 2), "the camera is back at 2")
+	await wait_process_frames(2)
+	assert_almost_eq(_screen_point_of(START), Vector2(960, 470), Vector2(2, 2), "with the hex where it was")
+	watch_signals(_zoom_controller())
+	_wheel(MAP_POINT, MOUSE_BUTTON_WHEEL_DOWN)
+	assert_signal_emitted(_zoom_controller(), "zoom_changed", "and the wheel zooms again")
+
+#-----------------------------------------------------------------------------
 # THE HOVER UNDER THE WHEEL
 #-----------------------------------------------------------------------------
 
