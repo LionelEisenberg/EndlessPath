@@ -25,6 +25,9 @@ const EMPTY_PALM: String = "res://resources/abilities/empty_palm.tres"
 const FOUNDATIONAL: String = "foundation_technique"
 const SMOOTH_FLOW: String = "smooth_flow"
 const TORRENTIAL_FLOW: String = "torrential_flow"
+const STONE_LIFTING: String = "stone_lifting"
+const HORSE_STANCE: String = "horse_stance"
+const FALLING_LEAF: String = "falling_leaf"
 
 var _view: CharacterView
 var _previous_save: SaveGameData
@@ -324,6 +327,56 @@ func test_cycles_to_next_level_reads_the_equipped_technique() -> void:
 func test_a_count_of_one_reads_in_the_singular() -> void:
 	assert_eq(CharacterView.cycles_line(1, 4), "1 perfect cycle to Lv 4")
 	assert_eq(CharacterView.cycles_line(4, 4), "4 perfect cycles to Lv 4")
+
+## The sets to the next level are the XP it still needs over what one perfect
+## set of the drill pays the stat (DrillRules.perfect_set_xp()), rounded up:
+## none while the stat is capped, with no drill, or when the drill pays it
+## nothing. Every drill pays Strength.
+func test_sets_to_next_level_reads_the_equipped_drill() -> void:
+	var stone: DrillData = BodyRefiningManager.get_drill(STONE_LIFTING)
+	var horse: DrillData = BodyRefiningManager.get_drill(HORSE_STANCE)
+	var leaf: DrillData = BodyRefiningManager.get_drill(FALLING_LEAF)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 3, 40.0)
+	CharacterManager.set_stat_level(Attribute.BODY, 2, 30.0)
+	CharacterManager.set_stat_level(Attribute.AGILITY, 2, 10.0)
+	var strength_left: float = CharacterManager.get_stat_xp_to_next(Attribute.STRENGTH) - 40.0
+	var cases: Array[Array] = [
+		# stat, drill, sets
+		[Attribute.STRENGTH, stone, ceili(strength_left / DrillRules.perfect_set_xp(stone, Attribute.STRENGTH))],
+		[Attribute.STRENGTH, leaf, ceili(strength_left / DrillRules.perfect_set_xp(leaf, Attribute.STRENGTH))],
+		[Attribute.BODY, horse, 3],
+		[Attribute.BODY, stone, 0],
+		[Attribute.BODY, leaf, 0],
+		[Attribute.AGILITY, leaf, 6],
+		[Attribute.AGILITY, horse, 0],
+		[Attribute.SPIRIT, stone, 0],
+		[Attribute.STRENGTH, null, 0],
+	]
+	for case: Array in cases:
+		var drill_name: String = case[1].drill_name if case[1] != null else "no drill"
+		assert_eq(CharacterView.sets_to_next_level(case[0], case[1]), case[2],
+			"%s with %s" % [StatDisplay.name_of(case[0]), drill_name])
+	CharacterManager.set_stat_level(Attribute.STRENGTH, CharacterManager.get_stat_level_cap())
+	assert_eq(CharacterView.sets_to_next_level(Attribute.STRENGTH, stone), 0, "a capped stat counts no sets")
+
+## One perfect set lowers the count by exactly one, and a count never reads 0
+## while XP is still needed.
+func test_one_perfect_set_lowers_the_count_by_one() -> void:
+	var stone: DrillData = BodyRefiningManager.get_drill(STONE_LIFTING)
+	var per_set: float = DrillRules.perfect_set_xp(stone, Attribute.STRENGTH)
+	CharacterManager.set_stat_level(Attribute.STRENGTH, 5, 1.0)
+	var before: int = CharacterView.sets_to_next_level(Attribute.STRENGTH, stone)
+	assert_gt(before, 1, "precondition: Lv 5 takes more than one set")
+	CharacterManager.add_stat_xp(Attribute.STRENGTH, per_set)
+	assert_eq(CharacterView.sets_to_next_level(Attribute.STRENGTH, stone), before - 1, "one perfect set's XP lowers it by one")
+	var left: float = CharacterManager.get_stat_xp_to_next(Attribute.STRENGTH) - CharacterManager.get_stat_xp(Attribute.STRENGTH)
+	CharacterManager.add_stat_xp(Attribute.STRENGTH, left - 0.01)
+	assert_eq(CharacterView.sets_to_next_level(Attribute.STRENGTH, stone), 1, "a sliver short of the level still takes one set")
+
+## One set reads in the singular.
+func test_a_set_count_of_one_reads_in_the_singular() -> void:
+	assert_eq(CharacterView.sets_line(1, 4), "1 perfect set to Lv 4")
+	assert_eq(CharacterView.sets_line(2, 4), "2 perfect sets to Lv 4")
 
 func test_the_cycles_line_follows_the_equipped_technique() -> void:
 	CharacterManager.set_stat_level(Attribute.CONTROL, 2, 30.0)

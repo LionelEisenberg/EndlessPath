@@ -180,17 +180,26 @@ static func effect_lines(stat: CharacterAttributesData.AttributeType, now: Chara
 ## (CyclingTechniqueData.get_xp_per_cycle()), rounded up. 0 while the stat is
 ## capped, with no technique, or when the technique pays the stat nothing.
 static func cycles_to_next_level(stat: CharacterAttributesData.AttributeType, technique: CyclingTechniqueData) -> int:
-	if technique == null or CharacterManager.is_stat_capped(stat):
+	if technique == null:
 		return 0
-	var per_cycle: float = technique.get_xp_per_cycle(stat)
-	if per_cycle <= 0.0:
-		return 0
-	var needed: float = CharacterManager.get_stat_xp_to_next(stat) - CharacterManager.get_stat_xp(stat)
-	return maxi(1, ceili(needed / per_cycle))
+	return _count_to_next_level(stat, technique.get_xp_per_cycle(stat))
 
 ## The cycles line: "4 perfect cycles to Lv 5". It names no technique.
 static func cycles_line(count: int, next_level: int) -> String:
 	return "%d perfect %s to Lv %d" % [count, "cycle" if count == 1 else "cycles", next_level]
+
+## How many perfect sets of `drill` the stat's next level takes: the XP it
+## still needs over what one perfect set pays the stat
+## (DrillRules.perfect_set_xp()), rounded up. 0 while the stat is capped, with
+## no drill, or when the drill pays the stat nothing.
+static func sets_to_next_level(stat: CharacterAttributesData.AttributeType, drill: DrillData) -> int:
+	if drill == null:
+		return 0
+	return _count_to_next_level(stat, DrillRules.perfect_set_xp(drill, stat))
+
+## The sets line: "2 perfect sets to Lv 4". It names no drill.
+static func sets_line(count: int, next_level: int) -> String:
+	return "%d perfect %s to Lv %d" % [count, "set" if count == 1 else "sets", next_level]
 
 ## Where the stat's total comes from, a line each, as {"label", "value"}: the
 ## value its trained level gives ("Trained (Lv 4)", "13"), then the bonus of
@@ -329,6 +338,14 @@ func _clear_rows(container: Container) -> void:
 	for row: Node in container.get_children():
 		container.remove_child(row)
 		row.free()
+
+## How many times `xp_each` the stat's next level still needs, rounded up and
+## at least 1: 0 while the stat is capped or when `xp_each` pays it nothing.
+static func _count_to_next_level(stat: CharacterAttributesData.AttributeType, xp_each: float) -> int:
+	if xp_each <= 0.0 or CharacterManager.is_stat_capped(stat):
+		return 0
+	var needed: float = CharacterManager.get_stat_xp_to_next(stat) - CharacterManager.get_stat_xp(stat)
+	return maxi(1, ceili(needed / xp_each))
 
 ## One line of effect_lines().
 static func _effect_line(label: String, now_text: String, next_text: String) -> Dictionary:
