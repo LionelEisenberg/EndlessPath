@@ -323,7 +323,8 @@ func test_cap_reached_mid_cycle() -> void:
 
 func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	# add_madra() reports each step snapped to 0.001 (1.067 for 1.0667), and a
-	# full cycle's 187 snapped steps sum to 79.85 for the 79.79 it adds.
+	# full cycle's 187 snapped steps sum to 79.85 for the 79.79 it adds. The
+	# finished total is snapped to 0.0001, so it holds the gain to within that.
 	_make_room(200.0)
 	ResourceManager.set_madra(46.0)
 	assert_gt(ResourceManager.get_max_madra(), 46.0 + 200.0, "precondition: the cycle never meets the max")
@@ -332,7 +333,7 @@ func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	_run(CYCLE_SECONDS + FRAME, 60.0, true)
 	assert_signal_emit_count(_technique, "cycle_completed", 1)
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
-	assert_almost_eq(result.madra_added, ResourceManager.get_madra() - 46.0, 0.000001, "the result holds what the pool gained")
+	assert_almost_eq(result.madra_added, ResourceManager.get_madra() - 46.0, 0.0001, "the result holds what the pool gained")
 
 func test_spirit_raises_the_madra_a_cycle_draws() -> void:
 	# Spirit Lv 6 is 15, a multiplier of 1.5, so the Foundational Technique's

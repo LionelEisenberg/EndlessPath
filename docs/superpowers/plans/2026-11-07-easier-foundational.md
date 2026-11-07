@@ -51,4 +51,21 @@ The issue's checks, on `-- --preset=adventure_open --save=user://dev/runs/founda
 
 ## Built differently
 
-(Filled in as the build lands.)
+- **The groove lights where the ball paid**, not only where it was followed: an Auto cycle nobody follows still lights behind the ball, since Auto paid there. The canvas had no Auto.
+- **No grace on a cycle's first frame.** FollowWindow's first-frame rule stays: a cycle follows from its first frame only with the cursor on the ball. The grace starts from the second frame.
+- **A held grace pays when the cursor is back:** its Madra steps and Spirit time are paid on the frame following resumes, not as the grace runs. A grace that runs out pays nothing (Auto's share, if Auto runs). The rate window counts a grace's frames as drawn.
+- **The ring dims for any lost perfect:** too many misses, a zone that ended other than PERFECT, or a seal that fizzled.
+- **A finished cycle's Madra is snapped to 0.0001.** 125 steps of 0.3 summed to 37.4999…, which the card and the log rounded to +37 while the drawer read "38 Madra". Snapped, all read 38.
+- The Foundational's drawer line reads "38 Madra · 10 s cycle · no zones": it rounds 37.5 as it always rounded Madra a cycle.
+
+## Checks run
+
+On `-- --preset=adventure_open --save=user://dev/runs/foundational-technique-easier.tres`, through the real main scene with a scripted cursor (`mockups/easier_checks/check.tscn`, gitignored):
+
+- A 0.8 s slip at 3 s: the ring dims, a dark gap stays on the groove after the cycle, "Followed 91%", not perfect, Auto locked.
+- A cursor resting on the path for the rest of a cycle: no following ring while the ball passed it (the one ringed frame is the ready ring as the cycle ended), no Madra.
+- A 0.05 s slip the grace held and a 0.3 s slip: 97% followed, perfect; Auto unlocks with "PERFECT CYCLE · Auto unlocked", the toggle's flash and "Foundational Technique · Auto unlocked" in the log. The card reads "Followed 96%" (floored).
+- A whole cycle: the rate reads 3.75 Madra a second ("+3.7 / s" on the cabinet, as before); the card reads +38 Madra, +15 Spirit, "Followed all".
+- Smooth Flow's and Torrential Flow's (the Seal Flow Technique since #152) locked tooltips read "… follow the ball for 95% of the cycle and press every zone PERFECT." and "… and open every seal."; both follow through a held 0.05 s slip.
+- Relaunched on the same file: the Foundational's Auto is still unlocked.
+- A copy of the main checkout's save (made before this change), with the Foundational added to its Auto list as an old unlock: it loads, Auto stays unlocked, and a cycle plays.
