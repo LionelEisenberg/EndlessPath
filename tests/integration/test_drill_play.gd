@@ -211,9 +211,55 @@ func test_the_gauge_follows_the_run() -> void:
 		assert_eq(gauge_lit.visible, case["inside"], "%.1f s: the brass gauge" % case["at"])
 		assert_eq(gauge_dim.visible, not case["inside"], "%.1f s: the tan gauge" % case["at"])
 
+## The incense counts the set, not seconds: it burns only while the needle is in
+## the arc, a tenth of the stick a rep, and is whole again for the next set.
+func test_the_incense_burns_only_in_the_arc() -> void:
+	_ready_stance(0.88)
+	var stick: Control = _play.get_stage().get_node("%IncenseStick") as Control
+	var full: float = HorseStanceStage.STICK_FULL_PX
+	assert_eq(stick.size.y, full, "whole before a set")
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_at(1.0)
+	assert_eq(stick.size.y, full, "out of the arc until 1.52 s: nothing burns")
+	_at(2.52)
+	assert_eq(stick.size.y, snappedf(full * 0.95, 2.0), "a second in the arc: half a tenth")
+	_at(3.52)
+	assert_eq(stick.size.y, snappedf(full * 0.9, 2.0), "the rep landed: a tenth")
+	_at(30.0)
+	assert_eq(stick.size.y, snappedf(full * 0.9, 2.0), "and nothing burns while the drill waits")
+	_play.stop_set()
+	assert_eq(stick.size.y, full, "whole again once the set ends")
+
+## No seconds count down on Horse Stance's stage.
+func test_horse_stance_shows_no_seconds() -> void:
+	_ready_stance(0.5)
+	assert_null(_play.get_stage().get_node_or_null("%Seconds"), "the incense has no seconds under it")
+
 #-----------------------------------------------------------------------------
 # FALLING LEAF
 #-----------------------------------------------------------------------------
+
+## The leaf a shake would drop hangs golden under the branch: the first at the
+## branch's middle before a set, then the next while fewer than two fall.
+func test_the_next_leaf_hangs_until_shaken() -> void:
+	_ready_leaves()
+	var hanging_frame := func(index: int) -> int:
+		return (_leaf_node(index).get_node("%Leaf") as LacquerStripRect).get_frame().x
+	assert_true(_leaf_node(0).visible, "a leaf hangs before the set")
+	assert_eq(hanging_frame.call(0), FallingLeaf.HANGING_FRAME, "golden")
+	_clock_to(0.0)
+	_play.handle_press_event(_click(true, LEAF_START + Vector2(0, -200)))
+	_play.handle_press_event(_click(false, LEAF_START + Vector2(0, -200)))
+	_at(0.5)
+	assert_true(_leaf_node(1).visible, "the next leaf hangs while one falls")
+	assert_eq(hanging_frame.call(1), FallingLeaf.HANGING_FRAME)
+	_clock_to(0.5)
+	_play.handle_press_event(_click(true, LEAF_START + Vector2(0, -200)))
+	_play.handle_press_event(_click(false, LEAF_START + Vector2(0, -200)))
+	_at(0.6)
+	assert_false(_leaf_node(2).visible, "two in the air: no leaf hangs")
+
 
 ## The first click shakes down a leaf; a click on its middle half way down is
 ## Perfect, which restores Health and stores Agility beside Strength. The leaf turns
@@ -250,7 +296,9 @@ func test_a_landed_leaf_stays_on_the_ground() -> void:
 		_at(seconds)
 		assert_true(_leaf_node(0).visible, "%.1f s: the leaf lies on the ground" % seconds)
 	_play.stop_set()
-	assert_false(_leaf_node(0).visible, "the ground is cleared once the set ends")
+	var frame: int = (_leaf_node(0).get_node("%Leaf") as LacquerStripRect).get_frame().x
+	assert_eq(frame, FallingLeaf.HANGING_FRAME, "the ground is cleared once the set ends: the next set's first leaf hangs")
+	assert_false(_leaf_node(1).visible)
 
 #-----------------------------------------------------------------------------
 # WATERFALL TEMPERING
@@ -270,6 +318,41 @@ func test_a_waterfall_brace_stores_body() -> void:
 	assert_eq(ResourceManager.get_health(), 53.0, "its Health at once")
 	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 6.0, "Waterfall Tempering's Strength XP, stored")
 	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 3.0, "and its Body XP")
+
+## The next surge waits at the ledge until a press sends it; it rides down to the
+## line exactly when a brace is Perfect; a braced surge is gone, one nobody braced
+## against crashes through the line, and the next waits at the ledge again.
+func test_the_surge_waits_at_the_ledge_until_sent() -> void:
+	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
+	var surge: Control = _play.get_stage().get_node("%Surge") as Control
+	var waiting: Control = _play.get_stage().get_node("%WaitingSurge") as Control
+	var middle := func() -> float: return surge.position.y + surge.size.y / 2.0
+	assert_true(waiting.visible, "a surge waits at the ledge before the set")
+	assert_eq(waiting.position.y + waiting.size.y / 2.0, WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX, "at the top of the falls")
+	assert_false(surge.visible)
+	_clock_to(0.0)
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_at(0.0)
+	assert_false(waiting.visible, "sent")
+	assert_eq(middle.call(), WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX, "from the top")
+	_at(0.75)
+	assert_eq(middle.call(), WaterfallStage.LINE_Y - WaterfallStage.LEAD_PX / 2.0, "half way down half way through its ride")
+	_at(1.5)
+	assert_eq(middle.call(), WaterfallStage.LINE_Y, "on the line as it lands")
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_at(1.5)
+	assert_false(surge.visible, "braced, it is gone")
+	assert_true(waiting.visible, "and the next waits at the ledge")
+	_at(30.0)
+	assert_true(waiting.visible, "as long as the player likes")
+	_clock_to(30.0)
+	_play.handle_press_event(_press())
+	_play.handle_press_event(_press(false))
+	_at(31.6)
+	assert_true(surge.visible, "unbraced")
+	assert_gt(middle.call(), WaterfallStage.LINE_Y, "it crashes through the line")
 
 ## Review Focus 5: the press that starts a set is its first rep's input on every
 ## drill: on Falling Leaf it shakes down the first leaf, even aimed where the leaf

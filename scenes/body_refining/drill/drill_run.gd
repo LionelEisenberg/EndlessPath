@@ -145,11 +145,6 @@ static func share_through(offset: float, perfect: float, good: float, ok: float,
 # QUERIES
 #-----------------------------------------------------------------------------
 
-## The rep whose slot holds `t`, counted from 0, the last one past the set's end.
-func rep_at(t_usec: int) -> int:
-	@warning_ignore("integer_division")
-	return mini(maxi(t_usec, 0) / _rep_usec, _reps - 1)
-
 ## How far through its own motion the rep in play is at `t`, 0 to 1: 0 while the
 ## drill waits for the player's press. Each run says what its motion is. Ask it for
 ## the time of the last call.

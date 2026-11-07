@@ -112,14 +112,3 @@ mouse_filter = 2
 script = ExtResource("9_strip")
 strip = ExtResource("8_ember")
 frame_size = Vector2i(40, 24)
-
-[node name="Seconds" type="Label" parent="." unique_id=1092765531]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 440.0
-offset_top = 278.0
-offset_right = 512.0
-offset_bottom = 296.0
-theme_type_variation = &"LabelLacquerDetail"
-text = "40 s"
-horizontal_alignment = 1
