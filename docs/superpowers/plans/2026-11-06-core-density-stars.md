@@ -44,4 +44,9 @@
 
 ## Built differently
 
-(Filled in as the build goes.)
+- **The card's small stars sit with no gap** (a 14 px pitch, 140 px for ten), where the canvas drew a 16 px pitch. The ready card's right column, "failure costs half a star", wraps to two lines at its 158 px, and its second line sits level with the stars: at 16 px the stars ran into it and pushed it past the card's edge. Both the not-ready and the ready star rows use the same pitch.
+- **The ready card is 90 px**, one line taller than before, for its row of stars (the canvas's drawing).
+- **The Goals board keeps its height:** the stars' row is 18 px under a 2 px margin, where the rod was 14 px under 6, so no board height moves and the full log keeps its place.
+- **`get_missing_requirements()` stays static** and gains the trial as an optional argument for the stage's line; the card calls `get_refusal_lines()`. `ActionManager.select_action`'s diagnostic `Log.info` still reads the static lines without the stage (it is not edited this wave), so it names no stage; the player's log line does.
+- **The bead strip `lacquer_beads_xp_strip_ai.png` is deleted:** no scene reads it once both cabinets show stars.
+- **`CultivationManager.CORE_FULL_TEXT` is gone** with the "Core full" figure; the end card keeps its own "Core full" for the run's line.
