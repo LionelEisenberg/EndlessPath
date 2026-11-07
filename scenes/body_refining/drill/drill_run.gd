@@ -80,8 +80,7 @@ func _init(drill: DrillData) -> void:
 static func for_drill(drill: DrillData, rng_seed: int = 0) -> DrillRun:
 	match drill.input_kind:
 		DrillData.InputKind.HOLD_STEADY:
-			var path: Array = HorseStanceRun.band_path(rng_seed, roundi(drill.rep_seconds * 1_000_000.0) * drill.reps_per_set)
-			return HorseStanceRun.new(drill, path[0], path[1])
+			return HorseStanceRun.new(drill, HorseStanceRun.band_paths(rng_seed, drill.reps_per_set))
 		DrillData.InputKind.CATCH:
 			return FallingLeafRun.new(drill, FallingLeafRun.leaf_paths(rng_seed, drill))
 		DrillData.InputKind.BEAT:
