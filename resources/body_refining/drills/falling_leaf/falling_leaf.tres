@@ -1,11 +1,13 @@
 [gd_resource type="Resource" script_class="DrillData" format=3]
 
 [ext_resource type="Script" path="res://scripts/resource_definitions/body_refining/drill/drill_data.gd" id="1_drill"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/icons/ic_drill_leaf_ai.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_drill")
 id = "falling_leaf"
 drill_name = "Falling Leaf"
+icon = ExtResource("2_icon")
 minor_stat = 2
 strength_xp_per_rep = 4.0
 minor_xp_per_rep = 2.0
@@ -13,3 +15,6 @@ health_per_rep = 2.0
 input_kind = 2
 rep_seconds = 2.0
 reps_per_set = 10
+play_hint = "Click the falling leaves"
+ready_line = "Press Space or click to shake the branch."
+play_line = "Click a leaf to catch it before it lands."

@@ -1,0 +1,125 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/body_refining/drill/stages/horse_stance_stage.gd" id="1_stage"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_stance_backdrop_ai.png" id="2_backdrop"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_gauge_ai.png" id="3_gauge"]
+[ext_resource type="Shader" path="res://assets/shaders/lacquer_drill_gauge_band.gdshader" id="4_band"]
+[ext_resource type="Shader" path="res://assets/shaders/lacquer_drill_gauge_needle.gdshader" id="5_needle"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_incense_base_ai.png" id="6_base"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_incense_stick_ai.png" id="7_stick"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_incense_ember_ai.png" id="8_ember"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="9_strip"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dim"]
+resource_local_to_scene = true
+shader = ExtResource("4_band")
+shader_parameter/progress = 0.2
+shader_parameter/body_colour = Color(0.658824, 0.564706, 0.439216, 1)
+shader_parameter/rim_colour = Color(0.784314, 0.705882, 0.580392, 1)
+shader_parameter/shade_colour = Color(0.580392, 0.501961, 0.415686, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lit"]
+resource_local_to_scene = true
+shader = ExtResource("4_band")
+shader_parameter/progress = 0.2
+shader_parameter/body_colour = Color(0.831373, 0.658824, 0.290196, 1)
+shader_parameter/rim_colour = Color(0.941176, 0.909804, 0.847059, 1)
+shader_parameter/shade_colour = Color(0.65098, 0.407843, 0.203922, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_needle"]
+resource_local_to_scene = true
+shader = ExtResource("5_needle")
+shader_parameter/progress = 0.0
+
+[node name="HorseStanceStage" type="Control" unique_id=1460815542]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+script = ExtResource("1_stage")
+input_kind = 1
+
+[node name="Backdrop" type="TextureRect" parent="." unique_id=1097524636]
+layout_mode = 0
+offset_right = 524.0
+offset_bottom = 872.0
+mouse_filter = 2
+texture = ExtResource("2_backdrop")
+
+[node name="GaugeDim" type="TextureRect" parent="." unique_id=1786203547]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_dim")
+layout_mode = 0
+offset_left = 82.0
+offset_top = 250.0
+offset_right = 442.0
+offset_bottom = 450.0
+mouse_filter = 2
+texture = ExtResource("3_gauge")
+
+[node name="GaugeLit" type="TextureRect" parent="." unique_id=622409718]
+unique_name_in_owner = true
+visible = false
+material = SubResource("ShaderMaterial_lit")
+layout_mode = 0
+offset_left = 82.0
+offset_top = 250.0
+offset_right = 442.0
+offset_bottom = 450.0
+mouse_filter = 2
+texture = ExtResource("3_gauge")
+
+[node name="Needle" type="ColorRect" parent="." unique_id=1928336541]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_needle")
+layout_mode = 0
+offset_left = 82.0
+offset_top = 250.0
+offset_right = 442.0
+offset_bottom = 450.0
+mouse_filter = 2
+
+[node name="IncenseBase" type="TextureRect" parent="." unique_id=339125094]
+layout_mode = 0
+offset_left = 456.0
+offset_top = 248.0
+offset_right = 496.0
+offset_bottom = 272.0
+mouse_filter = 2
+texture = ExtResource("6_base")
+
+[node name="IncenseStick" type="TextureRect" parent="." unique_id=1567094125]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 472.0
+offset_top = 60.0
+offset_right = 480.0
+offset_bottom = 248.0
+mouse_filter = 2
+texture = ExtResource("7_stick")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="IncenseEmber" type="TextureRect" parent="." unique_id=1251769818]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 456.0
+offset_top = 42.0
+offset_right = 496.0
+offset_bottom = 66.0
+mouse_filter = 2
+script = ExtResource("9_strip")
+strip = ExtResource("8_ember")
+frame_size = Vector2i(40, 24)
+
+[node name="Seconds" type="Label" parent="." unique_id=1092765531]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 440.0
+offset_top = 278.0
+offset_right = 512.0
+offset_bottom = 296.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "40 s"
+horizontal_alignment = 1

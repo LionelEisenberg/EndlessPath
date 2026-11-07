@@ -18,7 +18,7 @@ enum InputKind {
 
 @export var id: String = ""
 @export var drill_name: String = ""
-## The drill's icon, for its card and picker (#100, #106).
+## The drill's 16 px icon, shown at 2x in its drawer's socket.
 @export var icon: Texture2D
 ## The one other stat the drill trains: an AttributeType (BODY or AGILITY), or
 ## -1 for none.
@@ -34,6 +34,12 @@ enum InputKind {
 @export var rep_seconds: float = 0.0
 ## How many reps make a set.
 @export var reps_per_set: int = 0
+## How the drill plays, in a few words, for its drawer: "Keep the needle in the
+## brass".
+@export var play_hint: String = ""
+## The board's footer before a set, and while one runs.
+@export var ready_line: String = ""
+@export var play_line: String = ""
 
 ## True when the drill has a minor stat.
 func has_minor_stat() -> bool:

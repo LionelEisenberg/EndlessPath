@@ -1,16 +1,19 @@
 ## State for the body refining board. ActionManager.start_body_refining sets the
 ## board up for the action and pushes it, and stop_body_refining closes it. The
 ## board sits in the map gap with no backdrop, as the cycling board does, and the
-## zone view stays up around it: the chest, the Goals board and the log stay where
-## they stand, so the pellets a rep pays fly into the cabinet's stats and Health.
-## Entering blocks the full log, as a menu book does, so that Esc always reaches the
-## board, then opens the board with MainView.open_board(): through the board
-## transition the board scales out of the cultivator while the dock steps down; on
-## a MainView with no transition the dock and the map turn off at once. Exiting
-## hides the board and lifts the full-log block, whatever stopped the action.
+## zone view stays up around it: the Goals board and the log stay where they stand,
+## so the pellets a rep pays fly into the cabinet's stats and Health, and the chest
+## turns to the learned drills, as cycling turns it to the techniques, and back
+## when the board closes. Entering blocks the full log, as a menu book does, so that
+## Esc always reaches the board, then opens the board with MainView.open_board():
+## through the board transition the board scales out of the cultivator while the
+## dock steps down and the chest swaps; on a MainView with no transition the dock
+## and the map turn off and the chest turns at once. Exiting hides the board and
+## lifts the full-log block, whatever stopped the action.
 ##
 ## MainView sends input only to the top state, so the drill's presses (drill_press)
-## come to the board from handle_input(); the board takes mouse presses on itself.
+## come to the board from handle_input(); the board takes mouse presses on itself,
+## and the chest's drawers take theirs.
 ## Esc stops the action. While the board opens only Esc is handled, and nothing is
 ## while it closes: the action that resumed when body refining stopped must not be
 ## stopped by it.
@@ -86,7 +89,8 @@ func handle_input(event: InputEvent) -> void:
 func _refresh_spec() -> BoardTransitionSpec:
 	if _spec == null:
 		_spec = BoardTransitionSpec.new()
-		_spec.swaps_chest = false
+		_spec.swaps_chest = true
+		_spec.chest_mode = ZonePanel.ChestMode.DRILLS
 		_spec.moves_hud_boards = false
 		_spec.holder = self
 	var view: BodyRefiningView = scene_root.body_refining_view

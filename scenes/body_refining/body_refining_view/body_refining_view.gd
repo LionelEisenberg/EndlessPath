@@ -8,15 +8,15 @@ extends Control
 ## what a Perfect rep of the drill pays at the player's Strength, with Strength's
 ## icon and the Health heart in place of the words ("Perfect rep · [arm] +6 XP ·
 ## [heart] +4", "[arm] capped" in brass at the cap): the place a player sees
-## Strength's second job, the Health a rep restores. Then the carved figure with
-## its arms rimmed in brass, what the drill trains, with the drill's stage over it
-## (DrillPlay), and a footer line: how to start, how to play while a set runs, and
-## what the last set paid once it ends ("Last set · [arm] +48 XP · [heart] +32 ·
-## 6 / 10 perfect"), until the next lift. A finished set also writes one line to
-## the log, in words. A name or a line too long for its width wraps, never cut,
+## Strength's second job, the Health a rep restores. Then the drill's own scene
+## (DrillPlay), and a footer line: the drill's words for how to start and for how
+## to play while a set runs, and what the last set paid once it ends ("Last set ·
+## [arm] +48 XP · [heart] +32 · 6 / 10 perfect"), until the next set starts. A
+## finished set also writes one line to the log, in words. A name or a line too long for its width wraps, never cut,
 ## and the board grows under it.
 ##
-## Each scored rep sends its pellets from the stone into the cultivator cabinet:
+## Each scored rep sends its pellets from where its stage says (the stone, the
+## leaf caught) into the cultivator cabinet:
 ## a burst of PELLETS_BY_TIER pellets in each trained stat's ramp to that stat's
 ## cell, and as many in the Health ramp to the Health orb, each carrying an even
 ## share of what the stat took or the rep restored, which the cabinet holds out of
@@ -26,9 +26,11 @@ extends Control
 ## no pellet flies.
 ##
 ## The root covers the screen and stops every click, as the Tribulation board's
-## does, so none reaches the chest or the map while the board is up: a mouse press
-## anywhere is the drill's (_gui_input()), and keys come from the view state
-## through handle_press_event(). The close button and Esc stop the action.
+## does, so none reaches the map while the board is up: a mouse press anywhere is
+## the drill's (_gui_input()), but on the chest, which takes its own clicks while
+## it shows (_has_point()) so that a drill drawer picks its drill and never plays.
+## Keys come from the view state through handle_press_event(). The close button
+## and Esc stop the action.
 ## halt() stops a set in progress and frees the pellets in flight, which show
 ## what they carried at once, leaving the board drawn for a transition to shrink
 ## it away; close() also hides it. get_board_rect() says where the board stands.
@@ -39,10 +41,6 @@ extends Control
 
 const Tier = DrillRules.Tier
 const AttributeType = CharacterAttributesData.AttributeType
-
-## The footer before a set, and while one runs.
-const READY: String = "Hold Space or the mouse button to lift the stone."
-const LIFT: String = "Let go with the stone in the brass band."
 
 ## The pay line's and the result line's words.
 const PAY_LEAD: String = "Perfect rep"
@@ -61,7 +59,7 @@ const CAPPED_COLOR: String = "#D4A84A"
 const ICON_SIZE: int = 16
 const HEALTH_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
 
-## A scored rep's pellets of each kind, by its tier: a burst from the stone that
+## A scored rep's pellets of each kind, by its tier: a burst from its stage that
 ## pops up to BURST_REACH px, then homes in, the first landing PELLET_FLIGHT s
 ## after the rep and each next one PELLET_FLIGHT_STEP s after (as cycling's stat
 ## puffs).
@@ -104,6 +102,9 @@ const BOARD_ROOM: float = 30.0
 ## The cultivator cabinet the pellets fly into. MainView sets it; with none, no
 ## pellet is sent.
 var cultivator_plate: CultivatorPlate = null
+## The zone chest, which takes its own clicks while it shows. MainView sets it;
+## with none, every click is the board's.
+var chest: Control = null
 
 ## The drill the board plays: the equipped one.
 var _drill: DrillData = null
@@ -120,25 +121,32 @@ func _ready() -> void:
 	CharacterManager.stats_changed.connect(_refresh_pay_line)
 	BodyRefiningManager.equipped_drill_changed.connect(_on_equipped_drill_changed)
 	visibility_changed.connect(_on_visibility_changed)
-	_show_status(READY)
+	_show_ready_line()
 
 ## Every mouse event that reaches the root, on the board or anywhere around it, is
-## the board's: a press of the drill's button lifts, and nothing passes beneath.
+## the board's: a press of the drill's button plays, and nothing passes beneath.
 func _gui_input(event: InputEvent) -> void:
 	_drill_play.handle_press_event(event)
 	accept_event()
+
+## The root covers the screen but the chest while it shows, so the chest's drawers
+## take their own clicks.
+func _has_point(point: Vector2) -> bool:
+	if chest != null and chest.is_visible_in_tree() and chest.get_global_rect().has_point(get_global_transform() * point):
+		return false
+	return Rect2(Vector2.ZERO, size).has_point(point)
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
 ## Readies the board for `action`: its name over the equipped drill's, the pay
-## line, the drill's stage empty and the footer's READY line. The last set's line
-## is forgotten, so reopening starts clean.
+## line, the drill's stage at rest and the drill's line before a set on the
+## footer. The last set's line is forgotten, so reopening starts clean.
 func setup(action: ZoneActionData) -> void:
 	_action_label.text = action.action_name if action != null else ""
 	_load_equipped_drill()
-	_show_status(READY)
+	_show_ready_line()
 
 ## Stops a set in progress (its reps stay paid) and frees the pellets in flight,
 ## which show what they carried at once. The board stays drawn.
@@ -237,6 +245,10 @@ func _show_status(text: String) -> void:
 	_status_text.text = LacquerText.decimal_bbcode(text)
 	_relayout_board()
 
+## Shows the drill's line before a set on the footer.
+func _show_ready_line() -> void:
+	_show_status(_drill.ready_line if _drill != null else "")
+
 static func _pay_stat_part(stat: AttributeType, xp: float, capped: bool) -> String:
 	if capped:
 		return _stat_label(stat) + _value(CAPPED_TEXT, CAPPED_COLOR)
@@ -319,7 +331,7 @@ func _free_pellets() -> void:
 #-----------------------------------------------------------------------------
 
 func _on_set_started() -> void:
-	_show_status(LIFT)
+	_show_status(_drill.play_line)
 
 ## A rep was judged and paid: a burst of its tier's pellets for each stat that took
 ## XP, to the stat's cell, and for the Health it restored, to the Health orb, each
@@ -329,7 +341,7 @@ func _on_rep_judged(judgement: DrillRun.Judgement, health: float, stat_xp: Dicti
 	var count: int = PELLETS_BY_TIER.get(judgement.tier, 0)
 	if cultivator_plate == null or count == 0 or not is_visible_in_tree():
 		return
-	var from: Vector2 = _drill_play.get_stone_global_center()
+	var from: Vector2 = _drill_play.get_pellet_origin(judgement)
 	for stat: AttributeType in stat_xp:
 		var xp: float = stat_xp[stat]
 		if xp <= 0.0:
@@ -353,7 +365,7 @@ func _on_set_completed(result: DrillSetResult) -> void:
 
 func _on_equipped_drill_changed(drill: DrillData) -> void:
 	_apply_drill(drill)
-	_show_status(READY)
+	_show_ready_line()
 
 func _on_close_pressed() -> void:
 	ActionManager.stop_action()

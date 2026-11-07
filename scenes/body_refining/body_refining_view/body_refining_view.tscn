@@ -5,8 +5,6 @@
 [ext_resource type="Texture2D" uid="uid://ce76a3f1g3ha0" path="res://assets/ui/lacquer/cycling/lacquer_cyc_board_ai.png" id="3_board"]
 [ext_resource type="Texture2D" uid="uid://l358sphy02ff" path="res://assets/ui/lacquer/lacquer_close_ai.png" id="4_close"]
 [ext_resource type="Texture2D" uid="uid://cwx6nj0fy42qx" path="res://assets/ui/lacquer/lacquer_close_hover_ai.png" id="5_close_hover"]
-[ext_resource type="Texture2D" uid="uid://pgsljhm0rngj" path="res://assets/ui/lacquer/cycling/lacquer_cyc_body_carved_ai.png" id="6_body"]
-[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_rim_strength_ai.png" id="7_rim"]
 [ext_resource type="PackedScene" path="res://scenes/body_refining/drill/drill_play.tscn" id="8_play"]
 
 [node name="BodyRefiningView" type="Control" unique_id=1032903005]
@@ -102,22 +100,6 @@ offset_top = 104.0
 offset_right = 1222.0
 offset_bottom = 976.0
 mouse_filter = 2
-
-[node name="Body" type="TextureRect" parent="FigureBox" unique_id=1879586027]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 524.0
-offset_bottom = 872.0
-mouse_filter = 2
-texture = ExtResource("6_body")
-
-[node name="StrengthRim" type="TextureRect" parent="FigureBox" unique_id=1613225020]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 524.0
-offset_bottom = 872.0
-mouse_filter = 2
-texture = ExtResource("7_rim")
 
 [node name="DrillPlay" parent="FigureBox" unique_id=583210265 instance=ExtResource("8_play")]
 unique_name_in_owner = true

@@ -1086,6 +1086,39 @@ func test_leaving_techniques_mode_restores_activities() -> void:
 	assert_eq(_header_text(), "Activities")
 	assert_eq(_count_text(), "1 here")
 
+## While the body refining board is up the chest lists the learned drills, a
+## drawer each in the order they were learned, under its header, and hugs them.
+func test_drills_mode_lists_the_learned_drills() -> void:
+	BodyRefiningManager.unlock_drill("horse_stance")
+	await _add_panel()
+	_panel.set_chest_mode(ZonePanel.ChestMode.DRILLS)
+	await wait_process_frames(1)
+	var drills: DrillDrawerList = _panel.get_drill_list()
+	assert_eq(_panel.get_chest_mode(), ZonePanel.ChestMode.DRILLS)
+	assert_false(_panel.is_techniques_mode(), "not the techniques")
+	assert_true(drills.is_visible_in_tree(), "the drills show")
+	assert_false(_list().is_visible_in_tree(), "the activities step aside")
+	assert_false(_technique_list().is_visible_in_tree(), "and the techniques stay hidden")
+	var ids: Array[String] = []
+	for row: Control in drills.get_slide_rows():
+		ids.append((row as DrillDrawer).drill.id)
+	assert_eq(ids, ["stone_lifting", "horse_stance"] as Array[String], "one drawer each, in the order learned")
+	assert_eq(_header_text(), ZonePanel.DRILLS_HEADER)
+	assert_eq(_count_text(), ZonePanel.LEARNED_FORMAT % 2)
+	assert_eq(drills.position.y, LIST_TOP, "the drawers take the list's place")
+	assert_eq(_panel.size.y, maxf(ZonePanel.MIN_CHEST_HEIGHT, LIST_TOP + drills.get_content_height() + ZonePanel.GAP_UNDER_LIST), "and the chest hugs them")
+
+func test_leaving_drills_mode_shows_the_activities() -> void:
+	await _add_panel()
+	_panel.set_chest_mode(ZonePanel.ChestMode.DRILLS)
+	await wait_process_frames(2)
+	_panel.set_chest_mode(ZonePanel.ChestMode.ACTIVITIES)
+	await wait_process_frames(2)
+	assert_eq(_panel.get_chest_mode(), ZonePanel.ChestMode.ACTIVITIES)
+	assert_true(_list().is_visible_in_tree(), "the activities are back")
+	assert_false(_panel.get_drill_list().is_visible_in_tree(), "the drills are gone")
+	assert_eq(_header_text(), ZonePanel.ACTIVITIES_HEADER)
+
 func test_setting_the_mode_twice_changes_nothing() -> void:
 	_unlock_all_techniques()
 	await _add_panel()

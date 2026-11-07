@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/body_refining/drill/stages/falling_leaf.gd" id="1_leaf"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_leaf_trail_ai.png" id="2_trail"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_leaf_ai.png" id="3_leaf"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="4_strip"]
+
+[node name="FallingLeaf" type="Control" unique_id=1316280913]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("1_leaf")
+
+[node name="Trail" type="Control" parent="." unique_id=740591128]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Dot1" type="TextureRect" parent="Trail" unique_id=1960322651]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 4.0
+mouse_filter = 2
+texture = ExtResource("2_trail")
+
+[node name="Dot2" type="TextureRect" parent="Trail" unique_id=1239004357]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 4.0
+mouse_filter = 2
+texture = ExtResource("2_trail")
+
+[node name="Dot3" type="TextureRect" parent="Trail" unique_id=356612914]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 4.0
+mouse_filter = 2
+texture = ExtResource("2_trail")
+
+[node name="Dot4" type="TextureRect" parent="Trail" unique_id=1784160297]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 4.0
+mouse_filter = 2
+texture = ExtResource("2_trail")
+
+[node name="Dot5" type="TextureRect" parent="Trail" unique_id=1089915736]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 4.0
+mouse_filter = 2
+texture = ExtResource("2_trail")
+
+[node name="Leaf" type="TextureRect" parent="." unique_id=1544278020]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 32.0
+offset_bottom = 32.0
+mouse_filter = 2
+script = ExtResource("4_strip")
+strip = ExtResource("3_leaf")
+frame_size = Vector2i(32, 32)

@@ -1,13 +1,13 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/body_refining/drill/drill_play.gd" id="1_play"]
-[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_track9_ai.png" id="2_track"]
-[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_rail_ai.png" id="3_rail"]
-[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_jade_ai.png" id="4_jade"]
-[ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_stone_ai.png" id="5_stone"]
 [ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="6_strip"]
 [ext_resource type="Texture2D" path="res://assets/ui/lacquer/body_refining/lacquer_drill_beads_ai.png" id="7_beads"]
 [ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="8_floater"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/stone_lifting_stage.tscn" id="9_stone_stage"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/horse_stance_stage.tscn" id="10_stance_stage"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/falling_leaf_stage.tscn" id="11_leaf_stage"]
+[ext_resource type="PackedScene" path="res://scenes/body_refining/drill/stages/waterfall_stage.tscn" id="12_falls_stage"]
 
 [node name="DrillPlay" type="Control" unique_id=412822345]
 layout_mode = 3
@@ -17,60 +17,27 @@ offset_bottom = 872.0
 mouse_filter = 2
 script = ExtResource("1_play")
 
-[node name="Track" type="NinePatchRect" parent="." unique_id=1086830553]
+[node name="Stages" type="Control" parent="." unique_id=1937464120]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 244.0
-offset_top = 32.0
-offset_right = 280.0
-offset_bottom = 494.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("2_track")
-patch_margin_left = 4
-patch_margin_top = 4
-patch_margin_right = 2
-patch_margin_bottom = 2
 
-[node name="RailLeft" type="TextureRect" parent="." unique_id=1076948300]
-unique_name_in_owner = true
+[node name="StoneLiftingStage" parent="Stages" unique_id=1311905741 instance=ExtResource("9_stone_stage")]
 layout_mode = 0
-offset_left = 218.0
-offset_top = 92.0
-offset_right = 226.0
-offset_bottom = 344.0
-mouse_filter = 2
-texture = ExtResource("3_rail")
 
-[node name="RailRight" type="TextureRect" parent="." unique_id=1755245616]
-unique_name_in_owner = true
+[node name="HorseStanceStage" parent="Stages" unique_id=1655237081 instance=ExtResource("10_stance_stage")]
 layout_mode = 0
-offset_left = 298.0
-offset_top = 92.0
-offset_right = 306.0
-offset_bottom = 344.0
-mouse_filter = 2
-texture = ExtResource("3_rail")
 
-[node name="Fill" type="NinePatchRect" parent="." unique_id=475267398]
-unique_name_in_owner = true
+[node name="FallingLeafStage" parent="Stages" unique_id=1161064943 instance=ExtResource("11_leaf_stage")]
 layout_mode = 0
-offset_left = 248.0
-offset_top = 492.0
-offset_right = 276.0
-offset_bottom = 492.0
-mouse_filter = 2
-texture = ExtResource("4_jade")
-axis_stretch_vertical = 1
 
-[node name="Stone" type="TextureRect" parent="." unique_id=1615078126]
-unique_name_in_owner = true
+[node name="WaterfallStage" parent="Stages" unique_id=361411486 instance=ExtResource("12_falls_stage")]
 layout_mode = 0
-offset_left = 230.0
-offset_top = 436.0
-offset_right = 294.0
-offset_bottom = 492.0
-mouse_filter = 2
-texture = ExtResource("5_stone")
 
 [node name="Beads" type="HBoxContainer" parent="." unique_id=944033335]
 unique_name_in_owner = true

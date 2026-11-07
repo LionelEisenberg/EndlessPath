@@ -24,12 +24,14 @@ const SPIRITUAL: Array[CharacterAttributesData.AttributeType] = [
 	CharacterAttributesData.AttributeType.CONTROL,
 ]
 
-## Each stat's 16 px mini icon, drawn from its icon, for a line that names the
-## stat beside a figure (the body refining board, its card and floaters). Only
-## Strength has one so far: the drills that train Body and Agility bring theirs
-## (#106).
+## Each Physical stat's 16 px mini icon, drawn from its icon, for a line that
+## names the stat beside a figure (the body refining board, its card, its floaters
+## and its drill drawers). Body's is its heart in steel, apart from the Health
+## heart.
 const _MINI_ICONS: Dictionary = {
 	CharacterAttributesData.AttributeType.STRENGTH: preload("res://assets/ui/lacquer/lacquer_mini_strength_ai.png"),
+	CharacterAttributesData.AttributeType.BODY: preload("res://assets/ui/lacquer/lacquer_mini_body_ai.png"),
+	CharacterAttributesData.AttributeType.AGILITY: preload("res://assets/ui/lacquer/lacquer_mini_agility_ai.png"),
 }
 
 ## Each stat's icon. Mind keeps the icon Foundation had.
