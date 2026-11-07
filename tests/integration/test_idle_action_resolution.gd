@@ -2,9 +2,9 @@ extends GutTest
 
 ## Integration tests for the "always in an idle action" rule on ActionManager:
 ## which idle action a zone picks (resolve_idle_action), when it resumes
-## (after every session action, on arrival in a zone, on the first idle
-## unlock, on a save reset), the log lines it writes, and the Madra rate of
-## the running action.
+## (after every session action but a run, on arrival in a zone, on the first
+## idle unlock, on a save reset), the quiet after a run, the log lines it
+## writes, and the Madra rate of the running action.
 
 const ZONE_ID: String = "SpiritValley"
 const TEST_ZONE_ID: String = "TestZone"
@@ -166,14 +166,12 @@ func test_is_idle_action_is_foraging_and_training_only() -> void:
 # RESUME AFTER A SESSION ACTION
 #-----------------------------------------------------------------------------
 
-## Stopping a session action resumes the Aura Well, for each way stop_action
-## ends one: closing cycling, a won and a lost adventure, and leaving the shop.
-## Each case starts on a fresh save with the Aura Well running.
+## Stopping a session action resumes the Aura Well: closing cycling and
+## leaving the shop. Each case starts on a fresh save with the Aura Well
+## running. A run's end is the exception (AFTER A RUN, below).
 func test_session_stop_resumes_idle() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "closing cycling", "action_id": CYCLING_ID, "successful": true},
-		{"name": "a won adventure", "action_id": ADVENTURE_ID, "successful": true},
-		{"name": "a lost adventure", "action_id": ADVENTURE_ID, "successful": false},
 		{"name": "leaving the shop", "action_id": MERCHANT_ID, "successful": true},
 	]
 	for case: Dictionary in cases:
@@ -216,6 +214,132 @@ func test_stopping_idle_resumes_nothing() -> void:
 	ActionManager.stop_action()
 	assert_null(ActionManager.get_current_action(), "stopping the idle action itself resumes nothing")
 	assert_true(ActionManager.action_timer.is_stopped())
+
+#-----------------------------------------------------------------------------
+# AFTER A RUN
+#-----------------------------------------------------------------------------
+
+## Unlocks both idle actions, runs idle_id, starts the run, then ends it as
+## successful says.
+func _end_a_run_from(idle_id: String, successful: bool) -> void:
+	_unlock_foraging()
+	_unlock_aura_well()
+	ActionManager.select_action(_action(idle_id))
+	ActionManager.select_action(_action(ADVENTURE_ID))
+	assert_eq(_current_id(), ADVENTURE_ID, "precondition: the run is current")
+	_clear_log()
+	ActionManager.stop_action(successful)
+
+func _lines_starting(prefix: String) -> Array[String]:
+	var lines: Array[String] = []
+	for line: String in _logged:
+		if line.begins_with(prefix):
+			lines.append(line)
+	return lines
+
+## A run's end starts nothing, won or lost, whichever idle action ran before
+## it, and logs no Resumed line. Each case starts on a fresh save.
+func test_a_runs_end_starts_nothing() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "a won run from foraging", "idle_id": FORAGING_ID, "successful": true},
+		{"name": "a lost run from foraging", "idle_id": FORAGING_ID, "successful": false},
+		{"name": "a won run from the Aura Well", "idle_id": AURA_WELL_ID, "successful": true},
+		{"name": "a lost run from the Aura Well", "idle_id": AURA_WELL_ID, "successful": false},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		ResourceManager.set_madra(0.0)
+		_end_a_run_from(case.idle_id, case.successful)
+		assert_null(ActionManager.get_current_action(), "%s: nothing runs" % case.name)
+		assert_true(ActionManager.is_idle_held(), "%s: the zone waits for a pick" % case.name)
+		assert_true(ActionManager.action_timer.is_stopped(), "%s: no idle timer ticks" % case.name)
+		assert_eq(ActionManager.get_current_madra_per_second(), 0.0, "%s: no Madra rate" % case.name)
+		assert_eq(_lines_starting("Resumed"), [] as Array[String], "%s: no Resumed line" % case.name)
+
+## The run leaves the zone's last idle action as it was: load starts it again.
+func test_a_runs_end_keeps_the_last_idle_action() -> void:
+	_end_a_run_from(AURA_WELL_ID, true)
+	assert_eq(ZoneManager.get_last_idle_action_id(ZONE_ID), AURA_WELL_ID)
+
+## The zone is held before the run clears, so current_action_changed(null),
+## which the Now tray hears, already reads the hold.
+func test_the_hold_is_set_when_the_tray_hears_the_clear() -> void:
+	_unlock_foraging()
+	ActionManager.select_action(_action(ADVENTURE_ID))
+	var held_on_clear: Array[bool] = []
+	var on_changed := func(action: ZoneActionData) -> void:
+		if action == null:
+			held_on_clear.append(ActionManager.is_idle_held())
+	ActionManager.current_action_changed.connect(on_changed)
+	ActionManager.stop_action()
+	ActionManager.current_action_changed.disconnect(on_changed)
+	assert_eq(held_on_clear, [true] as Array[bool])
+
+## An unlock after a run starts nothing, whether or not an idle action was
+## unlocked before the run: the auto-start is only for a zone's first idle
+## unlock while nothing runs and no run just ended.
+func test_an_unlock_after_a_run_starts_nothing() -> void:
+	var cases: Array[Dictionary] = [
+		{"name": "foraging unlocked before the run", "foraging_first": true},
+		{"name": "no idle action before the run", "foraging_first": false},
+	]
+	for case: Dictionary in cases:
+		PersistenceManager.save_game_data = SaveGameData.new()
+		PersistenceManager.save_data_reset.emit()
+		if case.foraging_first:
+			_unlock_foraging()
+		ActionManager.select_action(_action(ADVENTURE_ID))
+		ActionManager.stop_action()
+		_clear_log()
+		_unlock_aura_well()
+		assert_null(ActionManager.get_current_action(), "%s: the Aura Well's unlock starts nothing" % case.name)
+		assert_eq(_lines_starting("Started"), [] as Array[String], "%s: no Started line" % case.name)
+
+## A click on an idle card after a run starts it at once and ends the hold.
+func test_picking_an_idle_action_after_a_run_starts_it() -> void:
+	_end_a_run_from(FORAGING_ID, true)
+	ActionManager.select_action(_action(AURA_WELL_ID))
+	assert_eq(_current_id(), AURA_WELL_ID)
+	assert_false(ActionManager.is_idle_held())
+	assert_eq(ZoneManager.get_last_idle_action_id(ZONE_ID), AURA_WELL_ID, "the pick is the new last idle action")
+
+## A session the player starts after a run ends the hold, so its end resumes
+## the zone's idle action as any session's does.
+func test_a_session_after_a_run_resumes_idle_when_it_ends() -> void:
+	_end_a_run_from(FORAGING_ID, true)
+	ActionManager.select_action(_action(CYCLING_ID))
+	assert_false(ActionManager.is_idle_held())
+	_clear_log()
+	ActionManager.stop_action()
+	assert_eq(_current_id(), FORAGING_ID)
+	assert_eq(_logged, ["Resumed Spring Forest Foraging"] as Array[String])
+
+## A run started from the quiet holds again when it ends.
+func test_a_second_run_holds_again() -> void:
+	_end_a_run_from(FORAGING_ID, true)
+	ActionManager.select_action(_action(ADVENTURE_ID))
+	ActionManager.stop_action(false)
+	assert_null(ActionManager.get_current_action())
+	assert_true(ActionManager.is_idle_held())
+
+## Arriving in the zone (the load) after a run starts its last idle action.
+func test_load_after_a_run_starts_the_last_idle_action() -> void:
+	_end_a_run_from(AURA_WELL_ID, true)
+	ZoneManager.zone_changed.emit(ZoneManager.get_current_zone())
+	assert_eq(_current_id(), AURA_WELL_ID)
+	assert_false(ActionManager.is_idle_held())
+	assert_eq(_logged, ["Resumed Aura Well"] as Array[String])
+
+## A save reset after a run starts the new save's idle action.
+func test_save_reset_after_a_run_ends_the_hold() -> void:
+	_end_a_run_from(FORAGING_ID, true)
+	var next_save := SaveGameData.new()
+	next_save.unlock_progression.unlocked_condition_ids.append(AURA_WELL_EVENT)
+	PersistenceManager.save_game_data = next_save
+	PersistenceManager.save_data_reset.emit()
+	assert_eq(_current_id(), AURA_WELL_ID)
+	assert_false(ActionManager.is_idle_held())
 
 #-----------------------------------------------------------------------------
 # SELECTING
