@@ -23,6 +23,9 @@ All commands are run from the project root.
 # Run it in a save preset, a starting point of the story (the list: docs/tooling/DEV_TOOLS.md). The session lives in memory and never reads or writes the user's save; an agent adds --save=user://dev/runs/<name>.tres to keep the run's file
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=tribulation_ready
 
+# An agent opens a game window muted (unless sound is under test) and off the user's main screen: the script prints the --screen to use. More: docs/tooling/FEATURE_WORKFLOW.md
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . --audio-driver Dummy $(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/game_window_args.ps1) scenes/main/main_game/main_game.tscn -- --save=user://dev/runs/<name>.tres
+
 # Run the test suite in 6 Godot processes at once (-Processes N for another count)
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
 
@@ -110,6 +113,8 @@ Built systems: Cycling, Zones and idle actions, Adventuring, Combat, Inventory, 
 
 **Never merge:** not into `main`, not into any other branch, and not a pull request, unless the user explicitly asks.
 
+**Release branches:** a version's feature work merges into its release branch (`release/vX.Y.Z`), not `main`. Cut worktrees from it, merge it (not `main`) into your branch before your PR merges, and open PRs with `--base release/vX.Y.Z`. Only the user merges a release into `main`. The whole process, from planning to publishing, is `docs/tooling/FEATURE_WORKFLOW.md`, which the `feature-workflow` skill loads.
+
 **Before committing:**
 - Run `git diff HEAD` to review all changes
 - Ensure no debug artifacts or `.import` cache files are staged
@@ -147,6 +152,7 @@ Multiple Claude Code agents may run simultaneously on this codebase. Follow thes
 
 Living docs follow "Keeping Docs Current" in `docs/README.md`, because two open branches that edit the same doc line make a merge conflict. In short:
 - **Docs come after the merge.** A feature PR does not edit living docs. Its description ends with a `## Docs to update` list, and once the user merges it, the session that built it opens a docs PR on a `docs/<topic>` branch cut from the new `main` that writes them. Specs, plans and mock-ups stay in the feature PR, and so do docs the code reads, such as `docs/inventory/ITEMS.md`.
+- **On a release branch, docs come at the end.** Its PRs keep their `## Docs to update` lists and open no docs PR. The release's last issue writes them all on the release branch, before it merges into `main`.
 - A system doc says what the player gets and why, and where to start reading the code: the owning classes, public functions and signals. No line numbers, layout geometry, unique node names, constants, call chains or private `_helpers()`.
 - Each fact has one home, the system doc that owns it. Other docs, this file included, link to it instead of restating it.
 - No counts of tests, scripts, scenes, resources, shaders or lines, no test run results or times, no `Last updated:` lines, no "Used by" lists of a shared widget's or variant's users.
