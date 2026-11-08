@@ -203,8 +203,8 @@ func test_status_line_copy() -> void:
 		{"name": "waiting, Smooth Flow", "running": false, "technique": smooth, "capped": false, "line": ready},
 		{"name": "waiting, Torrential Flow", "running": false, "technique": torrential, "capped": false, "line": ready},
 		{"name": "running, Foundational", "running": true, "technique": foundation, "capped": false, "line": follow},
-		{"name": "running, Smooth Flow", "running": true, "technique": smooth, "capped": false, "line": follow + " Click it over a zone for Control XP."},
-		{"name": "running, Torrential Flow", "running": true, "technique": torrential, "capped": false, "line": follow + " Open each seal with W A S D for Mind XP."},
+		{"name": "running, Smooth Flow", "running": true, "technique": smooth, "capped": false, "line": "Follow the ball. Click it over each zone."},
+		{"name": "running, Torrential Flow", "running": true, "technique": torrential, "capped": false, "line": "Follow the ball. Open each seal with W A S D."},
 		{"name": "running, Smooth Flow, Control capped", "running": true, "technique": smooth, "capped": true, "line": follow},
 		{"name": "running, Torrential Flow, Mind capped", "running": true, "technique": torrential, "capped": true, "line": follow},
 	]
@@ -702,9 +702,10 @@ func test_a_near_miss_leaves_auto_locked() -> void:
 func test_the_status_line_under_auto() -> void:
 	var smooth: CyclingTechniqueData = load(SMOOTH_PATH)
 	var foundation: CyclingTechniqueData = load(FOUNDATION_PATH)
-	var auto: String = "Auto cycles on at 40%. Follow the ball for the full rate."
+	var auto: String = "Auto cycles at 40%. Follow for the full rate."
 	assert_eq(CyclingView.status_line(true, foundation, false, true), auto)
-	assert_eq(CyclingView.status_line(true, smooth, false, true), auto + " Click it over a zone for Control XP.")
+	assert_eq(CyclingView.status_line(true, smooth, false, true), auto, "Auto plays no zone, so the line has no clause")
+	assert_eq(CyclingView.status_line(true, load(TORRENTIAL_PATH), false, true), auto, "nor any seal")
 	assert_eq(CyclingView.status_line(false, smooth, false, true), "Click the Madra ball to begin a cycle.", "waiting reads as ever")
 
 func test_auto_starts_a_cycle_and_its_status_line() -> void:
@@ -712,7 +713,7 @@ func test_auto_starts_a_cycle_and_its_status_line() -> void:
 	(_node("AutoToggle") as TextureButton).button_pressed = true
 	await wait_process_frames(2)
 	assert_true(_technique.is_cycling(), "the board starts a cycle by itself")
-	assert_string_starts_with(_view.get_status_text(), "Auto cycles on at 40%.")
+	assert_string_starts_with(_view.get_status_text(), "Auto cycles at 40%.")
 	(_node("AutoToggle") as TextureButton).button_pressed = false
 	_technique.stop_cycling()
 	await wait_process_frames(2)

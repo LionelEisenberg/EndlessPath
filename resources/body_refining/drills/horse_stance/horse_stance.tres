@@ -16,5 +16,5 @@ input_kind = 1
 rep_seconds = 4.0
 reps_per_set = 10
 play_hint = "Keep the needle in the brass"
-ready_line = "Hold Space or the mouse button to sink into the stance."
-play_line = "Keep the needle in the brass: hold to sink, let go to rise."
+ready_line = "Hold Space or the mouse to sink."
+play_line = "Hold to sink, let go to rise. Stay in the brass."
