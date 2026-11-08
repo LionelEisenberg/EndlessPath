@@ -23,7 +23,8 @@ const GUT_LAYER: int = 128
 const FRAME: float = 1.0 / 60.0
 ## More damage than any health pool, so one hit always leaves 0 HP.
 const LETHAL_DAMAGE: float = -1000000.0
-## A wait that ends safely past a beat, on a busy machine too.
+## A wait that ends safely past a beat. Only checks of what holds after a beat
+## wait real time; the way in's checks step the clock by hand (_run_tweens()).
 const MARGIN: float = 0.1
 ## What the fight on FIGHT and the boss pay in Core Density.
 const FIGHT_XP: float = 20.0
@@ -112,6 +113,16 @@ func _walk_to(coord: Vector3i) -> void:
 	await get_tree().process_frame
 	assert_true(ended[0], "precondition: the walk to %s ends" % coord)
 
+## Moves every running tween in the tree on through `seconds` of 60 FPS frames,
+## as frames do, with no real frame between: the map's push, the fighters' slides
+## and the beats of the fight's edges, so a check between two beats does not
+## depend on how long frames take.
+func _run_tweens(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		for tween: Tween in get_tree().get_processed_tweens():
+			if tween.is_valid() and tween.is_running():
+				tween.custom_step(FRAME)
+
 ## The fixture map's fight, on FIGHT.
 func _fight() -> CombatChoice:
 	return AdventureMapFixture.fight_choice(_map)
@@ -166,12 +177,12 @@ func test_the_way_in_shows_the_fight_at_the_swap_and_starts_it_at_the_landing() 
 	assert_false(_view.combat_view.visible, "the fight waits")
 	assert_true(_view.adventure_tilemap.is_pushed_in(), "the map's camera pushes in on the hex")
 	assert_false(_view.is_fight_live(), "nothing is live yet")
-	await wait_seconds(FightTransition.PUSH_SECONDS + MARGIN)
+	_run_tweens(FightTransition.PUSH_SECONDS + FRAME)
 	assert_false(_view.tilemap_view.visible, "the map gives way")
 	assert_true(_view.combat_view.visible, "to the fight")
 	assert_false(_view.adventure_tilemap.is_pushed_in(), "its camera back for the way out")
 	assert_false(_view.is_fight_live(), "the fighters are still arriving")
-	await wait_seconds(FightTransition.WAY_IN_SECONDS - FightTransition.PUSH_SECONDS)
+	_run_tweens(FightTransition.WAY_IN_SECONDS - FightTransition.PUSH_SECONDS)
 	assert_true(_view.is_fight_live(), "both have landed: the fight is live")
 	assert_true(_view.technique_dock.is_active(), "the dock takes the fight's presses")
 	assert_true(_view.combat.enemy_nameplate.visible, "the enemy's name shows")
@@ -181,9 +192,12 @@ func test_nothing_acts_on_the_way_in() -> void:
 	InventoryManager.equip_consumable(CRUDE_SCALE as ConsumableDefinitionData, 0)
 	_start_run()
 	await _pick_the_fight()
-	await wait_seconds(FightTransition.PUSH_SECONDS + MARGIN)
+	# Just past the swap: the landing is the arrival's 0.4 s away.
+	_run_tweens(FightTransition.PUSH_SECONDS + FRAME)
 	assert_true(_view.combat_view.visible, "precondition: the fighters are arriving")
 	var player: CombatantNode = _view.combat.player_combatant
+	assert_true(player.is_held(), "the player is held")
+	assert_true(_view.combat.enemy_combatant.is_held(), "and so is the enemy")
 
 	_press_action(&"ability_slot_1")
 	_press_action(&"consumable_slot_1")
@@ -312,6 +326,10 @@ func test_an_exit_cuts_every_edge() -> void:
 		var enemy: CombatantNode = _view.combat.enemy_combatant
 		var gold_before: float = ResourceManager.get_gold()
 		var fights_total: int = _view.adventure_tilemap.get_total_combat_count()
+		# A dissolve under way, as one is on either edge's swap (headless, play()
+		# takes no still, so the test hands it one).
+		var dissolve: ViewDissolve = _view.get_node("%FightDissolve") as ViewDissolve
+		dissolve.play_over(ImageTexture.create_from_image(Image.create(4, 4, false, Image.FORMAT_RGBA8)))
 
 		_view.force_end_adventure(false)
 
@@ -320,6 +338,7 @@ func test_an_exit_cuts_every_edge() -> void:
 		assert_true(not is_instance_valid(enemy) or enemy.is_queued_for_deletion(), "%s: with its fighters" % case.name)
 		assert_false(_view.is_in_combat, "%s: no fight is under way" % case.name)
 		assert_false(_view.adventure_tilemap.is_pushed_in(), "%s: the camera is back" % case.name)
+		assert_false(dissolve.is_playing(), "%s: no still of the fight is left dissolving" % case.name)
 		assert_false(_view.get_run_timer().paused, "%s: the clock is not left paused" % case.name)
 		assert_eq(ResourceManager.get_gold(), gold_before, "%s: the Exit pays nothing more" % case.name)
 		if case.at == "out":

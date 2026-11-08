@@ -408,8 +408,8 @@ func _on_map_whole() -> void:
 ## Drops the fight under way at once, as a run's end cuts it: the edge under way
 ## goes, the map shows outright, the fighters go, the dock and the cabinet let go,
 ## and the boards show what a kill made before won. A fight not yet decided goes
-## to the map as a loss, as it always has, which runs its choice's failure
-## effects. It ends no run.
+## to the map as a loss, as it always has: its defeat line goes in the log and its
+## choice's failure effects run. It ends no run.
 func _cut_fight() -> void:
 	var decided: bool = _fight_transition.is_closing()
 	_fight_transition.cut()
@@ -417,6 +417,8 @@ func _cut_fight() -> void:
 	combat.stop()
 	is_in_combat = false
 	if not decided:
+		if LogManager:
+			LogManager.log_message("[color=red]Combat Defeat...[/color]")
 		adventure_tilemap.handle_combat_result(false, 0)
 	_release_board_news()
 
@@ -594,9 +596,10 @@ func _on_run_stats_changed() -> void:
 		adventure_tilemap.get_core_density_xp_earned()
 	)
 
-## The boss fell: the run ends a victory. Its win ends the run before its tile
-## resolves, so the ledger is told the run's figures here, with the boss's Core
-## Density in them; the chest stays in sight beside the end card.
+## The boss fell: the run ends a victory once its close has played. Its win
+## resolves no tile, so the ledger is told the run's figures from here (once the
+## map is whole), with the boss's Core Density in them; the chest stays in sight
+## beside the end card.
 func _on_boss_defeated() -> void:
 	_pending_victory = true
 	_announce_run_stats()

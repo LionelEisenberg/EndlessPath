@@ -66,6 +66,23 @@ func test_hides_and_lets_the_still_go_after_two_steps() -> void:
 	assert_eq(_step(), 0)
 	assert_signal_emitted(_dissolve, "finished")
 
+## A run's end cuts a fight's edge: the dissolve under way ends at once, with
+## nothing of its still left over the new view, and says it is done.
+func test_stop_ends_a_dissolve_at_once() -> void:
+	watch_signals(_dissolve)
+	_dissolve.play_over(_still)
+	_run(0.05)
+
+	_dissolve.stop()
+
+	assert_false(_dissolve.visible, "the still is gone")
+	assert_false(_dissolve.is_playing())
+	assert_null(_dissolve.texture, "and let go")
+	assert_eq(_step(), 0)
+	assert_signal_not_emitted(_dissolve, "finished", "a cut dissolve did not finish")
+	_run(0.2)
+	assert_false(_dissolve.visible, "and nothing brings it back")
+
 func test_a_new_dissolve_starts_over() -> void:
 	_dissolve.play_over(_still)
 	_run(0.15)

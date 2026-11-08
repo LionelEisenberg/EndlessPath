@@ -100,12 +100,13 @@ func finish_now() -> void:
 		beat.call()
 
 ## Drops the edge under way: no beat still to come runs, the camera's push ends,
-## and the map shows outright, the fight hidden.
+## a dissolve under way goes, and the map shows outright, the fight hidden.
 func cut() -> void:
 	_kill_tween()
 	_beats.clear()
 	_closing = false
 	_map.end_push_in()
+	_dissolve.stop()
 	_combat_view.visible = false
 	_tilemap_view.visible = true
 
