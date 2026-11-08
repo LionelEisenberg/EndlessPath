@@ -104,6 +104,7 @@ func after_each() -> void:
 	# the next test.
 	CyclingManager.end_cycle_session()
 	CyclingManager.clear_last_cycle_result()
+	BodyRefiningManager.clear_last_set_result()
 	BodyRefiningManager.end_set_session()
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
@@ -1129,6 +1130,55 @@ func test_drills_mode_lists_the_learned_drills() -> void:
 	assert_eq(_count_text(), ZonePanel.LEARNED_FORMAT % 2)
 	assert_eq(drills.position.y, LIST_TOP, "the drawers take the list's place")
 	assert_eq(_panel.size.y, maxf(ZonePanel.MIN_CHEST_HEIGHT, LIST_TOP + drills.get_content_height() + ZonePanel.GAP_UNDER_LIST), "and the chest hugs them")
+
+## A finished set's result, as the board records it on BodyRefiningManager.
+func _last_set() -> DrillSetResult:
+	var result := DrillSetResult.new(BodyRefiningManager.get_drill("stone_lifting"))
+	for bead: int in 10:
+		result.add_rep(DrillRules.Tier.PERFECT, 4.0)
+		result.place_last_rep(bead)
+	result.record_stat_xp(CharacterAttributesData.AttributeType.STRENGTH, 60.0, false)
+	return result
+
+func _last_set_card() -> LastSetCard:
+	return _node("LastSetCard") as LastSetCard
+
+## The last set card shows in the drills mode only, once a set has ended, and a
+## clear hides it.
+func test_the_last_set_card_shows_only_in_the_drills_mode() -> void:
+	await _add_panel()
+	BodyRefiningManager.set_last_set_result(_last_set())
+	assert_false(_last_set_card().visible, "the activities never show it")
+	_panel.set_techniques_mode(true)
+	assert_false(_last_set_card().visible, "nor the techniques")
+	_panel.set_chest_mode(ZonePanel.ChestMode.DRILLS)
+	assert_true(_last_set_card().visible, "the drills do")
+	var amount: Label = _last_set_card().get_node("%StrengthChip").get_node("%Amount") as Label
+	assert_eq(amount.text, "+60", "with the set's result")
+	BodyRefiningManager.clear_last_set_result()
+	assert_false(_last_set_card().visible, "a clear hides it")
+	BodyRefiningManager.set_last_set_result(_last_set())
+	_panel.set_chest_mode(ZonePanel.ChestMode.ACTIVITIES)
+	assert_false(_last_set_card().visible, "leaving the drills hides it")
+
+## The card stands 20 px under the Now tray and pushes the header and the drawers
+## down by its height and 20, which the drills mode's chest height counts.
+func test_the_last_set_card_pushes_the_drawers_down() -> void:
+	await _add_panel()
+	_panel.set_chest_mode(ZonePanel.ChestMode.DRILLS)
+	await wait_process_frames(1)
+	var activities_height: float = _panel.chest_height_for_mode(ZonePanel.ChestMode.ACTIVITIES)
+	BodyRefiningManager.set_last_set_result(_last_set())
+	await wait_process_frames(2)
+	var card: LastSetCard = _last_set_card()
+	var push: float = LastSetCard.ONE_LINE_HEIGHT + 20.0
+	assert_eq(card.position.y, _strip().position.y + STRIP_HEIGHT + 20.0, "20 px under the Now tray")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + push, "the header moves down")
+	assert_eq(_panel.get_drill_list().position.y, LIST_TOP + push, "and the drawers with it")
+	var drills_height: float = maxf(ZonePanel.MIN_CHEST_HEIGHT, LIST_TOP + push + _panel.get_drill_list().get_content_height() + ZonePanel.GAP_UNDER_LIST)
+	assert_eq(_panel.chest_height_for_mode(ZonePanel.ChestMode.DRILLS), drills_height, "the drills mode's height counts it")
+	assert_eq(_panel.size.y, drills_height, "and the chest hugs it")
+	assert_eq(_panel.chest_height_for_mode(ZonePanel.ChestMode.ACTIVITIES), activities_height, "the activities' height never counts it")
 
 func test_leaving_drills_mode_shows_the_activities() -> void:
 	await _add_panel()

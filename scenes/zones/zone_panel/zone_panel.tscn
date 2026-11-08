@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" uid="uid://bmqbtx5prppv8" path="res://scenes/zones/zone_panel/technique_list/technique_list.tscn" id="16_techniques"]
 [ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/drill_drawer_list/drill_drawer_list.tscn" id="17_drills"]
 [ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/last_cycle_card/last_cycle_card.tscn" id="19_last_cycle"]
+[ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/last_set_card/last_set_card.tscn" id="20_last_set"]
 
 [node name="ZonePanel" type="Control" unique_id=478649513]
 layout_mode = 3
@@ -131,6 +132,15 @@ offset_left = 16.0
 offset_top = 190.0
 offset_right = 408.0
 offset_bottom = 254.0
+
+[node name="LastSetCard" parent="." unique_id=1904271537 instance=ExtResource("20_last_set")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 190.0
+offset_right = 408.0
+offset_bottom = 288.0
 
 [node name="SlideClip" type="Control" parent="." unique_id=1038477251]
 clip_contents = true

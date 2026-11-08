@@ -36,6 +36,7 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/ui/goals_panel/goals_panel.tscn",
 	"res://scenes/zones/zone_panel/now_strip/now_strip.tscn",
 	"res://scenes/zones/zone_panel/last_cycle_card/last_cycle_card.tscn",
+	"res://scenes/zones/zone_panel/last_set_card/last_set_card.tscn",
 	"res://scenes/zones/zone_action_button/zone_action_button.tscn",
 	"res://scenes/zones/adventure_confirm/adventure_confirm_board.tscn",
 	"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn",
