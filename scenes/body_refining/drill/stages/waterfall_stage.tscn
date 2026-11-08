@@ -37,6 +37,16 @@ script = ExtResource("8_strip")
 strip = ExtResource("3_falls")
 frame_size = Vector2i(176, 432)
 
+[node name="WaitingSurge" type="TextureRect" parent="." unique_id=1847362219]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 166.0
+offset_top = 36.0
+offset_right = 358.0
+offset_bottom = 68.0
+mouse_filter = 2
+texture = ExtResource("4_surge")
+
 [node name="Surge" type="TextureRect" parent="." unique_id=1994971084]
 unique_name_in_owner = true
 layout_mode = 0

@@ -21,7 +21,8 @@ extends GutTest
 ## The adventure's chest (its title, its expedition page with its Here tray, hint
 ## row and choice drawers), the technique dock's cast tray and tooltip, the Goals
 ## board, the zone chest's Now strip, its activity cards with the presenters that
-## fill them (the adventure's holds no Label: its card prints its line) and its
+## fill them (the adventure's, the cycling card's and the body refining card's hold
+## no Label: the adventure's card prints its line, the other two show icons) and its
 ## technique and drill drawers, the cycling board, the body refining board, the
 ## Character book with its stat tile, the cultivator cabinet with its stat cells,
 ## and the adventure's end card.
@@ -36,7 +37,6 @@ const BOARD_SCENES: Array[String] = [
 	"res://scenes/zones/zone_panel/now_strip/now_strip.tscn",
 	"res://scenes/zones/zone_panel/last_cycle_card/last_cycle_card.tscn",
 	"res://scenes/zones/zone_action_button/zone_action_button.tscn",
-	"res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn",
 	"res://scenes/zones/adventure_confirm/adventure_confirm_board.tscn",
 	"res://scenes/zones/zone_action_button/presenters/default_presenter.tscn",
 	"res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn",

@@ -16,5 +16,5 @@ input_kind = 0
 rep_seconds = 4.0
 reps_per_set = 10
 play_hint = "Hold, then let go in the band"
-ready_line = "Hold Space or the mouse button to lift the stone."
-play_line = "Let go with the stone in the brass band."
+ready_line = "Hold Space or the mouse to lift the stone."
+play_line = "Let go in the brass band. Hold again to lift."

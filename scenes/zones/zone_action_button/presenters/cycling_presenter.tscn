@@ -1,87 +1,29 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/cycling_presenter.gd" id="1_cycling"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_pool_madra_ai.png" id="2_pool"]
 
 [node name="CyclingPresenter" type="Node" unique_id=1656719753]
 script = ExtResource("1_cycling")
 
-[node name="RewardRow" type="HFlowContainer" parent="." unique_id=1796419251]
+[node name="Icons" type="HBoxContainer" parent="."]
 unique_name_in_owner = true
-size_flags_horizontal = 3
-size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 0
+theme_override_constants/separation = 12
 
-[node name="MadraLabel" type="Label" parent="RewardRow" unique_id=1720145757]
+[node name="PoolIcon" type="TextureRect" parent="Icons"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"LabelLacquerDetail"
-text = "Madra and"
-
-[node name="SpiritEntry" type="HBoxContainer" parent="RewardRow" unique_id=744162610]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="SpiritIcon" type="TextureRect" parent="RewardRow/SpiritEntry" unique_id=1947363005]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
+texture = ExtResource("2_pool")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SpiritName" type="Label" parent="RewardRow/SpiritEntry" unique_id=718764993]
+[node name="SideIcon" type="TextureRect" parent="Icons"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"LabelLacquerDetail"
-text = "Spirit"
-
-[node name="MindEntry" type="HBoxContainer" parent="RewardRow" unique_id=1373330145]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="MindIcon" type="TextureRect" parent="RewardRow/MindEntry" unique_id=965696720]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-size_flags_vertical = 4
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
-
-[node name="MindName" type="Label" parent="RewardRow/MindEntry" unique_id=425655817]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"LabelLacquerDetail"
-text = "Mind"
-
-[node name="ControlEntry" type="HBoxContainer" parent="RewardRow" unique_id=1695617420]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="ControlIcon" type="TextureRect" parent="RewardRow/ControlEntry" unique_id=1976259095]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="ControlName" type="Label" parent="RewardRow/ControlEntry" unique_id=1202524049]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"LabelLacquerDetail"
-text = "Control"

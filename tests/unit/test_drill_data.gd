@@ -63,7 +63,7 @@ func test_the_approved_roster() -> void:
 		assert_eq(drill.minor_xp_per_rep, want["minor_xp"], "%s's other stat's XP" % drill.id)
 		assert_eq(drill.health_per_rep, want["health"], "%s's Health" % drill.id)
 		assert_eq(drill.input_kind, want["input"], "%s's input" % drill.id)
-		assert_eq(drill.rep_seconds, want["seconds"], "%s's rep length" % drill.id)
+		assert_eq(drill.rep_seconds, want["seconds"], "%s's Auto pace" % drill.id)
 		assert_eq(drill.reps_per_set, 10, "%s's set" % drill.id)
 
 ## The drill drawer and the board read each drill's words and icon: how it plays,

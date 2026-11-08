@@ -2,7 +2,7 @@ class_name DrillDrawer
 extends Control
 ## A drill drawer in the zone chest while the body refining board is up: a
 ## lacquer drawer with one learned drill's icon, name, NEW seal, IN USE tag, how
-## it plays and its rep ("Keep the needle in the brass · 4 s reps"), and what it
+## it plays and its set ("Keep the needle in the brass · 10 reps a set"), and what it
 ## trains, each stat by its mini icon and name ("Trains [arm] Strength and [heart]
 ## Body"). It copies TechniqueDrawer's layout in a scene of its own (lacquer kit
 ## §5.5, positions local to the drawer) and shares no code with it. It is 392 x 92
@@ -49,8 +49,8 @@ const DETAIL_GAP: float = 4.0
 const TRAINS_GAP: float = 2.0
 const ROOM_UNDER_TRAINS: float = 16.0
 
-## The detail line: how the drill plays, then its rep.
-const DETAIL_FORMAT: String = "%s · %s s reps"
+## The detail line: how the drill plays, then its set's reps.
+const DETAIL_FORMAT: String = "%s · %d reps a set"
 ## The Trains line's words, and its stat icons' size.
 const TRAINS_LEAD: String = "Trains "
 const TRAINS_JOIN: String = " and "
@@ -97,12 +97,10 @@ func setup(data: DrillData) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns a drill's detail line: how it plays and its rep, "Keep the needle in
-## the brass · 4 s reps".
+## Returns a drill's detail line: how it plays and what a set is, "Keep the needle
+## in the brass · 10 reps a set". A rep has no length to give (#143).
 static func detail_text(data: DrillData) -> String:
-	var seconds: float = data.rep_seconds
-	var seconds_text: String = str(roundi(seconds)) if is_equal_approx(seconds, roundf(seconds)) else String.num(seconds, 1)
-	return DETAIL_FORMAT % [data.play_hint, seconds_text]
+	return DETAIL_FORMAT % [data.play_hint, data.reps_per_set]
 
 ## Returns a drill's Trains line in BBCode: Strength, then the drill's other stat,
 ## each by its mini icon and its name.

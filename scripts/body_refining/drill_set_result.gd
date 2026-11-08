@@ -2,9 +2,11 @@ class_name DrillSetResult
 extends RefCounted
 
 ## One set of a drill as it is played: the tier each rep was judged, the Health
-## each rep restored, and the XP each stat took. BodyRefiningManager.pay_rep()
-## records each rep it pays here. A set is perfect when every one of its reps is
-## PERFECT, which unlocks the drill's Auto (#110).
+## each rep restored, the XP its reps stored for the set's end, and the XP each
+## stat took once it was paid. BodyRefiningManager.pay_rep() records each rep it
+## pays here and stores its XP, and BodyRefiningManager.finish_set() pays what the
+## set stored (#143: a set pays its XP when it ends). A set is perfect when every
+## one of its reps is PERFECT, which unlocks the drill's Auto (#110).
 ## It writes the log's line for a finished set ("Set · +48 Strength XP · +32
 ## Health"): the log board shows one line a message and prints plain text, so
 ## the line keeps to words. A stat the cap took XP from reads "Strength capped" in
@@ -35,6 +37,9 @@ var _rep_health: Array[float] = []
 var _health_restored: float = 0.0
 ## The XP each stat took, AttributeType to float.
 var _stat_xp: Dictionary = {}
+## The XP the set's reps stored for each stat and nobody has paid yet,
+## AttributeType to float.
+var _stored_xp: Dictionary = {}
 ## The stats the cap took XP from: paid at the cap, or by a rep that reached it.
 var _capped_stats: Array[AttributeType] = []
 
@@ -46,6 +51,22 @@ func add_rep(tier: Tier, health: float) -> void:
 	_tiers.append(tier)
 	_rep_health.append(health)
 	_health_restored += health
+
+## Stores `xp` of `stat`'s XP that a rep earned, for the set's end to pay.
+func store_stat_xp(stat: AttributeType, xp: float) -> void:
+	if xp > 0.0:
+		_stored_xp[stat] = get_stored_stat_xp(stat) + xp
+
+## The XP of `stat` the set's reps stored and nobody has paid yet.
+func get_stored_stat_xp(stat: AttributeType) -> float:
+	return _stored_xp.get(stat, 0.0)
+
+## Returns the XP stored for each stat (AttributeType to float), in the order the
+## stats were first stored, and forgets it, so it is paid once.
+func take_stored_xp() -> Dictionary:
+	var stored: Dictionary = _stored_xp
+	_stored_xp = {}
+	return stored
 
 ## Records a payment of `stat`'s XP: `taken` is what the stat took, and `capped`
 ## whether the cap took the rest.

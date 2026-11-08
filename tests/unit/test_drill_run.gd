@@ -2,13 +2,16 @@ extends GutTest
 
 ## Unit tests for DrillRun, the contract every drill's input plays through: the
 ## input it reads (the drill_press action, Space or the left mouse button), the run
-## each input kind gets, the reps' slots on the set's clock, and the share that
-## turns how far off a rep was into #97's tiers.
+## each input kind gets, the first press as every drill's first input, Auto's pace
+## (a rep each rep_seconds), and the share that turns how far off a rep was into
+## #97's tiers.
 
 const InputKind = DrillData.InputKind
 
 ## One second on the set's clock.
 const S: int = 1_000_000
+## A point far from anything on any stage.
+const FAR: Vector2 = Vector2(-1000, -1000)
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -71,17 +74,21 @@ func test_a_press_at_a_point_is_a_press_for_the_runs_with_no_aim() -> void:
 	assert_eq(run.press_at(0, Vector2(9, 9)).size(), 0, "a press judges nothing yet")
 	assert_true(run.is_lifting(), "and lifts the stone")
 
-## On the hold drills the press that starts a set is also its first lift; on the
-## drills judged by a timed press it only starts the set.
-func test_only_the_hold_drills_judge_the_starting_press() -> void:
-	var cases: Array[Dictionary] = [
-		{"kind": InputKind.HOLD_RELEASE, "judged": true},
-		{"kind": InputKind.HOLD_STEADY, "judged": true},
-		{"kind": InputKind.CATCH, "judged": false},
-		{"kind": InputKind.BEAT, "judged": false},
-	]
-	for case: Dictionary in cases:
-		assert_eq(DrillRun.for_drill(_drill(case["kind"], 3.0)).judges_starting_press(), case["judged"], InputKind.keys()[case["kind"]])
+## The press that starts a set is its first rep's input on every drill: it lifts
+## the stone (#143: every rep starts on the player's press).
+func test_the_first_press_is_every_drill_s_first_input() -> void:
+	var stone := DrillRun.for_drill(_drill(InputKind.HOLD_RELEASE)) as StoneLiftingRun
+	stone.press_at(0, FAR)
+	assert_true(stone.is_lifting(), "Stone Lifting: the stone rises")
+	var stance := DrillRun.for_drill(_drill(InputKind.HOLD_STEADY)) as HorseStanceRun
+	stance.press_at(0, FAR)
+	assert_true(stance.is_rep_in_play(), "Horse Stance: the player sinks into the first stance")
+	var leaf := DrillRun.for_drill(_drill(InputKind.CATCH)) as FallingLeafRun
+	leaf.press_at(0, FAR)
+	assert_true(leaf.is_dropped(0), "Falling Leaf: the branch shakes down the first leaf")
+	var falls := DrillRun.for_drill(_drill(InputKind.BEAT)) as WaterfallRun
+	falls.press_at(0, FAR)
+	assert_eq(falls.rep_in_play(), 0, "Waterfall Tempering: the first surge is sent down")
 
 #-----------------------------------------------------------------------------
 # AUTO
@@ -119,19 +126,24 @@ func test_auto_catches_up_in_one_call() -> void:
 	var run: DrillRun = DrillRun.for_drill(_drill(InputKind.BEAT, 3.0))
 	assert_eq(run.play_auto(10 * S).size(), 3, "three surges landed by 10 s")
 
-#-----------------------------------------------------------------------------
-# THE SLOTS
-#-----------------------------------------------------------------------------
-
-## Rep k's slot runs from k rep lengths to k + 1 on the set's clock.
-func test_rep_progress_follows_the_slot() -> void:
-	var run: DrillRun = DrillRun.for_drill(_drill())
-	assert_eq(run.rep_at(0), 0)
-	assert_almost_eq(run.rep_progress_at(2 * S), 0.5, 0.000001)
-	assert_eq(run.rep_at(4 * S), 1)
-	assert_almost_eq(run.rep_progress_at(5 * S), 0.25, 0.000001)
-	assert_eq(run.rep_at(50 * S), 9, "the last rep, past the set's end")
-	assert_eq(run.rep_progress_at(50 * S), 1.0)
+## Auto plays a rep each rep_seconds, from the set's start (#110's pace, #143):
+## rep k is judged after k rep lengths and before k + 1, and a set takes ten.
+func test_auto_keeps_its_pace() -> void:
+	var cases: Array[Dictionary] = [
+		{"kind": InputKind.HOLD_RELEASE, "rep": 4.0},
+		{"kind": InputKind.HOLD_STEADY, "rep": 4.0},
+		{"kind": InputKind.CATCH, "rep": 2.0},
+		{"kind": InputKind.BEAT, "rep": 3.0},
+	]
+	for case: Dictionary in cases:
+		var what: String = InputKind.keys()[case["kind"]]
+		var pace: int = roundi(case["rep"] * S)
+		var run: DrillRun = DrillRun.for_drill(_drill(case["kind"], case["rep"]), 7)
+		assert_eq(run.get_auto_set_usec(), 10 * pace, "%s: a set of Auto takes ten reps' pace" % what)
+		var judged: Array[DrillRun.Judgement] = run.play_auto(60 * S)
+		assert_eq(judged.size(), 10, "%s: ten reps" % what)
+		for judgement: DrillRun.Judgement in judged:
+			assert_between(judgement.at_usec, judgement.rep * pace, (judgement.rep + 1) * pace - 1, "%s: rep %d in its pace" % [what, judgement.rep])
 
 #-----------------------------------------------------------------------------
 # THE SHARE

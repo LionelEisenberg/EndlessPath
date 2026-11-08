@@ -98,71 +98,68 @@ func test_holding_past_the_top_drops_the_stone() -> void:
 		assert_eq(judged[0].height, 1.0)
 	assert_eq(run.release(2_600_000).size(), 0, "letting go after the drop judges nothing")
 
-func test_a_rep_with_no_lift_is_too_late() -> void:
-	var run: StoneLiftingRun = _lifted()
-	run.release(CENTRE)
-	assert_eq(run.advance(8 * S - 1).size(), 0, "the second rep's slot has not ended")
-	var judged: Array[DrillRun.Judgement] = run.advance(8 * S)
-	assert_eq(judged.size(), 1, "the second rep is judged at its slot's end")
-	if judged.size() == 1:
-		assert_eq(judged[0].rep, 1)
-		assert_eq(judged[0].tier, Tier.MISS)
-		assert_eq(judged[0].miss, Miss.TOO_LATE)
-		assert_eq(judged[0].at_usec, 8 * S)
-		assert_eq(judged[0].height, 0.0)
-
-func test_a_lift_held_at_the_slot_end_is_judged_there() -> void:
-	var run: StoneLiftingRun = _lifted()
-	run.release(CENTRE)
-	run.press(7_500_000)
-	assert_true(run.is_lifting(), "precondition: a late lift in the second rep")
-	var judged: Array[DrillRun.Judgement] = run.advance(8 * S)
-	assert_eq(judged.size(), 1)
-	if judged.size() == 1:
-		assert_eq(judged[0].rep, 1)
-		assert_eq(judged[0].at_usec, 8 * S, "judged where the rep's time ran out")
-		assert_eq(judged[0].miss, Miss.TOO_LOW, "half a second held is too low")
-		assert_almost_eq(judged[0].height, 0.25, 0.000001)
-
 #-----------------------------------------------------------------------------
 # BETWEEN REPS
 #-----------------------------------------------------------------------------
 
-func test_a_press_in_the_rest_of_a_judged_rep_lifts_nothing() -> void:
+## No slot: a rep never ends on its own while the stone rests, however long the
+## player waits.
+func test_a_pause_judges_nothing() -> void:
 	var run: StoneLiftingRun = _lifted()
 	run.release(CENTRE)
-	assert_eq(run.press(2_500_000).size(), 0)
-	run.advance(3 * S)
-	assert_false(run.is_lifting(), "the first rep was judged: no second lift in its slot")
+	assert_eq(run.advance(60 * S).size(), 0, "a minute's wait judges nothing")
 	assert_eq(run.get_judged_count(), 1)
+	assert_false(run.is_lifting())
 
-func test_a_press_held_over_lifts_at_the_next_slot() -> void:
+## A new press lifts whenever the stone is down, and the rep is judged from it.
+func test_a_press_lifts_whenever_the_stone_is_down() -> void:
 	var run: StoneLiftingRun = _lifted()
 	run.release(CENTRE)
-	run.press(3_900_000)
-	assert_false(run.is_lifting(), "not before the second rep's slot")
-	run.advance(4_500_000)
-	assert_true(run.is_lifting(), "the held press lifts as the slot begins")
-	assert_almost_eq(run.height_at(4_500_000), 0.25, 0.000001, "the lift began at 4 s")
-	var judged: Array[DrillRun.Judgement] = run.release(4 * S + CENTRE)
+	assert_eq(run.press(30 * S).size(), 0)
+	assert_true(run.is_lifting(), "the press lifts at once")
+	var judged: Array[DrillRun.Judgement] = run.release(30 * S + CENTRE)
 	assert_eq(judged.size(), 1)
 	if judged.size() == 1:
-		assert_eq(judged[0].tier, Tier.PERFECT, "timed from the slot's start")
+		assert_eq(judged[0].rep, 1, "the second rep")
+		assert_eq(judged[0].tier, Tier.PERFECT, "timed from the press")
 
-## A stone still setting down when the next slot begins lifts once it is down.
-func test_a_press_lifts_once_the_stone_is_down() -> void:
+## A press made while the stone sets down lifts it the moment it is down.
+func test_a_press_made_while_the_stone_sets_down_lifts_as_it_lands() -> void:
 	var run: StoneLiftingRun = _lifted()
 	run.release(CENTRE)
-	run.press(5_900_000)
-	var judged: Array[DrillRun.Judgement] = run.release(7_800_000)
-	assert_eq(judged.size(), 1, "precondition: the second rep, let go late in its slot")
-	run.press(8 * S)
-	run.advance(8_200_000)
-	assert_false(run.is_lifting(), "the stone is still setting down at 8.2 s")
-	run.advance(8_400_000)
-	assert_true(run.is_lifting(), "and lifts the moment it is down, at 8.4 s")
-	run.advance(9_400_000)
-	assert_almost_eq(run.height_at(9_400_000), 0.5, 0.000001, "a second of lifting from 8.4 s")
+	run.press(CENTRE + 400_000)
+	assert_false(run.is_lifting(), "the stone is still setting down")
+	run.advance(CENTRE + 600_000)
+	assert_true(run.is_lifting(), "and lifts the moment it is down, 0.6 s after the release")
+	run.advance(CENTRE + 1_600_000)
+	assert_almost_eq(run.height_at(CENTRE + 1_600_000), 0.5, 0.000001, "a second of lifting")
+
+## A press held through a drop lifts nothing more: the player lets go and presses
+## again (#100's held press, which could cost two reps, goes).
+func test_a_press_held_through_a_drop_lifts_nothing() -> void:
+	var run: StoneLiftingRun = _lifted()
+	var judged: Array[DrillRun.Judgement] = run.advance(2 * S)
+	assert_eq(judged.size(), 1, "precondition: the stone dropped")
+	run.advance(10 * S)
+	assert_false(run.is_lifting(), "still held, the press lifts nothing")
+	run.release(10 * S)
+	run.press(11 * S)
+	assert_true(run.is_lifting(), "a new press lifts")
+
+## A press while the stone rests judges nothing.
+func test_a_press_during_the_rest_judges_nothing() -> void:
+	var run: StoneLiftingRun = _lifted()
+	run.release(CENTRE)
+	assert_eq(run.press(CENTRE + 100_000).size(), 0)
+	assert_eq(run.get_judged_count(), 1)
+
+## While the stone rises the rep's progress is its height; at rest it is 0.
+func test_rep_progress_is_the_lift() -> void:
+	var run: StoneLiftingRun = _lifted()
+	run.advance(S)
+	assert_almost_eq(run.rep_progress_at(S), 0.5, 0.000001, "half way up")
+	run.release(CENTRE)
+	assert_eq(run.rep_progress_at(CENTRE), 0.0, "no rep in play once it is let go")
 
 func test_the_stone_rests_then_sets_down() -> void:
 	var run: StoneLiftingRun = _lifted()
@@ -188,33 +185,20 @@ func test_a_set_is_ten_reps_and_ends_when_the_last_stone_is_down() -> void:
 	var run := StoneLiftingRun.new(_drill())
 	var judged: Array[DrillRun.Judgement] = []
 	for rep: int in 10:
-		judged.append_array(run.press(rep * 4 * S))
-		judged.append_array(run.release(rep * 4 * S + CENTRE))
-	assert_eq(judged.size(), 10, "ten reps")
+		judged.append_array(run.press(rep * 2 * S))
+		judged.append_array(run.release(rep * 2 * S + CENTRE))
+	assert_eq(judged.size(), 10, "ten reps, two seconds apart")
 	for judgement: DrillRun.Judgement in judged:
 		assert_eq(judgement.tier, Tier.PERFECT, "rep %d" % judgement.rep)
 	assert_eq(run.get_judged_count(), 10)
-	assert_eq(run.get_end_usec(), 36 * S + CENTRE + 600_000, "the set ends when the tenth stone is down")
-	assert_eq(run.press(38 * S).size(), 0, "a press after the last rep judges nothing")
+	assert_eq(run.get_end_usec(), 18 * S + CENTRE + 600_000, "the set ends when the tenth stone is down")
+	assert_eq(run.press(30 * S).size(), 0, "a press after the last rep judges nothing")
 	assert_false(run.is_lifting())
 
 func test_a_set_has_no_end_before_its_last_rep() -> void:
 	var run: StoneLiftingRun = _lifted()
 	run.release(CENTRE)
 	assert_eq(run.get_end_usec(), -1)
-
-## Review Focus 3: a hitch never changes a result. Each rep nobody lifted is
-## judged at its own slot's end, in order, however late the frame comes.
-func test_a_long_gap_judges_each_slot_in_order() -> void:
-	var run: StoneLiftingRun = _lifted()
-	run.release(CENTRE)
-	var judged: Array[DrillRun.Judgement] = run.advance(41 * S)
-	assert_eq(judged.size(), 9, "reps 1 to 9")
-	for index: int in judged.size():
-		assert_eq(judged[index].rep, index + 1, "in order")
-		assert_eq(judged[index].miss, Miss.TOO_LATE)
-		assert_eq(judged[index].at_usec, (index + 2) * 4 * S, "at the end of its own slot")
-	assert_eq(run.get_end_usec(), 40 * S, "a stone left at rest needs no setting down")
 
 #-----------------------------------------------------------------------------
 # THE TARGET (#148)

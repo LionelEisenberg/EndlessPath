@@ -8,6 +8,10 @@ extends RefCounted
 ## since the newest frame at least CyclingRules.FOLLOW_WINDOW old, or the
 ## window's oldest frame until one is that old. Frames older than that one are
 ## dropped.
+## A cursor that was following and leaves the gold circle keeps following while
+## the slip is short enough (CyclingRules.grace_holds()): is_in_grace() says so,
+## and back in the circle it follows on without moving first. One that was not
+## following gets no grace, so a grace never starts following.
 ## A cycle starts the window empty, and its first frame follows if the cursor is
 ## on the ball and the cycle starts following: a press, or an Auto restart that
 ## carried a streak. Nothing has moved yet, so nothing else can tell.
@@ -46,6 +50,13 @@ var _clock: float = 0.0
 ## following.
 var _following: bool = false
 
+## Seconds the cursor has been out of the gold circle while a grace holds it
+## following; 0 while it is in the circle or not following.
+var _grace_seconds: float = 0.0
+
+## Whether the last frame follows only because a grace holds it.
+var _in_grace: bool = false
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
@@ -56,17 +67,27 @@ func reset(starts_following: bool) -> void:
 	_samples.clear()
 	_clock = 0.0
 	_following = starts_following
+	_grace_seconds = 0.0
+	_in_grace = false
 
 ## Adds a frame `seconds` long that ended with the cursor at `cursor`, `on_ball`
 ## saying whether it was in the gold circle around the ball as drawn, and returns
-## whether the cursor follows the ball now.
+## whether the cursor follows the ball now: in the circle by the follow rule, or
+## out of it while a grace holds.
 func judge(seconds: float, on_ball: bool, cursor: Vector2) -> bool:
 	_clock += seconds
 	_drop_old_samples()
 	if _samples.is_empty():
 		_following = on_ball and _following
+		_grace_seconds = 0.0
+		_in_grace = false
+	elif not on_ball and _following and CyclingRules.grace_holds(_grace_seconds + seconds):
+		_grace_seconds += seconds
+		_in_grace = true
 	else:
 		_following = CyclingRules.is_following(on_ball, _following, cursor.distance_to(_samples[0].cursor))
+		_grace_seconds = 0.0
+		_in_grace = false
 	var sample := Sample.new()
 	sample.time = _clock
 	sample.cursor = cursor
@@ -76,6 +97,11 @@ func judge(seconds: float, on_ball: bool, cursor: Vector2) -> bool:
 ## Returns the last frame's verdict.
 func is_following() -> bool:
 	return _following
+
+## Returns whether the last frame follows only because a grace holds it: the
+## cursor is out of the gold circle, and has been for no longer than the grace.
+func is_in_grace() -> bool:
+	return _in_grace
 
 #-----------------------------------------------------------------------------
 # SAMPLES

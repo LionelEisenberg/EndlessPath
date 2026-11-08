@@ -30,14 +30,18 @@ enum InputKind {
 ## The Health a PERFECT rep restores at Strength Lv 1.
 @export var health_per_rep: float = 0.0
 @export var input_kind: InputKind = InputKind.HOLD_RELEASE
-## How long one rep takes to play, in seconds.
+## Auto's pace: how long Auto takes over each rep, in seconds. A rep the player
+## plays has no length: it starts on a press and ends with its own motion (#143).
 @export var rep_seconds: float = 0.0
 ## How many reps make a set.
 @export var reps_per_set: int = 0
 ## How the drill plays, in a few words, for its drawer: "Keep the needle in the
 ## brass".
 @export var play_hint: String = ""
-## The board's footer before a set, and while one runs.
+## The board's footer before a set, and while one runs. Each is one line beside
+## the Auto toggle (#144): the action and its input in one or two short
+## sentences. The line before a set names the keys; the line during one stays up
+## between reps, so it also cues the next rep's start.
 @export var ready_line: String = ""
 @export var play_line: String = ""
 

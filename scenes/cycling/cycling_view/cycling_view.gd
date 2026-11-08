@@ -36,7 +36,7 @@ extends Control
 ## A perfect cycle (CycleResult.is_perfect()) unlocks it through CyclingManager:
 ## a floater over the ball, two brass flashes on the toggle and one log line.
 ## With Auto unlocked and on, the board starts a cycle whenever the ball is
-## ready, and the running status line opens with AUTO_LINE. A press on the
+## ready, and the running status line reads AUTO_LINE. A press on the
 ## ball reaches it through the board: the root and the effects layer ignore the
 ## mouse and the board and the figure box pass it, and only physics picking
 ## takes a press that no Control stopped.
@@ -45,18 +45,20 @@ extends Control
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The status line: the instruction to start while the ball waits, and while it
-## runs FOLLOW, then the clause of each game the technique has, ZONES_CLAUSE for
-## zones and SEALS_CLAUSE for seals, with its other stat's name. The clause drops
-## while that stat is capped, read as a cycle starts, so the line changes only
-## as a cycle starts or ends.
+## The status line, always one line beside the Auto toggle (#144): the
+## instruction to start while the ball waits, and while it runs FOLLOW, or
+## FOLLOW_LEAD then the clause of each game the technique has, ZONES_CLAUSE for
+## zones and SEALS_CLAUSE for seals. A clause names the action, not its stat:
+## the floaters name the stat as it pays. It drops while that stat is capped,
+## read as a cycle starts, so the line changes only as a cycle starts or ends.
 const READY: String = "Click the Madra ball to begin a cycle."
 const FOLLOW: String = "Follow the ball for Madra and Spirit."
-## In place of FOLLOW while Auto runs, read as a cycle starts, with Auto's rate
-## as a percent.
-const AUTO_LINE: String = "Auto cycles on at %d%%. Follow the ball for the full rate."
-const ZONES_CLAUSE: String = " Click it over a zone for %s XP."
-const SEALS_CLAUSE: String = " Open each seal with W A S D for %s XP."
+const FOLLOW_LEAD: String = "Follow the ball."
+## The whole running line while Auto runs, read as a cycle starts, with Auto's
+## rate as a percent. It has no clause: Auto plays no zone and no seal.
+const AUTO_LINE: String = "Auto cycles at %d%%. Follow for the full rate."
+const ZONES_CLAUSE: String = " Click it over each zone."
+const SEALS_CLAUSE: String = " Open each seal with W A S D."
 
 ## The floater of a hit or an opened seal the cap took everything from, in
 ## brass: the hit's tier, or SEAL_OPEN_TEXT, then the stat's name.
@@ -68,10 +70,11 @@ const AUTO_ON_TEXT: String = "Auto · on"
 const AUTO_OFF_TEXT: String = "Auto · off"
 const AUTO_LOCKED_TEXT: String = "Auto"
 
-## The locked toggle's tooltip: UNLOCK_TITLE, then UNLOCK_HINT with a part for
-## each game the technique has (ZONES_HINT, SEALS_HINT) and a full stop.
+## The locked toggle's tooltip: UNLOCK_TITLE, then UNLOCK_HINT_FORMAT with the
+## share of the cycle a perfect one follows, a part for each game the technique
+## has (ZONES_HINT, SEALS_HINT) and a full stop.
 const UNLOCK_TITLE: String = "Unlock Auto"
-const UNLOCK_HINT: String = "Play a perfect cycle: follow the ball the whole cycle"
+const UNLOCK_HINT_FORMAT: String = "Play a perfect cycle: follow the ball for %d%% of the cycle"
 const ZONES_HINT: String = " and press every zone PERFECT"
 const SEALS_HINT: String = " and open every seal"
 
@@ -180,7 +183,7 @@ var _other_capped: bool = false
 ## How many Madra pellets the view has sent: the index that sways the stream.
 var _madra_pellets_sent: int = 0
 
-## Whether Auto ran as the running cycle started: the status line opens with
+## Whether Auto ran as the running cycle started: the status line reads
 ## AUTO_LINE until the next cycle starts.
 var _auto_line: bool = false
 
@@ -217,29 +220,29 @@ func _process(_delta: float) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Returns the status line: READY while no cycle runs; while one runs, FOLLOW,
-## or AUTO_LINE when `auto` runs, then ZONES_CLAUSE if `technique` has zones
-## and SEALS_CLAUSE if it has seals, each with its other stat's name, unless it
-## has no other stat or that stat is `other_capped`.
+## Returns the status line: READY while no cycle runs; while one runs,
+## AUTO_LINE when `auto` runs; else FOLLOW_LEAD then ZONES_CLAUSE if `technique`
+## has zones and SEALS_CLAUSE if it has seals, or FOLLOW when it has no clause
+## to add: no other stat, that stat `other_capped`, or no zones and no seals.
 static func status_line(running: bool, technique: CyclingTechniqueData, other_capped: bool, auto: bool = false) -> String:
 	if not running:
 		return READY
-	var lead: String = AUTO_LINE % roundi(CyclingRules.AUTO_RATE * 100.0) if auto else FOLLOW
+	if auto:
+		return AUTO_LINE % roundi(CyclingRules.AUTO_RATE * 100.0)
 	if technique == null or technique.minor_stat < 0 or other_capped:
-		return lead
-	var stat_name: String = StatDisplay.name_of(technique.minor_stat as CharacterAttributesData.AttributeType)
-	var line: String = lead
+		return FOLLOW
+	var clauses: String = ""
 	if not technique.cycling_zones.is_empty():
-		line += ZONES_CLAUSE % stat_name
+		clauses += ZONES_CLAUSE
 	if not technique.seal_seconds.is_empty():
-		line += SEALS_CLAUSE % stat_name
-	return line
+		clauses += SEALS_CLAUSE
+	return FOLLOW if clauses.is_empty() else FOLLOW_LEAD + clauses
 
 ## Returns what the locked Auto toggle's tooltip says unlocks `technique`'s
-## Auto: UNLOCK_HINT, then ZONES_HINT if it has zones and SEALS_HINT if it has
-## seals, and a full stop.
+## Auto: UNLOCK_HINT_FORMAT with CyclingRules.PERFECT_FOLLOWED_SHARE, then
+## ZONES_HINT if it has zones and SEALS_HINT if it has seals, and a full stop.
 static func unlock_hint(technique: CyclingTechniqueData) -> String:
-	var hint: String = UNLOCK_HINT
+	var hint: String = UNLOCK_HINT_FORMAT % roundi(CyclingRules.PERFECT_FOLLOWED_SHARE * 100.0)
 	if technique != null and not technique.cycling_zones.is_empty():
 		hint += ZONES_HINT
 	if technique != null and not technique.seal_seconds.is_empty():
