@@ -53,4 +53,12 @@ Bottom-up.
 
 ## What was built differently
 
-(Filled in as the build goes.)
+- **The bead strip is redrawn in place**, not as a new file as the canvas said: `lacquer_drill_beads_ai.png` is AI-made, so its Miss frame's cross was redrawn in crimson where it is, and every user of the strip reads the new frame. Only that frame changed.
+- **`LacquerFloater.pop_parts()` has no caller left** (the drill board's "[arm] capped" line was its only one). It stays, with its test, as part of the floater's kit.
+- **Tests:** the issue's Touches named no `DrillSetResult` test file; its bead order got its own, `tests/unit/test_drill_set_result.gd`, and the card `tests/integration/test_last_set_card.gd`, as `LastCycleCard` has.
+
+## Checks
+
+- Suite: 2819 / 2819 (`tests/run_tests.ps1`).
+- The issue's Done-when, played by a scripted driver (`mockups/drill_rep_icons/done_when.gd`, gitignored) in the real main scene on `-- --preset=harden_core --save=user://dev/runs/drill-rep-icons-last-set.tres`: 38 / 38.
+- No save change: the last set is never saved, so an old save loads as before.
