@@ -48,12 +48,13 @@ func _ready() -> void:
 	ActionManager.stop_adventure.connect(_on_adventure_stopped)
 	_show_run(false)
 
-## Shows the fight button while the view has a fight on. Only while the tab is in view:
-## a closed panel, or another tab on top, asks the view nothing.
+## Shows the fight button while the view's fight is live (not on its way in or
+## out). Only while the tab is in view: a closed panel, or another tab on top, asks
+## the view nothing.
 func _process(_delta: float) -> void:
 	if not is_visible_in_tree():
 		return
-	_fight_box.visible = is_instance_valid(_view) and _view.is_in_combat
+	_fight_box.visible = is_instance_valid(_view) and _view.is_fight_live()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API

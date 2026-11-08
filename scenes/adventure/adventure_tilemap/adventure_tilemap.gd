@@ -84,6 +84,9 @@ const FOG_MARGIN: int = 8
 ## world px, so at other zooms camera_offset_for() gives the offset that keeps
 ## the hex there.
 const CAMERA_OFFSET: Vector2 = Vector2(0, 70)
+## A fight's way in pushes the camera in on the player's hex to this many times its
+## zoom (#138), as the zone view's zoom into a run does.
+const FIGHT_PUSH_ZOOM: float = 1.5
 
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
@@ -192,6 +195,10 @@ var _pointer_on_map: bool = true
 
 ## The boss reveal's camera push while it runs, or null.
 var _camera_push_tween: Tween = null
+## A fight's push in on the player's hex while it runs, or null.
+var _push_in_tween: Tween = null
+## The zoom the camera had when a fight's push in started; 0 with no push.
+var _push_in_from: float = 0.0
 
 ## How far the boss reveal's push has moved the view, in screen px, on top of the
 ## offset for the zoom (zero at rest). In screen px, so that the push moves the
@@ -309,15 +316,18 @@ func stop_adventure() -> void:
 	_current_rim.hide()
 	_hover_rim.hide()
 	_stop_camera_push()
+	end_push_in()
 	_draw_fog()
 	map_changed.emit()
 	
 
 ## Handles the result of a combat encounter. Every report of a win pays the gold it
-## carries. The rest of a win is handled once: AdventureCombat can report a win
-## again (see the comments below), and the repeat finds the fight's choice already
-## cleared, so the fight counts, pays its Core Density, runs its effects and
-## resolves its tile once.
+## carries. The rest of a win is handled once: a repeat (AdventureCombat reports a
+## fight's end once, but the result can still be handed in again) finds the fight's
+## choice already cleared, so the fight counts, pays its Core Density, runs its
+## effects and resolves its tile once. The boss's win says so (boss_defeated) and
+## resolves no tile: the view ends the run as a victory once the fight's close has
+## played.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
 	
@@ -329,22 +339,19 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		var core_density_xp: float = 0.0
 		if _current_combat_choice:
 			# The save's play stats count the fight here, while its choice is still
-			# pending, and its effects run here: its loot and its Core Density.
-			# AdventureCombat reports a win again when its enemy takes another hit
-			# at 0 Health: the repeat finds the choice cleared (at the end of this
+			# pending, and its effects run here: its loot and its Core Density. A
+			# repeat of the win finds the choice cleared (at the end of this
 			# function, or just below for the boss's), so the fight counts, pays
 			# and resolves once. The boss pays here too, before its win ends the run.
 			PersistenceManager.save_game_data.stats.count_fight_won()
 			core_density_xp = _apply_effects(_current_combat_choice.success_effects)
-			
+
 			if _current_combat_choice.is_boss:
-				# Let go of the choice before the win ends the run, so a repeat of
-				# it neither counts again, nor runs these effects again, nor ends
-				# the run again.
+				# Let go of the choice, so a repeat of the win neither counts again,
+				# nor runs these effects again, nor fells the boss again.
 				_current_combat_choice = null
 				boss_defeated.emit()
 				Log.info("AdventureTilemap: Boss defeated! Adventure Successful.")
-				ActionManager.stop_action(true)
 				return
 
 		# A win reported once the run is over (the boss's, again) has no tile to
@@ -507,6 +514,35 @@ func get_fog_tier_at(coord: Vector3i) -> int:
 ## the current hex's centre at screen (960, 470) at every zoom.
 static func camera_offset_for(zoom: float) -> Vector2:
 	return CAMERA_OFFSET / zoom
+
+## Pushes the camera in on the player's hex for a fight's way in: from the zoom it
+## has to FIGHT_PUSH_ZOOM times it over `seconds`, easing in (cubic), the offset
+## following so the hex stays where it is drawn. The wheel's zoom rests meanwhile;
+## end_push_in() puts the camera back.
+func push_in_on_player(seconds: float) -> void:
+	end_push_in()
+	_zoom_controller.settle()
+	_zoom_controller.set_enabled(false)
+	_push_in_from = _camera.zoom.x
+	_push_in_tween = create_tween()
+	_push_in_tween.tween_method(_set_push_in_zoom, _push_in_from, _push_in_from * FIGHT_PUSH_ZOOM, seconds) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+
+## Ends a fight's push in at once: the camera back at the zoom it had, and the
+## wheel's zoom live again. Does nothing with no push.
+func end_push_in() -> void:
+	if not is_pushed_in():
+		return
+	if _push_in_tween != null and _push_in_tween.is_valid():
+		_push_in_tween.kill()
+	_push_in_tween = null
+	_set_push_in_zoom(_push_in_from)
+	_push_in_from = 0.0
+	_zoom_controller.set_enabled(true)
+
+## Whether a fight's push in holds the camera.
+func is_pushed_in() -> bool:
+	return _push_in_from > 0.0
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS - Summaries
@@ -864,12 +900,8 @@ func _check_boss_reveal(coords: Array[Vector3i]) -> void:
 			return
 
 func _play_boss_reveal(boss_cube: Vector3i) -> void:
-	# Hit-stop: slow time to a quarter of the base speed (the dev time speeds change
-	# it) for 0.15 s of real time, then back to the base speed. The timer ignores the
-	# time scale, so the stop lasts 0.15 s at any speed, and it reads the base speed
-	# when it fires, so a speed set meanwhile is the one time returns to.
-	Engine.time_scale = 0.25 * GameSpeed.base_scale
-	get_tree().create_timer(0.15, true, false, true).timeout.connect(func() -> void: Engine.time_scale = GameSpeed.base_scale)
+	# Hit-stop: time at a quarter of the base speed for 0.15 s of real time.
+	GameSpeed.hit_stop(get_tree())
 
 	# Camera push toward the boss and back: 45% of the way from the camera to the
 	# boss tile as the map looks at zoom 1 (a map px is a screen px there: the boss
@@ -893,6 +925,11 @@ func _stop_camera_push() -> void:
 		_camera_push_tween.kill()
 	_camera_push_tween = null
 	_camera_push = Vector2.ZERO
+
+## Puts the camera at `zoom`, its offset following (a fight's push in).
+func _set_push_in_zoom(zoom: float) -> void:
+	_camera.zoom = Vector2(zoom, zoom)
+	_apply_camera_offset()
 
 ## Puts the camera's offset where the zoom it has now and the push in progress
 ## call for: the offset for the zoom, plus the push, which is in screen px and so

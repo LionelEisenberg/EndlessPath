@@ -64,11 +64,13 @@ func _fight_paying(xp: float, is_boss: bool = false) -> CombatChoice:
 	choice.success_effects.append(award)
 	return choice
 
-## Picks the fight, as the chest's drawer does, and wins it.
+## Picks the fight, as the chest's drawer does, wins it, and plays its way out to
+## the map, where the beads leave the hex (#138).
 func _win(choice: CombatChoice) -> void:
 	_view.adventure_tilemap._current_combat_choice = choice
 	_view._on_start_combat(choice)
 	_view.combat.trigger_combat_end.emit(true, 0)
+	_view.finish_fight_transition()
 
 ## The beads in flight.
 func _beads() -> Array[LacquerPellet]:
@@ -107,8 +109,7 @@ func test_bead_count_follows_the_xp() -> void:
 	for case: Dictionary in cases:
 		assert_eq(AdventureView.bead_count_for(case.xp), case.beads, "%s XP" % case.xp)
 
-## AdventureCombat reports a win again on each hit at 0 Health: the fight sends
-## one burst.
+## A win reported again sends no second burst.
 func test_a_won_fight_sends_one_burst() -> void:
 	_start_adventure()
 
@@ -143,6 +144,21 @@ func test_the_core_row_counts_each_bead_in_as_it_lands() -> void:
 	for index: int in range(3, 7):
 		beads[index].free()
 	assert_eq(_first_star(), 3, "every bead landed: level 3")
+
+## The kill is paid at its deciding hit, but its beads leave the hex only once the
+## fight's close has brought the map back (#138): meanwhile the cabinet holds the
+## Core Density back, so its Core row stands where it stood.
+func test_the_core_row_stands_still_through_the_close() -> void:
+	_start_adventure()
+	var choice: CombatChoice = _fight_paying(31.0)
+	_view.adventure_tilemap._current_combat_choice = choice
+	_view._on_start_combat(choice)
+
+	_view.combat.trigger_combat_end.emit(true, 0)
+
+	assert_eq(CultivationManager.get_core_density_level(), 3.0, "precondition: the kill is paid at the hit")
+	assert_eq(_beads().size(), 0, "no bead flies in the close")
+	assert_eq(_first_star(), 0, "and the Core row stands where it stood")
 
 ## A full core takes no XP, so no bead flies.
 func test_a_kill_at_a_full_core_sends_no_beads() -> void:

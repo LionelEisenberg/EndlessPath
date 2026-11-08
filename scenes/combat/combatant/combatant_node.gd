@@ -72,6 +72,20 @@ func setup(
 func receive_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData, outgoing_modifier: float = 1.0) -> void:
 	effect_manager.process_effect(effect, source_attributes, outgoing_modifier)
 
+## Holds the combatant still, or lets it act again. Held, nothing of its fight
+## runs: its techniques' casts and cooldowns, its consumables' cooldowns, its buffs
+## and their ticks, its own vitals and an AI driving it all stop processing, and
+## their timers with them. Its visual plays on. AdventureCombat holds both fighters
+## until they have arrived, and again from the hit that decides the fight.
+func set_held(held: bool) -> void:
+	for child: Node in get_children():
+		if child != visual:
+			child.process_mode = Node.PROCESS_MODE_DISABLED if held else Node.PROCESS_MODE_INHERIT
+
+## Whether the combatant is held still (set_held()).
+func is_held() -> bool:
+	return ability_manager.process_mode == Node.PROCESS_MODE_DISABLED
+
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC
 #-----------------------------------------------------------------------------

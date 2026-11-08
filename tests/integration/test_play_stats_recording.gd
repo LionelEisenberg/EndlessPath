@@ -223,9 +223,8 @@ func test_a_won_boss_fight_counts_and_resolves_once() -> void:
 	assert_eq(_stats().fights_won, 1, "the boss fight is won")
 	assert_signal_emit_count(tilemap, "boss_defeated", 1)
 	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "its success effects ran")
-	# The boss's win ended the run: ActionManager.stop_action(true) has AdventureView
-	# stop the map. AdventureCombat reports the win again while its enemy takes
-	# another hit at 0 Health, before the enemy is freed.
+	# The boss's win ends the run: AdventureView stops the map once the fight's
+	# close has played. The result handed in again after that finds nothing to do.
 	tilemap.stop_adventure()
 	tilemap.handle_combat_result(true, 0)
 	assert_eq(_stats().fights_won, 1, "the same boss fight's win, reported again, is not another win")

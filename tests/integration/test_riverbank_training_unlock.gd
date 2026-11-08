@@ -41,28 +41,41 @@ func after_each() -> void:
 # TESTS
 #-----------------------------------------------------------------------------
 
+## The run ends once in each case (adventure_completed, in the stop_adventure()
+## call that fires the event), with the fight's edges (#138) played or cut.
 func test_every_way_a_run_ends_opens_npc_3_and_not_the_river() -> void:
 	var cases: Array[Dictionary] = [
 		{"name": "a won fight", "end": "win"},
 		{"name": "a lost fight", "end": "loss"},
-		{"name": "a fight the run's stop cuts short", "end": "stop"},
+		{"name": "a fight the run's stop cuts short on its way in", "end": "stop"},
+		{"name": "a fight the run's stop cuts short mid-fight", "end": "stop_live"},
 		{"name": "no fight", "end": "no_fight"},
 	]
+	var ends: Array[int] = [0]
+	_view.adventure_completed.connect(func(_result: AdventureResultData) -> void: ends[0] += 1)
 	for case: Dictionary in cases:
 		_use_fresh_save()
 		EventManager.trigger_event(NPC_2_TALKED)
+		ends[0] = 0
 		_start_adventure()
 		if case.end != "no_fight":
 			_view._on_start_combat(_fight())
 		match case.end:
 			"win":
-				# Takes the enemy's Health, so AdventureCombat ends the fight as in play.
+				# Takes the enemy's Health once both fighters have landed, so
+				# AdventureCombat ends the fight as in play; the run stops in its close.
+				_view.finish_fight_transition()
 				_view.force_win_combat()
 				_view.stop_adventure()
 			"loss":
 				_view.combat.trigger_combat_end.emit(false, 0)
+				_view.finish_fight_transition()
+			"stop_live":
+				_view.finish_fight_transition()
+				_view.stop_adventure()
 			"stop", "no_fight":
 				_view.stop_adventure()
+		assert_eq(ends[0], 1, "%s: the run ends once" % case.name)
 		assert_true(EventManager.has_event_triggered(ADVENTURE_ENDED), "%s: the first adventure is done" % case.name)
 		assert_true(_is_available(NPC_3_ACTION), "%s: NPC 3's talk is open" % case.name)
 		assert_false(_is_available(RIVERBANK_ACTION), "%s: Riverbank Training waits for the talk" % case.name)

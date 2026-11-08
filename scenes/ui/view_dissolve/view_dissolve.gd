@@ -9,7 +9,9 @@ extends TextureRect
 ## quarters after STEP_SECONDS, all of it after two, when it hides. Nothing
 ## fades and nothing under it waits: the new view runs and takes the pointer
 ## from the first frame. MainView plays it where the zone view gives way to an
-## adventure and back (AdventureViewState).
+## adventure and back (AdventureViewState), and the adventure view plays its own
+## (FightDissolve, under its boards) on a fight's way in and way out
+## (FightTransition), which stop() ends at once when a run's end cuts the fight.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -68,6 +70,14 @@ func play_over(still: Texture2D) -> void:
 ## Whether a still is up and dissolving.
 func is_playing() -> bool:
 	return visible
+
+## Ends a dissolve under way at once: the still goes outright, and `finished` is
+## not emitted. Does nothing while none plays.
+func stop() -> void:
+	if _tween != null:
+		_tween.kill()
+		_tween = null
+	_clear()
 
 #-----------------------------------------------------------------------------
 # PRIVATE

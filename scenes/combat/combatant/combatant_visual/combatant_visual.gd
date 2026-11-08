@@ -4,7 +4,12 @@ extends Node2D
 ## CombatantVisual
 ## On-stage body of a combatant. The node origin is the combatant's feet.
 ## Normalizes any sprite to a common on-screen height and plays the
-## enter / attack / hit / dodge / buff reactions plus floating damage numbers.
+## attack / hit / dodge / buff reactions plus floating damage numbers.
+## A fighter comes into its fight and falls out of it in the look's whole steps
+## (#138): it waits ENTER_DISTANCE px out on its own side, shown outright, and
+## slides to its spot at a steady speed in even px; beaten, it is knocked
+## KNOCKBACK_DISTANCE px back, away from its opponent, then blinks out. Both move
+## the node itself, so the hit's recoil on the Body plays on untouched.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -20,6 +25,20 @@ const COLOR_BUFF_FLASH: Color = Color("#d4a84a")
 const COLOR_DODGE: Color = ThemeConstants.LACQUER_STAMINA
 const DODGED_TEXT: String = "Dodged"
 const SHADOW_TEXTURE_SIZE: float = 128.0
+
+## A fighter waits this far (px) out on its own side, and slides in over
+## ENTER_SECONDS.
+const ENTER_DISTANCE: int = 420
+const ENTER_SECONDS: float = 0.4
+## A beaten fighter is knocked this far (px) back over KNOCKBACK_SECONDS...
+const KNOCKBACK_DISTANCE: int = 48
+const KNOCKBACK_SECONDS: float = 0.16
+## ...then blinks out: hidden, shown, hidden, shown, BLINK_STEP_SECONDS each, and
+## gone.
+const BLINK_STEP_SECONDS: float = 0.08
+const BLINK_STEPS: int = 4
+## How long a fall takes, from the knock to gone.
+const DEFEAT_SECONDS: float = KNOCKBACK_SECONDS + BLINK_STEP_SECONDS * BLINK_STEPS
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -55,6 +74,9 @@ var _base_sprite_scale: Vector2 = Vector2.ONE
 var _body_tween: Tween
 var _flash_tween: Tween
 var _bob_tween: Tween
+## The entrance or the fall under way.
+var _motion_tween: Tween
+var _fallen: bool = false
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -84,17 +106,52 @@ func setup(texture: Texture2D, scale_multiplier: float, sprite_offset: Vector2, 
 func get_visual_height() -> float:
 	return _height
 
-## Slides the combatant in from off-screen on its own side.
+## Returns how far (px) a fighter `elapsed` seconds into its entrance still stands
+## from its spot: ENTER_DISTANCE at first, down at a steady speed to 0 at
+## ENTER_SECONDS, always an even px.
+static func enter_offset_at(elapsed: float) -> int:
+	return _even_px(ENTER_DISTANCE * (1.0 - clampf(elapsed / ENTER_SECONDS, 0.0, 1.0)))
+
+## Returns how far (px) a beaten fighter `elapsed` seconds into its fall has been
+## knocked back: 0 at first, up at a steady speed to KNOCKBACK_DISTANCE at
+## KNOCKBACK_SECONDS, always an even px.
+static func knockback_offset_at(elapsed: float) -> int:
+	return _even_px(KNOCKBACK_DISTANCE * clampf(elapsed / KNOCKBACK_SECONDS, 0.0, 1.0))
+
+## Whether a beaten fighter `elapsed` seconds into its fall shows: through the
+## knock, then hidden and shown by turns for BLINK_STEPS steps, then never again.
+static func shown_while_falling_at(elapsed: float) -> bool:
+	if elapsed < KNOCKBACK_SECONDS:
+		return true
+	# The nudge keeps a step's first instant in that step, whatever the float error.
+	var step: int = floori((elapsed - KNOCKBACK_SECONDS) / BLINK_STEP_SECONDS + 1e-4)
+	return step < BLINK_STEPS and step % 2 == 1
+
+## Puts the fighter where its entrance starts, ENTER_DISTANCE out on its own side,
+## shown outright.
+func place_for_entrance() -> void:
+	_kill(_motion_tween)
+	_fallen = false
+	_set_shown(true)
+	_set_entrance(0.0)
+
+## Slides the fighter from where place_for_entrance() put it to its spot, at a
+## steady speed in even px, over ENTER_SECONDS.
 func play_enter() -> void:
-	var from_x: float = -_facing * 420.0
-	_body.position.x = from_x
-	_sprite.modulate.a = 0.0
-	_shadow.modulate.a = 0.0
-	_kill(_body_tween)
-	_body_tween = create_tween().set_parallel(true)
-	_body_tween.tween_property(_body, "position:x", 0.0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_body_tween.tween_property(_sprite, "modulate:a", 1.0, 0.3)
-	_body_tween.tween_property(_shadow, "modulate:a", 1.0, 0.45)
+	_kill(_motion_tween)
+	_motion_tween = create_tween()
+	_motion_tween.tween_method(_set_entrance, 0.0, ENTER_SECONDS, ENTER_SECONDS)
+
+## The beaten fighter's fall: knocked back, away from its opponent, then blinked
+## out. It ends hidden (is_fallen()) DEFEAT_SECONDS later.
+func play_defeat() -> void:
+	_kill(_motion_tween)
+	_motion_tween = create_tween()
+	_motion_tween.tween_method(_set_fall, 0.0, DEFEAT_SECONDS, DEFEAT_SECONDS)
+
+## Whether the fighter has blinked out at the end of its fall.
+func is_fallen() -> bool:
+	return _fallen
 
 ## Quick lunge toward the opponent and back.
 func play_attack() -> void:
@@ -134,6 +191,23 @@ func play_buff() -> void:
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
+
+func _set_entrance(elapsed: float) -> void:
+	position.x = -_facing * enter_offset_at(elapsed)
+
+func _set_fall(elapsed: float) -> void:
+	position.x = -_facing * knockback_offset_at(elapsed)
+	_set_shown(shown_while_falling_at(elapsed))
+	_fallen = elapsed >= DEFEAT_SECONDS
+
+## Shows or hides the fighter's body and shadow outright. Its numbers float on.
+func _set_shown(shown: bool) -> void:
+	_body.visible = shown
+	_shadow.visible = shown
+
+## The even number of px nearest `value`.
+static func _even_px(value: float) -> int:
+	return roundi(value / 2.0) * 2
 
 func _start_idle() -> void:
 	_kill(_bob_tween)

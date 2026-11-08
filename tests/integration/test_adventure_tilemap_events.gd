@@ -414,7 +414,8 @@ func test_a_pick_on_a_resolved_tile_is_ignored() -> void:
 	assert_signal_not_emitted(_tilemap, "encounter_resolved", "the tile is resolved once")
 	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "the rest healed once")
 
-## A boss win ends the run. The next run's picks must still count.
+## A boss win ends the run (the view stops the map). The next run's picks must
+## still count.
 func test_a_new_run_takes_picks_after_a_boss_win() -> void:
 	_start()
 	await _walk_to(FIGHT)
@@ -533,6 +534,25 @@ func test_a_kill_at_a_full_core_pays_nothing() -> void:
 
 	assert_eq(CultivationManager.get_core_density_xp(), 7.0, "kills pay again")
 	assert_eq(_tilemap.get_core_density_xp_earned(), 7.0)
+
+## The boss's win pays and says so (boss_defeated), and leaves ending the run to
+## the view, which plays the fight's close first (#138).
+func test_the_boss_win_ends_no_run_itself() -> void:
+	var action: AdventureActionData = AdventureMapFixture.ADVENTURE_ACTION.duplicate()
+	ActionManager._set_current_action(action)
+	_start()
+	await _walk_to(FIGHT)
+	_tilemap.select_choice(_fight_choice)
+	_tilemap.handle_combat_result(true, 0)
+	await _walk_to(BOSS)
+	_tilemap.select_choice(_map[BOSS].choices[0])
+	watch_signals(_tilemap)
+
+	_tilemap.handle_combat_result(true, 0)
+
+	assert_signal_emit_count(_tilemap, "boss_defeated", 1, "the boss falls")
+	assert_eq(ActionManager.get_current_action(), action, "and the run's action is still the current one")
+	ActionManager.clear_current_action()
 
 ## The boss pays the boss amount, once, though its win is reported again.
 func test_a_boss_win_pays_the_boss_amount() -> void:
