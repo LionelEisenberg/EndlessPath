@@ -58,8 +58,9 @@ const AttributeType = CharacterAttributesData.AttributeType
 const PAY_LEAD: String = "Perfect rep"
 const XP_FORMAT: String = " %s XP"
 const CAPPED_TEXT: String = " capped"
-## The footer while Auto plays, with Auto's rate.
-const AUTO_LINE: String = "Auto drills on at %d%%. Turn Auto off to play for the full rate."
+## The footer while Auto plays, with Auto's rate. Like the drills' own lines
+## (DrillData.ready_line, play_line), one line beside the Auto toggle (#144).
+const AUTO_LINE: String = "Auto drills at %d%%. Turn it off for 100%%."
 ## The Auto toggle's text: on, off, and beside the lock while it is locked.
 const AUTO_ON_TEXT: String = "Auto · on"
 const AUTO_OFF_TEXT: String = "Auto · off"

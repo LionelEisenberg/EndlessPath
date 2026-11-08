@@ -470,7 +470,9 @@ func test_a_long_name_wraps_and_the_board_grows() -> void:
 	var status := _node("StatusText") as Control
 	var board := _node("Board") as Control
 	assert_gt(status.position.y, 990.0, "the footer moves down under the longer header")
-	assert_eq(board.position.y + board.size.y, status.position.y + status.size.y + BOARD_ROOM, "the board grows to keep its room under the footer")
+	var toggle := _node("AutoToggle") as Control
+	var footer_bottom: float = maxf(status.position.y + status.size.y, toggle.position.y + toggle.size.y)
+	assert_eq(board.position.y + board.size.y, footer_bottom + BOARD_ROOM, "the board grows to keep its room under the footer")
 	assert_lte(board.position.y + board.size.y, 1080.0, "and still ends on screen")
 
 #-----------------------------------------------------------------------------
