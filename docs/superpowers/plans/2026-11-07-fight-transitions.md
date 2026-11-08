@@ -166,6 +166,23 @@ Lionel approved every pick as drawn ("All picks stand"):
 - [ ] **Step 1:** Run the issue's "Done when" list on `-- --preset=adventure_open --save=user://dev/runs/adventure-combat-transition.tres` with a scratch driver under `mockups/` (gitignored) that drives the real main scene through the dev commands and shoots frames on each edge, and check each frame.
 - [ ] **Step 2:** Fix what fails, rerun the suite, commit.
 
+### As built
+
+What the build did differently from the tasks above:
+
+- Tasks 4 and 5 kept every commit green with two bridges in `AdventureView` that Task 6 removed: the fight began at once after `start()`, and the boss's win ended the run right after `handle_combat_result()`.
+- `FightTransition.play_way_in()` starts the map's push at once rather than as a beat at 0 s, so the camera pushes in the frame the drawer is pressed.
+- `AdventureView.stop_adventure()` cuts a fight under way before the run's data clears, so the boards show what a kill made before an Exit won, beside the end card. A fight not yet decided still goes to the map as a loss (its choice's failure effects), as it always has.
+- `test_every_way_a_run_ends_opens_npc_3_and_not_the_river()` counts the run's ends (`adventure_completed`, once per case). `EventManager` reports an event only the first time per save, so the event's own signal can't show a second firing. It gained a stop mid-fight case.
+- `test_force_win_ignores_an_enemy_that_is_already_down` became `test_force_win_ignores_a_decided_fight`: the view no longer drops the fight at once, so a second force-win meets a fight in its close, then a fight whose fighters are gone.
+- The in-game checks ran through a scratch driver (`mockups/fight_transition_checks/checks.gd`, gitignored) that records each edge frame by frame; every check passed.
+- After the whole-branch review:
+  - Task 2's motion tests and the pixel and zoom checks went: TESTING.md keeps keyframes and positions out of the suite unless the motion gates play, and here the edges' clock decides when a fight starts, not the fighters' tweens.
+  - `ViewDissolve` gained `stop()`, which `FightTransition.cut()` calls, so a run cut in the last 0.2 s of an edge leaves no still of the fight under the end card.
+  - A fight cut before it was decided logs its defeat line again, as the old cut did.
+  - The way-in tests step the edges' clock by hand.
+  - A new test holds the cabinet's Core row still from the hit until the beads fly.
+
 ### Task 8: The PR
 
 - [ ] Merge `main` once right before it merges, rerun `tests/run_tests.ps1`.
