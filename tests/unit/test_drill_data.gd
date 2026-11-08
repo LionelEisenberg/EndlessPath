@@ -47,10 +47,10 @@ func test_every_value_is_written_out() -> void:
 
 func test_the_approved_roster() -> void:
 	var expected: Array[Dictionary] = [
-		{"id": "stone_lifting", "minor": -1, "strength_xp": 10.0, "minor_xp": 0.0, "health": 4.0, "input": DrillData.InputKind.HOLD_RELEASE, "seconds": 4.0},
-		{"id": "horse_stance", "minor": AttributeType.BODY, "strength_xp": 14.0, "minor_xp": 7.0, "health": 4.0, "input": DrillData.InputKind.HOLD_STEADY, "seconds": 4.0},
-		{"id": "falling_leaf", "minor": AttributeType.AGILITY, "strength_xp": 7.0, "minor_xp": 4.0, "health": 2.0, "input": DrillData.InputKind.CATCH, "seconds": 2.0},
-		{"id": "waterfall_tempering", "minor": AttributeType.BODY, "strength_xp": 10.0, "minor_xp": 5.0, "health": 3.0, "input": DrillData.InputKind.BEAT, "seconds": 3.0},
+		{"id": "stone_lifting", "minor": -1, "strength_xp": 15.0, "minor_xp": 0.0, "health": 4.0, "input": DrillData.InputKind.HOLD_RELEASE, "seconds": 4.0},
+		{"id": "horse_stance", "minor": AttributeType.BODY, "strength_xp": 21.0, "minor_xp": 10.5, "health": 4.0, "input": DrillData.InputKind.HOLD_STEADY, "seconds": 4.0},
+		{"id": "falling_leaf", "minor": AttributeType.AGILITY, "strength_xp": 10.5, "minor_xp": 6.0, "health": 2.0, "input": DrillData.InputKind.CATCH, "seconds": 2.0},
+		{"id": "waterfall_tempering", "minor": AttributeType.BODY, "strength_xp": 15.0, "minor_xp": 7.5, "health": 3.0, "input": DrillData.InputKind.BEAT, "seconds": 3.0},
 	]
 	var drills: Array[DrillData] = _drills()
 	assert_eq(drills.size(), expected.size(), "the roster has the approved drills")

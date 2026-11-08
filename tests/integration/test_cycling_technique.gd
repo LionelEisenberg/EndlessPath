@@ -461,7 +461,11 @@ func test_auto_restart_keeps_the_rate() -> void:
 	# The restart happens inside the advance() that ends the cycle. The cabinet
 	# reads the rate off the session each time it announces one, so a session
 	# that read 0 until the next frame would blink the label out for a frame.
+	# Spirit Lv 6 is 15, a multiplier of 1.5, so the rate reads 1.5 x MADRA_RATE.
+	# From Lv 1 the cycle's own 104 Spirit XP would buy Lv 2 (100 XP) inside the
+	# last second the rate is read over, and move the multiplier mid-window.
 	_make_room(500.0)
+	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, 6)
 	assert_eq(ResourceManager.get_max_madra(), 600.0, "precondition: a whole cycle of Madra fits under the max")
 	var completed: Array[int] = [0]
 	_technique.cycle_completed.connect(func(_result: CycleResult) -> void: completed[0] += 1)
@@ -473,10 +477,10 @@ func test_auto_restart_keeps_the_rate() -> void:
 			break
 	assert_eq(completed[0], 1, "precondition: the cycle ended")
 	assert_true(CyclingManager.is_cycle_running(), "the next cycle started in the same frame")
-	assert_almost_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 5.3, 0.000001, "the rate carries into it")
+	assert_almost_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 8.0, 0.000001, "the rate carries into it")
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	assert_true(CyclingManager.is_cycle_running())
-	assert_almost_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 5.3, 0.000001, "and the frame after")
+	assert_almost_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 8.0, 0.000001, "and the frame after")
 	assert_eq(completed[0], 1)
 
 func test_a_manual_start_begins_from_an_empty_window() -> void:
@@ -614,9 +618,9 @@ func test_auto_never_starts_following_for_a_resting_cursor() -> void:
 # SPIRIT XP
 #-----------------------------------------------------------------------------
 
-## The Foundational pays 26 Spirit XP for a fully followed 10 s cycle: 2.6 a
-## second, 1.3 every half second.
-const SPIRIT_XP_PER_SECOND: float = 2.6
+## The Foundational pays 52 Spirit XP for a fully followed 10 s cycle: 5.2 a
+## second, 2.6 every half second.
+const SPIRIT_XP_PER_SECOND: float = 5.2
 const SPIRIT := CharacterAttributesData.AttributeType.SPIRIT
 
 ## Spirit's XP toward its next level: every payment in these tests stays short of
@@ -638,9 +642,9 @@ func test_following_pays_spirit_xp_every_half_second() -> void:
 	_run(1.6, 60.0, true)
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 3, "at 0.5, 1 and 1.5 s")
 	for amount: float in _paid_amounts():
-		assert_almost_eq(amount, 1.3, 0.0001, "half a second's Spirit XP")
+		assert_almost_eq(amount, 2.6, 0.0001, "half a second's Spirit XP")
 	assert_eq(get_signal_parameters(_technique, "stat_xp_paid", 0)[0], SPIRIT)
-	assert_almost_eq(_spirit_xp(), 3.9, 0.0001, "Spirit took all three")
+	assert_almost_eq(_spirit_xp(), 7.8, 0.0001, "Spirit took all three")
 
 func test_a_fully_followed_cycle_pays_its_spirit_xp() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -656,8 +660,8 @@ func test_a_fully_followed_cycle_pays_its_spirit_xp() -> void:
 		_use_foundation()
 		_track_one_cycle(case.next)
 		var result: CycleResult = _technique.get_current_result()
-		assert_almost_eq(_spirit_xp(), 26.0, 0.0001, "%s: Spirit took the cycle's 26 XP" % case.name)
-		assert_almost_eq(result.get_stat_xp(SPIRIT), 26.0, 0.0001, "%s: and the result holds them" % case.name)
+		assert_almost_eq(_spirit_xp(), 52.0, 0.0001, "%s: Spirit took the cycle's 52 XP" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 52.0, 0.0001, "%s: and the result holds them" % case.name)
 		assert_almost_eq(result.followed_ratio, 1.0, 0.01, "%s: the whole cycle was followed" % case.name)
 
 func test_following_pays_spirit_xp_with_madra_full() -> void:
@@ -665,7 +669,7 @@ func test_following_pays_spirit_xp_with_madra_full() -> void:
 	_use_foundation()
 	_track_one_cycle(func() -> float: return FRAME)
 	assert_eq(_technique.get_current_result().madra_added, 0.0, "precondition: no Madra fit")
-	assert_almost_eq(_spirit_xp(), 26.0, 0.0001, "following still paid its Spirit XP")
+	assert_almost_eq(_spirit_xp(), 52.0, 0.0001, "following still paid its Spirit XP")
 
 func test_a_resting_cursor_earns_no_spirit_xp() -> void:
 	_use_foundation()
@@ -687,8 +691,8 @@ func test_a_stopped_cycle_keeps_the_spirit_xp_it_followed() -> void:
 	_technique.stop_cycling()
 	var amounts: Array[float] = _paid_amounts()
 	assert_eq(amounts.size(), 3, "two half seconds, then the rest at the stop")
-	assert_almost_eq(amounts[2], 0.52, 0.0001, "the 0.2 s followed since the last payment")
-	assert_almost_eq(_spirit_xp(), 3.12, 0.0001, "1.2 s of following in all")
+	assert_almost_eq(amounts[2], 1.04, 0.0001, "the 0.2 s followed since the last payment")
+	assert_almost_eq(_spirit_xp(), 6.24, 0.0001, "1.2 s of following in all")
 
 ## A switch drops the Spirit XP of the half second not yet paid, so no pellet
 ## flies from a technique the board has left.
@@ -698,7 +702,7 @@ func test_a_switch_drops_the_spirit_xp_not_yet_paid() -> void:
 	_run(1.2, 60.0, true)
 	_technique.setup(load(FOUNDATION_PATH))
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 2, "the two half seconds paid as they came, and nothing at the switch")
-	assert_almost_eq(_spirit_xp(), 52.0 / 15.0, 0.0001, "Smooth Flow's 52 / 15 a second for one second; the 0.2 s after is dropped")
+	assert_almost_eq(_spirit_xp(), 104.0 / 15.0, 0.0001, "Smooth Flow's 104 / 15 a second for one second; the 0.2 s after is dropped")
 	await _await_queued_frees()
 
 func test_spirit_xp_at_the_cap_marks_the_result() -> void:
@@ -712,28 +716,29 @@ func test_spirit_xp_at_the_cap_marks_the_result() -> void:
 	assert_eq(result.get_stat_xp(SPIRIT), 0.0)
 
 func test_the_payment_that_reaches_the_cap_carries_only_what_it_took() -> void:
-	# Two XP short of the cap: the first half second's 1.3 fits, and the second's
-	# reaches the cap with 0.7 of it. (One XP short, the closest set_stat_level()
-	# leaves, is less than a half second's 1.3: the first would reach the cap.)
+	# Four XP short of the cap: the first half second's 2.6 fits, and the second's
+	# reaches the cap with 1.4 of it. (Two XP short, or one, the closest
+	# set_stat_level() leaves, is less than a half second's 2.6: the first would
+	# reach the cap.)
 	var below_cap: int = CharacterManager.get_stat_level_cap() - 1
-	CharacterManager.set_stat_level(SPIRIT, below_cap, CharacterManager.stat_progression.get_xp_to_next(below_cap) - 2.0)
+	CharacterManager.set_stat_level(SPIRIT, below_cap, CharacterManager.stat_progression.get_xp_to_next(below_cap) - 4.0)
 	_use_foundation()
 	watch_signals(_technique)
 	_technique.start_cycle()
 	_run(1.1, 60.0, true)
 	var amounts: Array[float] = _paid_amounts()
 	assert_eq(amounts.size(), 2, "precondition: two half seconds were paid")
-	assert_almost_eq(amounts[0], 1.3, 0.0001, "the first fit whole")
-	assert_almost_eq(amounts[1], 0.7, 0.0001, "the second carried only the 0.7 the cap left room for")
+	assert_almost_eq(amounts[0], 2.6, 0.0001, "the first fit whole")
+	assert_almost_eq(amounts[1], 1.4, 0.0001, "the second carried only the 1.4 the cap left room for")
 	assert_true(CharacterManager.is_stat_capped(SPIRIT))
 	var result: CycleResult = _technique.get_current_result()
 	assert_true(result.is_stat_capped(SPIRIT), "the cap took the rest")
-	assert_almost_eq(result.get_stat_xp(SPIRIT), 2.0, 0.0001)
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 4.0, 0.0001)
 
 func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
 	# 2 s of following pay four half seconds. A 16 s frame then follows to the
 	# path's end, where it started, but only 8 s of it were left in the cycle:
-	# one payment of 20.8 Spirit XP, 26 in all.
+	# one payment of 41.6 Spirit XP, 52 in all.
 	_make_room(500.0)
 	_use_foundation()
 	var path_end: Vector2 = _technique.get_ball_global_position()
@@ -744,7 +749,7 @@ func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
 	_technique.advance(16.0, path_end)
 	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 5, "the hitch paid once")
-	assert_almost_eq(_spirit_xp(), 26.0, 0.0001, "the cycle's 26, not the 41.6 the frame covers")
+	assert_almost_eq(_spirit_xp(), 52.0, 0.0001, "the cycle's 52, not the 83.2 the frame covers")
 
 #-----------------------------------------------------------------------------
 # ZONES AND SCORING
@@ -1278,9 +1283,9 @@ func test_the_result_keeps_each_zone_outcome() -> void:
 #-----------------------------------------------------------------------------
 
 ## The Foundational's Madra and Spirit XP a cycle nobody follows pays under an
-## unlocked Auto: 0.4 of its 37.5 Madra and 26 Spirit XP.
+## unlocked Auto: 0.4 of its 37.5 Madra and 52 Spirit XP.
 const AUTO_MADRA_PER_CYCLE: float = 37.5 * 0.4
-const AUTO_SPIRIT_PER_CYCLE: float = 26.0 * 0.4
+const AUTO_SPIRIT_PER_CYCLE: float = 52.0 * 0.4
 
 ## Turns Auto on for the fixture's technique, unlocking it first when `unlocked`.
 func _auto_on(unlocked: bool) -> void:
@@ -1333,7 +1338,7 @@ func test_following_under_auto_pays_the_full_rate() -> void:
 	_auto_on(true)
 	var result: CycleResult = _auto_cycle(true)
 	assert_almost_eq(result.madra_added, 37.5, 0.01)
-	assert_almost_eq(result.get_stat_xp(SPIRIT), 26.0, 0.0001)
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 52.0, 0.0001)
 
 func test_the_session_reads_the_auto_rate() -> void:
 	_use_foundation()
@@ -1418,7 +1423,7 @@ func test_a_slip_counts_against_the_cycle_past_the_grace() -> void:
 		CharacterManager.set_stat_level(SPIRIT, 1)
 		var result: CycleResult = _cycle_with_a_slip(case.slip)
 		assert_almost_eq(result.followed_ratio, case.ratio, 0.002, "%s: the share followed" % case.name)
-		assert_almost_eq(result.get_stat_xp(SPIRIT), 26.0 * case.ratio, 0.05, "%s: Spirit paid for the time followed" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 52.0 * case.ratio, 0.05, "%s: Spirit paid for the time followed" % case.name)
 		assert_eq(result.is_perfect(), case.perfect, "%s: perfect" % case.name)
 
 func test_the_ring_dims_once_the_cycle_cannot_be_perfect() -> void:

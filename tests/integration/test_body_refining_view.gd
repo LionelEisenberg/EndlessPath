@@ -131,11 +131,12 @@ func _ten(hold: float) -> Array:
 	holds.fill(hold)
 	return holds
 
-## Puts Strength at Lv 2. A perfect Stone Lifting set pays 100 XP, Lv 2's whole
-## cost: played at Lv 1 it buys that level, logs it and leaves no XP in Strength's
-## cell. From Lv 2 the next level costs 125, so the set's XP stays XP.
-func _strength_at_lv_2() -> void:
-	CharacterManager.set_stat_level(AttributeType.STRENGTH, 2)
+## Puts Strength at Lv 3. A perfect Stone Lifting set pays 150 XP: played at Lv 1
+## it buys Lv 2 (100 XP) and from Lv 2 it buys Lv 3 (125), each time logging the
+## level and leaving less XP in Strength's cell. From Lv 3 the next level costs
+## 156, so the set's XP stays XP.
+func _strength_at_lv_3() -> void:
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, 3)
 
 #-----------------------------------------------------------------------------
 # THE HEADER
@@ -149,7 +150,7 @@ func test_setup_names_the_action_and_the_drill() -> void:
 func test_the_pay_line_reads_a_perfect_rep_at_your_strength() -> void:
 	var text: String = _pay_line().get_parsed_text()
 	assert_string_contains(text, "Perfect rep")
-	assert_string_contains(text, "+10 XP", "Stone Lifting's Strength XP")
+	assert_string_contains(text, "+15 XP", "Stone Lifting's Strength XP")
 	assert_string_contains(text, "+4", "and its Health at Strength Lv 1")
 	assert_string_contains(_pay_line().text, StatDisplay.mini_icon_of(AttributeType.STRENGTH).resource_path, "with Strength's icon")
 	assert_string_contains(_pay_line().text, HEALTH_MINI.resource_path, "and the Health heart")
@@ -192,17 +193,17 @@ func test_a_finished_set_becomes_the_last_set() -> void:
 	assert_eq(BodyRefiningManager.get_last_set_result(), first, "kept while the next set runs")
 
 ## Counted by the signal, not the history, which keeps only the last 200 lines
-## the scripts before this one logged. Strength is at Lv 2, so the line is the
-## set's alone, with Health at Strength 11: 10 reps of 4 x 1.1.
+## the scripts before this one logged. Strength is at Lv 3, so the line is the
+## set's alone, with Health at Strength 12: 10 reps of 4 x 1.2.
 func test_a_finished_set_writes_one_log_line() -> void:
 	ResourceManager.set_health(50.0)
-	_strength_at_lv_2()
+	_strength_at_lv_3()
 	BodyRefiningManager.unlock_auto("stone_lifting")
 	watch_signals(LogManager)
 	_play_set(_ten(CENTRE))
 	assert_signal_emit_count(LogManager, "message_logged", 1, "one line")
 	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
-	assert_eq(LogWindow.plain_text(line), "Set · +100 Strength XP · +44 Health")
+	assert_eq(LogWindow.plain_text(line), "Set · +150 Strength XP · +48 Health")
 
 #-----------------------------------------------------------------------------
 # PELLETS
@@ -228,15 +229,15 @@ func test_a_rep_sends_only_health_pellets() -> void:
 ## that stored XP, holding the XP out of Strength's cell until it lands.
 func test_the_set_s_end_pours_xp_from_the_beads() -> void:
 	ResourceManager.set_health(20.0)
-	_strength_at_lv_2()
+	_strength_at_lv_3()
 	_play_set(_ten(CENTRE))
 	var pellets: Array[LacquerPellet] = _pellets(LacquerPellet.Ramp.STRENGTH)
 	assert_eq(pellets.size(), 10, "a pellet a bead")
 	var cell: StatCell = _plate.get_node("%StrengthCell") as StatCell
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 100.0, "the set's XP is paid")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 150.0, "the set's XP is paid")
 	assert_eq(cell.get_shown_xp(), 0.0, "and held out of the cell while it flies")
 	_land(pellets)
-	assert_almost_eq(cell.get_shown_xp(), 100.0, 0.0001, "the set's 100 XP has landed")
+	assert_almost_eq(cell.get_shown_xp(), 150.0, 0.0001, "the set's 150 XP has landed")
 
 ## Each scored bead pours; a Miss's bead stored nothing.
 func test_the_pour_skips_a_miss_s_bead() -> void:
@@ -247,7 +248,7 @@ func test_the_pour_skips_a_miss_s_bead() -> void:
 
 ## Review Focus 4: leaves caught out of turn pour from their own beads. Leaf 1 is
 ## caught before leaf 0, which is caught Good (18 px off): every pellet leaves from
-## the bead of the rep it carries, bead 0's carrying the Good catch's 5.25 XP.
+## the bead of the rep it carries, bead 0's carrying the Good catch's 7.875 XP.
 func test_the_pour_leaves_from_each_leaf_s_own_bead() -> void:
 	ResourceManager.set_health(20.0)
 	BodyRefiningManager.unlock_drill("falling_leaf")
@@ -282,8 +283,8 @@ func test_the_pour_leaves_from_each_leaf_s_own_bead() -> void:
 					if bound.size() == 2:
 						carried_from[rep] = bound[1]
 	assert_eq(carried_from.keys().size(), 10, "each from its own bead")
-	assert_almost_eq(carried_from.get(0, 0.0), 5.25, 0.0001, "bead 0 carries the Good catch's XP")
-	assert_almost_eq(carried_from.get(1, 0.0), 7.0, 0.0001, "bead 1 a Perfect catch's")
+	assert_almost_eq(carried_from.get(0, 0.0), 7.875, 0.0001, "bead 0 carries the Good catch's XP")
+	assert_almost_eq(carried_from.get(1, 0.0), 10.5, 0.0001, "bead 1 a Perfect catch's")
 
 ## The pour carries what the stat took, not what the set stored: 10 XP short of
 ## the cap, the pellets carry the 10 that reached it.
@@ -345,7 +346,7 @@ func test_closing_mid_set_keeps_what_was_paid() -> void:
 	_view.close()
 	assert_false(_view.visible, "the board hides")
 	assert_eq(ResourceManager.get_health(), 58.0, "the two reps' Health stays")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 20.0, "and their XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 30.0, "and their XP")
 	assert_eq(_plate_health(), "58", "shown at once, nothing left in flight")
 	assert_signal_not_emitted(LogManager, "message_logged", "no log line")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "no set counted")
@@ -366,7 +367,7 @@ func test_picking_another_drill_mid_set_keeps_what_was_paid() -> void:
 	assert_true(_play.is_set_running(), "precondition: the set runs")
 	BodyRefiningManager.equip_drill("horse_stance")
 	assert_eq(ResourceManager.get_health(), 58.0, "the two reps' Health stays")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 20.0, "and their XP")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 30.0, "and their XP")
 	assert_signal_not_emitted(LogManager, "message_logged", "no log line")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "no set counted")
 	assert_false(_play.is_set_running(), "the set ended")
@@ -515,7 +516,7 @@ func test_auto_stays_locked_until_a_perfect_set() -> void:
 ## unlocks and stays off, the floater pops, and the log gets the yellow line.
 func test_a_perfect_set_unlocks_auto() -> void:
 	ResourceManager.set_health(20.0)
-	_strength_at_lv_2()
+	_strength_at_lv_3()
 	watch_signals(LogManager)
 	_play_set(_ten(CENTRE))
 	assert_true(BodyRefiningManager.is_auto_unlocked("stone_lifting"))
@@ -554,7 +555,7 @@ func test_the_footer_and_log_under_auto() -> void:
 	assert_eq(_view.get_status_text(), BodyRefiningView.AUTO_LINE % 40, "Auto's line through the wait")
 	assert_true(BodyRefiningManager.get_last_set_result().is_auto(), "the Auto set is the last set")
 	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
-	assert_eq(LogWindow.plain_text(line), "Set · Auto · +40 Strength XP · +16 Health")
+	assert_eq(LogWindow.plain_text(line), "Set · Auto · +60 Strength XP · +16 Health")
 	_at(40.0)
 	assert_true(_play.is_set_running(), "the next Auto set started at Auto's pace, 40 s after the last")
 	assert_eq(_view.get_status_text(), BodyRefiningView.AUTO_LINE % 40)
@@ -566,7 +567,7 @@ func test_turning_auto_on_mid_set_ends_the_set() -> void:
 	assert_true(_play.is_set_running())
 	_toggle().button_pressed = true
 	assert_false(_play.is_set_running(), "the played set ended")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 10.0, "its rep stays paid")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 15.0, "its rep stays paid")
 	_at(5.0)
 	assert_true(_play.is_auto_set(), "and Auto's set starts")
 

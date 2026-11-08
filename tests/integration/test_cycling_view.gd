@@ -544,11 +544,11 @@ func test_spirit_pellets_fly_to_spirit_s_cell() -> void:
 	_run(0.55, 60.0, true)
 	var puff: Array[LacquerPellet] = _spirit_pellets()
 	assert_eq(puff.size(), CyclingView.STAT_PELLETS, "one puff for the first half second")
-	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.5 * 52.0 / 15.0, 0.0001, "precondition: Spirit took Smooth Flow's half second of XP")
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.5 * 104.0 / 15.0, 0.0001, "precondition: Spirit took Smooth Flow's half second of XP")
 	assert_eq(_spirit_cell().get_shown_xp(), 0.0, "none of it has landed")
 	for pellet: LacquerPellet in puff:
 		pellet._process(10.0)
-	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.5 * 52.0 / 15.0, 0.0001, "all of it has landed")
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.5 * 104.0 / 15.0, 0.0001, "all of it has landed")
 
 func test_no_spirit_pellets_at_the_cap() -> void:
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
@@ -564,9 +564,9 @@ func test_hiding_the_view_pays_the_spirit_xp_without_pellets() -> void:
 	_run(0.3, 60.0, true)
 	assert_eq(_spirit_pellets().size(), 0, "precondition: no half second paid yet")
 	_view.hide()
-	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.3 * 52.0 / 15.0, 0.0001, "0.3 s of Smooth Flow's 52 XP over 15 s")
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.3 * 104.0 / 15.0, 0.0001, "0.3 s of Smooth Flow's 104 XP over 15 s")
 	assert_eq(_spirit_pellets().size(), 0, "no pellet flies from the hidden board")
-	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.3 * 52.0 / 15.0, 0.0001, "and the cell shows it at once")
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.3 * 104.0 / 15.0, 0.0001, "and the cell shows it at once")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
