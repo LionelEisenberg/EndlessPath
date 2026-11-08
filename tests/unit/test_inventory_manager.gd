@@ -464,6 +464,13 @@ func test_has_item_true_for_equipped_gear() -> void:
 	assert_eq(_inventory.equipment.size(), 0, "the grid should be empty once it is equipped")
 	assert_true(InventoryManager.has_item("gear_test_x"), "equipped gear should count as owned")
 
+## At boot, ResourceManager's unlock sweep calls has_item() before this
+## manager's _ready() has bound the save: the manager binds it on first use.
+func test_has_item_before_the_save_is_bound_reads_the_live_save() -> void:
+	InventoryManager.live_save_data = null
+	assert_false(InventoryManager.has_item("unrelated_id"), "answers without an error")
+	assert_eq(InventoryManager.live_save_data, PersistenceManager.save_game_data, "and binds the live save")
+
 #-----------------------------------------------------------------------------
 # GET_QUEST_ITEMS
 #-----------------------------------------------------------------------------
