@@ -175,12 +175,14 @@ func _create_combatants() -> void:
 	_create_player_combatant()
 	_create_enemy_combatant()
 
-## The fight's fighters that are there.
+## The fight's fighters that are there. Each is checked before it goes in, since a
+## freed one cannot go into a typed array.
 func _fighters() -> Array[CombatantNode]:
 	var fighters: Array[CombatantNode] = []
-	for fighter: CombatantNode in [player_combatant, enemy_combatant]:
-		if is_instance_valid(fighter):
-			fighters.append(fighter)
+	if is_instance_valid(player_combatant):
+		fighters.append(player_combatant)
+	if is_instance_valid(enemy_combatant):
+		fighters.append(enemy_combatant)
 	return fighters
 
 ## The hit that took a side to 0 Health decides the fight: from it nothing in the
