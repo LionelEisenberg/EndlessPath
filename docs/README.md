@@ -56,6 +56,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | [testing/TESTING.md](testing/TESTING.md) | Running GUT (including the first-run `--import` gotcha), the noise a passing run prints, conventions, coverage gaps |
 | [tooling/DEV_TOOLS.md](tooling/DEV_TOOLS.md) | Save presets, the story route, `DevManager` and `DevCommands` (launch with `--preset=<id>`), dev panel (Ctrl+Shift+D), map preview, UID generator, debug switches |
 | [tooling/PUBLISHING.md](tooling/PUBLISHING.md) | One-click publish to itch.io from `main`: the workflow, the Web and Windows builds, the repository and itch.io settings |
+| [tooling/FEATURE_WORKFLOW.md](tooling/FEATURE_WORKFLOW.md) | Building a version's features through a release branch: a coordinator session, GitHub issues, one session per issue with its canvas, merge watching, and game windows that stay muted and off the main screen |
 | [../resources/loot_tables/README.md](../resources/loot_tables/README.md) | Authoring loot tables |
 | [../scenes/combat/combat_architecture.md](../scenes/combat/combat_architecture.md) | Short orientation to the combat scene code (points to COMBAT.md) |
 
@@ -96,6 +97,7 @@ Several branches are usually open at once, and every doc line that two of them e
   - a row in the indexes above for a new doc.
 
   It links the feature PR and opens the same day, so `main`'s docs trail its code by hours, not days. If another docs PR merges first, merge `main` into it before its last push.
+- **On a release branch, the docs come at the end.** Its feature PRs keep their `## Docs to update` lists but open no docs PRs. The release's last issue writes every list on the release branch, so the docs reach `main` with the code they describe ([FEATURE_WORKFLOW.md](tooling/FEATURE_WORKFLOW.md)).
 - [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md), [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) and [CODEBASE_STATE.md](CODEBASE_STATE.md) are refreshed at milestones, in a docs PR of their own.
 - A sweep across many docs (a rename, a reformat, a cleanup) goes in a PR of its own, opened while no other PR edits those docs.
 - Merge `main` into your branch when you need its code, and once right before your PR merges, not after every merge to `main`. A doc conflict is resolved by keeping both sides' facts.
