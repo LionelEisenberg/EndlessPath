@@ -36,7 +36,7 @@ const STAMINA_REGEN_PER_AGILITY: float = 0.1
 ## Dodge only nears this chance, and reaches half of it at DODGE_HALF_POINT
 ## Agility above the baseline.
 const DODGE_CEILING: float = 0.35
-const DODGE_HALF_POINT: float = 15.0
+const DODGE_HALF_POINT: float = 10.0
 ## The Madra cost cut only nears this fraction, and reaches half of it at
 ## MADRA_COST_CUT_HALF_POINT Control above the baseline.
 const MADRA_COST_CUT_CEILING: float = 0.5

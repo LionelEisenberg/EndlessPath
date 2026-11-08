@@ -614,9 +614,9 @@ func test_auto_never_starts_following_for_a_resting_cursor() -> void:
 # SPIRIT XP
 #-----------------------------------------------------------------------------
 
-## The Foundational pays 15 Spirit XP for a fully followed 10 s cycle: 1.5 a
-## second, 0.75 every half second.
-const SPIRIT_XP_PER_SECOND: float = 1.5
+## The Foundational pays 26 Spirit XP for a fully followed 10 s cycle: 2.6 a
+## second, 1.3 every half second.
+const SPIRIT_XP_PER_SECOND: float = 2.6
 const SPIRIT := CharacterAttributesData.AttributeType.SPIRIT
 
 ## Spirit's XP toward its next level: every payment in these tests stays short of
@@ -638,9 +638,9 @@ func test_following_pays_spirit_xp_every_half_second() -> void:
 	_run(1.6, 60.0, true)
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 3, "at 0.5, 1 and 1.5 s")
 	for amount: float in _paid_amounts():
-		assert_almost_eq(amount, 0.75, 0.0001, "half a second's Spirit XP")
+		assert_almost_eq(amount, 1.3, 0.0001, "half a second's Spirit XP")
 	assert_eq(get_signal_parameters(_technique, "stat_xp_paid", 0)[0], SPIRIT)
-	assert_almost_eq(_spirit_xp(), 2.25, 0.0001, "Spirit took all three")
+	assert_almost_eq(_spirit_xp(), 3.9, 0.0001, "Spirit took all three")
 
 func test_a_fully_followed_cycle_pays_its_spirit_xp() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -656,8 +656,8 @@ func test_a_fully_followed_cycle_pays_its_spirit_xp() -> void:
 		_use_foundation()
 		_track_one_cycle(case.next)
 		var result: CycleResult = _technique.get_current_result()
-		assert_almost_eq(_spirit_xp(), 15.0, 0.0001, "%s: Spirit took the cycle's 15 XP" % case.name)
-		assert_almost_eq(result.get_stat_xp(SPIRIT), 15.0, 0.0001, "%s: and the result holds them" % case.name)
+		assert_almost_eq(_spirit_xp(), 26.0, 0.0001, "%s: Spirit took the cycle's 26 XP" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 26.0, 0.0001, "%s: and the result holds them" % case.name)
 		assert_almost_eq(result.followed_ratio, 1.0, 0.01, "%s: the whole cycle was followed" % case.name)
 
 func test_following_pays_spirit_xp_with_madra_full() -> void:
@@ -665,7 +665,7 @@ func test_following_pays_spirit_xp_with_madra_full() -> void:
 	_use_foundation()
 	_track_one_cycle(func() -> float: return FRAME)
 	assert_eq(_technique.get_current_result().madra_added, 0.0, "precondition: no Madra fit")
-	assert_almost_eq(_spirit_xp(), 15.0, 0.0001, "following still paid its Spirit XP")
+	assert_almost_eq(_spirit_xp(), 26.0, 0.0001, "following still paid its Spirit XP")
 
 func test_a_resting_cursor_earns_no_spirit_xp() -> void:
 	_use_foundation()
@@ -687,8 +687,8 @@ func test_a_stopped_cycle_keeps_the_spirit_xp_it_followed() -> void:
 	_technique.stop_cycling()
 	var amounts: Array[float] = _paid_amounts()
 	assert_eq(amounts.size(), 3, "two half seconds, then the rest at the stop")
-	assert_almost_eq(amounts[2], 0.3, 0.0001, "the 0.2 s followed since the last payment")
-	assert_almost_eq(_spirit_xp(), 1.8, 0.0001, "1.2 s of following in all")
+	assert_almost_eq(amounts[2], 0.52, 0.0001, "the 0.2 s followed since the last payment")
+	assert_almost_eq(_spirit_xp(), 3.12, 0.0001, "1.2 s of following in all")
 
 ## A switch drops the Spirit XP of the half second not yet paid, so no pellet
 ## flies from a technique the board has left.
@@ -698,7 +698,7 @@ func test_a_switch_drops_the_spirit_xp_not_yet_paid() -> void:
 	_run(1.2, 60.0, true)
 	_technique.setup(load(FOUNDATION_PATH))
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 2, "the two half seconds paid as they came, and nothing at the switch")
-	assert_almost_eq(_spirit_xp(), 2.0, 0.0001, "Smooth Flow's 2 a second for one second; the 0.2 s after is dropped")
+	assert_almost_eq(_spirit_xp(), 52.0 / 15.0, 0.0001, "Smooth Flow's 52 / 15 a second for one second; the 0.2 s after is dropped")
 	await _await_queued_frees()
 
 func test_spirit_xp_at_the_cap_marks_the_result() -> void:
@@ -712,27 +712,28 @@ func test_spirit_xp_at_the_cap_marks_the_result() -> void:
 	assert_eq(result.get_stat_xp(SPIRIT), 0.0)
 
 func test_the_payment_that_reaches_the_cap_carries_only_what_it_took() -> void:
-	# One XP short of the cap, the most set_stat_level() leaves: the first half
-	# second's 0.75 fits, and the second's reaches the cap with 0.25 of it.
+	# Two XP short of the cap: the first half second's 1.3 fits, and the second's
+	# reaches the cap with 0.7 of it. (One XP short, the closest set_stat_level()
+	# leaves, is less than a half second's 1.3: the first would reach the cap.)
 	var below_cap: int = CharacterManager.get_stat_level_cap() - 1
-	CharacterManager.set_stat_level(SPIRIT, below_cap, CharacterManager.stat_progression.get_xp_to_next(below_cap) - 1.0)
+	CharacterManager.set_stat_level(SPIRIT, below_cap, CharacterManager.stat_progression.get_xp_to_next(below_cap) - 2.0)
 	_use_foundation()
 	watch_signals(_technique)
 	_technique.start_cycle()
 	_run(1.1, 60.0, true)
 	var amounts: Array[float] = _paid_amounts()
 	assert_eq(amounts.size(), 2, "precondition: two half seconds were paid")
-	assert_almost_eq(amounts[0], 0.75, 0.0001, "the first fit whole")
-	assert_almost_eq(amounts[1], 0.25, 0.0001, "the second carried only the 0.25 the cap left room for")
+	assert_almost_eq(amounts[0], 1.3, 0.0001, "the first fit whole")
+	assert_almost_eq(amounts[1], 0.7, 0.0001, "the second carried only the 0.7 the cap left room for")
 	assert_true(CharacterManager.is_stat_capped(SPIRIT))
 	var result: CycleResult = _technique.get_current_result()
 	assert_true(result.is_stat_capped(SPIRIT), "the cap took the rest")
-	assert_almost_eq(result.get_stat_xp(SPIRIT), 1.0, 0.0001)
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 2.0, 0.0001)
 
 func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
 	# 2 s of following pay four half seconds. A 16 s frame then follows to the
 	# path's end, where it started, but only 8 s of it were left in the cycle:
-	# one payment of 12 Spirit XP, 15 in all.
+	# one payment of 20.8 Spirit XP, 26 in all.
 	_make_room(500.0)
 	_use_foundation()
 	var path_end: Vector2 = _technique.get_ball_global_position()
@@ -743,7 +744,7 @@ func test_a_hitch_through_the_end_pays_only_the_time_left() -> void:
 	_technique.advance(16.0, path_end)
 	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
 	assert_eq(get_signal_emit_count(_technique, "stat_xp_paid"), 5, "the hitch paid once")
-	assert_almost_eq(_spirit_xp(), 15.0, 0.0001, "the cycle's 15, not the 24 the frame covers")
+	assert_almost_eq(_spirit_xp(), 26.0, 0.0001, "the cycle's 26, not the 41.6 the frame covers")
 
 #-----------------------------------------------------------------------------
 # ZONES AND SCORING
@@ -844,7 +845,7 @@ func test_a_scored_zone_shows_in_the_result() -> void:
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_eq(result.zones_scored, 1)
 	assert_eq(result.perfect_count, 1)
-	assert_eq(result.get_stat_xp(CONTROL), 6.0, "zone 1's PERFECT pays 6 Control XP")
+	assert_eq(result.get_stat_xp(CONTROL), 10.0, "zone 1's PERFECT pays 10 Control XP")
 
 ## A capped Control takes none of a hit's XP, which is lost; the result marks
 ## it, and the signal says Control took nothing.
@@ -1177,11 +1178,11 @@ func test_an_open_seal_pays_mind_as_the_ball_bursts_through() -> void:
 	_run(1.3, 60.0, true)
 	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0, "nothing until the ball gets there")
 	_run(0.15, 60.0, true)
-	assert_eq(CharacterManager.get_stat_xp(MIND), 5.0, "the seal's 5 Mind XP as the ball bursts through")
+	assert_eq(CharacterManager.get_stat_xp(MIND), 9.0, "the seal's 9 Mind XP as the ball bursts through")
 	assert_signal_emit_count(_technique, "seal_burst", 1)
-	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 5.0, 5.0])
+	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 9.0, 9.0])
 	assert_eq(_seal(0).get_state(), SealNode.State.OPEN, "the node stays green")
-	assert_eq(_technique.get_current_result().get_stat_xp(MIND), 5.0)
+	assert_eq(_technique.get_current_result().get_stat_xp(MIND), 9.0)
 	await _await_queued_frees()
 
 func test_a_missed_seal_fizzles_and_pays_nothing() -> void:
@@ -1204,7 +1205,7 @@ func test_a_capped_mind_opens_seals_for_nothing() -> void:
 	_key_seal(0)
 	watch_signals(_technique)
 	_run(1.5, 60.0, true)
-	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 5.0, 0.0], "Mind took nothing")
+	assert_eq(get_signal_parameters(_technique, "seal_burst", 0), [_seal(0), 9.0, 0.0], "Mind took nothing")
 	assert_eq(CharacterManager.get_stat_xp(MIND), 0.0)
 	assert_true(_technique.get_current_result().is_stat_capped(MIND))
 	await _await_queued_frees()
@@ -1260,7 +1261,7 @@ func test_the_result_keeps_each_seal_and_zone_outcome() -> void:
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_eq(result.seal_states, [SealNode.State.OPEN, SealNode.State.SPENT, SealNode.State.OPEN] as Array[int])
 	assert_eq(result.zone_states, [] as Array[int], "torrential_flow has no zones")
-	assert_eq(result.get_stat_xp(MIND), 10.0, "two seals paid")
+	assert_eq(result.get_stat_xp(MIND), 18.0, "two seals paid")
 	await _await_queued_frees()
 
 func test_the_result_keeps_each_zone_outcome() -> void:
@@ -1277,9 +1278,9 @@ func test_the_result_keeps_each_zone_outcome() -> void:
 #-----------------------------------------------------------------------------
 
 ## The Foundational's Madra and Spirit XP a cycle nobody follows pays under an
-## unlocked Auto: 0.4 of its 37.5 Madra and 15 Spirit XP.
+## unlocked Auto: 0.4 of its 37.5 Madra and 26 Spirit XP.
 const AUTO_MADRA_PER_CYCLE: float = 37.5 * 0.4
-const AUTO_SPIRIT_PER_CYCLE: float = 15.0 * 0.4
+const AUTO_SPIRIT_PER_CYCLE: float = 26.0 * 0.4
 
 ## Turns Auto on for the fixture's technique, unlocking it first when `unlocked`.
 func _auto_on(unlocked: bool) -> void:
@@ -1332,7 +1333,7 @@ func test_following_under_auto_pays_the_full_rate() -> void:
 	_auto_on(true)
 	var result: CycleResult = _auto_cycle(true)
 	assert_almost_eq(result.madra_added, 37.5, 0.01)
-	assert_almost_eq(result.get_stat_xp(SPIRIT), 15.0, 0.0001)
+	assert_almost_eq(result.get_stat_xp(SPIRIT), 26.0, 0.0001)
 
 func test_the_session_reads_the_auto_rate() -> void:
 	_use_foundation()
@@ -1381,7 +1382,7 @@ func test_an_auto_cycle_s_seals_burst_on_their_nodes() -> void:
 	assert_eq(bursts.size(), 3, "every opened seal burst")
 	for offset: Vector2 in bursts:
 		assert_lt(offset.length(), 8.0, "the even ball meets the node as it bursts")
-	assert_almost_eq(CharacterManager.get_stat_xp(MIND), 15.0, 0.0001, "seals keyed under Auto still pay Mind")
+	assert_almost_eq(CharacterManager.get_stat_xp(MIND), 27.0, 0.0001, "seals keyed under Auto still pay Mind")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
@@ -1417,7 +1418,7 @@ func test_a_slip_counts_against_the_cycle_past_the_grace() -> void:
 		CharacterManager.set_stat_level(SPIRIT, 1)
 		var result: CycleResult = _cycle_with_a_slip(case.slip)
 		assert_almost_eq(result.followed_ratio, case.ratio, 0.002, "%s: the share followed" % case.name)
-		assert_almost_eq(result.get_stat_xp(SPIRIT), 15.0 * case.ratio, 0.05, "%s: Spirit paid for the time followed" % case.name)
+		assert_almost_eq(result.get_stat_xp(SPIRIT), 26.0 * case.ratio, 0.05, "%s: Spirit paid for the time followed" % case.name)
 		assert_eq(result.is_perfect(), case.perfect, "%s: perfect" % case.name)
 
 func test_the_ring_dims_once_the_cycle_cannot_be_perfect() -> void:

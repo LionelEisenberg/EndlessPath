@@ -33,7 +33,7 @@ const CONTROL: CharacterAttributesData.AttributeType = CharacterAttributesData.A
 const MIND: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.MIND
 
 ## Smooth Flow's zones by index: zone 2, near the board's left side, and zone
-## 3, the top one, worth 12 Control XP at PERFECT.
+## 3, the top one, worth 21 Control XP at PERFECT.
 const LEFT_ZONE: int = 1
 const TOP_ZONE: int = 2
 
@@ -418,7 +418,7 @@ func test_scoring_pops_the_zone_floater_and_pellets() -> void:
 	assert_eq(zone.get_state(), CyclingZone.State.PERFECT, "precondition: a PERFECT")
 	var floater: LacquerFloater = _floaters()[TOP_ZONE]
 	assert_true(floater.visible)
-	assert_eq(floater.get_text(), "PERFECT +12 Control")
+	assert_eq(floater.get_text(), "PERFECT +21 Control")
 	assert_eq(floater.get_icons(), [StatDisplay.icon_of(CONTROL)] as Array[Texture2D], "Control's icon")
 	for other: LacquerFloater in _floaters():
 		if other != floater:
@@ -429,7 +429,7 @@ func test_scoring_pops_the_zone_floater_and_pellets() -> void:
 	assert_eq(_control_cell().get_shown_xp(), 0.0, "none of it has landed")
 	for pellet: LacquerPellet in pellets:
 		pellet._process(10.0)
-	assert_almost_eq(_control_cell().get_shown_xp(), 12.0, 0.0001, "all of it has landed")
+	assert_almost_eq(_control_cell().get_shown_xp(), 21.0, 0.0001, "all of it has landed")
 
 func test_a_capped_control_floater_sends_no_pellets() -> void:
 	CharacterManager.set_stat_level(CONTROL, CharacterManager.get_stat_level_cap())
@@ -441,7 +441,7 @@ func test_a_capped_control_floater_sends_no_pellets() -> void:
 	assert_true(floater.get_icons().is_empty(), "no icon")
 	assert_eq(_pellets().size(), 0, "a capped Control takes no XP, so none flies to it")
 
-## Control 2 XP short of the cap takes 2 of a PERFECT's 12: the floater says
+## Control 2 XP short of the cap takes 2 of a PERFECT's 21: the floater says
 ## what the hit was worth, and the pellets carry what Control took.
 func test_a_hit_that_reaches_the_cap_sends_what_control_took() -> void:
 	var below_cap: int = CharacterManager.get_stat_level_cap() - 1
@@ -450,7 +450,7 @@ func test_a_hit_that_reaches_the_cap_sends_what_control_took() -> void:
 	var zone: CyclingZone = _approach_zone(TOP_ZONE, 6.0)
 	assert_true(_technique.try_score_zone(zone))
 	assert_true(CharacterManager.is_stat_capped(CONTROL), "precondition: the hit reached the cap")
-	assert_eq(_floaters()[TOP_ZONE].get_text(), "PERFECT +12 Control")
+	assert_eq(_floaters()[TOP_ZONE].get_text(), "PERFECT +21 Control")
 	assert_eq(_stat_pellets(CONTROL).size(), CyclingRules.pellet_count(CyclingRules.Tier.PERFECT), "the tier's pellets fly")
 	assert_eq(_control_cell().get_shown_level(), below_cap, "the cell holds back what they carry")
 	assert_almost_eq(_control_cell().get_shown_xp(), short_of_cap, 0.0001, "2 XP in all")
@@ -503,7 +503,7 @@ func _burst_first_seal() -> SealNode:
 	assert_true(burst, "precondition: the ball bursts through the seal")
 	return seal
 
-## An opened seal pays Mind as the ball bursts through: its floater pops "+5"
+## An opened seal pays Mind as the ball bursts through: its floater pops "+9"
 ## with Mind's icon and name, and SEAL_PELLETS pellets fly in Mind's ramp to its
 ## cell.
 func test_an_open_seal_bursts_mind_pellets() -> void:
@@ -511,14 +511,14 @@ func test_an_open_seal_bursts_mind_pellets() -> void:
 	var floaters: Array[LacquerFloater] = _floaters()
 	assert_eq(floaters.size(), 3, "a floater for each seal node")
 	assert_true(floaters[0].visible, "the first seal's floater pops")
-	assert_eq(floaters[0].get_text(), "+5 Mind")
+	assert_eq(floaters[0].get_text(), "+9 Mind")
 	assert_eq(floaters[0].get_icons(), [StatDisplay.icon_of(MIND)] as Array[Texture2D], "Mind's icon")
 	var pellets: Array[LacquerPellet] = _stat_pellets(MIND)
 	assert_eq(pellets.size(), CyclingView.SEAL_PELLETS)
 	assert_eq(_mind_cell().get_shown_xp(), 0.0, "none of it has landed")
 	for pellet: LacquerPellet in pellets:
 		pellet._process(10.0)
-	assert_almost_eq(_mind_cell().get_shown_xp(), 5.0, 0.0001, "all of it has landed")
+	assert_almost_eq(_mind_cell().get_shown_xp(), 9.0, 0.0001, "all of it has landed")
 	await _await_queued_frees()
 
 func test_a_capped_mind_seal_floater() -> void:
@@ -544,11 +544,11 @@ func test_spirit_pellets_fly_to_spirit_s_cell() -> void:
 	_run(0.55, 60.0, true)
 	var puff: Array[LacquerPellet] = _spirit_pellets()
 	assert_eq(puff.size(), CyclingView.STAT_PELLETS, "one puff for the first half second")
-	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 1.0, 0.0001, "precondition: Spirit took Smooth Flow's 1 XP")
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.5 * 52.0 / 15.0, 0.0001, "precondition: Spirit took Smooth Flow's half second of XP")
 	assert_eq(_spirit_cell().get_shown_xp(), 0.0, "none of it has landed")
 	for pellet: LacquerPellet in puff:
 		pellet._process(10.0)
-	assert_almost_eq(_spirit_cell().get_shown_xp(), 1.0, 0.0001, "all of it has landed")
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.5 * 52.0 / 15.0, 0.0001, "all of it has landed")
 
 func test_no_spirit_pellets_at_the_cap() -> void:
 	CharacterManager.set_stat_level(CharacterAttributesData.AttributeType.SPIRIT, CharacterManager.get_stat_level_cap())
@@ -564,9 +564,9 @@ func test_hiding_the_view_pays_the_spirit_xp_without_pellets() -> void:
 	_run(0.3, 60.0, true)
 	assert_eq(_spirit_pellets().size(), 0, "precondition: no half second paid yet")
 	_view.hide()
-	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.6, 0.0001, "0.3 s of Smooth Flow's 2 a second")
+	assert_almost_eq(CharacterManager.get_stat_xp(CharacterAttributesData.AttributeType.SPIRIT), 0.3 * 52.0 / 15.0, 0.0001, "0.3 s of Smooth Flow's 52 XP over 15 s")
 	assert_eq(_spirit_pellets().size(), 0, "no pellet flies from the hidden board")
-	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.6, 0.0001, "and the cell shows it at once")
+	assert_almost_eq(_spirit_cell().get_shown_xp(), 0.3 * 52.0 / 15.0, 0.0001, "and the cell shows it at once")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
