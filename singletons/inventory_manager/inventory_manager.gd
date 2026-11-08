@@ -33,10 +33,10 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 func get_inventory() -> InventoryData:
-	return live_save_data.inventory
+	return _live_save().inventory
 
 func get_material_items() -> Dictionary[MaterialDefinitionData, int]:
-	return live_save_data.inventory.materials
+	return _live_save().inventory.materials
 
 ## Returns the quest items dict from live save data (definition → quantity).
 func get_quest_items() -> Dictionary[ItemDefinitionData, int]:
@@ -336,6 +336,14 @@ func swap_consumable_slots(from_slot: int, to_slot: int) -> void:
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## The live save, bound on first use too: an autoload that loads earlier can ask
+## before _ready() has run (ResourceManager's first signals run the unlock sweep,
+## whose item conditions call has_item()).
+func _live_save() -> SaveGameData:
+	if live_save_data == null:
+		live_save_data = PersistenceManager.save_game_data
+	return live_save_data
 
 func _award_material(material: MaterialDefinitionData, quantity: int) -> void:
 	if live_save_data.inventory.materials.has(material):
