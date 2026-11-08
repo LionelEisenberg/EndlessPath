@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_u1vlc")
 stage_name = "Foundation"
-core_density_base_xp_cost = 5.0
+core_density_base_xp_cost = 7.0
 core_xp_scaling_factor = 1.01
 max_core_density_level = 100
 core_density_star_count = 10

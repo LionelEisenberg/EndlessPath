@@ -9,7 +9,7 @@ extends GutTest
 ## its bead pops where its stage says (#149: no word, no reason, nothing unpaid),
 ## and a set played to its last rep pays its XP, flashes the beads' frame, and is
 ## counted and reported. The hold belongs to the kind of input that
-## started it. Every test runs on a fresh save with the real Stone Lifting (6
+## started it. Every test runs on a fresh save with the real Stone Lifting (15
 ## Strength XP and 4 Health a Perfect rep, a 4 s Auto pace, 10 to a set) unless it
 ## readies another drill, with the original save put back after it.
 
@@ -196,8 +196,8 @@ func test_a_horse_stance_rep_restores_health_and_stores_body() -> void:
 	_at(2.0)
 	assert_eq(_bead_frames()[0], 1, "a Perfect rep after its 2 s in the arc")
 	assert_eq(ResourceManager.get_health(), 54.0, "its Health at once")
-	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 8.0, "Horse Stance's Strength XP, stored")
-	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 4.0, "and its Body XP")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 21.0, "Horse Stance's Strength XP, stored")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 10.5, "and its Body XP")
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "paid when the set ends")
 
 ## The needle and the arc stand where the run has them, and the brass gauge shows
@@ -284,8 +284,8 @@ func test_a_falling_leaf_catch_stores_agility() -> void:
 	_at(1.8)
 	assert_eq(_bead_frames()[0], 1, "a Perfect catch")
 	assert_eq(ResourceManager.get_health(), 52.0, "its Health at once")
-	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 4.0, "Falling Leaf's Strength XP, stored")
-	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.AGILITY), 2.0, "and its Agility XP")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 10.5, "Falling Leaf's Strength XP, stored")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.AGILITY), 6.0, "and its Agility XP")
 	var ring: Control = _play.get_stage().get_node("%CatchRing") as Control
 	assert_true(ring.visible, "the ring shows")
 	assert_eq(ring.position + ring.size / 2.0, LEAF_HALF, "where the click came")
@@ -325,8 +325,8 @@ func test_a_waterfall_brace_stores_body() -> void:
 	_play.handle_press_event(_press())
 	assert_eq(_bead_frames()[0], 1, "a Perfect brace")
 	assert_eq(ResourceManager.get_health(), 53.0, "its Health at once")
-	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 6.0, "Waterfall Tempering's Strength XP, stored")
-	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 3.0, "and its Body XP")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 15.0, "Waterfall Tempering's Strength XP, stored")
+	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.BODY), 7.5, "and its Body XP")
 
 ## The next surge waits at the ledge until a press sends it; it rides down to the
 ## line exactly when a brace is Perfect; a braced surge is gone, one nobody braced
@@ -421,14 +421,17 @@ func test_reps_pay_health_and_the_set_s_end_pays_xp() -> void:
 	_lift(9, CENTRE)
 	_at(40.0)
 	assert_signal_emit_count(_play, "rep_judged", 10, "ten reps judged")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "ten Perfect reps of Strength XP at the set's end")
+	# Ten Perfect reps pay 150 Strength XP: all of Lv 2's 100, so paid they read as
+	# the level, and 50 toward Lv 3.
+	assert_eq(CharacterManager.get_stat_level(AttributeType.STRENGTH), 2, "ten Perfect reps' 150 Strength XP buy Lv 2 at the set's end")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 50.0, "with 50 XP toward Lv 3 over")
 	assert_eq(ResourceManager.get_health(), 90.0)
 	assert_eq(_bead_frames(), [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] as Array[int], "every bead lit brass")
 	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported once")
 	var completed: Array = get_signal_parameters(_play, "set_completed")
 	if not completed.is_empty():
 		assert_true((completed[0] as DrillSetResult).is_perfect(), "a perfect set")
-		assert_eq((completed[0] as DrillSetResult).get_stat_xp(AttributeType.STRENGTH), 60.0, "holding what Strength took")
+		assert_eq((completed[0] as DrillSetResult).get_stat_xp(AttributeType.STRENGTH), 150.0, "holding what Strength took")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "and counted")
 	assert_false(_play.is_set_running())
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
@@ -443,7 +446,7 @@ func test_rep_judged_reports_what_was_stored() -> void:
 		return
 	assert_eq((params[0] as DrillRun.Judgement).tier, Tier.PERFECT)
 	assert_eq(params[1], 4.0, "the Health restored")
-	assert_eq(params[2], {AttributeType.STRENGTH: 6.0}, "the XP each stat stored")
+	assert_eq(params[2], {AttributeType.STRENGTH: 15.0}, "the XP each stat stored")
 
 ## Review Focus 2: no clock. Two reps, then a minute's wait judges nothing, and the
 ## next press plays the third rep.
@@ -491,7 +494,7 @@ func test_stopping_mid_set_pays_the_stored_xp_and_counts_nothing() -> void:
 	_lift(1, CENTRE)
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0, "precondition: the XP is stored")
 	_play.stop_set()
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "the two reps' XP is paid")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 30.0, "the two reps' XP is paid")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "a stopped set is not counted")
 	assert_signal_emit_count(_play, "set_completed", 0, "nor reported")
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
@@ -509,7 +512,8 @@ func test_stopping_after_the_tenth_rep_finishes_the_set() -> void:
 	_play.stop_set()
 	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "and counted")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, "its XP paid")
+	assert_eq(CharacterManager.get_stat_level(AttributeType.STRENGTH), 2, "its 150 XP paid: all of Lv 2's cost")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 50.0, "with 50 XP toward Lv 3 over")
 	assert_false(_play.is_set_running())
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
 
@@ -519,7 +523,7 @@ func test_closing_the_window_mid_set_pays_the_stored_xp() -> void:
 	_lift(0, CENTRE)
 	_lift(1, CENTRE)
 	_play._notification(NOTIFICATION_WM_CLOSE_REQUEST)
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, "the two reps' XP is paid")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 30.0, "the two reps' XP is paid")
 	assert_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 0.0, "and none is left to pay twice")
 
 #-----------------------------------------------------------------------------
@@ -619,7 +623,7 @@ func test_a_capped_minor_stat_takes_no_xp() -> void:
 	assert_eq(ResourceManager.get_health(), 54.0, "Health still refills")
 	_play.stop_set()
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), body_xp, "Body takes no XP")
-	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 8.0, "Strength still does")
+	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 21.0, "Strength still does")
 
 ## The result notes the bead each rep lit, for the Last set card.
 func test_the_result_reads_the_reps_in_bead_order() -> void:
@@ -786,12 +790,12 @@ func test_auto_plays_reps_at_the_auto_rate_and_pace() -> void:
 	if params.size() == 3:
 		assert_eq((params[0] as DrillRun.Judgement).tier, Tier.AUTO, "an Auto rep")
 	assert_almost_eq(ResourceManager.get_health(), 21.6, 0.0001, "0.4 of 4 Health")
-	assert_almost_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 2.4, 0.0001, "0.4 of 6 Strength XP, stored")
+	assert_almost_eq(_play.get_result().get_stored_stat_xp(AttributeType.STRENGTH), 6.0, 0.0001, "0.4 of 15 Strength XP, stored")
 	assert_eq(_bead_frames()[0], 1, "its bead lights Perfect's frame")
 	assert_eq(_play._beads[0].self_modulate, DrillPlay.AUTO_BEAD_TINT, "dimmed")
 	_frames_to(38.5)
 	assert_signal_emit_count(_play, "rep_judged", 10, "ten reps a set, the last stone down by 38.5 s")
-	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 24.0, 0.0001, "a set pays 24 Strength XP as it ends")
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 60.0, 0.0001, "a set pays 60 Strength XP as it ends")
 	assert_signal_emit_count(_play, "set_completed", 1, "the set is reported")
 	var completed: Array = get_signal_parameters(_play, "set_completed")
 	if not completed.is_empty():
@@ -828,7 +832,7 @@ func test_turning_auto_off_drops_its_set() -> void:
 	_frames_to(9.0)
 	_play.set_auto_play(false)
 	assert_false(_play.is_set_running())
-	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 4.8, 0.0001, "two reps' XP paid at the stop")
+	assert_almost_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 12.0, 0.0001, "two reps' XP paid at the stop")
 	assert_signal_emit_count(_play, "set_completed", 0, "the set is not reported")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "nor counted")
 	_at(10.0)

@@ -359,10 +359,10 @@ func test_cycles_to_next_level_reads_the_equipped_technique() -> void:
 	CharacterManager.set_stat_level(Attribute.CONTROL, 2, 30.0)
 	var cases: Array[Array] = [
 		# stat, technique, cycles
-		[Attribute.SPIRIT, smooth, ceili((CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) - 40.0) / 30.0)],
-		[Attribute.CONTROL, smooth, 4],
+		[Attribute.SPIRIT, smooth, ceili((CharacterManager.get_stat_xp_to_next(Attribute.SPIRIT) - 40.0) / 104.0)],
+		[Attribute.CONTROL, smooth, 2],
 		[Attribute.MIND, smooth, 0],
-		[Attribute.MIND, torrential, 7],
+		[Attribute.MIND, torrential, 4],
 		[Attribute.STRENGTH, smooth, 0],
 		[Attribute.SPIRIT, null, 0],
 	]
@@ -394,10 +394,10 @@ func test_sets_to_next_level_reads_the_equipped_drill() -> void:
 		# stat, drill, sets
 		[Attribute.STRENGTH, stone, ceili(strength_left / DrillRules.perfect_set_xp(stone, Attribute.STRENGTH))],
 		[Attribute.STRENGTH, leaf, ceili(strength_left / DrillRules.perfect_set_xp(leaf, Attribute.STRENGTH))],
-		[Attribute.BODY, horse, 3],
+		[Attribute.BODY, horse, 1],
 		[Attribute.BODY, stone, 0],
 		[Attribute.BODY, leaf, 0],
-		[Attribute.AGILITY, leaf, 6],
+		[Attribute.AGILITY, leaf, 2],
 		[Attribute.AGILITY, horse, 0],
 		[Attribute.SPIRIT, stone, 0],
 		[Attribute.STRENGTH, null, 0],
@@ -435,7 +435,7 @@ func test_the_cycles_line_follows_the_equipped_technique() -> void:
 	_view.select_attribute(Attribute.CONTROL)
 	_view.refresh()
 	assert_true((_view.get_node("%EstimateRow") as Control).visible, "Smooth Flow trains Control, so its page counts cycles")
-	assert_eq(_label("EstimateLabel").text, CharacterView.cycles_line(4, 3))
+	assert_eq(_label("EstimateLabel").text, CharacterView.cycles_line(2, 3))
 	_equip_technique(FOUNDATIONAL)
 	assert_false((_view.get_node("%EstimateRow") as Control).visible,
 		"equipping a technique that pays Control nothing hides the line at once")
@@ -489,7 +489,7 @@ func test_the_sets_line_follows_the_equipped_drill() -> void:
 	_view.select_attribute(Attribute.BODY)
 	_view.refresh()
 	assert_true((_view.get_node("%EstimateRow") as Control).visible, "Horse Stance trains Body, so its page counts sets")
-	assert_eq(_label("EstimateLabel").text, CharacterView.sets_line(3, 3))
+	assert_eq(_label("EstimateLabel").text, CharacterView.sets_line(1, 3))
 	BodyRefiningManager.equip_drill(STONE_LIFTING)
 	assert_false((_view.get_node("%EstimateRow") as Control).visible,
 		"equipping a drill that pays Body nothing hides the line at once")

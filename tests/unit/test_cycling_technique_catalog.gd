@@ -126,9 +126,9 @@ func test_every_zone_writes_out_its_tier_xp() -> void:
 ## What a cycle at its best pays each technique's stats, as #91 and #99 set them.
 func test_the_roster_s_xp_per_cycle() -> void:
 	var expected: Dictionary = {
-		"foundation_technique": {AttributeType.SPIRIT: 15.0, AttributeType.MIND: 0.0, AttributeType.CONTROL: 0.0},
-		"smooth_flow": {AttributeType.SPIRIT: 30.0, AttributeType.MIND: 0.0, AttributeType.CONTROL: 30.0},
-		"torrential_flow": {AttributeType.SPIRIT: 16.0, AttributeType.MIND: 15.0, AttributeType.CONTROL: 0.0},
+		"foundation_technique": {AttributeType.SPIRIT: 52.0, AttributeType.MIND: 0.0, AttributeType.CONTROL: 0.0},
+		"smooth_flow": {AttributeType.SPIRIT: 104.0, AttributeType.MIND: 0.0, AttributeType.CONTROL: 51.0},
+		"torrential_flow": {AttributeType.SPIRIT: 56.0, AttributeType.MIND: 27.0, AttributeType.CONTROL: 0.0},
 	}
 	var seen: int = 0
 	for technique: CyclingTechniqueData in _techniques():

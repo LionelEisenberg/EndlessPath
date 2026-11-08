@@ -51,9 +51,9 @@ func test_a_cycle_of_no_length_pays_no_madra_per_second() -> void:
 ## A second of following pays spirit_xp_per_cycle over cycle_duration.
 func test_spirit_xp_per_second() -> void:
 	var cases: Array[Dictionary] = [
-		{"path": "res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres", "expected": 1.5},
-		{"path": "res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres", "expected": 2.0},
-		{"path": "res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres", "expected": 2.0},
+		{"path": "res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres", "expected": 5.2},
+		{"path": "res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres", "expected": 104.0 / 15.0},
+		{"path": "res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres", "expected": 7.0},
 	]
 	for case: Dictionary in cases:
 		var technique: CyclingTechniqueData = load(case.path)
