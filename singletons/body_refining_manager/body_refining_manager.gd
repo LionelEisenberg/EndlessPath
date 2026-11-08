@@ -9,12 +9,16 @@ extends Node
 ## XP earned past the cap is lost, recording in the result what each stat took. It
 ## also holds a snapshot of the set being played, for the Now strip, and counts
 ## each set played to its last rep in the play stats (finish_set()).
-## It keeps which drills' Auto a perfect set has unlocked (unlock_auto()).
-## Modelled on CyclingManager.
+## It keeps which drills' Auto a perfect set has unlocked (unlock_auto()), and
+## the last finished set's result for the zone chest's Last set card (never
+## saved: set_last_set_result()). Modelled on CyclingManager.
 
 signal drill_unlocked(drill: DrillData)
 signal equipped_drill_changed(drill: DrillData)
 signal auto_unlocked(drill: DrillData)
+## The last finished set changed: a set ended (its result), or it was forgotten
+## (null).
+signal last_set_changed(result: DrillSetResult)
 
 const AttributeType = CharacterAttributesData.AttributeType
 const Tier = DrillRules.Tier
@@ -28,6 +32,8 @@ var _set_running: bool = false
 var _set_reps: int = 0
 var _set_rep: int = 0
 var _rep_progress: float = 0.0
+## The last set played to its last rep, for the chest's card. Never saved.
+var _last_set_result: DrillSetResult = null
 
 func _ready() -> void:
 	_build_catalog_index()
@@ -261,6 +267,27 @@ func finish_set(result: DrillSetResult) -> void:
 		_live_save_data.stats.count_set_finished()
 	end_set_session()
 
+# ----- The last set -----
+
+## Records `result` as the last finished set's, for the chest to show under the
+## Now tray. The body refining board calls it when a set ends. It counts nothing:
+## finish_set() counted the set.
+func set_last_set_result(result: DrillSetResult) -> void:
+	_last_set_result = result
+	last_set_changed.emit(result)
+
+## Forgets the last finished set, as the board does when it opens or switches
+## drill. Announces it only if there was one.
+func clear_last_set_result() -> void:
+	if _last_set_result == null:
+		return
+	_last_set_result = null
+	last_set_changed.emit(null)
+
+## Returns the last finished set's result, or null when none is kept.
+func get_last_set_result() -> DrillSetResult:
+	return _last_set_result
+
 # ----- Private -----
 
 ## Pays `stat` `xp` through CharacterManager.add_stat_xp(), and records what the
@@ -291,3 +318,4 @@ func _initialize_seen_drills() -> void:
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
 	_initialize_seen_drills()
+	clear_last_set_result()

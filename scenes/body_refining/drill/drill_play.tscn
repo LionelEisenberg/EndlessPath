@@ -154,10 +154,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="WordFloater" parent="Floaters" unique_id=665682297 instance=ExtResource("8_floater")]
-unique_name_in_owner = true
-layout_mode = 0
-
-[node name="LineFloater" parent="Floaters" unique_id=202837663 instance=ExtResource("8_floater")]
+[node name="RepFloater" parent="Floaters" unique_id=665682297 instance=ExtResource("8_floater")]
 unique_name_in_owner = true
 layout_mode = 0

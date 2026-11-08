@@ -54,6 +54,7 @@ func before_each() -> void:
 func after_each() -> void:
 	CharacterManager.remove_modifier_source(TEST_SOURCE)
 	BodyRefiningManager.end_set_session()
+	BodyRefiningManager.clear_last_set_result()
 	BodyRefiningManager._drills_by_id = _saved_drills_by_id
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
@@ -427,3 +428,32 @@ func test_a_rep_of_no_drill_pays_nothing() -> void:
 	assert_push_error("cannot pay a rep of no drill")
 	assert_eq(ResourceManager.get_health(), 50.0)
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 0.0)
+
+#-----------------------------------------------------------------------------
+# THE LAST SET
+#-----------------------------------------------------------------------------
+
+## The last finished set is kept for the chest's card and announced as it comes
+## and goes. Keeping it counts nothing: finish_set() counted the set already.
+func test_the_last_set_is_kept_and_announced() -> void:
+	assert_null(BodyRefiningManager.get_last_set_result(), "none on a new save")
+	var result := DrillSetResult.new(_starting_drill)
+	watch_signals(BodyRefiningManager)
+	BodyRefiningManager.set_last_set_result(result)
+	assert_eq(BodyRefiningManager.get_last_set_result(), result)
+	assert_signal_emitted_with_parameters(BodyRefiningManager, "last_set_changed", [result])
+	assert_eq(_save_data.stats.sets_finished, 0, "keeping a set counts nothing")
+	BodyRefiningManager.clear_last_set_result()
+	assert_null(BodyRefiningManager.get_last_set_result())
+	assert_signal_emitted_with_parameters(BodyRefiningManager, "last_set_changed", [null])
+
+func test_clearing_no_last_set_announces_nothing() -> void:
+	watch_signals(BodyRefiningManager)
+	BodyRefiningManager.clear_last_set_result()
+	assert_signal_not_emitted(BodyRefiningManager, "last_set_changed")
+
+## A save swapped in (a load, a new game, a dev session) forgets the last set.
+func test_a_save_reset_forgets_the_last_set() -> void:
+	BodyRefiningManager.set_last_set_result(DrillSetResult.new(_starting_drill))
+	PersistenceManager.save_data_reset.emit()
+	assert_null(BodyRefiningManager.get_last_set_result())

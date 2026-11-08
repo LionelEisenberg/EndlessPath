@@ -7,9 +7,10 @@ extends Control
 ## count followed by its item's 16 px icon, "+3 [dewdrop]  +4 [fern]"
 ## (pop_items: the user's review, 2026-10-24, icons over names), a stat's gain
 ## with its icon before its name, "PERFECT +12 [Control icon] Control"
-## (pop_stat), or any icons and text in order, "[arm] capped" (pop_parts). The
-## token is 28 px tall and even(content width + 28) wide, its 2 px shadow baked
-## into the 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright.
+## (pop_stat), any icons and text in order, "[arm] capped" (pop_parts), or a lone
+## icon at its own size, the drill board's rep bead (pop_icon). The token is 28 px
+## tall and even(content width + 28) wide, its 2 px shadow baked into the 9-slice;
+## for a lone icon it is the icon and ICON_INSET px round it. It rises 40 px over 1 s in 2 px steps, then hides outright.
 ## It does not move itself: the placer positions it each frame and raises it by
 ## get_rise() (MapMarkers for the map's floater, the cycling view for the
 ## floater of each zone and seal node).
@@ -34,6 +35,9 @@ const TOKEN_SHADOW: int = 2
 ## A haul's item icons are drawn at 16 px; two spaces stand between its items.
 const ITEM_ICON_SIZE: int = 16
 const ITEM_SEPARATOR: String = "  "
+## A lone icon stands this far inside the token's top left, and as far from its
+## right and bottom (before the shadow).
+const ICON_INSET: int = 8
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -41,6 +45,7 @@ const ITEM_SEPARATOR: String = "  "
 
 @onready var _token: Panel = %Token
 @onready var _text: RichTextLabel = %Text
+@onready var _icon: TextureRect = %Icon
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -119,7 +124,7 @@ func pop_stat(lead: String, stat: CharacterAttributesData.AttributeType, color: 
 
 ## Shows icons and text in color on the token, in the order given, and starts its
 ## rise: each part a String, or a Texture2D drawn at ITEM_ICON_SIZE ("[arm]
-## capped", the body refining board's line under a rep's tier). get_text() gives
+## capped"). get_text() gives
 ## the text parts joined, get_icons() the icons.
 func pop_parts(parts: Array, color: Color) -> void:
 	var texts: PackedStringArray = []
@@ -134,6 +139,26 @@ func pop_parts(parts: Array, color: Color) -> void:
 			_text.add_text(str(part))
 	_plain_text = "".join(texts)
 	_start(color)
+
+## Shows `icon` alone at its own size on the token, tinted by `tint`, and starts
+## its rise: the drill board's rep bead. get_icons() gives the icon, get_text() is
+## empty and get_color() is the tint.
+func pop_icon(icon: Texture2D, tint: Color = Color.WHITE) -> void:
+	_plain_text = ""
+	_icons.assign([icon])
+	_color = tint
+	_text.clear()
+	_text.hide()
+	_icon.texture = icon
+	_icon.self_modulate = tint
+	_icon.position = Vector2(ICON_INSET, ICON_INSET)
+	_icon.size = icon.get_size()
+	_icon.show()
+	var token: Vector2 = icon.get_size() + Vector2.ONE * 2 * ICON_INSET
+	_token_width = int(token.x)
+	_token.size = token + Vector2.ONE * TOKEN_SHADOW
+	size = _token.size
+	_rise()
 
 ## Hides the floater outright.
 func stop() -> void:
@@ -150,7 +175,7 @@ func get_text() -> String:
 func get_icons() -> Array[Texture2D]:
 	return _icons.duplicate()
 
-## The text colour.
+## The text colour, or a lone icon's tint.
 func get_color() -> Color:
 	return _color
 
@@ -173,9 +198,11 @@ static func rise_at(elapsed: float) -> int:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## Colours the content, sizes the token to it and starts the rise.
+## Colours the text, sizes the token to it and starts the rise.
 func _start(color: Color) -> void:
 	_color = color
+	_icon.hide()
+	_text.show()
 	_text.add_theme_color_override("default_color", color)
 	var text_width: int = ceili(_text.get_content_width())
 	_token_width = text_width + TOKEN_TEXT_PADDING
@@ -183,6 +210,10 @@ func _start(color: Color) -> void:
 	_token.size = Vector2(_token_width + TOKEN_SHADOW, TOKEN_HEIGHT + TOKEN_SHADOW)
 	_text.size = Vector2(_token_width, _text.size.y)
 	size = _token.size
+	_rise()
+
+## Starts the rise from the bottom.
+func _rise() -> void:
 	_elapsed = 0.0
 	show()
 	set_process(true)

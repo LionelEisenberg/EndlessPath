@@ -3,8 +3,8 @@ extends GutTest
 ## Integration tests for BodyRefiningView, the body refining board in the map gap:
 ## its header names the action and the drill, and under them what a Perfect rep
 ## pays at the player's Strength, with Strength's icon and the Health heart; the
-## footer tells how to start, then how to play, then what the last set paid; a
-## finished set writes one log line; each scored rep sends its pellets from its
+## footer tells how to start, then how to play, and never what a set paid (#149);
+## a finished set becomes the chest's last set and writes one log line; each scored rep sends its pellets from its
 ## stage to the cabinet, Strength's to its cell and Health's to the orb, carrying
 ## only what was taken; closing mid-set keeps what was paid and reports nothing.
 ## The cabinet stands beside the view, as MainView hands it over. Every test runs on
@@ -172,18 +172,18 @@ func test_the_status_line_follows_the_set() -> void:
 	for rep: int in range(1, 10):
 		_lift(rep, CENTRE)
 	_at(40.0)
-	var text: String = _view.get_status_text()
-	assert_string_contains(text, "Last set")
-	assert_string_contains(text, "Perfect set", "ten Perfect reps")
-	assert_string_contains(text, "+60 XP")
-	assert_string_contains(text, "+40")
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line, "the set ended: how to start the next, no result")
 
-func test_a_set_with_misses_reads_its_perfect_count() -> void:
+## A set played to its last rep becomes the chest's last set; it stays through the
+## next set until that one ends.
+func test_a_finished_set_becomes_the_last_set() -> void:
 	ResourceManager.set_health(20.0)
-	_play_set([CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, CENTRE, 1.2, 1.2, 0.9, 0.6])
-	var text: String = _view.get_status_text()
-	assert_string_contains(text, "6 / 10 perfect")
-	assert_false(text.contains("Perfect set"))
+	assert_null(BodyRefiningManager.get_last_set_result(), "none before a set")
+	_play_set(_ten(CENTRE))
+	var first: DrillSetResult = BodyRefiningManager.get_last_set_result()
+	assert_eq(first, _play.get_result(), "the set just played")
+	_lift(10, CENTRE)
+	assert_eq(BodyRefiningManager.get_last_set_result(), first, "kept while the next set runs")
 
 ## Counted by the signal, not the history, which keeps only the last 200 lines
 ## the scripts before this one logged.
@@ -340,6 +340,7 @@ func test_closing_mid_set_keeps_what_was_paid() -> void:
 	assert_eq(_plate_health(), "58", "shown at once, nothing left in flight")
 	assert_signal_not_emitted(LogManager, "message_logged", "no log line")
 	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 0, "no set counted")
+	assert_null(BodyRefiningManager.get_last_set_result(), "no last set")
 	assert_false(BodyRefiningManager.is_set_running(), "the session ended")
 	await wait_process_frames(1)
 	assert_eq(_node("EffectsLayer").get_children().filter(func(child: Node) -> bool: return child is LacquerPellet).size(), 0, "no pellet left")
@@ -370,10 +371,22 @@ func test_picking_another_drill_mid_set_keeps_what_was_paid() -> void:
 	_view.handle_press_event(_press())
 	assert_true(_play.get_run() is HorseStanceRun, "and the next press plays it")
 
-func test_reopening_starts_clean() -> void:
+func test_reopening_forgets_the_last_set() -> void:
 	_play_set(_ten(CENTRE))
 	_view.setup(ZoneManager.get_action_by_id(ACTION_ID))
-	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line, "the last set's line is gone")
+	assert_null(BodyRefiningManager.get_last_set_result())
+	assert_eq(_view.get_status_text(), BodyRefiningManager.get_equipped_drill().ready_line)
+
+## Picking another drill forgets the last set, even one that finished as the pick
+## stopped it: its tenth rep had landed while its stone settled.
+func test_picking_another_drill_forgets_the_last_set() -> void:
+	BodyRefiningManager.unlock_drill("horse_stance")
+	for rep: int in 10:
+		_lift(rep, CENTRE)
+	assert_true(_play.is_set_running(), "precondition: the tenth stone is still settling")
+	BodyRefiningManager.equip_drill("horse_stance")
+	assert_eq(PersistenceManager.save_game_data.stats.sets_finished, 1, "the set finished")
+	assert_null(BodyRefiningManager.get_last_set_result(), "and is not the new drill's last set")
 
 func test_the_close_button_stops_the_action() -> void:
 	var action: ZoneActionData = ZoneManager.get_action_by_id(ACTION_ID)
@@ -516,8 +529,9 @@ func test_the_locked_toggle_shows_how_to_unlock() -> void:
 	_toggle().mouse_exited.emit()
 	assert_false(tooltip.visible)
 
-## With Auto on, the footer reads Auto's line, then the Auto set's line once it
-## ends, which stays through the next Auto set; the log line says Auto.
+## With Auto on, the footer reads Auto's line from an Auto set's start, through
+## its end and the wait for the next; the set becomes the last set, and the log
+## line says Auto.
 func test_the_footer_and_log_under_auto() -> void:
 	ResourceManager.set_health(20.0)
 	BodyRefiningManager.unlock_auto("stone_lifting")
@@ -526,15 +540,14 @@ func test_the_footer_and_log_under_auto() -> void:
 	assert_eq(_view.get_status_text(), BodyRefiningView.AUTO_LINE % 40)
 	watch_signals(LogManager)
 	_frames(0.5, 38.5)
-	var text: String = _view.get_status_text()
-	assert_string_contains(text, "Last set · Auto · ", "the Auto set's line")
-	assert_string_contains(text, "+24 XP")
-	assert_false(text.contains("perfect"), "no Perfect count")
+	assert_false(_play.is_set_running(), "precondition: the Auto set ended")
+	assert_eq(_view.get_status_text(), BodyRefiningView.AUTO_LINE % 40, "Auto's line through the wait")
+	assert_true(BodyRefiningManager.get_last_set_result().is_auto(), "the Auto set is the last set")
 	var line: String = get_signal_parameters(LogManager, "message_logged", 0)[0]
 	assert_eq(LogWindow.plain_text(line), "Set · Auto · +24 Strength XP · +16 Health")
 	_at(40.0)
 	assert_true(_play.is_set_running(), "the next Auto set started at Auto's pace, 40 s after the last")
-	assert_string_contains(_view.get_status_text(), "Last set · Auto", "the last set's line stays")
+	assert_eq(_view.get_status_text(), BodyRefiningView.AUTO_LINE % 40)
 
 ## Turning Auto on mid-set ends the played set there: its reps stay paid.
 func test_turning_auto_on_mid_set_ends_the_set() -> void:

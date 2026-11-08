@@ -5,7 +5,7 @@ extends Control
 ## The drill being played on the body refining board: the scene of the drill's
 ## input (a DrillStage under Stages, one for each input kind, the drill's alone
 ## showing), ten rep beads under it, a brass ring on the rep the player is on, the
-## beads' brass frame, and a pair of floaters. The drill's run
+## beads' brass frame, and the floater a rep's bead pops on. The drill's run
 ## (DrillRun.for_drill()) judges, the stage draws, and this plays the set.
 ##
 ## A set is ten reps at the player's own pace (#143): no clock runs. The first
@@ -17,13 +17,15 @@ extends Control
 ## only ever a rep's own motion (a stone dropping at the top, a stance lost, a leaf
 ## landing, a surge crashing through). Each judged rep restores its Health at once
 ## through BodyRefiningManager.pay_rep() and stores its XP on the set's result, a
-## MISS included (it earns nothing). Its bead lights in its tier's colour, its tier
-## pops where the stage says in that colour, and under it a Miss's reason, or, in
-## tan, what a scored rep could not pay: a trained stat's icon with "capped" while
-## that stat is capped, the Health heart with "full". Then rep_judged reports the
-## rep, the Health it restored and the XP each stat stored, for the board's
-## pellets, which leave from get_pellet_origin(), and, at the set's end, from each
-## bead (get_bead_origin()). Every timed effect reads clock_usec.
+## MISS included (it earns nothing), and the result notes the bead it lit. Its bead
+## lights in its tier's look, and the same bead pops where the stage says, at its
+## own 24 px on a token (#149): Perfect brass, Good cream, OK tan, Miss crossed in
+## crimson. No word pops: a Miss's reason is the stage's to show (the stone's red
+## stop line, the needle out of the arc, the leaf on the ground, the surge through
+## the line), and what a rep could not pay is the pay line's and the Last set
+## card's. Then rep_judged reports the rep, the Health it restored and the XP each
+## stat stored, for the board's pellets, which leave from get_pellet_origin(), and,
+## at the set's end, from each bead (get_bead_origin()). Every timed effect reads clock_usec.
 ##
 ## While a set runs it keeps BodyRefiningManager's set session up to date for the
 ## Now strip (the rep the player is on and the rep in play's motion), and the ring
@@ -42,9 +44,9 @@ extends Control
 ## (is_auto_running()), the play starts a set by itself whenever none runs and
 ## Auto's pace allows (a set no sooner than DrillRun.get_auto_set_usec() after the
 ## last one's start), and the run plays it (DrillRun.play_auto()). Each rep it
-## judges is paid as an AUTO rep: "Auto" pops in tan, and its bead lights
-## Perfect's frame dimmed. A press while Auto runs plays nothing. Turning Auto on or
-## off drops a set in progress, and the next starts at once.
+## judges is paid as an AUTO rep: its bead lights Perfect's frame dimmed, and pops
+## so. A press while Auto runs plays nothing. Turning Auto on or off drops a set in
+## progress, and the next starts at once.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -69,30 +71,9 @@ const AttributeType = CharacterAttributesData.AttributeType
 ## The drill's input.
 const PRESS_ACTION: StringName = &"drill_press"
 
-## How far under the tier word its second line stands.
-const LINE_DROP: float = 30.0
-
-## Each tier's word and colour (a hit's as cycling's; a Miss in the warning
-## colour, as the Tribulation's), and a Miss's reasons.
-const TIER_WORDS: Dictionary = {Tier.PERFECT: "Perfect", Tier.GOOD: "Good", Tier.OK: "OK", Tier.MISS: "Miss", Tier.AUTO: "Auto"}
-const MISS_REASONS: Dictionary = {
-	Miss.TOO_LOW: "Too low",
-	Miss.DROPPED: "Dropped",
-	Miss.TOO_LATE: "Too late",
-	Miss.TOO_DEEP: "Too deep",
-	Miss.TOO_SHALLOW: "Too shallow",
-	Miss.TOO_EARLY: "Too early",
-	Miss.TOO_FAR: "Too far",
-	Miss.LANDED: "Landed",
-	Miss.BUCKLED: "Buckled",
-}
-
-## What a scored rep could not pay, after its icon, and the gap between two parts.
-const CAPPED_TEXT: String = " capped"
-const FULL_TEXT: String = " full"
-const PART_GAP: String = "  "
-const HEALTH_ICON: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
-
+## The beads' strip, a frame each: the empty socket, then each tier's bead.
+const BEAD_STRIP: Texture2D = preload("res://assets/ui/lacquer/body_refining/lacquer_drill_beads_ai.png")
+const BEAD_SIZE: Vector2 = Vector2(24, 24)
 ## The bead strip's frame for each tier; frame 0 is the empty socket.
 const EMPTY_BEAD: int = 0
 ## An Auto rep lights Perfect's frame, dimmed by AUTO_BEAD_TINT.
@@ -111,8 +92,7 @@ const SET_FLASH_TIMES: int = 2
 @onready var _beads_box: HBoxContainer = %Beads
 @onready var _bead_mark: TextureRect = %BeadMark
 @onready var _set_frame: LacquerFrameOverlay = %SetFrame
-@onready var _word_floater: LacquerFloater = %WordFloater
-@onready var _line_floater: LacquerFloater = %LineFloater
+@onready var _rep_floater: LacquerFloater = %RepFloater
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -136,8 +116,8 @@ var _start_usec: int = 0
 ## Whether the input is held, and whether the mouse button holds it (a key otherwise).
 var _holding: bool = false
 var _hold_by_mouse: bool = false
-## Where the tier word popped, before its rise.
-var _word_at: Vector2 = Vector2.ZERO
+## Where the rep's bead popped, before its rise.
+var _pop_at: Vector2 = Vector2.ZERO
 var _beads: Array[LacquerStripRect] = []
 ## Whether each bead is lit in the set running or last run.
 var _lit: Array[bool] = []
@@ -148,6 +128,10 @@ var _auto_set: bool = false
 ## When Auto's pace lets its next set start, on clock_usec: 0 when it may start at
 ## once.
 var _auto_ready_usec: int = 0
+
+## Each bead frame's texture, for the pop and the Last set card: frame to
+## AtlasTexture, made once.
+static var _bead_textures: Dictionary = {}
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -180,7 +164,7 @@ func _process(_delta: float) -> void:
 			if end_usec >= 0 and t >= end_usec:
 				_finish()
 	_place_mark()
-	_place_floaters()
+	_place_floater()
 
 func _notification(what: int) -> void:
 	var focus_lost: bool = what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT
@@ -227,7 +211,7 @@ func handle_press_event(event: InputEvent) -> bool:
 ## Drops a set in progress: its reps' Health stays, the XP they stored is paid,
 ## and it is neither counted nor reported. A set whose last rep has landed, its
 ## piece still coming back to rest, is finished instead: paid, counted and
-## reported. The session ends, the hold is let go, the floaters and the ring hide
+## reported. The session ends, the hold is let go, the floater and the ring hide
 ## and the stage goes back to rest. The beads keep what they showed. Auto's next
 ## set may start at once.
 func stop_set() -> void:
@@ -240,8 +224,7 @@ func stop_set() -> void:
 	_holding = false
 	_auto_ready_usec = 0
 	if is_node_ready():
-		_word_floater.stop()
-		_line_floater.stop()
+		_rep_floater.stop()
 		_bead_mark.hide()
 		if _stage != null:
 			_stage.show_rest()
@@ -284,6 +267,21 @@ func get_run() -> DrillRun:
 ## Returns the stage showing, the drill's input's, or null before a drill is readied.
 func get_stage() -> DrillStage:
 	return _stage
+
+## Returns the bead a rep of `tier` lights, at 24 px: the pop's icon and the Last
+## set card's beads. An AUTO rep's is Perfect's, which is dimmed by
+## AUTO_BEAD_TINT where it shows.
+static func bead_icon(tier: Tier) -> Texture2D:
+	return bead_frame_texture(BEAD_FRAMES[tier])
+
+## Returns the bead strip's frame `frame` as a texture (EMPTY_BEAD: the socket).
+static func bead_frame_texture(frame: int) -> Texture2D:
+	if not _bead_textures.has(frame):
+		var atlas := AtlasTexture.new()
+		atlas.atlas = BEAD_STRIP
+		atlas.region = Rect2(Vector2(BEAD_SIZE.x * frame, 0.0), BEAD_SIZE)
+		_bead_textures[frame] = atlas
+	return _bead_textures[frame]
 
 ## Returns where a judged rep's pellets leave from, in the screen's space.
 func get_pellet_origin(judgement: DrillRun.Judgement) -> Vector2:
@@ -341,7 +339,7 @@ func _show_stage() -> void:
 		_stage.show_rest()
 
 ## Starts a set now, played by Auto when `auto`: a new run and result, the beads
-## empty and the floaters hidden, and the session running.
+## empty and the floater hidden, and the session running.
 func _start_set(auto: bool = false) -> void:
 	_start_usec = clock_usec.call()
 	_run = run_for.call(_drill, _start_usec)
@@ -349,8 +347,7 @@ func _start_set(auto: bool = false) -> void:
 	_set_running = true
 	_auto_set = auto
 	_empty_beads()
-	_word_floater.stop()
-	_line_floater.stop()
+	_rep_floater.stop()
 	BodyRefiningManager.start_set_session(_drill.reps_per_set)
 	set_started.emit()
 
@@ -368,6 +365,7 @@ func _apply(judgements: Array[DrillRun.Judgement]) -> void:
 			judgement.miss = Miss.NONE
 		var before: Dictionary = _stored_xp_now()
 		var health: float = BodyRefiningManager.pay_rep(_drill, judgement.tier, _result)
+		_result.place_last_rep(judgement.rep)
 		var stat_xp: Dictionary = {}
 		for stat: AttributeType in before:
 			stat_xp[stat] = _result.get_stored_stat_xp(stat) - before[stat]
@@ -375,13 +373,13 @@ func _apply(judgements: Array[DrillRun.Judgement]) -> void:
 		_beads[judgement.rep].self_modulate = AUTO_BEAD_TINT if judgement.tier == Tier.AUTO else Color.WHITE
 		_lit[judgement.rep] = true
 		_stage.show_judgement(judgement)
-		_pop(judgement, health, stat_xp)
+		_pop(judgement)
 		rep_judged.emit(judgement, health, stat_xp)
 		if not _set_running:
 			return
 
 ## The XP each stat the drill trains has stored this set so far. An Auto set trains
-## Strength alone: its other stat is not left unpaid, so no "capped" pops for it.
+## Strength alone, so it reports no XP for the other stat.
 func _stored_xp_now() -> Dictionary:
 	var xp: Dictionary = {AttributeType.STRENGTH: _result.get_stored_stat_xp(AttributeType.STRENGTH)}
 	if _drill.has_minor_stat() and not _auto_set:
@@ -420,62 +418,19 @@ func _place_mark() -> void:
 # DRAWING
 #-----------------------------------------------------------------------------
 
-## Pops the rep's tier where the stage says, in its colour, and under it a Miss's
-## reason, or what a scored rep could not pay; hides the line when there is none.
-func _pop(judgement: DrillRun.Judgement, health: float, stat_xp: Dictionary) -> void:
-	_word_at = _stage.position + _stage.get_floater_anchor(judgement)
-	_word_floater.pop(TIER_WORDS[judgement.tier], _tier_color(judgement.tier))
-	if judgement.tier == Tier.MISS:
-		_line_floater.pop(MISS_REASONS[judgement.miss], ThemeConstants.LACQUER_HEALTH)
-	else:
-		var parts: Array = _unpaid_parts(health, stat_xp)
-		if parts.is_empty():
-			_line_floater.stop()
-		else:
-			_line_floater.pop_parts(parts, ThemeConstants.LACQUER_TAN)
-	_place_floaters()
+## Pops the bead the rep lit where the stage says: dimmed for an Auto rep.
+func _pop(judgement: DrillRun.Judgement) -> void:
+	_pop_at = _stage.position + _stage.get_floater_anchor(judgement)
+	_rep_floater.pop_icon(bead_icon(judgement.tier), AUTO_BEAD_TINT if judgement.tier == Tier.AUTO else Color.WHITE)
+	_place_floater()
 
-## What a scored rep could not pay: the icon of each stat it trains that is capped,
-## so its stored XP will be lost, with "capped" (Strength first), and the Health
-## heart with "full" when it restored no Health.
-func _unpaid_parts(health: float, stat_xp: Dictionary) -> Array:
-	var parts: Array = []
-	for stat: AttributeType in stat_xp:
-		if not CharacterManager.is_stat_capped(stat):
-			continue
-		if not parts.is_empty():
-			parts.append(PART_GAP)
-		var mini: Texture2D = StatDisplay.mini_icon_of(stat)
-		parts.append_array([mini if mini != null else StatDisplay.name_of(stat), CAPPED_TEXT])
-	if health <= 0.0:
-		if not parts.is_empty():
-			parts.append(PART_GAP)
-		parts.append_array([HEALTH_ICON, FULL_TEXT])
-	return parts
-
-## Stands each floater that shows on its spot, raised by its rise, both moved left
-## together as far as the wider one needs to stay on the play.
-func _place_floaters() -> void:
-	var width: int = 0
-	if _word_floater.visible:
-		width = _word_floater.get_token_width()
-	if _line_floater.visible:
-		width = maxi(width, _line_floater.get_token_width())
-	var x: float = minf(_word_at.x, size.x - width)
-	if _word_floater.visible:
-		_word_floater.position = Vector2(x, _word_at.y - _word_floater.get_rise())
-	if _line_floater.visible:
-		_line_floater.position = Vector2(x, _word_at.y + LINE_DROP - _line_floater.get_rise())
-
-static func _tier_color(tier: Tier) -> Color:
-	match tier:
-		Tier.PERFECT:
-			return ThemeConstants.LACQUER_BRASS
-		Tier.GOOD:
-			return ThemeConstants.LACQUER_CREAM
-		Tier.OK, Tier.AUTO:
-			return ThemeConstants.LACQUER_TAN
-	return ThemeConstants.LACQUER_HEALTH
+## Stands the floater on its spot while it shows, raised by its rise, moved left as
+## far as it needs to stay on the play.
+func _place_floater() -> void:
+	if not _rep_floater.visible:
+		return
+	var x: float = minf(_pop_at.x, size.x - _rep_floater.get_token_width())
+	_rep_floater.position = Vector2(x, _pop_at.y - _rep_floater.get_rise())
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

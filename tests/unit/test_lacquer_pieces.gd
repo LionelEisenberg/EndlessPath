@@ -231,8 +231,7 @@ func test_pop_stat_shows_the_stat_s_icon_and_name() -> void:
 	assert_true(parsed.ends_with(" Control"), "the name comes after the icon: %s" % parsed)
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS, "in the colour given")
 
-## A floater can pop icons and text in any order: the body refining board's
-## "[Strength] capped" and "[Health] full" under a rep's tier.
+## A floater can pop icons and text in any order: "[Strength] capped".
 func test_floater_pops_parts_of_icons_and_text() -> void:
 	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
 	add_child_autofree(floater)
@@ -245,6 +244,33 @@ func test_floater_pops_parts_of_icons_and_text() -> void:
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_TAN)
 	assert_eq(floater.get_token_width() % 2, 0, "the token stays an even width")
 	assert_gt(floater.get_token_width(), LacquerFloater.TOKEN_TEXT_PADDING + LacquerFloater.ITEM_ICON_SIZE, "wide enough for the icon and the text")
+
+## A floater can pop a lone icon at its own size, the drill board's rep bead: the
+## token grows to hold it, ICON_INSET px round it, and a text pop after it shows
+## text again.
+func test_floater_pops_a_lone_icon() -> void:
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	var icon := PlaceholderTexture2D.new()
+	icon.size = Vector2(24, 24)
+	var tint := Color(0.5, 0.5, 0.5, 1.0)
+	floater.pop_icon(icon, tint)
+	var icon_rect: TextureRect = floater.get_node("%Icon") as TextureRect
+	assert_true(floater.visible, "pop_icon shows the floater")
+	assert_eq(floater.get_icons(), [icon] as Array[Texture2D])
+	assert_eq(floater.get_text(), "", "no text")
+	assert_false((floater.get_node("%Text") as Control).visible, "the text hides")
+	assert_true(icon_rect.visible)
+	assert_eq(icon_rect.texture, icon)
+	assert_eq(icon_rect.self_modulate, tint, "in the tint given")
+	assert_eq(icon_rect.position, Vector2(LacquerFloater.ICON_INSET, LacquerFloater.ICON_INSET))
+	assert_eq(icon_rect.size, Vector2(24, 24), "at its own size")
+	assert_eq(floater.get_token_width(), 24 + 2 * LacquerFloater.ICON_INSET)
+	assert_eq(floater.size, Vector2(24, 24) + Vector2.ONE * (2 * LacquerFloater.ICON_INSET + LacquerFloater.TOKEN_SHADOW), "the token with its shadow")
+	floater.pop("+1.5 Madra", ThemeConstants.LACQUER_MADRA)
+	assert_false(icon_rect.visible, "a text pop hides the icon")
+	assert_true((floater.get_node("%Text") as Control).visible)
+	assert_eq(floater.size.y, float(LacquerFloater.TOKEN_HEIGHT + LacquerFloater.TOKEN_SHADOW), "and the token takes its text height again")
 
 #-----------------------------------------------------------------------------
 # TEXT

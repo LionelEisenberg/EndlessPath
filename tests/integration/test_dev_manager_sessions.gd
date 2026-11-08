@@ -405,12 +405,14 @@ func test_teardown_clears_the_runtime_state() -> void:
 	CyclingManager.start_cycle_session(10.0)
 	CyclingManager.set_last_cycle_result(CycleResult.new())
 	BodyRefiningManager.start_set_session(10)
+	BodyRefiningManager.set_last_set_result(DrillSetResult.new())
 	var old_vitals: VitalsManager = PlayerManager.vitals_manager
 	DevManager.play_preset(_preset("test_runtime", ""))
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_false(CyclingManager.is_cycle_running(), "the cycle session ended")
 	assert_false(BodyRefiningManager.is_set_running(), "the body refining set session ended")
 	assert_null(CyclingManager.get_last_cycle_result(), "and the last cycle's result is forgotten")
+	assert_null(BodyRefiningManager.get_last_set_result(), "and the last set's")
 	assert_not_same(PlayerManager.vitals_manager, old_vitals, "the player gets fresh vitals")
 
 ## Review Focus 3: a boss hit-stop sets the time scale to 0.25 and restores it from

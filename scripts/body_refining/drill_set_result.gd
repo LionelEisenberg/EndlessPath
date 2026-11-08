@@ -1,8 +1,9 @@
 class_name DrillSetResult
 extends RefCounted
 
-## One set of a drill as it is played: the tier each rep was judged, the Health
-## each rep restored, the XP its reps stored for the set's end, and the XP each
+## One set of a drill as it is played: the tier each rep was judged and the bead
+## it lit (get_bead_tiers(): the Last set card's beads), the Health each rep
+## restored, the XP its reps stored for the set's end, and the XP each
 ## stat took once it was paid. BodyRefiningManager.pay_rep() records each rep it
 ## pays here and stores its XP, and BodyRefiningManager.finish_set() pays what the
 ## set stored (#143: a set pays its XP when it ends). A set is perfect when every
@@ -28,11 +29,15 @@ const STAT_CAPPED_FORMAT: String = "%s capped"
 ## The Health part: what the set restored, rounded to a whole, or that the pool was full.
 const HEALTH_FORMAT: String = "+%d Health"
 const HEALTH_FULL_TEXT: String = "Health full"
+## Where a rep never placed on a bead sorts: after every bead.
+const UNPLACED_KEY: int = 1_000_000
 
 ## The drill the set is of.
 var drill: DrillData = null
 
 var _tiers: Array[Tier] = []
+## The bead each rep lit, in the order the reps were judged: -1 for one not placed.
+var _beads: Array[int] = []
 var _rep_health: Array[float] = []
 var _health_restored: float = 0.0
 ## The XP each stat took, AttributeType to float.
@@ -49,8 +54,27 @@ func _init(set_drill: DrillData = null) -> void:
 ## Records one rep judged `tier` that restored `health`.
 func add_rep(tier: Tier, health: float) -> void:
 	_tiers.append(tier)
+	_beads.append(-1)
 	_rep_health.append(health)
 	_health_restored += health
+
+## Records that the last rep added lit bead `bead` (from 0). A drill that judges
+## out of turn lights its beads out of order.
+func place_last_rep(bead: int) -> void:
+	if not _beads.is_empty():
+		_beads[-1] = bead
+
+## Returns each rep's tier in the order of the beads they lit. Reps never placed
+## on a bead keep the order they were judged in, after the placed ones.
+func get_bead_tiers() -> Array[Tier]:
+	var order: Array[int] = []
+	for index: int in _tiers.size():
+		order.append(index)
+	order.sort_custom(func(a: int, b: int) -> bool: return _bead_key(a) < _bead_key(b))
+	var tiers: Array[Tier] = []
+	for index: int in order:
+		tiers.append(_tiers[index])
+	return tiers
 
 ## Stores `xp` of `stat`'s XP that a rep earned, for the set's end to pay.
 func store_stat_xp(stat: AttributeType, xp: float) -> void:
@@ -129,6 +153,11 @@ func log_line() -> String:
 		parts.append(_stat_part(drill.minor_stat as AttributeType))
 	parts.append(HEALTH_FULL_TEXT if is_health_full() else HEALTH_FORMAT % roundi(_health_restored))
 	return SEPARATOR.join(parts)
+
+## Where rep `index` sorts among the beads: its bead, or after every bead in the
+## order it was judged.
+func _bead_key(index: int) -> int:
+	return _beads[index] if _beads[index] >= 0 else UNPLACED_KEY + index
 
 func _stat_part(stat: AttributeType) -> String:
 	if is_stat_capped(stat):

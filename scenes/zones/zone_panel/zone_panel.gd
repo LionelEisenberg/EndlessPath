@@ -27,7 +27,9 @@ extends Control
 ## ended, the last cycle card (LastCycleCard, showing CyclingManager's last
 ## result) stands 20 px under the Now tray in the techniques mode and pushes the
 ## lore, the header and the list down by its height and 20 (84 px while its chips
-## fit one line).
+## fit one line). In the drills mode the last set card (LastSetCard, showing
+## BodyRefiningManager's last set, #149) stands and pushes the same way once a set
+## has ended (118 px while its chips fit one line).
 ## It rebuilds on zone_changed, action_completed, condition_unlocked,
 ## advancement_stage_changed (a passed Tribulation's card hides),
 ## technique_unlocked (which lights NEW on the cycling card again) and
@@ -91,9 +93,9 @@ const LORE_GAP_UNDER_STRIP: float = 12.0
 const LORE_GAP_UNDER_LORE: float = 12.0
 const LORE_MIN_HEIGHT: float = 264.0
 const LORE_BOTTOM_ROOM: float = 16.0
-## The last cycle card stands this far under the Now strip (its tag rises 10 px
-## into the gap) and pushes the lore, the header and the list down by its
-## height and this gap.
+## The last cycle card, or the last set card, stands this far under the Now strip
+## (its tag rises 10 px into the gap) and pushes the lore, the header and the list
+## down by its height and this gap.
 const LAST_CYCLE_GAP: float = 20.0
 ## About's word sits 2 px lower while it is pressed in (the lore is open).
 const ABOUT_TEXT_DROP: float = 2.0
@@ -117,6 +119,7 @@ const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ba
 @onready var _about_hover: LacquerFrameOverlay = %AboutHover
 @onready var _now_strip: NowStrip = %NowStrip
 @onready var _last_cycle_card: LastCycleCard = %LastCycleCard
+@onready var _last_set_card: LastSetCard = %LastSetCard
 @onready var _activities_header: Control = %ActivitiesHeader
 @onready var _header_label: Label = %HeaderLabel
 @onready var _count_label: Label = %CountLabel
@@ -165,6 +168,8 @@ func _ready() -> void:
 	BodyRefiningManager.drill_unlocked.connect(_on_drill_unlocked)
 	CyclingManager.last_cycle_changed.connect(_on_last_cycle_changed)
 	_last_cycle_card.height_changed.connect(_relayout)
+	BodyRefiningManager.last_set_changed.connect(_on_last_set_changed)
+	_last_set_card.height_changed.connect(_relayout)
 	_about_button.toggled.connect(_on_about_toggled)
 	_about_button.mouse_entered.connect(_about_hover.show)
 	_about_button.mouse_exited.connect(_about_hover.hide)
@@ -231,6 +236,7 @@ func set_chest_mode(mode: ChestMode) -> void:
 	_drill_list.visible = mode == ChestMode.DRILLS
 	_apply_header()
 	_apply_last_cycle()
+	_apply_last_set()
 	_relayout()
 
 ## Returns what the chest lists.
@@ -263,8 +269,8 @@ func get_drill_list() -> DrillDrawerList:
 
 ## Returns the height the chest has in `mode`, whether or not it is in that mode
 ## now, and moves nothing: the same arithmetic _relayout() uses from the Now strip
-## down, the last cycle's line counted only in the techniques mode, the lore as it
-## is now. Asking for a list of drawers' mode while the chest is in another builds
+## down, the last cycle's card counted only in the techniques mode and the last
+## set's only in the drills mode, the lore as it is now. Asking for a list of drawers' mode while the chest is in another builds
 ## that list fresh from the current unlocks first, as turning to the mode does, so
 ## its drawers are there to measure.
 func chest_height_for_mode(mode: ChestMode) -> float:
@@ -378,13 +384,22 @@ func _apply_last_cycle() -> void:
 	if result != null:
 		_last_cycle_card.show_result(result)
 
+## Shows the last finished set on its card under the Now tray while the body
+## refining board is up and a set has ended, and hides the card otherwise.
+func _apply_last_set() -> void:
+	var result: DrillSetResult = BodyRefiningManager.get_last_set_result()
+	_last_set_card.visible = _chest_mode == ChestMode.DRILLS and result != null
+	if result != null:
+		_last_set_card.show_result(result)
+
 #-----------------------------------------------------------------------------
 # LAYOUT
 #-----------------------------------------------------------------------------
 
-## Places the last cycle card (when it shows), the lore (when it is open), the
-## header and the list of the mode under the Now strip's bottom, and sizes the
-## list and the chest (kit §0). The card stands LAST_CYCLE_GAP under the strip. A
+## Places the last cycle or last set card (when it shows), the lore (when it is
+## open), the header and the list of the mode under the Now strip's bottom, and
+## sizes the list and the chest (kit §0). A card stands LAST_CYCLE_GAP under the
+## strip. A
 ## height override holds the chest frame to its height; the lists are laid out the
 ## same.
 func _relayout() -> void:
@@ -392,7 +407,8 @@ func _relayout() -> void:
 		return
 	var strip_bottom: float = _strip_bottom()
 	_last_cycle_card.position.y = strip_bottom + LAST_CYCLE_GAP
-	_lore_panel.position.y = strip_bottom + LORE_GAP_UNDER_STRIP + _last_cycle_push(_chest_mode)
+	_last_set_card.position.y = strip_bottom + LAST_CYCLE_GAP
+	_lore_panel.position.y = strip_bottom + LORE_GAP_UNDER_STRIP + _last_card_push(_chest_mode)
 	var header_top: float = _header_top_for(_chest_mode)
 	var list_top: float = header_top + LIST_GAP
 	_activities_header.position.y = header_top - HEADER_TEXT_RAISE
@@ -421,23 +437,27 @@ func _place_drawer_list(list: Control, content_height: float, list_top: float) -
 	list.position.y = list_top
 	list.size.y = content_height
 
-## The Now strip's bottom edge, which the last cycle card, the lore, the header
-## and the list stand under.
+## The Now strip's bottom edge, which the last cycle and last set cards, the lore,
+## the header and the list stand under.
 func _strip_bottom() -> float:
 	return _now_strip.position.y + _now_strip.size.y
 
-## What the last cycle card pushes the lore, the header and the list down by in
-## the mode: its height and LAST_CYCLE_GAP, or nothing where it hides (it shows
-## in the techniques mode only, once a cycle has ended).
-func _last_cycle_push(mode: ChestMode) -> float:
-	var shows: bool = mode == ChestMode.TECHNIQUES and CyclingManager.get_last_cycle_result() != null
-	return _last_cycle_card.size.y + LAST_CYCLE_GAP if shows else 0.0
+## What the mode's last card pushes the lore, the header and the list down by: its
+## height and LAST_CYCLE_GAP, or nothing where none shows. The last cycle card
+## shows in the techniques mode once a cycle has ended, the last set card in the
+## drills mode once a set has.
+func _last_card_push(mode: ChestMode) -> float:
+	if mode == ChestMode.TECHNIQUES and CyclingManager.get_last_cycle_result() != null:
+		return _last_cycle_card.size.y + LAST_CYCLE_GAP
+	if mode == ChestMode.DRILLS and BodyRefiningManager.get_last_set_result() != null:
+		return _last_set_card.size.y + LAST_CYCLE_GAP
+	return 0.0
 
 ## The top of the Activities header's line in the mode: under the Now strip, the
-## last cycle card and the lore when it is open.
+## last cycle or last set card and the lore when it is open.
 func _header_top_for(mode: ChestMode) -> float:
 	var lore_push: float = _lore_panel.size.y + LORE_GAP_UNDER_LORE if _lore_panel.visible else 0.0
-	return _strip_bottom() + HEADER_GAP_UNDER_STRIP + _last_cycle_push(mode) + lore_push
+	return _strip_bottom() + HEADER_GAP_UNDER_STRIP + _last_card_push(mode) + lore_push
 
 ## The top of the list of the mode.
 func _list_top_for(mode: ChestMode) -> float:
@@ -560,6 +580,10 @@ func _on_drill_unlocked(_drill: DrillData) -> void:
 
 func _on_last_cycle_changed(_result: CycleResult) -> void:
 	_apply_last_cycle()
+	_relayout()
+
+func _on_last_set_changed(_result: DrillSetResult) -> void:
+	_apply_last_set()
 	_relayout()
 
 func _on_about_toggled(open: bool) -> void:

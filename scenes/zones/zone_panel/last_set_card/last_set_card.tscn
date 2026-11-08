@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/zone_panel/last_set_card/last_set_card.gd" id="1_card"]
+[ext_resource type="Texture2D" uid="uid://cf7fxxu8dkpho" path="res://assets/ui/lacquer/lacquer_now_tray_ai.png" id="2_tray"]
+[ext_resource type="Texture2D" uid="uid://i77lc785l1ls" path="res://assets/ui/lacquer/lacquer_now_plate_ai.png" id="3_plate"]
+[ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/last_cycle_card/reward_chip.tscn" id="4_chip"]
+
+[node name="LastSetCard" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 392.0
+offset_bottom = 98.0
+mouse_filter = 2
+script = ExtResource("1_card")
+
+[node name="Tray" type="NinePatchRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_tray")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
+
+[node name="Tag" type="NinePatchRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 12.0
+offset_top = -10.0
+offset_right = 110.0
+offset_bottom = 14.0
+mouse_filter = 2
+texture = ExtResource("3_plate")
+patch_margin_left = 8
+patch_margin_top = 4
+patch_margin_right = 8
+patch_margin_bottom = 4
+
+[node name="TagLabel" type="Label" parent="Tag"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 97.0
+offset_bottom = 22.0
+theme_type_variation = &"LabelLacquerLegend"
+text = "Last set"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Chips" type="HFlowContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 20.0
+offset_right = 376.0
+offset_bottom = 52.0
+mouse_filter = 2
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 6
+
+[node name="HealthChip" parent="Chips" instance=ExtResource("4_chip")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="StrengthChip" parent="Chips" instance=ExtResource("4_chip")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MinorChip" parent="Chips" instance=ExtResource("4_chip")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Beads" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 60.0
+offset_right = 376.0
+offset_bottom = 84.0
+mouse_filter = 2
+theme_override_constants/separation = 6
