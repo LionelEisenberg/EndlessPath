@@ -6,15 +6,14 @@ extends GutTest
 ## exact time on an injected clock. Each judged rep restores its Health at once
 ## through BodyRefiningManager.pay_rep() and stores its XP for the set's end, its
 ## bead lights in its tier's colour, a brass ring marks the rep the player is on,
-## its tier pops where its stage says (with what it could not pay under it, or a
-## Miss's reason), and a set played to its last rep pays its XP, flashes the beads'
-## frame, and is counted and reported. The hold belongs to the kind of input that
+## its bead pops where its stage says (#149: no word, no reason, nothing unpaid),
+## and a set played to its last rep pays its XP, flashes the beads' frame, and is
+## counted and reported. The hold belongs to the kind of input that
 ## started it. Every test runs on a fresh save with the real Stone Lifting (6
 ## Strength XP and 4 Health a Perfect rep, a 4 s Auto pace, 10 to a set) unless it
 ## readies another drill, with the original save put back after it.
 
 const PLAY_SCENE: PackedScene = preload("res://scenes/body_refining/drill/drill_play.tscn")
-const HEALTH_MINI: Texture2D = preload("res://assets/ui/lacquer/lacquer_mini_health_ai.png")
 const STARTING_DRILL_ID: String = "stone_lifting"
 
 const AttributeType = CharacterAttributesData.AttributeType
@@ -119,8 +118,18 @@ func _marked_bead() -> int:
 			return index
 	return -2
 
-func _floater(unique_name: String) -> LacquerFloater:
-	return _play.get_node("%" + unique_name) as LacquerFloater
+## The floater a rep's bead pops on.
+func _floater() -> LacquerFloater:
+	return _play.get_node("%RepFloater") as LacquerFloater
+
+## Asserts the floater shows the bead a rep of `tier` lights and nothing else, in
+## `tint`.
+func _assert_pops_bead(tier: Tier, tint: Color = Color.WHITE, context: String = "") -> void:
+	var floater: LacquerFloater = _floater()
+	assert_true(floater.visible, "%s: it pops" % context)
+	assert_eq(floater.get_icons(), [DrillPlay.bead_icon(tier)] as Array[Texture2D], "%s: the bead it lit" % context)
+	assert_eq(floater.get_text(), "", "%s: no word" % context)
+	assert_eq(floater.get_color(), tint, "%s: its tint" % context)
 
 ## The run of the stone being lifted.
 func _stone_run() -> StoneLiftingRun:
@@ -291,7 +300,7 @@ func test_a_landed_leaf_stays_on_the_ground() -> void:
 	_play.handle_press_event(_click(true, LEAF_START))
 	_at(3.6)
 	assert_eq(_bead_frames()[0], 4, "a Miss")
-	assert_eq(_floater("LineFloater").get_text(), DrillPlay.MISS_REASONS[DrillRun.Miss.LANDED])
+	_assert_pops_bead(Tier.MISS, Color.WHITE, "a landed leaf")
 	for seconds: float in [3.6, 10.0, 20.0]:
 		_at(seconds)
 		assert_true(_leaf_node(0).visible, "%.1f s: the leaf lies on the ground" % seconds)
@@ -571,32 +580,32 @@ func test_the_tenth_rep_flashes_the_set_frame() -> void:
 # WHAT A REP SHOWS
 #-----------------------------------------------------------------------------
 
-func test_a_miss_lights_its_bead_and_pops_its_reason() -> void:
-	_lift(0, 0.6)
-	assert_eq(_bead_frames()[0], 4, "the miss bead")
-	assert_eq(_floater("WordFloater").get_text(), "Miss")
-	assert_eq(_floater("WordFloater").get_color(), ThemeConstants.LACQUER_HEALTH, "a Miss in the warning colour")
-	assert_eq(_floater("LineFloater").get_text(), "Too low")
+## Each tier pops the bead it lights, a Miss its crossed bead alone: the stone's
+## red stop line shows why.
+func test_each_tier_pops_its_bead() -> void:
+	var cases: Array[Dictionary] = [
+		{"held": CENTRE, "tier": Tier.PERFECT},
+		{"held": 1.2, "tier": Tier.GOOD},
+		{"held": 0.9, "tier": Tier.OK},
+		{"held": 0.6, "tier": Tier.MISS},
+	]
+	for rep: int in cases.size():
+		var case: Dictionary = cases[rep]
+		_lift(rep, case["held"])
+		assert_eq(_bead_frames()[rep], DrillPlay.BEAD_FRAMES[case["tier"]], "held %.2f s: the bead lit" % case["held"])
+		_assert_pops_bead(case["tier"], Color.WHITE, "held %.2f s" % case["held"])
 
-func test_a_rep_at_full_health_pops_full() -> void:
+## A rep that could not pay everything pops its bead alone, as any other: the pay
+## line and the Last set card say what went unpaid.
+func test_a_rep_at_the_cap_or_at_full_health_pops_its_bead_alone() -> void:
+	CharacterManager.set_stat_level(AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
 	ResourceManager.set_health(ResourceManager.get_max_health())
 	_lift(0, CENTRE)
-	assert_eq(_floater("WordFloater").get_text(), "Perfect")
-	assert_eq(_floater("WordFloater").get_color(), ThemeConstants.LACQUER_BRASS)
-	assert_true(_floater("LineFloater").visible, "a line under the tier")
-	assert_eq(_floater("LineFloater").get_icons(), [HEALTH_MINI] as Array[Texture2D], "the Health heart")
-	assert_eq(_floater("LineFloater").get_text(), " full")
+	_assert_pops_bead(Tier.PERFECT, Color.WHITE, "capped and full")
 
-func test_a_capped_strength_pops_capped() -> void:
-	CharacterManager.set_stat_level(AttributeType.STRENGTH, CharacterManager.get_stat_level_cap())
-	ResourceManager.set_health(50.0)
-	_lift(0, CENTRE)
-	assert_eq(_floater("LineFloater").get_icons(), [StatDisplay.mini_icon_of(AttributeType.STRENGTH)] as Array[Texture2D], "Strength's icon")
-	assert_eq(_floater("LineFloater").get_text(), " capped")
-
-## A drill's other stat at the cap reads "capped" as Strength does, takes no XP at
-## the set's end, and the rep still restores Health.
-func test_a_capped_minor_stat_pops_capped() -> void:
+## A drill's other stat at the cap takes no XP at the set's end, and the rep still
+## restores Health.
+func test_a_capped_minor_stat_takes_no_xp() -> void:
 	CharacterManager.set_stat_level(AttributeType.BODY, CharacterManager.get_stat_level_cap())
 	ResourceManager.set_health(50.0)
 	var body_xp: float = CharacterManager.get_stat_xp(AttributeType.BODY)
@@ -606,20 +615,17 @@ func test_a_capped_minor_stat_pops_capped() -> void:
 	_clock_to(0.2)
 	_play.handle_press_event(_press(false))
 	_at(2.0)
-	assert_eq(_floater("WordFloater").get_text(), "Perfect")
-	assert_eq(_floater("LineFloater").get_icons(), [StatDisplay.mini_icon_of(AttributeType.BODY)] as Array[Texture2D], "Body's icon")
-	assert_eq(_floater("LineFloater").get_text(), " capped")
+	_assert_pops_bead(Tier.PERFECT, Color.WHITE, "Body capped")
 	assert_eq(ResourceManager.get_health(), 54.0, "Health still refills")
 	_play.stop_set()
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.BODY), body_xp, "Body takes no XP")
 	assert_eq(CharacterManager.get_stat_xp(AttributeType.STRENGTH), 8.0, "Strength still does")
 
-func test_a_rep_that_pays_everything_shows_no_line() -> void:
-	ResourceManager.set_health(50.0)
-	_lift(0, 0.6)
-	_lift(1, CENTRE)
-	assert_eq(_floater("WordFloater").get_text(), "Perfect")
-	assert_false(_floater("LineFloater").visible, "the miss's reason is gone and nothing replaces it")
+## The result notes the bead each rep lit, for the Last set card.
+func test_the_result_reads_the_reps_in_bead_order() -> void:
+	_lift(0, CENTRE)
+	_lift(1, 0.6)
+	assert_eq(_play.get_result().get_bead_tiers(), [Tier.PERFECT, Tier.MISS] as Array[Tier])
 
 func test_the_stone_stands_on_the_jade() -> void:
 	_clock_to(0.0)
@@ -838,8 +844,8 @@ func test_turning_auto_on_starts_at_once() -> void:
 	assert_true(_play.is_auto_set(), "a new Auto set at once")
 	assert_true(_play.is_set_running())
 
-## An Auto rep never earns the drill's other stat, so it doesn't report it: nothing
-## pops "capped" for Body, and rep_judged carries Strength alone.
+## An Auto rep never earns the drill's other stat, so rep_judged carries Strength
+## alone; it pops Perfect's bead dimmed, as its bead lights.
 func test_an_auto_rep_does_not_report_the_other_stat_unpaid() -> void:
 	ResourceManager.set_health(20.0)
 	_play.setup(BodyRefiningManager.get_drill("waterfall_tempering"))
@@ -851,5 +857,4 @@ func test_an_auto_rep_does_not_report_the_other_stat_unpaid() -> void:
 	var params: Array = get_signal_parameters(_play, "rep_judged")
 	if params.size() == 3:
 		assert_eq((params[2] as Dictionary).keys(), [AttributeType.STRENGTH], "the XP Strength stored, alone")
-	assert_eq(_floater("WordFloater").get_text(), "Auto")
-	assert_false(_floater("LineFloater").visible, "no capped line for Body")
+	_assert_pops_bead(Tier.AUTO, DrillPlay.AUTO_BEAD_TINT, "an Auto rep")
