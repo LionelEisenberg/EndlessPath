@@ -38,7 +38,10 @@ enum InputKind {
 ## How the drill plays, in a few words, for its drawer: "Keep the needle in the
 ## brass".
 @export var play_hint: String = ""
-## The board's footer before a set, and while one runs.
+## The board's footer before a set, and while one runs. Each is one line beside
+## the Auto toggle (#144): the action and its input in one or two short
+## sentences. The line before a set names the keys; the line during one stays up
+## between reps, so it also cues the next rep's start.
 @export var ready_line: String = ""
 @export var play_line: String = ""
 

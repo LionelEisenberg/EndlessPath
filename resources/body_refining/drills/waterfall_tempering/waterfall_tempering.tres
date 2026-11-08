@@ -16,5 +16,5 @@ input_kind = 3
 rep_seconds = 3.0
 reps_per_set = 10
 play_hint = "Brace as each surge lands"
-ready_line = "Press Space or click to send a surge down the falls."
-play_line = "Press to send each surge, and again as it lands on the brass line."
+ready_line = "Press Space or click to send a surge."
+play_line = "Press to send a surge, again as it lands."
