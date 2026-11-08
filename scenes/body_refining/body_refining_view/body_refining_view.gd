@@ -9,11 +9,12 @@ extends Control
 ## icon and the Health heart in place of the words ("Perfect rep · [arm] +6 XP ·
 ## [heart] +4", "[arm] capped" in brass at the cap): the place a player sees
 ## Strength's second job, the Health a rep restores. Then the drill's own scene
-## (DrillPlay), and a footer line: the drill's words for how to start and for how
-## to play while a set runs, and what the last set paid once it ends ("Last set ·
-## [arm] +48 XP · [heart] +32 · 6 / 10 perfect"), until the next set starts. A
-## finished set also writes one line to the log, in words. A name or a line too long for its width wraps, never cut,
-## and the board grows under it.
+## (DrillPlay), and a footer line: the drill's own words for how to start, and for
+## how to play while a set runs. A finished set goes to the zone chest's Last set
+## card (#149: BodyRefiningManager.set_last_set_result()), which opening the board
+## and picking another drill forget, and writes one line to the log, in words. A
+## name or a line too long for its width wraps, never cut, and the board grows
+## under it.
 ##
 ## Each scored rep sends its Health from where its stage says (the stone, the leaf
 ## caught) into the cultivator cabinet: a burst of PELLETS_BY_TIER pellets in the
@@ -42,9 +43,9 @@ extends Control
 ## "Auto" on darkened art that takes no press, and on hover a tooltip says what
 ## unlocks it. A perfect set unlocks it: a brass floater over the stage, two flashes
 ## on the toggle (which stays off), and a yellow log line. With it on, DrillPlay
-## plays sets by itself, the footer reading AUTO_LINE until an Auto set ends, then
-## that set's line ("Last set · Auto · …"). Toggling it ends a set in progress. The
-## toggle's state is not saved.
+## plays sets by itself, the footer reading AUTO_LINE from an Auto set's start,
+## through its end and the wait for the next. Toggling it ends a set in progress.
+## The toggle's state is not saved.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -53,15 +54,10 @@ extends Control
 const Tier = DrillRules.Tier
 const AttributeType = CharacterAttributesData.AttributeType
 
-## The pay line's and the result line's words.
+## The pay line's words.
 const PAY_LEAD: String = "Perfect rep"
-const RESULT_LEAD: String = "Last set"
-const PERFECT_SET_TEXT: String = "Perfect set"
 const XP_FORMAT: String = " %s XP"
 const CAPPED_TEXT: String = " capped"
-const FULL_TEXT: String = " full"
-const PERFECT_COUNT_FORMAT: String = "%d / %d perfect"
-const AUTO_WORD: String = "Auto"
 ## The footer while Auto plays, with Auto's rate.
 const AUTO_LINE: String = "Auto drills on at %d%%. Turn Auto off to play for the full rate."
 ## The Auto toggle's text: on, off, and beside the lock while it is locked.
@@ -151,9 +147,6 @@ var chest: Control = null
 
 ## The drill the board plays: the equipped one.
 var _drill: DrillData = null
-## Whether the footer shows an Auto set's line, which stays through the next Auto
-## set until that one ends.
-var _auto_result_shown: bool = false
 ## The set running's reps that stored XP, as [bead, the XP each stat stored]: what
 ## the beads pour when the set ends.
 var _stored_by_bead: Array = []
@@ -201,11 +194,10 @@ func _has_point(point: Vector2) -> bool:
 
 ## Readies the board for `action`: its name over the equipped drill's, the pay
 ## line, the drill's stage at rest and the drill's line before a set on the
-## footer. The last set's line is forgotten, so reopening starts clean.
+## footer. The last set is forgotten, so reopening starts clean.
 func setup(action: ZoneActionData) -> void:
 	_action_label.text = action.action_name if action != null else ""
 	_load_equipped_drill()
-	_auto_result_shown = false
 	_show_ready_line()
 
 ## Stops a set in progress (its reps stay paid) and frees the pellets in flight,
@@ -253,27 +245,6 @@ static func pay_line(drill: DrillData, capped_stats: Array, perfect_health: floa
 	parts.append(_icon(HEALTH_ICON) + _value(" " + LacquerText.rate(perfect_health), VALUE_COLOR))
 	return SEPARATOR.join(parts)
 
-## Returns the footer's line for a finished set, as BBCode: "Last set · ",
-## "Perfect set · " for ten Perfect reps, then each trained stat's icon and the XP
-## it took (or "capped"), the Health heart and what the set restored (or "full"),
-## and, short of a perfect set, how many reps were Perfect. A set Auto played reads
-## "Last set · Auto · ", then Strength and Health only: Auto never pays the other
-## stat, and has no Perfect reps to count.
-static func result_line(result: DrillSetResult) -> String:
-	var parts: PackedStringArray = [RESULT_LEAD]
-	if result.is_perfect():
-		parts.append(PERFECT_SET_TEXT)
-	elif result.is_auto():
-		parts.append(AUTO_WORD)
-	parts.append(_result_stat_part(result, AttributeType.STRENGTH))
-	if result.drill != null and result.drill.has_minor_stat() and not result.is_auto():
-		parts.append(_result_stat_part(result, result.drill.minor_stat as AttributeType))
-	var health_text: String = FULL_TEXT if result.is_health_full() else " +%d" % roundi(result.get_health_restored())
-	parts.append(_icon(HEALTH_ICON) + health_text)
-	if not result.is_perfect() and not result.is_auto():
-		parts.append(PERFECT_COUNT_FORMAT % [result.count_of(Tier.PERFECT), result.get_rep_count()])
-	return SEPARATOR.join(parts)
-
 #-----------------------------------------------------------------------------
 # THE DRILL AND THE LINES
 #-----------------------------------------------------------------------------
@@ -289,12 +260,14 @@ func _load_equipped_drill() -> void:
 			return
 	_apply_drill(equipped)
 
-## Sets the board up for `drill`: its name, its stage and the pay line.
+## Sets the board up for `drill`: its name, its stage and the pay line. The last
+## set is forgotten after the play is readied, since readying it finishes a set
+## whose last rep had landed.
 func _apply_drill(drill: DrillData) -> void:
 	_drill = drill
 	_title_label.text = drill.drill_name if drill != null else ""
 	_drill_play.setup(drill)
-	_auto_result_shown = false
+	BodyRefiningManager.clear_last_set_result()
 	_refresh_auto()
 	_refresh_pay_line()
 
@@ -322,15 +295,14 @@ func _show_status(text: String) -> void:
 func _show_ready_line() -> void:
 	_show_status(_drill.ready_line if _drill != null else "")
 
+## Shows Auto's line on the footer, while Auto plays.
+func _show_auto_line() -> void:
+	_show_status(AUTO_LINE % roundi(DrillRules.AUTO_RATE * 100.0))
+
 static func _pay_stat_part(stat: AttributeType, xp: float, capped: bool) -> String:
 	if capped:
 		return _stat_label(stat) + _value(CAPPED_TEXT, CAPPED_COLOR)
 	return _stat_label(stat) + _value(XP_FORMAT % LacquerText.rate(xp), VALUE_COLOR)
-
-static func _result_stat_part(result: DrillSetResult, stat: AttributeType) -> String:
-	if result.is_stat_capped(stat):
-		return _stat_label(stat) + CAPPED_TEXT
-	return _stat_label(stat) + XP_FORMAT % ("+%d" % roundi(result.get_stat_xp(stat)))
 
 ## The stat's mini icon, or its name while it has none.
 static func _stat_label(stat: AttributeType) -> String:
@@ -456,15 +428,13 @@ func _place_unlock_floater() -> void:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-## A set started: the drill's line during a set, or while Auto plays, AUTO_LINE,
-## unless an Auto set's line is showing, which stays until this set ends.
+## A set started: the drill's line during a set, or AUTO_LINE for a set Auto plays.
 func _on_set_started() -> void:
 	_stored_by_bead.clear()
-	if not _drill_play.is_auto_set():
-		_auto_result_shown = false
+	if _drill_play.is_auto_set():
+		_show_auto_line()
+	else:
 		_show_status(_drill.play_line)
-	elif not _auto_result_shown:
-		_show_status(AUTO_LINE % roundi(DrillRules.AUTO_RATE * 100.0))
 
 ## A rep was judged and paid: a burst of its tier's pellets for the Health it
 ## restored, to the Health orb, each pellet holding its share out of the cabinet
@@ -508,13 +478,17 @@ func _pour(result: DrillSetResult) -> void:
 				cultivator_plate.hold_stat_xp(stat, share)
 				pellet.delivered.connect(cultivator_plate.release_stat_xp.bind(stat, share))
 
-## A set was played to its last rep: its beads pour its XP, the footer shows what
-## it paid, and one line goes to the log. A perfect set unlocks its drill's Auto.
+## A set was played to its last rep: its beads pour its XP, it becomes the chest's
+## last set, the footer goes back to the drill's line before a set (AUTO_LINE while
+## Auto plays on), and one line goes to the log. A perfect set unlocks its drill's
+## Auto.
 func _on_set_completed(result: DrillSetResult) -> void:
 	_pour(result)
-	_status_text.text = result_line(result)
-	_auto_result_shown = result.is_auto()
-	_relayout_board()
+	BodyRefiningManager.set_last_set_result(result)
+	if _drill_play.is_auto_running():
+		_show_auto_line()
+	else:
+		_show_ready_line()
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
 	if result.is_perfect() and result.drill != null and not BodyRefiningManager.is_auto_unlocked(result.drill.id):
 		BodyRefiningManager.unlock_auto(result.drill.id)
@@ -534,7 +508,6 @@ func _on_auto_unlocked(drill: DrillData) -> void:
 ## The toggle turned: DrillPlay follows it, which ends a set in progress, and the
 ## footer goes back to the drill's line before a set until a set starts.
 func _on_auto_toggled(_on: bool) -> void:
-	_auto_result_shown = false
 	_refresh_auto()
 	if not _drill_play.is_set_running():
 		_show_ready_line()
