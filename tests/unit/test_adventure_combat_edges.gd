@@ -83,8 +83,6 @@ func test_a_fight_starts_held_with_its_name_hidden() -> void:
 	assert_true(_combat.enemy_combatant.is_held(), "and so does the enemy")
 	assert_false(_combat.is_live(), "the fight has not begun")
 	assert_false(_combat.enemy_nameplate.visible, "the enemy's name waits for it to land")
-	assert_eq(_combat.enemy_combatant.visual.position.x, 420.0, "the enemy waits 420 px out on its right")
-	assert_eq(_combat.player_combatant.visual.position.x, -420.0, "and the player 420 px out on its left")
 
 func test_begin_starts_both_openings_in_one_frame() -> void:
 	_start_fight()

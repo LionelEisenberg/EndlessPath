@@ -145,6 +145,21 @@ func test_the_core_row_counts_each_bead_in_as_it_lands() -> void:
 		beads[index].free()
 	assert_eq(_first_star(), 3, "every bead landed: level 3")
 
+## The kill is paid at its deciding hit, but its beads leave the hex only once the
+## fight's close has brought the map back (#138): meanwhile the cabinet holds the
+## Core Density back, so its Core row stands where it stood.
+func test_the_core_row_stands_still_through_the_close() -> void:
+	_start_adventure()
+	var choice: CombatChoice = _fight_paying(31.0)
+	_view.adventure_tilemap._current_combat_choice = choice
+	_view._on_start_combat(choice)
+
+	_view.combat.trigger_combat_end.emit(true, 0)
+
+	assert_eq(CultivationManager.get_core_density_level(), 3.0, "precondition: the kill is paid at the hit")
+	assert_eq(_beads().size(), 0, "no bead flies in the close")
+	assert_eq(_first_star(), 0, "and the Core row stands where it stood")
+
 ## A full core takes no XP, so no bead flies.
 func test_a_kill_at_a_full_core_sends_no_beads() -> void:
 	PersistenceManager.save_game_data.core_density_level = CultivationManager.get_core_density_cap()
